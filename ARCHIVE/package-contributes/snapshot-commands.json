@@ -1,0 +1,58 @@
+{
+	"commands": [
+		{
+			"command": "snapback.createSnapshot",
+			"title": "Create Snapshot",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.snapBack",
+			"title": "Snap Back",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.showSnapshotDetails",
+			"title": "Show Snapshot Details",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.viewSnapshot",
+			"title": "View Snapshot",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.showAllSnapshots",
+			"title": "Show All Snapshots",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.deleteSnapshot",
+			"title": "SnapBack: Delete Snapshot",
+			"category": "SnapBack",
+			"icon": "$(trash)"
+		},
+		{
+			"command": "snapback.deleteOlderSnapshots",
+			"title": "SnapBack: Delete Older Snapshots",
+			"category": "SnapBack",
+			"icon": "$(clear-all)"
+		},
+		{
+			"command": "snapback.unprotectAndDeleteSnapshot",
+			"title": "SnapBack: Unprotect and Delete Snapshot",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.renameSnapshot",
+			"title": "SnapBack: Rename Snapshot",
+			"category": "SnapBack",
+			"icon": "$(edit)"
+		},
+		{
+			"command": "snapback.protectSnapshot",
+			"title": "SnapBack: Protect Snapshot",
+			"category": "SnapBack",
+			"icon": "$(lock)"
+		}
+	]
+}

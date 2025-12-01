@@ -1,0 +1,22 @@
+{
+	"extends": "@snapback/tsconfig/extension",
+	"compilerOptions": {
+		"types": ["vscode", "mocha"],
+		"emitDeclarationOnly": false,
+		"rootDir": "src"
+	},
+	"include": [
+		"src/**/*.ts",
+		"vscode.proposed.timeline.d.ts",
+		"types/**/*.d.ts"
+	],
+	"exclude": [
+		"node_modules",
+		"dist",
+		"out",
+		"**/*.backup.js",
+		"**/*.corrupted.js",
+		"src/**/*.js",
+		"src/**/*.d.ts"
+	]
+}

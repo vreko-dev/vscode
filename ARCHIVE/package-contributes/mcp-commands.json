@@ -1,0 +1,39 @@
+{
+	"commands": [
+		{
+			"command": "snapback.testMCPFederation",
+			"title": "Test MCP Federation",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.testMCPFederationComprehensive",
+			"title": "Test MCP Federation (Comprehensive)",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.analyzeRisk",
+			"title": "Analyze Risk",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.toggleAIMonitoring",
+			"title": "Toggle AI Monitoring",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.showAIMonitoringStatus",
+			"title": "Show AI Monitoring Status",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.applyWorkflowSuggestion",
+			"title": "Apply Workflow Suggestion",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.autoApplySuggestions",
+			"title": "Auto-Apply Suggestions",
+			"category": "SnapBack"
+		}
+	]
+}

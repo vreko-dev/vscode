@@ -1,0 +1,51 @@
+{
+	"name": "snapback-vscode",
+	"publisher": "MarcelleLabs",
+	"displayName": "SnapBack - Code Safety Net",
+	"pricing": "Free",
+	"sponsor": {
+		"url": "https://github.com/sponsors/Marcelle-Labs"
+	},
+	"description": "Smart snapshot manager with Watch/Warn/Block protection levels. Code Breaks. SnapBack.",
+	"version": "1.2.1",
+	"engines": {
+		"vscode": "^1.99.0"
+	},
+	"enabledApiProposals": ["timeline"],
+	"categories": ["Other"],
+	"keywords": [
+		"snapshot",
+		"backup",
+		"restore",
+		"protection",
+		"safety",
+		"undo",
+		"recovery",
+		"time machine",
+		"local history",
+		"watch",
+		"warn",
+		"block",
+		"snapback"
+	],
+	"icon": "media/marketplace-icon-256.png",
+	"galleryBanner": {
+		"color": "#000000",
+		"theme": "dark"
+	},
+	"activationEvents": [
+		"onStartupFinished",
+		"onCommand:snapback.*",
+		"workspaceContains:.snapbackrc"
+	],
+	"main": "./dist/extension.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Marcelle-Labs/SnapBack"
+	},
+	"bugs": {
+		"url": "https://github.com/Marcelle-Labs/SnapBack/issues"
+	},
+	"homepage": "https://github.com/Marcelle-Labs/SnapBack/blob/main/apps/vscode/README.md",
+	"license": "SEE LICENSE IN LICENSE"
+}

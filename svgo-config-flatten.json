@@ -1,0 +1,23 @@
+{
+	"plugins": [
+		{
+			"name": "preset-default",
+			"params": {
+				"overrides": {
+					"convertTransform": {
+						"removeUseless": true
+					},
+					"convertPathData": {
+						"floatPrecision": 6,
+						"transformPrecision": 6,
+						"straightCurves": false
+					},
+					"cleanupNumericValues": {
+						"floatPrecision": 6
+					},
+					"mergePaths": false
+				}
+			}
+		}
+	]
+}

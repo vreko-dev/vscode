@@ -1,0 +1,64 @@
+{
+	"commands": [
+		{
+			"command": "snapback.protectCurrentFile",
+			"title": "SnapBack: Protect This File",
+			"icon": "$(lock)"
+		},
+		{
+			"command": "snapback.unprotectFile",
+			"title": "SnapBack: Unprotect This File",
+			"icon": "$(unlock)"
+		},
+		{
+			"command": "snapback.setProtectionLevel",
+			"title": "Set Protection Level",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.setWatchLevel",
+			"title": "Set Watch Level",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.setWarnLevel",
+			"title": "Set Warn Level",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.setBlockLevel",
+			"title": "Set Block Level",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.setLevel.watched",
+			"title": "Set Watched Level",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.setLevel.warning",
+			"title": "Set Warning Level",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.setLevel.protected",
+			"title": "Set Protected Level",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.unprotect",
+			"title": "Remove Protection",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.showAllProtectedFiles",
+			"title": "Show All Protected Files",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.protectEntireRepo",
+			"title": "SnapBack: Protect Entire Repository",
+			"category": "SnapBack"
+		}
+	]
+}

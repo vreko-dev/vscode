@@ -1,0 +1,13 @@
+{
+	"iconDefinitions": {
+		"_snapbackrc": {
+			"iconPath": "./icons/snapbackrc-icon.svg"
+		}
+	},
+	"fileNames": {
+		".snapbackrc": "_snapbackrc"
+	},
+	"fileExtensions": {
+		"snapbackrc": "_snapbackrc"
+	}
+}

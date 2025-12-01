@@ -1,0 +1,31 @@
+{
+	"keybindings": [
+		{
+			"command": "snapback.protectFile",
+			"key": "ctrl+alt+p",
+			"mac": "cmd+alt+p",
+			"when": "editorFocus"
+		},
+		{
+			"command": "snapback.createSnapshot",
+			"key": "ctrl+alt+s",
+			"mac": "cmd+alt+s",
+			"when": "editorFocus"
+		},
+		{
+			"command": "snapback.snapBack",
+			"key": "ctrl+alt+z",
+			"mac": "cmd+alt+z"
+		},
+		{
+			"command": "snapback.deleteSnapshot",
+			"key": "delete",
+			"when": "focusedView == snapback.main && viewItem == snapshot"
+		},
+		{
+			"command": "snapback.renameSnapshot",
+			"key": "f2",
+			"when": "focusedView == snapback.main && viewItem == snapshot"
+		}
+	]
+}

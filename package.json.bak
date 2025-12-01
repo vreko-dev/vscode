@@ -1,0 +1,980 @@
+{
+  "name": "snapback-vscode",
+  "description": "Smart snapshot manager with Watch/Warn/Block protection levels. Code Breaks. SnapBack.",
+  "version": "1.2.6",
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:snapback.*",
+    "workspaceContains:.snapbackrc"
+  ],
+  "bugs": "https://github.com/Marcelle-Labs/SnapBack/issues",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "SnapBack requires workspace trust to create snapshots and analyze files. In untrusted workspaces, SnapBack will only provide read-only snapshot viewing.",
+      "restrictedConfigurations": [
+        "snapback.snapshot.autoCreate",
+        "snapback.config.enableExecutableConfigs",
+        "snapback.guardian.enabled"
+      ]
+    }
+  },
+  "categories": [
+    "Other"
+  ],
+  "contributes": {
+    "authentication": [
+      {
+        "id": "snapback",
+        "label": "SnapBack"
+      }
+    ],
+    "commands": [
+      {
+        "command": "snapback.initialize",
+        "title": "SnapBack: Initialize 🧢",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.showStatus",
+        "title": "SnapBack: Show Protection Status 🧢",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.createSnapshot",
+        "title": "SnapBack: Create Snapshot 🧢",
+        "category": "SnapBack",
+        "icon": "$(save)"
+      },
+      {
+        "command": "snapback.snapBack",
+        "title": "SnapBack: Snap Back (Restore Snapshot) 🧢",
+        "category": "SnapBack",
+        "icon": "$(history)"
+      },
+      {
+        "command": "snapback.protectEntireRepo",
+        "title": "Protect This Repo",
+        "category": "SnapBack",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "snapback.showProtectionStatus",
+        "title": "Protection Verified",
+        "category": "SnapBack",
+        "icon": "$(shield-check)"
+      },
+      {
+        "command": "snapback.protectFile",
+        "title": "SnapBack: Protect File 🧢",
+        "category": "SnapBack",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "snapback.protectCurrentFile",
+        "title": "SnapBack: Protect Current File 🧢",
+        "category": "SnapBack",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "snapback.unprotectFile",
+        "title": "SnapBack: Unprotect File 🧢",
+        "category": "SnapBack",
+        "icon": "$(unlock)"
+      },
+      {
+        "command": "snapback.changeProtectionLevel",
+        "title": "SnapBack: Change Protection Level 🧢",
+        "category": "SnapBack",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "snapback.setWatchLevel",
+        "title": "Set Protection: Watch (Silent) 🟢",
+        "category": "SnapBack",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "snapback.setWarnLevel",
+        "title": "Set Protection: Warn (Notify) 🟡",
+        "category": "SnapBack",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "snapback.setBlockLevel",
+        "title": "Set Protection: Block (Required) 🔴",
+        "category": "SnapBack",
+        "icon": "$(error)"
+      },
+      {
+        "command": "snapback.viewSnapshot",
+        "title": "SnapBack: View Snapshot Details 🧢",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.showAllSnapshots",
+        "title": "SnapBack: Show All Snapshots 🧢",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.showAllProtectedFiles",
+        "title": "SnapBack: Show Protected Files 🧢",
+        "category": "SnapBack",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "snapback.deleteSnapshot",
+        "title": "SnapBack: Delete Snapshot 🧢",
+        "category": "SnapBack",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "snapback.deleteOlderSnapshots",
+        "title": "SnapBack: Delete Older Snapshots 🧢",
+        "category": "SnapBack",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "snapback.unprotectAndDeleteSnapshot",
+        "title": "SnapBack: Unprotect and Delete Snapshot 🧢",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.renameSnapshot",
+        "title": "SnapBack: Rename Snapshot 🧢",
+        "category": "SnapBack",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "snapback.protectSnapshot",
+        "title": "SnapBack: Protect Snapshot 🧢",
+        "category": "SnapBack",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "snapback.restoreLastSnapshot",
+        "title": "SnapBack: Restore Last Snapshot 🧢",
+        "category": "SnapBack",
+        "icon": "$(history)"
+      },
+      {
+        "command": "snapback.openWalkthrough",
+        "title": "SnapBack: Show Welcome Guide 🧢",
+        "category": "SnapBack",
+        "icon": "$(question)"
+      },
+      {
+        "command": "snapback.openDocumentation",
+        "title": "SnapBack: Open Documentation 📖",
+        "category": "SnapBack",
+        "icon": "$(book)"
+      },
+      {
+        "command": "snapback.openProtectedFile",
+        "title": "SnapBack: Open Protected File",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.refreshViews",
+        "title": "SnapBack: Refresh Views 🧢",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.compareWithSnapshot",
+        "title": "SnapBack: Compare with Snapshot 🧢",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.updateConfiguration",
+        "title": "SnapBack: Update Configuration",
+        "category": "SnapBack",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "snapback.createPolicyOverride",
+        "title": "SnapBack: Create Policy Override 🧢",
+        "category": "SnapBack",
+        "icon": "$(symbol-event)"
+      },
+      {
+        "command": "snapback.toggleOfflineMode",
+        "title": "SnapBack: Toggle Offline Mode 🧢",
+        "category": "SnapBack",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "snapback.signIn",
+        "title": "SnapBack: Sign In 🧢",
+        "category": "SnapBack",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "snapback.signOut",
+        "title": "SnapBack: Sign Out 🧢",
+        "category": "SnapBack",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "snapback.showAuthStatus",
+        "title": "SnapBack: Show Authentication Status 🧢",
+        "category": "SnapBack",
+        "icon": "$(account)"
+      },
+      {
+        "command": "snapback.clearFileHealthDecorations",
+        "title": "SnapBack: Clear File Health Decorations 🧢",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.refreshFileHealthDecorations",
+        "title": "SnapBack: Refresh File Health Decorations 🧢",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.showFileHealthStatus",
+        "title": "SnapBack: Show File Health Status 🧢",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.connect",
+        "title": "SnapBack: Connect Account",
+        "category": "SnapBack",
+        "icon": "$(account)"
+      },
+      {
+        "command": "snapback.refreshTree",
+        "title": "SnapBack: Refresh Explorer",
+        "category": "SnapBack",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "snapback.openSnapshotInWeb",
+        "title": "SnapBack: Open Snapshot in Web",
+        "category": "SnapBack",
+        "icon": "$(link-external)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "snapback",
+          "title": "SnapBack",
+          "icon": "media/marketplace-icon-256.png"
+        }
+      ]
+    },
+    "views": {
+      "snapback": [
+        {
+          "id": "snapback.dashboard",
+          "name": "Safety Dashboard",
+          "when": "snapback.isActive",
+          "icon": "$(shield)"
+        },
+        {
+          "id": "snapback.sessions",
+          "name": "Sessions",
+          "when": "snapback.isActive"
+        }
+      ],
+      "explorer": [
+        {
+          "id": "snapbackExplorer",
+          "name": "SnapBack Workspace",
+          "when": "snapback.isActive",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "snapback.protectFile",
+        "label": "SnapBack: Protect File"
+      },
+      {
+        "id": "snapback.changeProtectionLevel",
+        "label": "SnapBack: Change Protection Level"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "snapback.createSnapshot",
+          "when": "snapback.isActive && !explorerResourceIsFolder",
+          "group": "snapback@1"
+        },
+        {
+          "command": "snapback.snapBack",
+          "when": "snapback.isActive && !explorerResourceIsFolder",
+          "group": "snapback@2"
+        },
+        {
+          "submenu": "snapback.protectFile",
+          "when": "snapback.isActive && !explorerResourceIsFolder && !snapback.isProtected",
+          "group": "snapback@3"
+        },
+        {
+          "submenu": "snapback.changeProtectionLevel",
+          "when": "snapback.isActive && !explorerResourceIsFolder && snapback.isProtected",
+          "group": "snapback@3"
+        },
+        {
+          "command": "snapback.unprotectFile",
+          "when": "snapback.isActive && !explorerResourceIsFolder && snapback.isProtected",
+          "group": "snapback@3"
+        },
+        {
+          "command": "snapback.compareWithSnapshot",
+          "when": "snapback.isActive && !explorerResourceIsFolder",
+          "group": "snapback@4"
+        },
+        {
+          "command": "snapback.createPolicyOverride",
+          "when": "snapback.isActive && !explorerResourceIsFolder",
+          "group": "snapback@5"
+        }
+      ],
+      "snapback.protectFile": [
+        {
+          "command": "snapback.setWatchLevel",
+          "group": "levels@1",
+          "when": "snapback.canProtect"
+        },
+        {
+          "command": "snapback.setWarnLevel",
+          "group": "levels@2",
+          "when": "snapback.canProtect"
+        },
+        {
+          "command": "snapback.setBlockLevel",
+          "group": "levels@3",
+          "when": "snapback.canProtect"
+        }
+      ],
+      "snapback.changeProtectionLevel": [
+        {
+          "command": "snapback.setWatchLevel",
+          "group": "levels@1",
+          "when": "snapback.isProtected && snapback.currentLevel != 'watch'"
+        },
+        {
+          "command": "snapback.setWarnLevel",
+          "group": "levels@2",
+          "when": "snapback.isProtected && snapback.currentLevel != 'warn'"
+        },
+        {
+          "command": "snapback.setBlockLevel",
+          "group": "levels@3",
+          "when": "snapback.isProtected && snapback.currentLevel != 'block'"
+        }
+      ],
+      "editor/context": [
+        {
+          "submenu": "snapback.protectFile",
+          "when": "snapback.isActive && !snapback.isProtected",
+          "group": "snapback@1"
+        },
+        {
+          "submenu": "snapback.changeProtectionLevel",
+          "when": "snapback.isActive && snapback.isProtected",
+          "group": "snapback@1"
+        },
+        {
+          "command": "snapback.unprotectFile",
+          "when": "snapback.isActive && snapback.isProtected",
+          "group": "snapback@2"
+        },
+        {
+          "command": "snapback.createSnapshot",
+          "when": "snapback.isActive",
+          "group": "snapback@3"
+        },
+        {
+          "command": "snapback.createPolicyOverride",
+          "when": "snapback.isActive",
+          "group": "snapback@4"
+        },
+        {
+          "command": "snapback.toggleOfflineMode",
+          "when": "snapback.isActive",
+          "group": "snapback@5"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "snapback.protectFile",
+          "when": "snapback.isActive && editorFocus"
+        },
+        {
+          "command": "snapback.protectCurrentFile",
+          "when": "snapback.isActive && editorFocus"
+        },
+        {
+          "command": "snapback.changeProtectionLevel",
+          "when": "snapback.isActive && editorFocus"
+        },
+        {
+          "command": "snapback.setWatchLevel",
+          "when": "snapback.isActive && editorFocus"
+        },
+        {
+          "command": "snapback.setWarnLevel",
+          "when": "snapback.isActive && editorFocus"
+        },
+        {
+          "command": "snapback.setBlockLevel",
+          "when": "snapback.isActive && editorFocus"
+        },
+        {
+          "command": "snapback.unprotectFile",
+          "when": "snapback.isActive && snapback.fileProtected"
+        },
+        {
+          "command": "snapback.compareWithSnapshot",
+          "when": "snapback.isActive"
+        },
+        {
+          "command": "snapback.openProtectedFile",
+          "when": "false"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "snapback.openProtectedFile",
+          "when": "view == snapback.protectedFiles && viewItem == snapback.item.protectedFile",
+          "group": "navigation@1"
+        },
+        {
+          "submenu": "snapback.changeProtectionLevel",
+          "when": "view == snapback.protectedFiles && viewItem == snapback.item.protectedFile",
+          "group": "protection@1"
+        },
+        {
+          "command": "snapback.createSnapshot",
+          "when": "view == snapback.protectedFiles && viewItem == snapback.item.protectedFile",
+          "group": "snapshot@1",
+          "icon": "$(save)"
+        },
+        {
+          "command": "snapback.snapBack",
+          "when": "view == snapback.protectedFiles && viewItem == snapback.item.protectedFile",
+          "group": "snapshot@2",
+          "icon": "$(history)"
+        },
+        {
+          "command": "snapback.unprotectFile",
+          "when": "view == snapback.protectedFiles && viewItem == snapback.item.protectedFile",
+          "group": "danger@1",
+          "icon": "$(unlock)"
+        },
+        {
+          "command": "snapback.unprotectFile",
+          "when": "view == snapback.main && viewItem == snapback.item.protectedFile",
+          "group": "danger@1",
+          "icon": "$(unlock)"
+        },
+        {
+          "command": "snapback.openSnapshotInWeb",
+          "when": "view == snapbackExplorer && viewItem == snapshot",
+          "group": "navigation@1",
+          "icon": "$(link-external)"
+        },
+        {
+          "command": "snapback.createSnapshot",
+          "when": "view == snapbackExplorer && viewItem == blockingIssue",
+          "group": "snapshot@1",
+          "icon": "$(save)"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "snapback.showProtectionStatus",
+          "when": "view == snapback.safetyDashboard && snapback.protectionStatus == complete",
+          "group": "navigation"
+        },
+        {
+          "command": "snapback.protectEntireRepo",
+          "when": "view == snapback.safetyDashboard && snapback.protectionStatus != complete",
+          "group": "navigation"
+        },
+        {
+          "command": "snapback.refreshViews",
+          "when": "view == snapback.protectedFiles",
+          "group": "navigation@1",
+          "icon": "$(refresh)"
+        },
+        {
+          "command": "snapback.showAllProtectedFiles",
+          "when": "view == snapback.protectedFiles",
+          "group": "navigation@2",
+          "icon": "$(list-tree)"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SnapBack",
+      "properties": {
+        "snapback.protectionLevels.defaultLevel": {
+          "type": "string",
+          "enum": [
+            "watch",
+            "warn",
+            "block"
+          ],
+          "enumDescriptions": [
+            "Silent auto-snapshotting (recommended for most files)",
+            "Confirmation before save (for important files)",
+            "Required snapshot note (for critical files)"
+          ],
+          "default": "watch",
+          "description": "Default protection level when protecting new files"
+        },
+        "snapback.protectionLevels.showLevelBadges": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show protection level badges in file explorer"
+        },
+        "snapback.showFileHealthDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show file health indicators (🛡/⚠️/🚨) next to file names based on detected risk"
+        },
+        "snapback.notifications.showSnapshotCreated": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notification when snapshots are created (Watch level only)"
+        },
+        "snapback.notifications.duration": {
+          "type": "number",
+          "default": 3000,
+          "description": "Duration to show snapshot notifications (milliseconds)"
+        },
+        "snapback.notifications.showConfigSync": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show notifications when .snapbackrc protection rules are loaded (silent by default for seamless team sync)"
+        },
+        "snapback.onboarding.showWelcome": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show welcome experience on first run"
+        },
+        "snapback.onboarding.autoDetectCriticalFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically suggest protection for critical files (package.json, .env, etc.)"
+        },
+        "snapback.logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "Logging level for SnapBack extension"
+        },
+        "snapback.showAutoSnapshotNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications when auto-snapshots are created for protected files"
+        },
+        "snapback.snapshot.naming.useGit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use git context for intelligent snapshot naming"
+        },
+        "snapback.snapshot.naming.gitTimeout": {
+          "type": "number",
+          "default": 5000,
+          "description": "Git command timeout in milliseconds",
+          "minimum": 1000,
+          "maximum": 30000
+        },
+        "snapback.snapshot.deletion.confirmDelete": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show confirmation dialog before deleting snapshots"
+        },
+        "snapback.snapshot.deletion.autoCleanup": {
+          "type": "object",
+          "default": {
+            "enabled": false,
+            "olderThanDays": 30,
+            "keepProtected": true,
+            "minimumSnapshots": 10
+          },
+          "description": "Automatic snapshot cleanup settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable automatic cleanup"
+            },
+            "olderThanDays": {
+              "type": "number",
+              "description": "Delete snapshots older than this many days",
+              "minimum": 1
+            },
+            "keepProtected": {
+              "type": "boolean",
+              "description": "Keep protected snapshots even if old"
+            },
+            "minimumSnapshots": {
+              "type": "number",
+              "description": "Never delete below this count",
+              "minimum": 0
+            }
+          }
+        },
+        "snapback.snapshot.deduplication.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically replace duplicate snapshots with identical file states"
+        },
+        "snapback.snapshot.deduplication.cacheSize": {
+          "type": "number",
+          "default": 500,
+          "description": "Maximum number of snapshot hashes to cache for deduplication",
+          "minimum": 100,
+          "maximum": 10000
+        },
+        "snapback.config.enableExecutableConfigs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable loading of executable configuration files (CJS/MJS). WARNING: Only enable in trusted environments as this can execute arbitrary code."
+        },
+        "snapback.api.baseUrl": {
+          "type": "string",
+          "default": "https://api.snapback.dev/api",
+          "description": "Base URL for the SnapBack API"
+        },
+        "snapback.apiBaseUrl": {
+          "type": "string",
+          "default": "https://api.snapback.dev",
+          "description": "Base URL for the SnapBack API (used by Explorer tree)"
+        },
+        "snapback.webBaseUrl": {
+          "type": "string",
+          "default": "https://console.snapback.dev",
+          "description": "Base URL for the SnapBack web application"
+        },
+        "snapback.api.key": {
+          "type": "string",
+          "default": "",
+          "description": "API key for SnapBack (legacy authentication, OAuth is preferred)"
+        },
+        "snapback.api.preferOAuth": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prefer OAuth 2.0 authentication over API key when available"
+        },
+        "snapback.offlineMode.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable offline mode to disable all network requests and use cached data only"
+        },
+        "snapback.guardian.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable SnapBack Guardian AI detection and protection"
+        },
+        "snapback.guardian.protectionLevel": {
+          "type": "string",
+          "enum": [
+            "none",
+            "warn",
+            "block"
+          ],
+          "default": "warn",
+          "description": "Protection level for AI-generated code"
+        },
+        "snapback.guardian.plugins.secretDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable secret detection plugin"
+        },
+        "snapback.guardian.plugins.mockReplacement": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable mock replacement plugin"
+        },
+        "snapback.guardian.plugins.phantomDependency": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable phantom dependency plugin"
+        },
+        "snapback.guardian.thresholds.warn": {
+          "type": "number",
+          "default": 6,
+          "description": "Risk score threshold for warnings"
+        },
+        "snapback.guardian.thresholds.block": {
+          "type": "number",
+          "default": 8,
+          "description": "Risk score threshold for blocking changes"
+        },
+        "snapback.mcp.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Model Context Protocol (MCP) integration for AI assistance"
+        },
+        "snapback.mcp.serverUrl": {
+          "type": "string",
+          "default": "https://mcp.snapback.dev",
+          "description": "URL of the remote MCP server (when empty, uses bundled local server in online mode)"
+        },
+        "snapback.mcp.authToken": {
+          "type": "string",
+          "default": "",
+          "description": "Authentication token for the remote MCP server"
+        },
+        "snapback.mcp.authType": {
+          "type": "string",
+          "enum": [
+            "bearer",
+            "apikey"
+          ],
+          "default": "bearer",
+          "description": "Authentication type for the remote MCP server"
+        },
+        "snapback.mcp.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for the remote MCP server (when using apikey authentication)"
+        },
+        "snapback.mcp.timeout": {
+          "type": "number",
+          "default": 5000,
+          "description": "Timeout for MCP server connections (milliseconds)",
+          "minimum": 1000,
+          "maximum": 30000
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "snapback.protectFile",
+        "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p",
+        "when": "editorFocus"
+      },
+      {
+        "command": "snapback.createSnapshot",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s",
+        "when": "editorFocus"
+      },
+      {
+        "command": "snapback.snapBack",
+        "key": "ctrl+alt+z",
+        "mac": "cmd+alt+z"
+      },
+      {
+        "command": "snapback.deleteSnapshot",
+        "key": "delete",
+        "when": "focusedView == snapback.main && viewItem == snapshot"
+      },
+      {
+        "command": "snapback.renameSnapshot",
+        "key": "f2",
+        "when": "focusedView == snapback.main && viewItem == snapshot"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "snapback.welcome",
+        "title": "Get Started with SnapBack",
+        "description": "Learn the three protection levels and protect your first file in 2 minutes",
+        "steps": [
+          {
+            "id": "snapback.understand-levels",
+            "title": "Three Levels of Protection",
+            "description": "SnapBack gives you precise control with three protection levels:\n\n**🟢 Watch** - Silent auto-snapshotting (no interruptions)\n\n**🟡 Warn** - Confirm before saving (safety prompt)\n\n**🔴 Block** - Required snapshot note (maximum protection)\n\nChoose the right level for each file based on how critical it is.",
+            "media": {
+              "markdown": "## When to Use Each Level\n\n### 🟢 Watch - Most Files\n- Configs you edit often\n- Code you're actively working on\n- Files where you want automatic safety\n\n### 🟡 Warn - Important Files\n- Files that affect multiple systems\n- Database migrations\n- Build configurations\n\n### 🔴 Block - Critical Files\n- `package.json`, `.env` files\n- Authentication code\n- Payment processing\n- Anything that could break production"
+            }
+          },
+          {
+            "id": "snapback.protect-first-file",
+            "title": "Protect Your First File",
+            "description": "Let's protect a file together:\n\n1. Right-click any file in the Explorer\n2. Hover over **SnapBack: Set Protection Level**\n3. Choose **🧢 Watch Level** (silent mode)\n4. The file now gets automatic snapshots when you save\n\n[Open a file to try it now](command:workbench.action.quickOpen)",
+            "media": {
+              "markdown": "## Protection Levels Menu\n\nWhen you right-click a file, you'll see:\n\n``````\n\n**Pro Tip:** You can also use the Command Palette:\n- Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)\n- Type \"SnapBack: Protect File\"\n- Choose your protection level"
+            },
+            "completionEvents": [
+              "onCommand:snapback.protectFile",
+              "onCommand:snapback.setWatchLevel"
+            ]
+          },
+          {
+            "id": "snapback.see-it-work",
+            "title": "See Protection in Action",
+            "description": "Now make a change to your protected file and save it.\n\n✅ **Watch level** creates a snapshot silently\n✅ Status bar shows confirmation briefly\n✅ No interruptions to your flow\n\nNotice how the file badge in the Explorer shows it's protected.",
+            "media": {
+              "markdown": "## What Happens When You Save?\n\n### 🟢 Watch Level\n- Snapshot created automatically\n- Brief status bar message\n- No interruption\n\n### 🟡 Warn Level\n- Confirmation dialog appears\n- You can add a note (optional)\n- Click \"Save\" to continue\n\n### 🔴 Block Level\n- Dialog requires a note\n- Note helps you remember why you made the change\n- Cannot save without adding context"
+            }
+          },
+          {
+            "id": "snapback.explore-snapshots",
+            "title": "Snap Back (Restore Snapshots)",
+            "description": "Open the SnapBack sidebar to see all your snapshots:\n\n1. Click the SnapBack icon in the Activity Bar (left sidebar)\n2. Browse your snapshot history\n3. Click any snapshot to view details\n4. Use \"Snap Back\" to restore\n\n[Open SnapBack View](command:workbench.view.extension.snapback)",
+            "media": {
+              "code": "## Viewing Your Snapshots\n\n### SnapBack Sidebar\nClick the SnapBack icon (🧢) in the Activity Bar to see:\n- All your snapshots in chronological order\n- File-specific snapshot history\n- Protected files list\n- Quick restore and compare actions\n\n### Protected Files View\nIn the Explorer sidebar, expand **SNAPBACK PROTECTED FILES** to:\n- See all protected files at a glance\n- View protection levels (🟢 Watch, 🟡 Warn, 🔴 Block)\n- Right-click for quick actions\n\n### Keyboard Shortcuts\n- `Ctrl+Alt+S` / `Cmd+Alt+S` - Create Snapshot\n- `Ctrl+Alt+Z` / `Cmd+Alt+Z` - Snap Back (Restore)\n- `Ctrl+Alt+P` / `Cmd+Alt+P` - Protect Current File\n\n💡 **Pro Tip:** Right-click any protected file for quick snapshot actions!"
+            },
+            "completionEvents": [
+              "onView:snapback.main"
+            ]
+          },
+          {
+            "id": "snapback.team-protection",
+            "title": "Bonus: Team Protection Policies",
+            "description": "Share protection policies with your team using `.snapbackrc` configuration:\n\n1. Create `.snapbackrc` in your repo root\n2. Add patterns with protection levels\n3. Commit to Git\n\n**Everyone on your team gets the same protection automatically.**",
+            "media": {
+              "code": "## Team Configuration Example\n\nCreate `.snapbackrc` in your project root:\n\n``````\n\n**Benefits:**\n- Consistent protection across the team\n- New team members get protection automatically\n- Reduce accidental breaking changes"
+            }
+          }
+        ]
+      }
+    ],
+    "viewsWelcome": [
+      {
+        "view": "snapback.protectedFiles",
+        "contents": "No protected files yet.\n\nProtect your first file to see it here.\n\n[🧢 Protect File](command:snapback.protectFile)\n\nLearn about [protection levels](command:snapback.openWalkthrough).",
+        "when": "!snapback.hasProtectedFiles"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": ".snapbackrc",
+        "url": "./schemas/snapbackrc.schema.json"
+      }
+    ]
+  },
+  "dependencies": {
+    "@snapback/contracts": "workspace:*",
+    "@snapback/core": "workspace:*",
+    "@snapback/events": "workspace:*",
+    "@snapback/infrastructure": "workspace:*",
+    "@snapback/sdk": "workspace:*",
+    "ajv": "catalog:",
+    "async-lock": "catalog:",
+    "base64url": "catalog:",
+    "better-sqlite3": "catalog:",
+    "bindings": "^1.5.0",
+    "chokidar": "catalog:",
+    "conf": "catalog:",
+    "diff": "catalog:",
+    "es-toolkit": "catalog:",
+    "fast-glob": "catalog:",
+    "ignore": "catalog:",
+    "inquirer": "catalog:",
+    "json5": "catalog:",
+    "minimatch": "catalog:",
+    "node-machine-id": "^1.1.12",
+    "node-notifier": "catalog:",
+    "object-hash": "catalog:",
+    "p-queue": "catalog:",
+    "pino": "catalog:",
+    "rimraf": "catalog:",
+    "semver": "catalog:",
+    "simple-git": "catalog:",
+    "tweetnacl": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@electron/rebuild": "catalog:",
+    "@playwright/test": "catalog:",
+    "@size-limit/file": "catalog:",
+    "@types/better-sqlite3": "catalog:",
+    "@types/glob": "catalog:",
+    "@types/mocha": "catalog:",
+    "@types/node": "catalog:",
+    "@types/semver": "catalog:",
+    "@types/vscode": "catalog:",
+    "@vitest/ui": "catalog:",
+    "@vscode/test-cli": "catalog:",
+    "@vscode/test-electron": "catalog:",
+    "esbuild": "catalog:",
+    "glob": "catalog:",
+    "memfs": "catalog:",
+    "mocha": "catalog:",
+    "npm-run-all": "catalog:",
+    "size-limit": "catalog:",
+    "svgo": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "displayName": "SnapBack - Code Safety Net",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "galleryBanner": {
+    "color": "#000000",
+    "theme": "dark"
+  },
+  "icon": "media/marketplace-icon-256.png",
+  "license": "SEE LICENSE IN LICENSE",
+  "main": "./dist/extension.js",
+  "pricing": "Free",
+  "publisher": "MarcelleLabs",
+  "repository": "Marcelle-Labs/snapback.dev.git",
+  "scripts": {
+    "audit-deps": "node scripts/audit-dependencies.js",
+    "check-types": "tsc --noEmit",
+    "check:bundle-size": "node scripts/check-bundle-size.js",
+    "collect-load-metrics": "node scripts/collect-load-metrics.js",
+    "compile": "pnpm run check-types && node esbuild.config.cjs --production",
+    "compile:skip-check": "node esbuild.config.cjs --production",
+    "demo-readiness": "bash scripts/demo-readiness.sh",
+    "deploy": "npx @vscode/vsce publish --no-dependencies",
+    "dev": "pnpm run package-vsix && code --install-extension snapback-vscode-*.vsix --force",
+    "dev-workflow": "node scripts/dev-workflow.cjs",
+    "dev:clean": "rm -rf ~/.cursor/extensions/marcelle-labs.snapback-vscode-* && pnpm run dev",
+    "enforce-performance-budget": "node scripts/enforce-performance-budget.js",
+    "execute-runlist": "node scripts/execute-runlist.js",
+    "format": "biome format --write .",
+    "launch-demo": "bash scripts/launch-demo-vscode.sh",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --fix .",
+    "monitor-vsix-size": "node scripts/monitor-vsix-size.js",
+    "package": "pnpm run check-types && node esbuild.config.cjs --production",
+    "package-and-install": "node scripts/package-and-install.cjs",
+    "package-vsce": "npx @vscode/vsce package",
+    "package-vsce-no-deps": "npx @vscode/vsce package --no-dependencies",
+    "package-vsix": "node scripts/package-vsix.cjs",
+    "package-with-changeset": "cd ../.. && npx changeset version && cd apps/vscode && pnpm run package-vsce-no-deps",
+    "package:skip-check": "node esbuild.config.cjs --production",
+    "pre-demo": "bash scripts/pre-demo.sh",
+    "security:all": "pnpm run security:audit && pnpm run security:check-deps && pnpm run security:licenses",
+    "security:audit": "pnpm audit --audit-level=moderate",
+    "security:audit:fix": "pnpm audit --fix",
+    "security:check-deps": "node scripts/check-dependencies.js",
+    "security:licenses": "license-checker --summary --relativeLicensePath",
+    "size": "size-limit",
+    "test": "vitest run",
+    "test:ci": "npm run test:unit && npm run test:integration && npm run test:perf",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "vscode-test --config .vscode-test-worker.js",
+    "test:e2e:demo-critical": "vscode-test --config .vscode-test.mjs",
+    "test:e2e:packaged": "vscode-test --config .vscode-test-packaged.mjs",
+    "test:e2e:real": "tsc -p tsconfig.json && vscode-test --config .vscode-test-worker.js",
+    "test:int": "vitest run test/integration/**/*.spec.ts",
+    "test:integration": "vitest run test/integration/**/*.integration.test.ts",
+    "test:integration:snapback": "vitest run test/integration/**/*.spec.ts --grep 'Commands'",
+    "test:monitoring": "vitest run test/monitoring",
+    "test:perf": "vitest run test/{perf,stress}/**/*.spec.ts",
+    "test:performance": "vitest run test/performance",
+    "test:regression": "vitest run test/regression",
+    "test:storage": "vitest run test/unit/snapshot/storageEfficiency.test.ts",
+    "test:unit": "vitest run test/unit/**/*.spec.ts",
+    "test:unit:watch": "vitest test/unit/**/*.spec.ts",
+    "test:vsix": "bash scripts/test-vsix.sh",
+    "test:webview": "playwright test test/e2e/webview",
+    "validate-commands": "node scripts/validate-commands.js",
+    "vscode:prepublish": "pnpm run package",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.config.cjs --watch"
+  },
+  "types": "./dist/extension.d.ts"
+}

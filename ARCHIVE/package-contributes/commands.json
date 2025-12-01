@@ -1,0 +1,140 @@
+{
+	"commands": [
+		{
+			"command": "snapback.initialize",
+			"title": "SnapBack: Initialize 🧢",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.showStatus",
+			"title": "SnapBack: Show Protection Status 🧢",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.createCheckpoint",
+			"title": "SnapBack: Create Snapshot 🧢",
+			"category": "SnapBack",
+			"icon": "$(save)"
+		},
+		{
+			"command": "snapback.snapBack",
+			"title": "SnapBack: Snap Back (Restore Snapshot) 🧢",
+			"category": "SnapBack",
+			"icon": "$(history)"
+		},
+		{
+			"command": "snapback.protectFile",
+			"title": "SnapBack: Protect File 🧢",
+			"category": "SnapBack",
+			"icon": "$(shield)"
+		},
+		{
+			"command": "snapback.protectCurrentFile",
+			"title": "SnapBack: Protect Current File 🧢",
+			"category": "SnapBack",
+			"icon": "$(shield)"
+		},
+		{
+			"command": "snapback.unprotectFile",
+			"title": "SnapBack: Unprotect File 🧢",
+			"category": "SnapBack",
+			"icon": "$(unlock)"
+		},
+		{
+			"command": "snapback.changeProtectionLevel",
+			"title": "SnapBack: Change Protection Level 🧢",
+			"category": "SnapBack",
+			"icon": "$(settings-gear)"
+		},
+		{
+			"command": "snapback.setWatchLevel",
+			"title": "Set Protection: Watch (Silent) 🧢",
+			"category": "SnapBack",
+			"icon": "$(eye)"
+		},
+		{
+			"command": "snapback.setWarnLevel",
+			"title": "Set Protection: Warn (Notify) 👷",
+			"category": "SnapBack",
+			"icon": "$(warning)"
+		},
+		{
+			"command": "snapback.setBlockLevel",
+			"title": "Set Protection: Block (Required) ⛑️",
+			"category": "SnapBack",
+			"icon": "$(error)"
+		},
+		{
+			"command": "snapback.viewCheckpoint",
+			"title": "SnapBack: View Snapshot Details 🧢",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.showAllCheckpoints",
+			"title": "SnapBack: Show All Snapshots 🧢",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.showAllProtectedFiles",
+			"title": "SnapBack: Show Protected Files 🧢",
+			"category": "SnapBack",
+			"icon": "$(list-tree)"
+		},
+		{
+			"command": "snapback.deleteCheckpoint",
+			"title": "SnapBack: Delete Snapshot 🧢",
+			"category": "SnapBack",
+			"icon": "$(trash)"
+		},
+		{
+			"command": "snapback.deleteOlderCheckpoints",
+			"title": "SnapBack: Delete Older Snapshots 🧢",
+			"category": "SnapBack",
+			"icon": "$(clear-all)"
+		},
+		{
+			"command": "snapback.unprotectAndDeleteCheckpoint",
+			"title": "SnapBack: Unprotect and Delete Snapshot 🧢",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.renameCheckpoint",
+			"title": "SnapBack: Rename Snapshot 🧢",
+			"category": "SnapBack",
+			"icon": "$(edit)"
+		},
+		{
+			"command": "snapback.protectCheckpoint",
+			"title": "SnapBack: Protect Snapshot 🧢",
+			"category": "SnapBack",
+			"icon": "$(shield)"
+		},
+		{
+			"command": "snapback.openWalkthrough",
+			"title": "SnapBack: Show Welcome Guide 🧢",
+			"category": "SnapBack",
+			"icon": "$(question)"
+		},
+		{
+			"command": "snapback.openProtectedFile",
+			"title": "SnapBack: Open Protected File",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.refreshViews",
+			"title": "SnapBack: Refresh Views 🧢",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.compareWithCheckpoint",
+			"title": "SnapBack: Compare with Snapshot 🧢",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.updateConfiguration",
+			"title": "SnapBack: Update Configuration",
+			"category": "SnapBack",
+			"icon": "$(refresh)"
+		}
+	]
+}

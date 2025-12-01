@@ -1,0 +1,133 @@
+/* MCP Configuration View Styles */
+.container {
+	padding: 20px;
+	max-width: 800px;
+	margin: 0 auto;
+}
+
+h1 {
+	font-size: 24px;
+	margin-bottom: 20px;
+	color: var(--vscode-foreground);
+}
+
+h2 {
+	font-size: 18px;
+	margin: 20px 0 10px 0;
+	color: var(--vscode-foreground);
+}
+
+.section {
+	background-color: var(--vscode-sideBar-background);
+	border: 1px solid var(--vscode-sideBar-border);
+	border-radius: 4px;
+	padding: 15px;
+	margin-bottom: 20px;
+}
+
+.server-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.server-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 10px;
+	background-color: var(--vscode-list-hoverBackground);
+	border-radius: 3px;
+}
+
+.server-info {
+	flex: 1;
+}
+
+.server-name {
+	font-weight: bold;
+	margin-bottom: 5px;
+}
+
+.server-details {
+	font-size: 12px;
+	color: var(--vscode-descriptionForeground);
+}
+
+.server-actions {
+	display: flex;
+	gap: 10px;
+}
+
+.form-group {
+	margin-bottom: 15px;
+}
+
+label {
+	display: block;
+	margin-bottom: 5px;
+	font-weight: bold;
+}
+
+input,
+select {
+	width: 100%;
+	padding: 8px;
+	border: 1px solid var(--vscode-input-border);
+	background-color: var(--vscode-input-background);
+	color: var(--vscode-input-foreground);
+	border-radius: 2px;
+}
+
+.form-help {
+	display: block;
+	font-size: 12px;
+	color: var(--vscode-descriptionForeground);
+	margin-top: 5px;
+}
+
+button {
+	background-color: var(--vscode-button-background);
+	color: var(--vscode-button-foreground);
+	border: none;
+	padding: 8px 12px;
+	cursor: pointer;
+	border-radius: 2px;
+	font-size: 13px;
+}
+
+button:hover {
+	background-color: var(--vscode-button-hoverBackground);
+}
+
+.code-block {
+	display: block;
+	background-color: var(--vscode-textBlockQuote-background);
+	border: 1px solid var(--vscode-textBlockQuote-border);
+	padding: 10px;
+	border-radius: 3px;
+	font-family: monospace;
+	white-space: pre-wrap;
+	word-break: break-all;
+	margin: 10px 0;
+}
+
+.status-indicator {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	margin-right: 8px;
+}
+
+.status-connected {
+	background-color: var(--vscode-charts-green);
+}
+
+.status-disconnected {
+	background-color: var(--vscode-charts-red);
+}
+
+.status-error {
+	background-color: var(--vscode-errorForeground);
+}

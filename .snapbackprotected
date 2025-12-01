@@ -1,0 +1,23 @@
+@watch tsconfig.json
+@watch .env
+@watch .env.*
+@watch src/mcpView.ts
+@watch src/extension.ts
+@watch package.json
+@watch install-extension
+@watch src/config-detector.ts
+@watch src/conflictResolver.ts
+@watch src/config-detector.test.ts
+@watch src/notificationExamples.ts
+@watch src/operationCoordinator.ts
+@watch src/checkpointSelector.ts
+@watch AGENTS.md
+@watch BUG-004-FIX-REPORT.md
+@watch src/editorDecorations.ts
+@warn .env.example
+@watch .snapbackprotected
+@watch .snapbackignore
+@warn .snapbackrc
+@watch .vscode-test.mjs
+.vscode-test.mjs
+.snapbackrc

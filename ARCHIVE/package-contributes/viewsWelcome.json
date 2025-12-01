@@ -1,0 +1,9 @@
+{
+	"viewsWelcome": [
+		{
+			"view": "snapback.protectedFiles",
+			"contents": "No protected files yet.\n\nProtect your first file to see it here.\n\n[🧢 Protect File](command:snapback.protectFile)\n\nLearn about [protection levels](command:snapback.openWalkthrough).",
+			"when": "!snapback.hasProtectedFiles"
+		}
+	]
+}

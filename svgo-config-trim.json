@@ -1,0 +1,17 @@
+{
+	"plugins": [
+		{
+			"name": "preset-default",
+			"params": {
+				"overrides": {
+					"convertPathData": {
+						"floatPrecision": 3
+					},
+					"cleanupNumericValues": {
+						"floatPrecision": 3
+					}
+				}
+			}
+		}
+	]
+}

@@ -1,0 +1,35 @@
+=== CHECKING INTEGRATION ===
+
+1. StatusBar Integration:
+src/ui/statusBar.ts:export class StatusBarController {
+src/ui/statusBar.ts:    this.statusBarItem.text = StatusBarController.formatStatusBar(state);
+
+2. FileDecorations Integration:
+src/ui/ProtectionDecorationProvider.ts:	implements vscode.FileDecorationProvider
+src/ui/fileDecorations.ts:export class FileDecorationProvider implements vscode.FileDecorationProvider {
+src/ui/fileDecorations.ts:    return FileDecorationProvider.getDecoration(level);
+src/extension.ts:	const decorationDisposable = vscode.window.registerFileDecorationProvider(decorationProvider);
+src/services/protectionDecorator.ts:	implements vscode.FileDecorationProvider, vscode.Disposable
+
+3. Notifications Integration:
+src/ui/notifications.ts:export class NotificationFormatter {
+
+4. DesignTokens Usage:
+src/ui/notifications.ts:import { DesignTokens, ProtectionLevel } from '../styles/designTokens';
+src/ui/notifications.ts:    return `${DesignTokens.icons.watch} SnapBack Monitoring Active\n\n${message}`;
+src/ui/notifications.ts:    return `${DesignTokens.icons.warn} CAUTION ZONE\n\n${message}`;
+src/ui/notifications.ts:    return `${DesignTokens.icons.block} EMERGENCY LOCKDOWN\n\n${message}`;
+src/ui/fileDecorations.ts:import { DesignTokens } from '../styles/designTokens';
+src/ui/fileDecorations.ts:        badge: DesignTokens.icons.watch,
+src/ui/fileDecorations.ts:        badge: DesignTokens.icons.warn,
+src/ui/fileDecorations.ts:        badge: DesignTokens.icons.block,
+src/ui/statusBar.ts:import { DesignTokens } from '../styles/designTokens';
+src/ui/statusBar.ts:      `${DesignTokens.icons.watch} SnapBack`,
+src/ui/statusBar.ts:        ? `${DesignTokens.icons.warn} ${state.warnings} warning${state.warnings > 1 ? 's' : ''}`
+src/ui/statusBar.ts:        ? `${DesignTokens.icons.block} ${state.protected} protected`
+src/ui/statusBar.ts:      `${DesignTokens.icons.watch} SnapBack Protection`,
+src/ui/statusBar.ts:      `${DesignTokens.icons.watch} ${state.watched} files watched`,
+src/ui/statusBar.ts:      lines.push(`${DesignTokens.icons.warn} ${state.warnings} warnings (high-risk changes)`);
+src/ui/statusBar.ts:      lines.push(`${DesignTokens.icons.block} ${state.protected} protected (requires approval)`);
+src/services/protectionDecorator.ts:import { DesignTokens, type ProtectionLevel } from "../styles/designTokens";
+src/services/protectionDecorator.ts:				badge: DesignTokens.getIcon(level),

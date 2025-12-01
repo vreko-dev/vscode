@@ -1,0 +1,2 @@
+This is a sample test file for SnapBack E2E testing.
+It will be used to test protection levels and snapshot functionality.

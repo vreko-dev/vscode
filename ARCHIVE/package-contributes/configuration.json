@@ -1,0 +1,118 @@
+{
+	"configuration": {
+		"title": "SnapBack",
+		"properties": {
+			"snapback.protectionLevels.defaultLevel": {
+				"type": "string",
+				"enum": ["watch", "warn", "block"],
+				"enumDescriptions": [
+					"Silent auto-snapshotting (recommended for most files)",
+					"Confirmation before save (for important files)",
+					"Required snapshot note (for critical files)"
+				],
+				"default": "watch",
+				"description": "Default protection level when protecting new files"
+			},
+			"snapback.protectionLevels.showLevelBadges": {
+				"type": "boolean",
+				"default": true,
+				"description": "Show protection level badges in file explorer"
+			},
+			"snapback.notifications.showSnapshotCreated": {
+				"type": "boolean",
+				"default": true,
+				"description": "Show notification when snapshots are created (Watch level only)"
+			},
+			"snapback.notifications.duration": {
+				"type": "number",
+				"default": 3000,
+				"description": "Duration to show snapshot notifications (milliseconds)"
+			},
+			"snapback.onboarding.showWelcome": {
+				"type": "boolean",
+				"default": true,
+				"description": "Show welcome experience on first run"
+			},
+			"snapback.onboarding.autoDetectCriticalFiles": {
+				"type": "boolean",
+				"default": true,
+				"description": "Automatically suggest protection for critical files (package.json, .env, etc.)"
+			},
+			"snapback.logLevel": {
+				"type": "string",
+				"enum": ["debug", "info", "warn", "error"],
+				"default": "info",
+				"description": "Logging level for SnapBack extension"
+			},
+			"snapback.showAutoCheckpointNotifications": {
+				"type": "boolean",
+				"default": true,
+				"description": "Show notifications when auto-snapshots are created for protected files"
+			},
+			"snapback.snapshot.naming.useGit": {
+				"type": "boolean",
+				"default": true,
+				"description": "Use git context for intelligent snapshot naming"
+			},
+			"snapback.snapshot.naming.gitTimeout": {
+				"type": "number",
+				"default": 5000,
+				"description": "Git command timeout in milliseconds",
+				"minimum": 1000,
+				"maximum": 30000
+			},
+			"snapback.snapshot.deletion.confirmDelete": {
+				"type": "boolean",
+				"default": true,
+				"description": "Show confirmation dialog before deleting snapshots"
+			},
+			"snapback.snapshot.deletion.autoCleanup": {
+				"type": "object",
+				"default": {
+					"enabled": false,
+					"olderThanDays": 30,
+					"keepProtected": true,
+					"minimumCheckpoints": 10
+				},
+				"description": "Automatic snapshot cleanup settings",
+				"properties": {
+					"enabled": {
+						"type": "boolean",
+						"description": "Enable automatic cleanup"
+					},
+					"olderThanDays": {
+						"type": "number",
+						"description": "Delete snapshots older than this many days",
+						"minimum": 1
+					},
+					"keepProtected": {
+						"type": "boolean",
+						"description": "Keep protected snapshots even if old"
+					},
+					"minimumCheckpoints": {
+						"type": "number",
+						"description": "Never delete below this count",
+						"minimum": 0
+					}
+				}
+			},
+			"snapback.snapshot.deduplication.enabled": {
+				"type": "boolean",
+				"default": true,
+				"description": "Automatically replace duplicate snapshots with identical file states"
+			},
+			"snapback.snapshot.deduplication.cacheSize": {
+				"type": "number",
+				"default": 500,
+				"description": "Maximum number of snapshot hashes to cache for deduplication",
+				"minimum": 100,
+				"maximum": 10000
+			},
+			"snapback.config.enableExecutableConfigs": {
+				"type": "boolean",
+				"default": false,
+				"description": "Enable loading of executable configuration files (CJS/MJS). WARNING: Only enable in trusted environments as this can execute arbitrary code."
+			}
+		}
+	}
+}

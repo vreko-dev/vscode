@@ -1,0 +1,28 @@
+{
+	"viewsContainers": {
+		"activitybar": [
+			{
+				"id": "snapback",
+				"title": "SnapBack",
+				"icon": "media/vscode-icon.svg"
+			}
+		]
+	},
+	"views": {
+		"snapback": [
+			{
+				"id": "snapback.main",
+				"name": "Snapshots",
+				"when": "snapback.isActive"
+			}
+		],
+		"explorer": [
+			{
+				"id": "snapback.protectedFiles",
+				"name": "SnapBack Protected Files",
+				"when": "snapback.isActive",
+				"visibility": "collapsed"
+			}
+		]
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"submenus": [
+		{
+			"id": "snapback.protectFile",
+			"label": "🧢 Protect File"
+		},
+		{
+			"id": "snapback.changeProtection",
+			"label": "🧢 Protection"
+		}
+	]
+}

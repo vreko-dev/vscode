@@ -1,0 +1,14 @@
+{
+	"commands": [
+		{
+			"command": "snapback.autoCheckpointBranch",
+			"title": "Auto Checkpoint Branch",
+			"category": "SnapBack"
+		},
+		{
+			"command": "snapback.autoSnapshotBranch",
+			"title": "Auto Snapshot Branch",
+			"category": "SnapBack"
+		}
+	]
+}

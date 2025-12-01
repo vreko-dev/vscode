@@ -1,0 +1,100 @@
+# Source files (excluded since we bundle to dist/)
+src/
+out/
+
+# Build config files
+esbuild.config.js
+esbuild.config.cjs
+tsconfig*.json
+
+# Proposed API type definitions
+vscode.proposed.*.d.ts
+
+# Development files
+.vscode/**
+.github/**
+
+# Test files
+src/test/**
+src/**/*.test.ts
+test/**
+__mocks__/**
+coverage/**
+playwright.config.ts
+.vscodetest.mjs
+.vscode-test.mjs
+*.test.*
+*.spec.*
+
+# Build artifacts
+*.tsbuildinfo
+node_modules/.cache/
+
+# Development tools
+biome.json
+vitest.config.ts
+
+# Scripts directory (build scripts)
+# Note: We exclude scripts but need to keep dist/node_modules for native modules
+scripts/
+
+# IMPORTANT: Include dist/node_modules ONLY for native dependencies like better-sqlite3
+!dist/node_modules/
+# But exclude sql.js - we copy only minimal WASM file to dist/sql-wasm.wasm manually
+dist/node_modules/sql.js/
+
+# Exclude unnecessary files from all node_modules
+dist/node_modules/**/*.md
+dist/node_modules/**/README*
+dist/node_modules/**/LICENSE*
+dist/node_modules/**/CHANGELOG*
+dist/node_modules/**/CONTRIBUTING*
+dist/node_modules/**/.npmignore
+dist/node_modules/**/.gitignore
+dist/node_modules/**/package-lock.json
+dist/node_modules/**/yarn.lock
+dist/node_modules/**/*.map
+dist/node_modules/**/*.d.ts
+dist/node_modules/**/test/
+dist/node_modules/**/tests/
+dist/node_modules/**/__tests__/
+dist/node_modules/**/examples/
+dist/node_modules/**/docs/
+
+# IMPORTANT: Include the manually copied sql.js WASM file
+!dist/sql-wasm.wasm
+
+# Documentation
+*.md
+!README.md
+!CHANGELOG.md
+
+# Environment files
+.env*
+!*.example
+
+# Temporary files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+*.log
+
+# SnapBack development data (CRITICAL - checkpoint history)
+.snapback/
+
+# Development configuration
+.claude/
+
+# Backup files
+backup/
+
+# Temporary test directories
+test-temp*/
+
+# VSCode test installation
+.vscode-test/
+.vscode-test-workspace/
+
+# Archived development files
+ARCHIVE/
