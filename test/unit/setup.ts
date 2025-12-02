@@ -1,7 +1,7 @@
-import { vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
 import {
-	createTestWorkspace,
 	createPerformanceMonitor,
+	createTestWorkspace,
 } from "../__mocks__/factories";
 
 // Create a proper EventEmitter mock that actually works
