@@ -24,6 +24,23 @@ import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader.js";
 import type { ProtectionLevel } from "../views/types.js";
 import { PROTECTION_LEVELS } from "../views/types.js";
 import type { CommandContext } from "./index.js";
+import { ProtectionNotifications } from "../notifications/protectionNotifications.js";
+
+/**
+ * Module-level ProtectionNotifications instance
+ * Initialized by extension.ts during activation
+ */
+let protectionNotifications: ProtectionNotifications | null = null;
+
+/**
+ * Initialize ProtectionNotifications for this module
+ * Called from extension.ts during activation
+ */
+export function initializeProtectionNotifications(
+	globalState: vscode.Memento,
+): void {
+	protectionNotifications = new ProtectionNotifications(globalState);
+}
 
 /**
  * Register all protection management commands.
@@ -185,11 +202,20 @@ export function registerProtectionCommands(
 							}
 
 							const levelMetadata = PROTECTION_LEVELS[selected.level];
-							vscode.window.showInformationMessage(
-								`Protection level set to ${levelMetadata.label} ${
-									levelMetadata.icon
-								} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
-							);
+							if (protectionNotifications) {
+								await protectionNotifications.showProtectionLevelNotification(
+									fileUri.fsPath,
+									selected.level,
+									true, // isNewProtection
+								);
+							} else {
+								// Fallback if not initialized
+								vscode.window.showInformationMessage(
+									`Protection level set to ${levelMetadata.label} ${
+										levelMetadata.icon
+									} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
+								);
+							}
 						} catch (error) {
 							vscode.window.showErrorMessage(
 								`Failed to protect file: ${(error as Error).message}`,
@@ -203,9 +229,18 @@ export function registerProtectionCommands(
 					);
 					if (currentLevel) {
 						const levelMetadata = PROTECTION_LEVELS[currentLevel];
-						vscode.window.showInformationMessage(
-							`File is already protected at ${levelMetadata.label} ${levelMetadata.icon} level`,
-						);
+						if (protectionNotifications) {
+							await protectionNotifications.showProtectionLevelNotification(
+								fileUri.fsPath,
+								currentLevel,
+								false, // isExistingProtection
+							);
+						} else {
+							// Fallback if not initialized
+							vscode.window.showInformationMessage(
+								`File is already protected at ${levelMetadata.label} ${levelMetadata.icon} level`,
+							);
+						}
 					}
 				}
 			},
@@ -261,9 +296,19 @@ export function registerProtectionCommands(
 						refreshViews();
 					}
 
-					vscode.window.showInformationMessage(
-						`Protected: ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
-					);
+					// Show notification through infrastructure with "Don't show again" support
+					if (protectionNotifications) {
+						await protectionNotifications.showProtectionLevelNotification(
+							fileUri.fsPath,
+							"Watched", // Default protection level for protectCurrentFile
+							true, // isNewProtection
+						);
+					} else {
+						// Fallback if not initialized
+						vscode.window.showInformationMessage(
+							`Protected: ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
+						);
+					}
 
 					// 🟢 TDD GREEN: Invalidate audit cache and refresh after applying protections
 					if (ctx.protectionService) {
@@ -398,11 +443,20 @@ export function registerProtectionCommands(
 						}
 
 						const levelMetadata = PROTECTION_LEVELS[selected.level];
-						vscode.window.showInformationMessage(
-							`Protection level set to ${levelMetadata.label} ${
-								levelMetadata.icon
-							} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
-						);
+						if (protectionNotifications) {
+							await protectionNotifications.showProtectionLevelNotification(
+								fileUri.fsPath,
+								selected.level,
+								false, // isProtectionLevelChange for existing file
+							);
+						} else {
+							// Fallback if not initialized
+							vscode.window.showInformationMessage(
+								`Protection level set to ${levelMetadata.label} ${
+									levelMetadata.icon
+								} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
+							);
+						}
 					} catch (error) {
 						vscode.window.showErrorMessage(
 							`Failed to set protection level: ${(error as Error).message}`,
@@ -512,11 +566,20 @@ export function registerProtectionCommands(
 						}
 
 						const levelMetadata = PROTECTION_LEVELS[selected.level];
-						vscode.window.showInformationMessage(
-							`Protection level changed to ${levelMetadata.label} ${
-								levelMetadata.icon
-							} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
-						);
+						if (protectionNotifications) {
+							await protectionNotifications.showProtectionLevelNotification(
+								fileUri.fsPath,
+								selected.level,
+								true, // isProtectionLevelChange
+							);
+						} else {
+							// Fallback if not initialized
+							vscode.window.showInformationMessage(
+								`Protection level changed to ${levelMetadata.label} ${
+									levelMetadata.icon
+								} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
+							);
+						}
 					} catch (error) {
 						vscode.window.showErrorMessage(
 							`Failed to change protection level: ${(error as Error).message}`,
@@ -642,6 +705,41 @@ export function registerProtectionCommands(
 		}),
 	);
 
+	/**
+	 * Command: Reset Notification Preferences
+	 *
+	 * Clears all "Don't show again" acknowledgments for protection level notifications.
+	 * Useful when user wants to re-see notifications they previously dismissed.
+	 *
+	 * @command snapback.resetNotificationPreferences
+	 */
+	disposables.push(
+		vscode.commands.registerCommand(
+			"snapback.resetNotificationPreferences",
+			async () => {
+				if (!protectionNotifications) {
+					vscode.window.showWarningMessage(
+						"SnapBack: Notification system not initialized"
+					);
+					return;
+				}
+
+				try {
+					// Reset all acknowledgments
+					await protectionNotifications.resetAcknowledgment("", undefined);
+
+					vscode.window.showInformationMessage(
+						"✅ SnapBack notification preferences have been reset. All protection level notifications will appear again."
+					);
+				} catch (error) {
+					vscode.window.showErrorMessage(
+						`Failed to reset notification preferences: ${(error as Error).message}`
+					);
+				}
+			}
+		),
+	);
+
 	return disposables;
 }
 
@@ -708,9 +806,18 @@ async function setProtectionLevelQuick(
 		}
 
 		const levelMetadata = PROTECTION_LEVELS[level];
-		vscode.window.showInformationMessage(
-			`Protection level set to ${levelMetadata.label} ${levelMetadata.icon}`,
-		);
+		if (protectionNotifications) {
+			await protectionNotifications.showProtectionLevelNotification(
+				fileUri.fsPath,
+				level,
+				!isProtected, // isNewProtection if it wasn't protected before
+			);
+		} else {
+			// Fallback if not initialized (shouldn't happen)
+			vscode.window.showInformationMessage(
+				`Protection level set to ${levelMetadata.label} ${levelMetadata.icon}`,
+			);
+		}
 	} catch (error) {
 		vscode.window.showErrorMessage(
 			`Failed to set protection level: ${(error as Error).message}`,
