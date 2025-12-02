@@ -1,12 +1,18 @@
-import type { GroupingStrategy } from './types.js';
-import type { SnapshotDisplayItem, TimeGroupedSnapshots, TimeGroup } from '../types.js';
+import type {
+	SnapshotDisplayItem,
+	TimeGroup,
+	TimeGroupedSnapshots,
+} from "../types.js";
+import type { GroupingStrategy } from "./types.js";
 
 /**
  * Groups snapshots by time (Today, Yesterday, This Week, Older)
  * This is the DEFAULT and ONLY implemented strategy for now.
  */
-export class TimeGroupingStrategy implements GroupingStrategy<TimeGroupedSnapshots> {
-	readonly mode = 'time' as const;
+export class TimeGroupingStrategy
+	implements GroupingStrategy<TimeGroupedSnapshots>
+{
+	readonly mode = "time" as const;
 
 	group(snapshots: SnapshotDisplayItem[]): TimeGroupedSnapshots {
 		const now = new Date();
@@ -40,24 +46,24 @@ export class TimeGroupingStrategy implements GroupingStrategy<TimeGroupedSnapsho
 
 	getGroupLabel(groupKey: TimeGroup): string {
 		switch (groupKey) {
-			case 'recent':
-				return 'RECENT';
-			case 'yesterday':
-				return 'YESTERDAY';
-			case 'this-week':
-				return 'THIS WEEK';
-			case 'older':
-				return 'OLDER';
+			case "recent":
+				return "RECENT";
+			case "yesterday":
+				return "YESTERDAY";
+			case "this-week":
+				return "THIS WEEK";
+			case "older":
+				return "OLDER";
 		}
 	}
 
 	getGroupIcon(_groupKey: TimeGroup): string {
 		// Time groups don't need icons - the label is sufficient
-		return '';
+		return "";
 	}
 
 	isExpandedByDefault(groupKey: TimeGroup): boolean {
 		// Only expand "recent" by default
-		return groupKey === 'recent';
+		return groupKey === "recent";
 	}
 }

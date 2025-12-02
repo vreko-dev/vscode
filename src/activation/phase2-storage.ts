@@ -1,6 +1,7 @@
 import * as path from "node:path";
-import * as vscode from "vscode";
 import type { ExtensionContext } from "vscode";
+import * as vscode from "vscode";
+import { SNAPBACK_ICONS } from "../constants/index.js";
 import { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator.js";
 import { AutoProtectConfig } from "../protection/autoProtectConfig.js";
 import { ConfigFileManager } from "../protection/ConfigFileManager.js";
@@ -13,7 +14,6 @@ import { logger } from "../utils/logger.js";
 import { directoryExists, findProjectRoot } from "../utils/projectRoot.js";
 import { MigrationService } from "./migration-service.js";
 import { PhaseLogger } from "./phaseLogger.js";
-import { SNAPBACK_ICONS } from "../constants/index.js";
 
 export interface Phase2Result {
 	storage: StorageManager;
@@ -38,7 +38,9 @@ export async function initializePhase2Storage(
 	try {
 		const storageStart = Date.now();
 		const storage = new StorageManager(context);
-		console.log("[PERF] StorageManager created", { ms: Date.now() - storageStart });
+		console.log("[PERF] StorageManager created", {
+			ms: Date.now() - storageStart,
+		});
 
 		const initStart = Date.now();
 		await storage.initialize();
@@ -69,15 +71,12 @@ export async function initializePhase2Storage(
 					await migrateExistingSnapshots(snapshotsDir);
 					logger.info("Snapshot migration completed in background");
 				} catch (migrationError) {
-					logger.warn(
-						"Background snapshot migration failed, continuing",
-						{
-							error:
-								migrationError instanceof Error
-									? migrationError.message
-									: String(migrationError),
-						},
-					);
+					logger.warn("Background snapshot migration failed, continuing", {
+						error:
+							migrationError instanceof Error
+								? migrationError.message
+								: String(migrationError),
+					});
 				}
 			})();
 		}, 200); // Start after context updates
@@ -87,7 +86,9 @@ export async function initializePhase2Storage(
 		const protectedFileRegistry = new ProtectedFileRegistry(
 			context.workspaceState,
 		);
-		console.log("[PERF] ProtectedFileRegistry created", { ms: Date.now() - regStart });
+		console.log("[PERF] ProtectedFileRegistry created", {
+			ms: Date.now() - regStart,
+		});
 
 		// 🆕 Initialize CooldownManager via storage manager
 		// TODO: Update protectedFileRegistry.initializeCooldownManager to accept StorageManager
@@ -96,7 +97,10 @@ export async function initializePhase2Storage(
 			// CooldownCache is now part of StorageManager initialization
 			logger.info("CooldownManager initialized via StorageManager");
 		} catch (cooldownError) {
-			const err = cooldownError instanceof Error ? cooldownError : new Error(String(cooldownError));
+			const err =
+				cooldownError instanceof Error
+					? cooldownError
+					: new Error(String(cooldownError));
 			logger.error("[CooldownManager] Initialization failed", err);
 			// CooldownManager is optional - don't show user error, just warn
 			logger.warn(
@@ -106,11 +110,15 @@ export async function initializePhase2Storage(
 
 		const cfgStart = Date.now();
 		const configManager = new ConfigFileManager(workspaceRoot);
-		console.log("[PERF] ConfigFileManager created", { ms: Date.now() - cfgStart });
+		console.log("[PERF] ConfigFileManager created", {
+			ms: Date.now() - cfgStart,
+		});
 
 		const decStart = Date.now();
 		const snapbackrcDecorator = new SnapBackRCDecorator();
-		console.log("[PERF] SnapBackRCDecorator created", { ms: Date.now() - decStart });
+		console.log("[PERF] SnapBackRCDecorator created", {
+			ms: Date.now() - decStart,
+		});
 
 		// ⚡ Initialize AutoProtectConfig with minimal work
 		// Heavy initialization (file watching) deferred to background
@@ -121,13 +129,20 @@ export async function initializePhase2Storage(
 			context,
 			snapbackrcDecorator,
 		);
-		console.log("[PERF] AutoProtectConfig created", { ms: Date.now() - autoStart });
+		console.log("[PERF] AutoProtectConfig created", {
+			ms: Date.now() - autoStart,
+		});
 		// Run async initialization without awaiting
 		const autoInitStart = Date.now();
-		autoProtectConfig.initialize().catch(err => {
-			logger.error("[WARN] AutoProtectConfig initialization failed", err as Error);
+		autoProtectConfig.initialize().catch((err) => {
+			logger.error(
+				"[WARN] AutoProtectConfig initialization failed",
+				err as Error,
+			);
 		});
-		console.log("[PERF] AutoProtectConfig.initialize() started", { ms: Date.now() - autoInitStart });
+		console.log("[PERF] AutoProtectConfig.initialize() started", {
+			ms: Date.now() - autoInitStart,
+		});
 
 		// ⚡ Load .snapbackrc asynchronously
 		// Don't await - load in background
@@ -136,17 +151,23 @@ export async function initializePhase2Storage(
 			protectedFileRegistry,
 			workspaceRoot,
 		);
-		console.log("[PERF] SnapBackRCLoader created", { ms: Date.now() - loaderStart });
+		console.log("[PERF] SnapBackRCLoader created", {
+			ms: Date.now() - loaderStart,
+		});
 		// Load config without awaiting - will be available when needed
 		const loadConfigStart = Date.now();
-		snapbackrcLoader.loadConfig().catch(err => {
+		snapbackrcLoader.loadConfig().catch((err) => {
 			logger.warn("Failed to load .snapbackrc in background", err as Error);
 		});
-		console.log("[PERF] loadConfig() started", { ms: Date.now() - loadConfigStart });
+		console.log("[PERF] loadConfig() started", {
+			ms: Date.now() - loadConfigStart,
+		});
 		// Still need to watch for changes
 		const watchStart = Date.now();
 		snapbackrcLoader.watchConfigFile();
-		console.log("[PERF] watchConfigFile() called", { ms: Date.now() - watchStart });
+		console.log("[PERF] watchConfigFile() called", {
+			ms: Date.now() - watchStart,
+		});
 
 		// ⚡ Migration check deferred - don't block activation
 		const migrationService = new MigrationService(
@@ -154,7 +175,7 @@ export async function initializePhase2Storage(
 			protectedFileRegistry,
 		);
 		// Run migration check asynchronously
-		migrationService.checkAndMigrate().catch(err => {
+		migrationService.checkAndMigrate().catch((err) => {
 			logger.error("Migration service failed", err as Error);
 		});
 
@@ -180,7 +201,9 @@ export async function initializePhase2Storage(
 			logger.error("MCP server failed to start", err);
 			// Extension continues with reduced functionality
 		});
-		console.log("[PERF] MCPLifecycleManager.start() called", { ms: Date.now() - startT });
+		console.log("[PERF] MCPLifecycleManager.start() called", {
+			ms: Date.now() - startT,
+		});
 
 		// Register for cleanup:
 		context.subscriptions.push(mcpManager);
@@ -241,7 +264,9 @@ export async function initializePhase2Storage(
 		const storage = new StorageManager(context);
 		await storage.initialize();
 
-		logger.info("[PERF] Phase 2 completed (error path)", { ms: Date.now() - phase2Start });
+		logger.info("[PERF] Phase 2 completed (error path)", {
+			ms: Date.now() - phase2Start,
+		});
 		PhaseLogger.logPhase("2: Storage & Configuration (limited mode)");
 
 		return {

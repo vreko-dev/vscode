@@ -4,7 +4,6 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ThemeColor } from "vscode";
 
 describe("Unified Constants", () => {
 	describe("SNAPBACK_ICONS", () => {
@@ -125,13 +124,19 @@ describe("Unified Constants", () => {
 		it("should have PROTECTION category", async () => {
 			const { COMMANDS } = await import("../../src/constants/commands");
 			expect(COMMANDS.PROTECTION).toBeDefined();
-			expect(COMMANDS.PROTECTION.SET_LEVEL).toBe("snapback.protection.setLevel");
+			expect(COMMANDS.PROTECTION.SET_LEVEL).toBe(
+				"snapback.protection.setLevel",
+			);
 			expect(COMMANDS.PROTECTION.SET_WATCH).toBe("snapback.protection.watch");
 			expect(COMMANDS.PROTECTION.SET_WARN).toBe("snapback.protection.warn");
 			expect(COMMANDS.PROTECTION.SET_BLOCK).toBe("snapback.protection.block");
 			expect(COMMANDS.PROTECTION.REMOVE).toBe("snapback.protection.remove");
-			expect(COMMANDS.PROTECTION.PROTECT_WORKSPACE).toBe("snapback.protection.workspace");
-			expect(COMMANDS.PROTECTION.PROTECT_FOLDER).toBe("snapback.protection.folder");
+			expect(COMMANDS.PROTECTION.PROTECT_WORKSPACE).toBe(
+				"snapback.protection.workspace",
+			);
+			expect(COMMANDS.PROTECTION.PROTECT_FOLDER).toBe(
+				"snapback.protection.folder",
+			);
 		});
 
 		it("should have SNAPSHOT category", async () => {

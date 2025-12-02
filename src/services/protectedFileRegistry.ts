@@ -327,11 +327,11 @@ export class ProtectedFileRegistry
 			// 'Protected' → block (🔴 red)
 			// 'Warning' → warn (🟡 yellow)
 			// 'Watched' → watch (🟢 green)
-			if (level === 'Protected') {
+			if (level === "Protected") {
 				counts.block++;
-			} else if (level === 'Warning') {
+			} else if (level === "Warning") {
 				counts.warn++;
-			} else if (level === 'Watched') {
+			} else if (level === "Watched") {
 				counts.watch++;
 			} else {
 				// Default to watch if no level specified
@@ -339,7 +339,7 @@ export class ProtectedFileRegistry
 			}
 		}
 
-		logger.debug('Protection counts calculated', counts);
+		logger.debug("Protection counts calculated", counts);
 		return counts;
 	}
 

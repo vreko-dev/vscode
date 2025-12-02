@@ -1,14 +1,4 @@
-import type {
-	SnapshotDisplayItem,
-	GroupingMode,
-	// Used in generic type parameters
-	// @ts-expect-error - Used only via generic type parameter
-	TimeGroupedSnapshots,
-	// @ts-expect-error - Used only via generic type parameter
-	SystemGroupedSnapshots,
-	// @ts-expect-error - Used only via generic type parameter
-	FileGroupedSnapshots,
-} from '../types.js';
+import type { GroupingMode, SnapshotDisplayItem } from "../types.js";
 
 /**
  * Strategy interface for grouping snapshots

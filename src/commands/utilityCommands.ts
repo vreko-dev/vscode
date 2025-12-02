@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import { ConfigDetector } from "../config-detector.js";
+import { COMMANDS } from "../constants/index.js";
 import type { CommandContext } from "./index.js";
 import { UpdateConfigurationCommand } from "./updateConfiguration.js";
-import { COMMANDS } from "../constants/index.js";
 
 export function registerUtilityCommands(
 	_context: vscode.ExtensionContext,

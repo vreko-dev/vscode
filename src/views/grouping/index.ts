@@ -1,19 +1,21 @@
-import type { GroupingStrategy } from './types.js';
-import type { GroupingMode } from '../types.js';
-import { TimeGroupingStrategy } from './TimeGroupingStrategy.js';
+import type { GroupingMode } from "../types.js";
+import { TimeGroupingStrategy } from "./TimeGroupingStrategy.js";
+import type { GroupingStrategy } from "./types.js";
 
-export * from './types.js';
-export { TimeGroupingStrategy } from './TimeGroupingStrategy.js';
+export { TimeGroupingStrategy } from "./TimeGroupingStrategy.js";
+export * from "./types.js";
 
 /**
  * Factory to get the appropriate grouping strategy
  */
-export function getGroupingStrategy(mode: GroupingMode): GroupingStrategy<unknown> {
+export function getGroupingStrategy(
+	mode: GroupingMode,
+): GroupingStrategy<unknown> {
 	switch (mode) {
-		case 'time':
+		case "time":
 			return new TimeGroupingStrategy();
-		case 'system':
-		case 'file':
+		case "system":
+		case "file":
 			// Not implemented yet - fall back to time
 			throw new Error(`${mode} grouping not implemented yet`);
 		default:
@@ -30,8 +32,8 @@ export function getAvailableGroupingModes(): Array<{
 	enabled: boolean;
 }> {
 	return [
-		{ mode: 'time', label: 'By Time', enabled: true },
-		{ mode: 'system', label: 'By System', enabled: false }, // Coming soon
-		{ mode: 'file', label: 'By File', enabled: false }, // Coming soon
+		{ mode: "time", label: "By Time", enabled: true },
+		{ mode: "system", label: "By System", enabled: false }, // Coming soon
+		{ mode: "file", label: "By File", enabled: false }, // Coming soon
 	];
 }

@@ -18,7 +18,7 @@ import {
  * - 'system': Group by detected system/package (apps/web, packages/sdk) - FUTURE
  * - 'file': Group by file path - FUTURE
  */
-export type GroupingMode = 'time' | 'system' | 'file';
+export type GroupingMode = "time" | "system" | "file";
 
 /**
  * TreeView configuration with extensible grouping
@@ -41,7 +41,7 @@ export interface TreeViewConfig {
  * Default configuration - time-based grouping
  */
 export const DEFAULT_TREE_CONFIG: TreeViewConfig = {
-	groupBy: 'time',
+	groupBy: "time",
 	showAI: true,
 	showProtection: true,
 	maxPerGroup: 5,
@@ -68,7 +68,7 @@ export interface SnapshotDisplayItem {
 	detectedSystem?: string; // "apps/web", "packages/sdk"
 }
 
-export type SnapshotTrigger = 'auto' | 'manual' | 'ai-detected' | 'pre-save';
+export type SnapshotTrigger = "auto" | "manual" | "ai-detected" | "pre-save";
 
 // ============================================
 // TIME GROUPING (Implement Now)
@@ -77,7 +77,7 @@ export type SnapshotTrigger = 'auto' | 'manual' | 'ai-detected' | 'pre-save';
 /**
  * Time-based group keys
  */
-export type TimeGroup = 'recent' | 'yesterday' | 'this-week' | 'older';
+export type TimeGroup = "recent" | "yesterday" | "this-week" | "older";
 
 /**
  * Grouped snapshots by time
@@ -154,9 +154,9 @@ export interface FileGroupedSnapshots {
  * Union type for grouped snapshots based on mode
  */
 export type GroupedSnapshots =
-	| { mode: 'time'; data: TimeGroupedSnapshots }
-	| { mode: 'system'; data: SystemGroupedSnapshots }
-	| { mode: 'file'; data: FileGroupedSnapshots };
+	| { mode: "time"; data: TimeGroupedSnapshots }
+	| { mode: "system"; data: SystemGroupedSnapshots }
+	| { mode: "file"; data: FileGroupedSnapshots };
 
 // ============================================
 // QUICK ACTIONS & PROBLEMS
@@ -177,7 +177,7 @@ export interface QuickAction {
  */
 export interface ProblemItem {
 	id: string;
-	severity: 'warning' | 'error';
+	severity: "warning" | "error";
 	title: string;
 	description: string;
 	action?: {

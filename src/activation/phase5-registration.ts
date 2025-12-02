@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
+import { COMMANDS } from "../constants/index.js";
 import type { SessionCoordinator } from "../snapshot/SessionCoordinator.js";
 import { VIEW_IDS } from "../views/ViewRegistry.js";
 import type { Phase4Result } from "./phase4-providers.js";
 import { PhaseLogger } from "./phaseLogger.js";
-import { COMMANDS } from "../constants/index.js";
 
 export type Phase5Result = Record<string, never>;
 
@@ -74,7 +74,9 @@ export async function initializePhase5Registration(
 		context.subscriptions.push(
 			vscode.window.onDidChangeWindowState((e) => {
 				if (!e.focused) {
-					console.log("[Phase5] Window blur detected, triggering session finalization");
+					console.log(
+						"[Phase5] Window blur detected, triggering session finalization",
+					);
 					sessionCoordinator.handleWindowBlur();
 				}
 			}),

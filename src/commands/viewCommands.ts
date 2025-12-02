@@ -1,9 +1,9 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { COMMANDS } from "../constants/index.js";
 import type { SnapshotFileNode } from "../views/snapshotNavigatorProvider.js";
 import { compareWithSnapshot } from "./compareWithSnapshot.js";
 import type { CommandContext } from "./index.js";
-import { COMMANDS } from "../constants/index.js";
 
 export function registerViewCommands(
 	_context: vscode.ExtensionContext,
@@ -75,19 +75,22 @@ export function registerViewCommands(
 			},
 		),
 
-		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.RESTORE_LEGACY, async () => {
-			try {
-				const restored = await ctx.snapshotRestoreUI.showRestoreWorkflow();
-				if (restored) {
-					vscode.window.showInformationMessage(
-						"Snap Back completed successfully",
-					);
-					ctx.refreshViews();
+		vscode.commands.registerCommand(
+			COMMANDS.SNAPSHOT.RESTORE_LEGACY,
+			async () => {
+				try {
+					const restored = await ctx.snapshotRestoreUI.showRestoreWorkflow();
+					if (restored) {
+						vscode.window.showInformationMessage(
+							"Snap Back completed successfully",
+						);
+						ctx.refreshViews();
+					}
+				} catch (error) {
+					vscode.window.showErrorMessage(`Failed to Snap Back: ${error}`);
 				}
-			} catch (error) {
-				vscode.window.showErrorMessage(`Failed to Snap Back: ${error}`);
-			}
-		}),
+			},
+		),
 
 		vscode.commands.registerCommand(
 			"snapback.restoreSnapshot",
@@ -148,7 +151,9 @@ export function registerViewCommands(
 							: `${files.slice(0, 3).join(", ")} +${files.length - 3} more`;
 
 					// Get snapshot name if available
-					const snapshotLabel = (snapshot as any).name || `Snapshot from ${new Date(snapshot.timestamp).toLocaleString()}`;
+					const snapshotLabel =
+						(snapshot as any).name ||
+						`Snapshot from ${new Date(snapshot.timestamp).toLocaleString()}`;
 
 					// Ask for confirmation with context
 					const answer = await vscode.window.showWarningMessage(
@@ -166,28 +171,28 @@ This will overwrite current files.`,
 						return;
 					}
 
-						// Restore using the coordinator with progress notification
-						const result = await vscode.window.withProgress(
-							{
-								location: vscode.ProgressLocation.Notification,
-								title: `Restoring snapshot: ${snapshotLabel}`,
-								cancellable: false,
-							},
-							async () => {
-								return await ctx.operationCoordinator.restoreToSnapshot(
-									snapshotId,
-								);
-							},
-						);
-
-						if (result) {
-							vscode.window.showInformationMessage(
-								`✅ Restored ${files.length} file(s) from "${snapshotLabel}"`,
+					// Restore using the coordinator with progress notification
+					const result = await vscode.window.withProgress(
+						{
+							location: vscode.ProgressLocation.Notification,
+							title: `Restoring snapshot: ${snapshotLabel}`,
+							cancellable: false,
+						},
+						async () => {
+							return await ctx.operationCoordinator.restoreToSnapshot(
+								snapshotId,
 							);
-							ctx.refreshViews();
-						} else {
-							vscode.window.showErrorMessage("Failed to restore snapshot");
-						}
+						},
+					);
+
+					if (result) {
+						vscode.window.showInformationMessage(
+							`✅ Restored ${files.length} file(s) from "${snapshotLabel}"`,
+						);
+						ctx.refreshViews();
+					} else {
+						vscode.window.showErrorMessage("Failed to restore snapshot");
+					}
 				} catch (error) {
 					vscode.window.showErrorMessage(
 						`Failed to restore snapshot: ${error}`,
@@ -196,8 +201,7 @@ This will overwrite current files.`,
 			},
 		),
 
-		vscode.commands.registerCommand(
-			"snapback.confirmRestoreFromPreview", () =>
+		vscode.commands.registerCommand("snapback.confirmRestoreFromPreview", () =>
 			ctx.snapshotRestoreUI.showRestoreWorkflow(),
 		),
 

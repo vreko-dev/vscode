@@ -1,8 +1,8 @@
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
+import { SNAPBACK_ICONS } from "../constants/index.js";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
 import { logger } from "../utils/logger.js";
-import { SNAPBACK_ICONS } from "../constants/index.js";
 
 /**
  * Migration Service for users upgrading from auto-protection version
@@ -50,7 +50,7 @@ export class MigrationService {
 
 			// ⚡ PERF: Show migration dialog asynchronously
 			// Don't await - let user interact with UI while dialog is open
-			this.showMigrationDialog(protectedFiles.length).catch(err => {
+			this.showMigrationDialog(protectedFiles.length).catch((err) => {
 				logger.error("Migration dialog failed", err as Error);
 			});
 		} catch (error) {

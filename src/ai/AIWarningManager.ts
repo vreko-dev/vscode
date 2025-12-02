@@ -12,12 +12,12 @@
  * 5. Telemetry tracks choice for accuracy monitoring
  */
 
-import * as vscode from "vscode";
 import { logger } from "@snapback/infrastructure";
 import type { BurstDetectionResult } from "@snapback/sdk";
+import * as vscode from "vscode";
+import { SNAPBACK_ICONS } from "../constants/index.js";
 import type { Result } from "../types/result.js";
 import { Ok } from "../types/result.js";
-import { SNAPBACK_ICONS } from "../constants/index.js";
 
 /**
  * AI detection data passed to warning manager
@@ -80,8 +80,6 @@ export type AIWarningResult = Result<AIWarningSuccess, AIWarningError>;
  * Manages AI detection warnings and user responses
  */
 export class AIWarningManager {
-	constructor() {}
-
 	/**
 	 * Show warning when AI is detected during save
 	 *
@@ -126,7 +124,10 @@ export class AIWarningManager {
 	/**
 	 * Build user-friendly warning message
 	 */
-	private buildWarningMessage(detection: AIDetection, confidencePercent: number): string {
+	private buildWarningMessage(
+		detection: AIDetection,
+		confidencePercent: number,
+	): string {
 		const toolName = this.formatToolName(detection.tool);
 
 		if (detection.burst) {
@@ -227,4 +228,3 @@ export class AIWarningManager {
 		return confidence >= threshold;
 	}
 }
-

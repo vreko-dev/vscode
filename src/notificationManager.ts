@@ -25,8 +25,8 @@
  */
 
 import * as vscode from "vscode";
-import { logger } from "./utils/logger.js";
 import { SNAPBACK_ICONS } from "./constants/index.js";
+import { logger } from "./utils/logger.js";
 
 /**
  * Represents a structured notification within the SnapBack ecosystem.
@@ -595,7 +595,9 @@ ${failureInfo.recoveryOptions
 
 Current Status: ${statusInfo.currentStatus}
 • AI Detection: ${
-				statusInfo.aiDetection.enabled ? SNAPBACK_ICONS.SUCCESS : SNAPBACK_ICONS.FAILED
+				statusInfo.aiDetection.enabled
+					? SNAPBACK_ICONS.SUCCESS
+					: SNAPBACK_ICONS.FAILED
 			} Enabled (monitoring ${statusInfo.aiDetection.tools.join(", ")})
 • Auto-snapshot: ${statusInfo.autoSnapshot.enabled ? SNAPBACK_ICONS.SUCCESS : SNAPBACK_ICONS.FAILED} ${
 				statusInfo.autoSnapshot.frequency
