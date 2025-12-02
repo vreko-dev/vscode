@@ -20,6 +20,7 @@ import { createAuthedApiClient } from "./api/authedApiClient.js";
 import { createCredentialsManager } from "./auth/credentials.js";
 import { SnapBackOAuthProvider } from "./auth/OAuthProvider.js"; // 🆕 Import OAuth provider
 import { registerAllCommands } from "./commands/index.js";
+import { initializeProtectionNotifications } from "./commands/protectionCommands.js"
 import { ContextManager } from "./contextManager.js";
 import { FileHealthDecorationProvider } from "./decorations/FileHealthDecorationProvider.js"; // 🆕 Import FileHealthDecorationProvider
 import { SaveHandler } from "./handlers/SaveHandler.js";
@@ -153,16 +154,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		logger.warn(
 			"Workspace is not trusted - SnapBack is running in limited mode",
 		);
-		vscode.window
-			.showWarningMessage(
-				"SnapBack is running in limited mode because this workspace is not trusted. Some features like snapshot creation and risk analysis are disabled.",
-				"Trust Workspace",
-			)
-			.then((selection) => {
-				if (selection === "Trust Workspace") {
-					vscode.commands.executeCommand("workbench.action.manageTrust");
-				}
-			});
+		// Show warning asynchronously after activation completes (non-blocking)
+		// This prevents extension startup from waiting for user interaction
+		void showDeferredWorkspaceTrustWarning(context);
 		// Continue activation but features will be limited
 	}
 
@@ -174,9 +168,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	const rulesManager = RulesManager.getInstance(context);
 	rulesManager.setOfflineMode(offlineModeEnabled);
 
-	// If offline mode is enabled, show a notification
+	// If offline mode is enabled, show a notification asynchronously
 	if (offlineModeEnabled) {
-		vscode.window.showInformationMessage("SnapBack is running in offline mode");
+		setTimeout(
+			() => vscode.window.showInformationMessage("SnapBack is running in offline mode"),
+			100
+		);
 	}
 
 	try {
@@ -295,7 +292,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Phase 5: Registration
 		const phase5Start = Date.now();
-		await initializePhase5Registration(context, phase4Result);
+		await initializePhase5Registration(context, phase4Result, phase3Result.sessionCoordinator);
 		phaseTimings["Phase 5 (Registration)"] = Date.now() - phase5Start;
 
 		// Set offline mode status in the status bar controller
@@ -340,8 +337,18 @@ export async function activate(context: vscode.ExtensionContext) {
 			},
 		);
 
-		// Audit repo on activation to set initial context keys
-		await protectionService.auditRepo();
+		// ⚡ PERF: Defer audit to background (after UI becomes responsive)
+		// Don't await - this can take 10-20 seconds on large repos
+		setTimeout(() => {
+			console.log("[PERF] Running deferred auditRepo...");
+			const auditStart = Date.now();
+			protectionService.auditRepo().catch(err => {
+				logger.error("Deferred protection audit failed", err as Error);
+				console.log("[PERF] auditRepo failed", { ms: Date.now() - auditStart });
+			}).then(() => {
+				console.log("[PERF] auditRepo completed", { ms: Date.now() - auditStart });
+			});
+		}, 50); // Run early but after UI is responsive
 
 		// Create refreshViews function
 		const refreshViews = () => {
@@ -581,6 +588,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			workspaceRoot,
 		};
 
+		// ✅ Initialize ProtectionNotifications before registering commands
+		// This enables protection level notifications with "Don't show again" support
+		initializeProtectionNotifications(context.globalState);
+		logger.info("ProtectionNotifications initialized with globalState");
+
 		// Register commands
 		const commandDisposables = registerAllCommands(context, commandContext);
 		context.subscriptions.push(...commandDisposables);
@@ -593,16 +605,26 @@ export async function activate(context: vscode.ExtensionContext) {
 		);
 		logger.info("SnapBack context set to active");
 
-		// Update context for protected files
-		await updateHasProtectedFilesContext();
-		logger.info("Protected files context updated");
+		// ⚡ PERF: Defer context updates to background (after UI responsive)
+		// These call protectedFileRegistry.list() which can be slow
+		setTimeout(async () => {
+			try {
+				console.log("[PERF] Updating context in background...");
+				const ctxStart = Date.now();
+				await updateHasProtectedFilesContext();
+				logger.info("Protected files context updated");
 
-		// Update file protection context for active editor
-		const activeEditor = vscode.window.activeTextEditor;
-		if (activeEditor) {
-			await updateFileProtectionContext(activeEditor.document.uri);
-			logger.info("File protection context updated for active editor");
-		}
+				// Update file protection context for active editor
+				const activeEditor = vscode.window.activeTextEditor;
+				if (activeEditor) {
+					await updateFileProtectionContext(activeEditor.document.uri);
+					logger.info("File protection context updated for active editor");
+				}
+				console.log("[PERF] Context updates completed", { ms: Date.now() - ctxStart });
+			} catch (err) {
+				logger.error("Failed to update context in background", err as Error);
+			}
+		}, 100);
 
 		// Listen for protection changes to update file protection context
 		//  TDD: Wire cache invalidation + dashboard refresh on protection changes
@@ -743,4 +765,36 @@ export async function deactivate() {
  */
 export function getWorkspaceManager(): WorkspaceManager | null {
 	return workspaceManager;
+}
+
+/**
+ * Show workspace trust warning asynchronously (non-blocking).
+ * Called after activation completes to avoid blocking extension startup.
+ */
+async function showDeferredWorkspaceTrustWarning(
+	context: vscode.ExtensionContext
+): Promise<void> {
+	const ACK_KEY = 'snapback.workspace-trust-warning-acknowledged';
+
+	// Check if already acknowledged
+	if (context.globalState.get<boolean>(ACK_KEY)) {
+		return;
+	}
+
+	try {
+		const result = await vscode.window.showWarningMessage(
+			"SnapBack is running in limited mode because this workspace is not trusted. Some features like snapshot creation and risk analysis are disabled.",
+			"Trust Workspace",
+			"Continue Anyway",
+			"Don't Show Again"
+		);
+
+		if (result === "Trust Workspace") {
+			await vscode.commands.executeCommand("workbench.action.manageTrust");
+		} else if (result === "Don't Show Again") {
+			await context.globalState.update(ACK_KEY, true);
+		}
+	} catch (error) {
+		logger.error("Error showing workspace trust warning", error as Error);
+	}
 }
