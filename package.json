@@ -83,6 +83,12 @@
         "icon": "$(unlock)"
       },
       {
+        "command": "snapback.resetNotificationPreferences",
+        "title": "SnapBack: Reset Notification Preferences 🧢",
+        "category": "SnapBack",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "snapback.changeProtectionLevel",
         "title": "SnapBack: Change Protection Level 🧢",
         "category": "SnapBack",
