@@ -38,13 +38,16 @@ export class SessionStore {
    * Start a new session (returns session ID)
    */
   startSession(): string {
+    console.log('[SessionStore] startSession() called', { currentActiveSessionId: this.activeSessionId });
     if (this.activeSessionId) {
       // Return existing active session
+      console.log('[SessionStore] Returning existing active session:', this.activeSessionId);
       return this.activeSessionId;
     }
 
     this.activeSessionId = generateSessionId();
     this.activeSessionStartedAt = Date.now();
+    console.log('[SessionStore] New session started:', this.activeSessionId);
     return this.activeSessionId;
   }
 
@@ -80,7 +83,14 @@ export class SessionStore {
       summary?: string;
     }
   ): Promise<SessionManifest | null> {
+    console.log('[SessionStore] finalizeSession() called', {
+      activeSessionId: this.activeSessionId,
+      reason,
+      filesCount: files.length
+    });
+
     if (!this.activeSessionId || !this.activeSessionStartedAt) {
+      console.log('[SessionStore] No active session to finalize');
       return null;
     }
 
@@ -99,12 +109,14 @@ export class SessionStore {
       this.sessionsUri,
       `${this.activeSessionId}.json`
     );
+    console.log('[SessionStore] Writing manifest to:', manifestUri.fsPath);
     await writeJsonFile(manifestUri, manifest);
 
     // Clear active session
     this.activeSessionId = null;
     this.activeSessionStartedAt = null;
 
+    console.log('[SessionStore] Session finalized successfully:', manifest.id);
     return manifest;
   }
 
@@ -128,11 +140,14 @@ export class SessionStore {
    * List sessions with optional filtering
    */
   async list(filters?: SessionFilters): Promise<SessionManifest[]> {
+    console.log('[SessionStore] list() called', { filters });
     let entries: [string, vscode.FileType][];
 
     try {
       entries = await vscode.workspace.fs.readDirectory(this.sessionsUri);
-    } catch {
+      console.log('[SessionStore] Found entries:', entries.length);
+    } catch (error) {
+      console.log('[SessionStore] Failed to read sessions directory:', error);
       return [];
     }
 

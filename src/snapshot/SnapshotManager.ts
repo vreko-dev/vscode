@@ -24,6 +24,7 @@ import type {
 import { SnapshotDeletionService } from "./SnapshotDeletionService.js";
 import { SnapshotIconStrategy } from "./SnapshotIconStrategy.js";
 import { SnapshotNamingStrategy } from "./SnapshotNamingStrategy.js";
+import type { SessionCoordinator } from "./SessionCoordinator.js";
 
 /**
  * SnapshotManager - Central orchestrator for snapshot intelligence system
@@ -94,16 +95,19 @@ export class SnapshotManager {
 	private readonly eventEmitter?: IEventEmitter;
 	private readonly workspaceRoot: string;
 	private readonly encryptionService: EncryptionService;
+	private readonly sessionCoordinator?: SessionCoordinator;
 
 	constructor(
 		workspaceRoot: string,
 		storage: IStorage,
 		confirmationService: IConfirmationService,
 		eventEmitter?: IEventEmitter,
+		sessionCoordinator?: SessionCoordinator,
 	) {
 		this.workspaceRoot = workspaceRoot;
 		this.storage = storage;
 		this.eventEmitter = eventEmitter;
+		this.sessionCoordinator = sessionCoordinator;
 
 		// Initialize components
 		this.deduplicator = new SnapshotDeduplicator(500);
@@ -254,6 +258,24 @@ export class SnapshotManager {
 				id: snapshot.id,
 				name: snapshot.name,
 			});
+
+			// Track snapshot in session coordinator if available
+			if (this.sessionCoordinator) {
+				try {
+					// Add each file to the session with basic stats
+					for (const file of files) {
+						const stats = {
+							added: file.action === "add" ? file.content.split("\n").length : 0,
+							deleted: file.action === "delete" ? 1 : 0,
+						};
+						this.sessionCoordinator.addCandidate(file.path, snapshot.id, stats);
+					}
+				} catch (sessionError) {
+					// Log but don't fail snapshot creation
+					console.error("[SnapshotManager] Failed to add session candidate:", sessionError);
+				}
+			}
+
 			return snapshot;
 		} catch (error) {
 			// Re-throw storage errors
