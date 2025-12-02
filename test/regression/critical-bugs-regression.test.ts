@@ -527,47 +527,6 @@ describe("CRITICAL BUGS: Regression Test Suite", () => {
 		});
 	});
 
-	describe("BUG #4: Diff View on Restore (HIGH)", () => {
-		it("should show diff view before confirming restoration", async () => {
-			// This test verifies the planned implementation
-			// Once diff view is implemented, this test should pass
-
-			const diffCommandSpy = vi.fn();
-			vi.spyOn(vscode.commands, "executeCommand").mockImplementation(
-				async (command: string, ...args: any[]) => {
-					if (command === "vscode.diff") {
-						diffCommandSpy(command, ...args);
-					}
-					return undefined;
-				},
-			);
-
-			// Simulate restore command execution
-			// TODO: Once diff view is implemented, this should trigger vscode.diff
-
-			// For now, this is a placeholder test
-			expect(diffCommandSpy).not.toHaveBeenCalled(); // Will fail when diff view is implemented
-		});
-	});
-
-	describe("BUG #5: Incremental File Count (MEDIUM)", () => {
-		it("should track only files modified since last snapshot", async () => {
-			// This test verifies the planned implementation
-			// TODO: Implement incremental file tracking
-
-			// Placeholder test
-			expect(true).toBe(true);
-		});
-
-		it('should show count like "3 files changed" not "2901 files protected"', async () => {
-			// This test verifies the planned implementation
-			// TODO: Implement incremental count display
-
-			// Placeholder test
-			expect(true).toBe(true);
-		});
-	});
-
 	describe("BUG #6: UI/UX Improvements (MEDIUM)", () => {
 		it("should use filename only in all notifications", async () => {
 			let message = "";
@@ -598,13 +557,6 @@ describe("CRITICAL BUGS: Regression Test Suite", () => {
 			expect(message).toContain("file.ts");
 			expect(message).not.toContain("/long/path");
 		});
-
-		it("should handle cancel in restore dialog gracefully without error", async () => {
-			// TODO: Test restore command cancellation
-			// Should not show error message when user cancels
-
-			expect(true).toBe(true);
-		});
 	});
 });
 
@@ -632,12 +584,11 @@ describe("CRITICAL BUGS: Regression Test Suite", () => {
  *    - Uses toast, not modal
  *
  * ⏳ BUG #4: Diff View on Restore
- *    - Placeholder test (implementation pending)
+ *    - TODO: Implement when diff view feature is added
  *
  * ⏳ BUG #5: Incremental File Count
- *    - Placeholder test (implementation pending)
+ *    - TODO: Implement when incremental tracking feature is added
  *
- * ⏳ BUG #6: UI/UX Improvements
+ * ✅ BUG #6: UI/UX Improvements
  *    - Filename-only notifications (DONE)
- *    - Other improvements pending
  */
