@@ -13,6 +13,7 @@ import { logger } from "../utils/logger.js";
 import { directoryExists, findProjectRoot } from "../utils/projectRoot.js";
 import { MigrationService } from "./migration-service.js";
 import { PhaseLogger } from "./phaseLogger.js";
+import { SNAPBACK_ICONS } from "../constants/index.js";
 
 export interface Phase2Result {
 	storage: StorageManager;
@@ -204,7 +205,7 @@ export async function initializePhase2Storage(
 
 		// Show user-facing error
 		vscode.window.showErrorMessage(
-			`⚠️ SnapBack: Activation failed. Sessions and snapshots will not be available. Details: ${errorMessage}`,
+			`${SNAPBACK_ICONS.WARN} SnapBack: Activation failed. Sessions and snapshots will not be available. Details: ${errorMessage}`,
 			"View Logs",
 		);
 

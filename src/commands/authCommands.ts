@@ -6,6 +6,7 @@
 
 import * as vscode from "vscode";
 import { logger } from "../utils/logger.js";
+import { COMMANDS } from "../constants/index.js";
 
 /**
  * Register authentication-related commands
@@ -15,7 +16,7 @@ export function registerAuthCommands(
 ): vscode.Disposable[] {
 	return [
 		// Sign in to SnapBack
-		vscode.commands.registerCommand("snapback.signIn", async () => {
+		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SIGN_IN_LEGACY, async () => {
 			try {
 				logger.info("User initiated sign in");
 
@@ -43,7 +44,7 @@ export function registerAuthCommands(
 		}),
 
 		// Sign out of SnapBack
-		vscode.commands.registerCommand("snapback.signOut", async () => {
+		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SIGN_OUT_LEGACY, async () => {
 			try {
 				logger.info("User initiated sign out");
 
@@ -87,7 +88,7 @@ export function registerAuthCommands(
 		}),
 
 		// Show account status
-		vscode.commands.registerCommand("snapback.showAuthStatus", async () => {
+		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SHOW_STATUS_LEGACY, async () => {
 			try {
 				// Try to get session without prompting
 				const session = await vscode.authentication.getSession(

@@ -2,6 +2,7 @@ import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
 import { logger } from "../utils/logger.js";
+import { SNAPBACK_ICONS } from "../constants/index.js";
 
 /**
  * Migration Service for users upgrading from auto-protection version
@@ -128,7 +129,7 @@ Your existing protections remain active. You can:
 
 		// Show confirmation
 		vscode.window.showInformationMessage(
-			"✅ Migration complete! Your protected files remain unchanged.",
+			`${SNAPBACK_ICONS.SUCCESS} Migration complete! Your protected files remain unchanged.`,
 		);
 	}
 
@@ -184,7 +185,7 @@ Your existing protections remain active. You can:
 			);
 
 			vscode.window.showInformationMessage(
-				`✅ All ${protectedFiles.length} protected files cleared! You can now use "Protect This Repo" to protect only the files you need.`,
+				`${SNAPBACK_ICONS.SUCCESS} All ${protectedFiles.length} protected files cleared! You can now use "Protect This Repo" to protect only the files you need.`,
 			);
 		} catch (error) {
 			logger.error("Failed to clear protected files", error as Error);

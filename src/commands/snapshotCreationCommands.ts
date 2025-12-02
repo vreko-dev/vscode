@@ -12,6 +12,7 @@
 
 import * as vscode from "vscode";
 import type { CommandContext } from "./index.js";
+import { COMMANDS } from "../constants/index.js";
 
 /**
  * Register all snapshot creation and restoration commands
@@ -36,7 +37,7 @@ export function registerSnapshotCreationCommands(
 
 	// Command: Create Snapshot
 	disposables.push(
-		vscode.commands.registerCommand("snapback.createSnapshot", async () => {
+		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.CREATE_LEGACY, async () => {
 			try {
 				vscode.window.showInformationMessage("Creating snapshot...");
 				const snapshotId =

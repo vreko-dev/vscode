@@ -3,25 +3,26 @@ import * as vscode from "vscode";
 import type { SnapshotFileNode } from "../views/snapshotNavigatorProvider.js";
 import { compareWithSnapshot } from "./compareWithSnapshot.js";
 import type { CommandContext } from "./index.js";
+import { COMMANDS } from "../constants/index.js";
 
 export function registerViewCommands(
 	_context: vscode.ExtensionContext,
 	ctx: CommandContext,
 ): vscode.Disposable[] {
 	return [
-		vscode.commands.registerCommand("snapback.refreshViews", () => {
+		vscode.commands.registerCommand(COMMANDS.VIEW.REFRESH_LEGACY, () => {
 			ctx.refreshViews();
 			vscode.window.showInformationMessage("SnapBack views refreshed");
 		}),
 
-		vscode.commands.registerCommand("snapback.openWalkthrough", () => {
+		vscode.commands.registerCommand(COMMANDS.VIEW.OPEN_WALKTHROUGH, () => {
 			vscode.commands.executeCommand(
 				"workbench.action.openWalkthrough",
 				"MarcelleLabs.snapback-vscode#snapback.welcome",
 			);
 		}),
 
-		vscode.commands.registerCommand("snapback.openDocumentation", async () => {
+		vscode.commands.registerCommand(COMMANDS.VIEW.OPEN_DOCS, async () => {
 			// Create a webview panel for documentation
 			const panel = vscode.window.createWebviewPanel(
 				"snapback.documentation",
@@ -74,7 +75,7 @@ export function registerViewCommands(
 			},
 		),
 
-		vscode.commands.registerCommand("snapback.snapBack", async () => {
+		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.RESTORE_LEGACY, async () => {
 			try {
 				const restored = await ctx.snapshotRestoreUI.showRestoreWorkflow();
 				if (restored) {
@@ -293,11 +294,11 @@ This will overwrite current files.`,
 				compareWithSnapshot(ctx.storage, ctx.snapshotDocumentProvider, uri),
 		),
 
-		vscode.commands.registerCommand("snapback.showAllSnapshots", async () => {
+		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.SHOW_ALL, async () => {
 			await vscode.commands.executeCommand("snapback.viewSnapshot");
 		}),
 
-		vscode.commands.registerCommand("snapback.viewSnapshot", async () => {
+		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.VIEW, async () => {
 			// Focus the SnapBack view
 			await vscode.commands.executeCommand("workbench.view.extension.snapback");
 		}),

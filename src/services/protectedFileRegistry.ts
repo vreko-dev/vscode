@@ -302,6 +302,47 @@ export class ProtectedFileRegistry
 		return entries.length;
 	}
 
+	/**
+	 * Get protection level counts for TreeView display
+	 * Required by SnapBackTreeProvider IConfigManager interface
+	 */
+	async getProtectionCounts(): Promise<{
+		block: number;
+		warn: number;
+		watch: number;
+	}> {
+		const files = await this.list();
+
+		// Count files by protection level
+		const counts = {
+			block: 0,
+			warn: 0,
+			watch: 0,
+		};
+
+		for (const file of files) {
+			const level = file.protectionLevel;
+
+			// Map protection levels to UI categories
+			// 'Protected' → block (🔴 red)
+			// 'Warning' → warn (🟡 yellow)
+			// 'Watched' → watch (🟢 green)
+			if (level === 'Protected') {
+				counts.block++;
+			} else if (level === 'Warning') {
+				counts.warn++;
+			} else if (level === 'Watched') {
+				counts.watch++;
+			} else {
+				// Default to watch if no level specified
+				counts.watch++;
+			}
+		}
+
+		logger.debug('Protection counts calculated', counts);
+		return counts;
+	}
+
 	async add(
 		filePath: string,
 		options?: { snapshotId?: string; protectionLevel?: ProtectionLevel },

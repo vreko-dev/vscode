@@ -17,6 +17,7 @@ import { logger } from "@snapback/infrastructure";
 import type { BurstDetectionResult } from "@snapback/sdk";
 import type { Result } from "../types/result.js";
 import { Ok } from "../types/result.js";
+import { SNAPBACK_ICONS } from "../constants/index.js";
 
 /**
  * AI detection data passed to warning manager
@@ -132,7 +133,7 @@ export class AIWarningManager {
 			// Include burst details if available
 			const insertedChars = detection.burst.details?.totalInserted || 0;
 			return (
-				`🤖 AI-assisted edit detected (${toolName}, ${confidencePercent}% confidence)\n\n` +
+				`${SNAPBACK_ICONS.AI} AI-assisted edit detected (${toolName}, ${confidencePercent}% confidence)\n\n` +
 				`Rapid insertion of ~${insertedChars} characters detected.\n\n` +
 				`Review changes before saving, or restore previous version.`
 			);
@@ -140,7 +141,7 @@ export class AIWarningManager {
 
 		// Simple message for extension-presence detection
 		return (
-			`🤖 AI-assisted edit detected (${toolName}, ${confidencePercent}% confidence)\n\n` +
+			`${SNAPBACK_ICONS.AI} AI-assisted edit detected (${toolName}, ${confidencePercent}% confidence)\n\n` +
 			`Review changes before saving, or restore previous version.`
 		);
 	}

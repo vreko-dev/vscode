@@ -11,6 +11,7 @@ import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
 import type { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider.js";
 import type { SnapBackTreeNode } from "../views/explorerTree/types.js";
+import { COMMANDS } from "../constants/index.js";
 
 /**
  * Command: snapback.connect
@@ -22,7 +23,7 @@ export function registerConnectCommand(
 	_context: vscode.ExtensionContext,
 	explorerTreeProvider: SnapBackExplorerTreeProvider,
 ): vscode.Disposable {
-	return vscode.commands.registerCommand("snapback.connect", async () => {
+	return vscode.commands.registerCommand(COMMANDS.ACCOUNT.CONNECT, async () => {
 		try {
 			logger.info("Starting SnapBack OAuth connection");
 
@@ -66,7 +67,7 @@ export function registerRefreshTreeCommand(
 	_context: vscode.ExtensionContext,
 	explorerTreeProvider: SnapBackExplorerTreeProvider,
 ): vscode.Disposable {
-	return vscode.commands.registerCommand("snapback.refreshTree", () => {
+	return vscode.commands.registerCommand(COMMANDS.UTILITY.REFRESH_TREE, () => {
 		logger.info("Manually refreshing SnapBack Explorer tree");
 		explorerTreeProvider.refresh();
 		vscode.window.showInformationMessage("SnapBack Explorer refreshed");

@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { ConfigDetector } from "../config-detector.js";
 import type { CommandContext } from "./index.js";
 import { UpdateConfigurationCommand } from "./updateConfiguration.js";
+import { COMMANDS } from "../constants/index.js";
 
 export function registerUtilityCommands(
 	_context: vscode.ExtensionContext,
@@ -15,7 +16,7 @@ export function registerUtilityCommands(
 		// Note: snapback.showStatus command moved to statusBarCommands.ts for enhanced UX
 		// Note: snapback.testMCPFederation moved to mcpCommands.ts
 
-		vscode.commands.registerCommand("snapback.initialize", async () => {
+		vscode.commands.registerCommand(COMMANDS.UTILITY.INITIALIZE, async () => {
 			const { message } = await ctx.getProtectionStateSummary();
 			vscode.window.showInformationMessage(
 				`SnapBack protection initialized: ${message}`,

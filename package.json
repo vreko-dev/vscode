@@ -31,26 +31,21 @@
     ],
     "commands": [
       {
-        "command": "snapback.initialize",
-        "title": "SnapBack: Initialize 🧢",
-        "category": "SnapBack"
+        "comment": "═══════════════════════════════════════════════════════════════════════════════",
+        "comment2": "Protection Commands - File-level protection management",
+        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
       },
       {
-        "command": "snapback.showStatus",
-        "title": "SnapBack: Show Protection Status 🧢",
-        "category": "SnapBack"
-      },
-      {
-        "command": "snapback.createSnapshot",
-        "title": "SnapBack: Create Snapshot 🧢",
+        "command": "snapback.protectFile",
+        "title": "Protect File",
         "category": "SnapBack",
-        "icon": "$(save)"
+        "icon": "$(shield)"
       },
       {
-        "command": "snapback.snapBack",
-        "title": "SnapBack: Snap Back (Restore Snapshot) 🧢",
+        "command": "snapback.protectCurrentFile",
+        "title": "Protect Current File",
         "category": "SnapBack",
-        "icon": "$(history)"
+        "icon": "$(shield)"
       },
       {
         "command": "snapback.protectEntireRepo",
@@ -59,205 +54,251 @@
         "icon": "$(shield)"
       },
       {
+        "command": "snapback.unprotectFile",
+        "title": "Unprotect File",
+        "category": "SnapBack",
+        "icon": "$(unlock)"
+      },
+      {
+        "command": "snapback.changeProtectionLevel",
+        "title": "Change Protection Level",
+        "category": "SnapBack",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "snapback.setWatchLevel",
+        "title": "Set Protection: Watch (Silent)",
+        "category": "SnapBack",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "snapback.setWarnLevel",
+        "title": "Set Protection: Warn (Notify)",
+        "category": "SnapBack",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "snapback.setBlockLevel",
+        "title": "Set Protection: Block (Required)",
+        "category": "SnapBack",
+        "icon": "$(error)"
+      },
+      {
         "command": "snapback.showProtectionStatus",
         "title": "Protection Verified",
         "category": "SnapBack",
         "icon": "$(shield-check)"
       },
       {
-        "command": "snapback.protectFile",
-        "title": "SnapBack: Protect File 🧢",
-        "category": "SnapBack",
-        "icon": "$(shield)"
-      },
-      {
-        "command": "snapback.protectCurrentFile",
-        "title": "SnapBack: Protect Current File 🧢",
-        "category": "SnapBack",
-        "icon": "$(shield)"
-      },
-      {
-        "command": "snapback.unprotectFile",
-        "title": "SnapBack: Unprotect File 🧢",
-        "category": "SnapBack",
-        "icon": "$(unlock)"
-      },
-      {
-        "command": "snapback.resetNotificationPreferences",
-        "title": "SnapBack: Reset Notification Preferences 🧢",
-        "category": "SnapBack",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "snapback.changeProtectionLevel",
-        "title": "SnapBack: Change Protection Level 🧢",
-        "category": "SnapBack",
-        "icon": "$(settings-gear)"
-      },
-      {
-        "command": "snapback.setWatchLevel",
-        "title": "Set Protection: Watch (Silent) 🟢",
-        "category": "SnapBack",
-        "icon": "$(eye)"
-      },
-      {
-        "command": "snapback.setWarnLevel",
-        "title": "Set Protection: Warn (Notify) 🟡",
-        "category": "SnapBack",
-        "icon": "$(warning)"
-      },
-      {
-        "command": "snapback.setBlockLevel",
-        "title": "Set Protection: Block (Required) 🔴",
-        "category": "SnapBack",
-        "icon": "$(error)"
-      },
-      {
-        "command": "snapback.viewSnapshot",
-        "title": "SnapBack: View Snapshot Details 🧢",
-        "category": "SnapBack"
-      },
-      {
-        "command": "snapback.showAllSnapshots",
-        "title": "SnapBack: Show All Snapshots 🧢",
-        "category": "SnapBack"
-      },
-      {
         "command": "snapback.showAllProtectedFiles",
-        "title": "SnapBack: Show Protected Files 🧢",
+        "title": "Show All Protected Files",
         "category": "SnapBack",
         "icon": "$(list-tree)"
       },
       {
-        "command": "snapback.deleteSnapshot",
-        "title": "SnapBack: Delete Snapshot 🧢",
+        "command": "snapback.createPolicyOverride",
+        "title": "Create Policy Override",
         "category": "SnapBack",
-        "icon": "$(trash)"
+        "icon": "$(symbol-event)"
       },
       {
-        "command": "snapback.deleteOlderSnapshots",
-        "title": "SnapBack: Delete Older Snapshots 🧢",
-        "category": "SnapBack",
-        "icon": "$(clear-all)"
+        "comment": "═══════════════════════════════════════════════════════════════════════════════",
+        "comment2": "Snapshot Commands - Snapshot creation and restoration",
+        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
       },
       {
-        "command": "snapback.unprotectAndDeleteSnapshot",
-        "title": "SnapBack: Unprotect and Delete Snapshot 🧢",
-        "category": "SnapBack"
+        "command": "snapback.createSnapshot",
+        "title": "Create Snapshot",
+        "category": "SnapBack",
+        "icon": "$(save)"
+      },
+      {
+        "command": "snapback.snapBack",
+        "title": "Snap Back (Restore)",
+        "category": "SnapBack",
+        "icon": "$(history)"
+      },
+      {
+        "command": "snapback.restoreLastSnapshot",
+        "title": "Restore Last Snapshot",
+        "category": "SnapBack",
+        "icon": "$(history)"
+      },
+      {
+        "command": "snapback.viewSnapshot",
+        "title": "View Snapshot Details",
+        "category": "SnapBack",
+        "icon": "$(info)"
+      },
+      {
+        "command": "snapback.showAllSnapshots",
+        "title": "Show All Snapshots",
+        "category": "SnapBack",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "snapback.compareWithSnapshot",
+        "title": "Compare with Snapshot",
+        "category": "SnapBack",
+        "icon": "$(diff)"
       },
       {
         "command": "snapback.renameSnapshot",
-        "title": "SnapBack: Rename Snapshot 🧢",
+        "title": "Rename Snapshot",
         "category": "SnapBack",
         "icon": "$(edit)"
       },
       {
         "command": "snapback.protectSnapshot",
-        "title": "SnapBack: Protect Snapshot 🧢",
+        "title": "Protect Snapshot",
         "category": "SnapBack",
         "icon": "$(shield)"
       },
       {
-        "command": "snapback.restoreLastSnapshot",
-        "title": "SnapBack: Restore Last Snapshot 🧢",
+        "command": "snapback.deleteSnapshot",
+        "title": "Delete Snapshot",
         "category": "SnapBack",
-        "icon": "$(history)"
+        "icon": "$(trash)"
       },
       {
-        "command": "snapback.openWalkthrough",
-        "title": "SnapBack: Show Welcome Guide 🧢",
+        "command": "snapback.deleteOlderSnapshots",
+        "title": "Delete Older Snapshots",
         "category": "SnapBack",
-        "icon": "$(question)"
+        "icon": "$(clear-all)"
       },
       {
-        "command": "snapback.openDocumentation",
-        "title": "SnapBack: Open Documentation 📖",
+        "command": "snapback.unprotectAndDeleteSnapshot",
+        "title": "Unprotect and Delete Snapshot",
         "category": "SnapBack",
-        "icon": "$(book)"
+        "icon": "$(trash)"
       },
       {
-        "command": "snapback.openProtectedFile",
-        "title": "SnapBack: Open Protected File",
-        "category": "SnapBack"
+        "command": "snapback.openSnapshotInWeb",
+        "title": "Open Snapshot in Web",
+        "category": "SnapBack",
+        "icon": "$(link-external)"
+      },
+      {
+        "comment": "═══════════════════════════════════════════════════════════════════════════════",
+        "comment2": "View Commands - UI navigation and refresh",
+        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
+      },
+      {
+        "command": "snapback.showStatus",
+        "title": "Show Protection Status",
+        "category": "SnapBack",
+        "icon": "$(dashboard)"
       },
       {
         "command": "snapback.refreshViews",
-        "title": "SnapBack: Refresh Views 🧢",
-        "category": "SnapBack"
-      },
-      {
-        "command": "snapback.compareWithSnapshot",
-        "title": "SnapBack: Compare with Snapshot 🧢",
-        "category": "SnapBack"
-      },
-      {
-        "command": "snapback.updateConfiguration",
-        "title": "SnapBack: Update Configuration",
+        "title": "Refresh Views",
         "category": "SnapBack",
         "icon": "$(refresh)"
       },
       {
-        "command": "snapback.createPolicyOverride",
-        "title": "SnapBack: Create Policy Override 🧢",
+        "command": "snapback.refreshTree",
+        "title": "Refresh Explorer",
         "category": "SnapBack",
-        "icon": "$(symbol-event)"
+        "icon": "$(refresh)"
       },
       {
-        "command": "snapback.toggleOfflineMode",
-        "title": "SnapBack: Toggle Offline Mode 🧢",
+        "command": "snapback.openProtectedFile",
+        "title": "Open Protected File",
         "category": "SnapBack",
-        "icon": "$(globe)"
+        "icon": "$(go-to-file)"
+      },
+      {
+        "comment": "═══════════════════════════════════════════════════════════════════════════════",
+        "comment2": "Account Commands - Authentication and connection",
+        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
       },
       {
         "command": "snapback.signIn",
-        "title": "SnapBack: Sign In 🧢",
+        "title": "Sign In",
         "category": "SnapBack",
         "icon": "$(sign-in)"
       },
       {
         "command": "snapback.signOut",
-        "title": "SnapBack: Sign Out 🧢",
+        "title": "Sign Out",
         "category": "SnapBack",
         "icon": "$(sign-out)"
       },
       {
         "command": "snapback.showAuthStatus",
-        "title": "SnapBack: Show Authentication Status 🧢",
+        "title": "Show Authentication Status",
         "category": "SnapBack",
         "icon": "$(account)"
-      },
-      {
-        "command": "snapback.clearFileHealthDecorations",
-        "title": "SnapBack: Clear File Health Decorations 🧢",
-        "category": "SnapBack"
-      },
-      {
-        "command": "snapback.refreshFileHealthDecorations",
-        "title": "SnapBack: Refresh File Health Decorations 🧢",
-        "category": "SnapBack"
-      },
-      {
-        "command": "snapback.showFileHealthStatus",
-        "title": "SnapBack: Show File Health Status 🧢",
-        "category": "SnapBack"
       },
       {
         "command": "snapback.connect",
-        "title": "SnapBack: Connect Account",
+        "title": "Connect Account",
         "category": "SnapBack",
         "icon": "$(account)"
       },
       {
-        "command": "snapback.refreshTree",
-        "title": "SnapBack: Refresh Explorer",
+        "comment": "═══════════════════════════════════════════════════════════════════════════════",
+        "comment2": "Utility Commands - Settings, help, and configuration",
+        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
+      },
+      {
+        "command": "snapback.initialize",
+        "title": "Initialize",
+        "category": "SnapBack",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "snapback.openWalkthrough",
+        "title": "Show Welcome Guide",
+        "category": "SnapBack",
+        "icon": "$(question)"
+      },
+      {
+        "command": "snapback.openDocumentation",
+        "title": "Open Documentation",
+        "category": "SnapBack",
+        "icon": "$(book)"
+      },
+      {
+        "command": "snapback.updateConfiguration",
+        "title": "Update Configuration",
+        "category": "SnapBack",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "snapback.toggleOfflineMode",
+        "title": "Toggle Offline Mode",
+        "category": "SnapBack",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "snapback.resetNotificationPreferences",
+        "title": "Reset Notification Preferences",
+        "category": "SnapBack",
+        "icon": "$(bell-slash)"
+      },
+      {
+        "comment": "═══════════════════════════════════════════════════════════════════════════════",
+        "comment2": "Health & Risk Commands - File health monitoring",
+        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
+      },
+      {
+        "command": "snapback.showFileHealthStatus",
+        "title": "Show File Health Status",
+        "category": "SnapBack",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "snapback.refreshFileHealthDecorations",
+        "title": "Refresh File Health Decorations",
         "category": "SnapBack",
         "icon": "$(refresh)"
       },
       {
-        "command": "snapback.openSnapshotInWeb",
-        "title": "SnapBack: Open Snapshot in Web",
+        "command": "snapback.clearFileHealthDecorations",
+        "title": "Clear File Health Decorations",
         "category": "SnapBack",
-        "icon": "$(link-external)"
+        "icon": "$(clear-all)"
       }
     ],
     "viewsContainers": {
@@ -518,6 +559,9 @@
     "configuration": {
       "title": "SnapBack",
       "properties": {
+        "comment": "═══════════════════════════════════════════════════════════════════════════",
+        "comment2": "Protection Settings - Default protection levels and visual indicators",
+        "comment3": "═══════════════════════════════════════════════════════════════════════════",
         "snapback.protectionLevels.defaultLevel": {
           "type": "string",
           "enum": [
@@ -531,75 +575,57 @@
             "Required snapshot note (for critical files)"
           ],
           "default": "watch",
-          "description": "Default protection level when protecting new files"
+          "description": "Default protection level when protecting new files",
+          "order": 1
         },
         "snapback.protectionLevels.showLevelBadges": {
           "type": "boolean",
           "default": true,
-          "description": "Show protection level badges in file explorer"
+          "description": "Show protection level badges in file explorer",
+          "order": 2
         },
         "snapback.showFileHealthDecorations": {
           "type": "boolean",
           "default": true,
-          "description": "Show file health indicators (🛡/⚠️/🚨) next to file names based on detected risk"
+          "description": "Show file health indicators (🛡/⚠️/🚨) based on detected risk",
+          "order": 3
         },
-        "snapback.notifications.showSnapshotCreated": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show notification when snapshots are created (Watch level only)"
-        },
-        "snapback.notifications.duration": {
-          "type": "number",
-          "default": 3000,
-          "description": "Duration to show snapshot notifications (milliseconds)"
-        },
-        "snapback.notifications.showConfigSync": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show notifications when .snapbackrc protection rules are loaded (silent by default for seamless team sync)"
-        },
-        "snapback.onboarding.showWelcome": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show welcome experience on first run"
-        },
-        "snapback.onboarding.autoDetectCriticalFiles": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically suggest protection for critical files (package.json, .env, etc.)"
-        },
-        "snapback.logLevel": {
-          "type": "string",
-          "enum": [
-            "debug",
-            "info",
-            "warn",
-            "error"
-          ],
-          "default": "info",
-          "description": "Logging level for SnapBack extension"
-        },
-        "snapback.showAutoSnapshotNotifications": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show notifications when auto-snapshots are created for protected files"
-        },
+        "comment4": "═══════════════════════════════════════════════════════════════════════════",
+        "comment5": "Snapshot Settings - Snapshot behavior and management",
+        "comment6": "═══════════════════════════════════════════════════════════════════════════",
         "snapback.snapshot.naming.useGit": {
           "type": "boolean",
           "default": true,
-          "description": "Use git context for intelligent snapshot naming"
+          "description": "Use git context for intelligent snapshot naming",
+          "order": 10
         },
         "snapback.snapshot.naming.gitTimeout": {
           "type": "number",
           "default": 5000,
           "description": "Git command timeout in milliseconds",
           "minimum": 1000,
-          "maximum": 30000
+          "maximum": 30000,
+          "order": 11
+        },
+        "snapback.snapshot.deduplication.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically replace duplicate snapshots with identical file states",
+          "order": 12
+        },
+        "snapback.snapshot.deduplication.cacheSize": {
+          "type": "number",
+          "default": 500,
+          "description": "Maximum number of snapshot hashes to cache for deduplication",
+          "minimum": 100,
+          "maximum": 10000,
+          "order": 13
         },
         "snapback.snapshot.deletion.confirmDelete": {
           "type": "boolean",
           "default": true,
-          "description": "Show confirmation dialog before deleting snapshots"
+          "description": "Show confirmation dialog before deleting snapshots",
+          "order": 14
         },
         "snapback.snapshot.deletion.autoCleanup": {
           "type": "object",
@@ -610,6 +636,7 @@
             "minimumSnapshots": 10
           },
           "description": "Automatic snapshot cleanup settings",
+          "order": 15,
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -631,57 +658,41 @@
             }
           }
         },
-        "snapback.snapshot.deduplication.enabled": {
+        "comment7": "═══════════════════════════════════════════════════════════════════════════",
+        "comment8": "Notification Settings - User feedback and alerts",
+        "comment9": "═══════════════════════════════════════════════════════════════════════════",
+        "snapback.notifications.showSnapshotCreated": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically replace duplicate snapshots with identical file states"
+          "description": "Show notification when snapshots are created (Watch level only)",
+          "order": 20
         },
-        "snapback.snapshot.deduplication.cacheSize": {
+        "snapback.notifications.duration": {
           "type": "number",
-          "default": 500,
-          "description": "Maximum number of snapshot hashes to cache for deduplication",
-          "minimum": 100,
-          "maximum": 10000
+          "default": 3000,
+          "description": "Duration to show snapshot notifications (milliseconds)",
+          "order": 21
         },
-        "snapback.config.enableExecutableConfigs": {
+        "snapback.notifications.showConfigSync": {
           "type": "boolean",
           "default": false,
-          "description": "Enable loading of executable configuration files (CJS/MJS). WARNING: Only enable in trusted environments as this can execute arbitrary code."
+          "description": "Show notifications when .snapbackrc protection rules are loaded (silent by default)",
+          "order": 22
         },
-        "snapback.api.baseUrl": {
-          "type": "string",
-          "default": "https://api.snapback.dev/api",
-          "description": "Base URL for the SnapBack API"
-        },
-        "snapback.apiBaseUrl": {
-          "type": "string",
-          "default": "https://api.snapback.dev",
-          "description": "Base URL for the SnapBack API (used by Explorer tree)"
-        },
-        "snapback.webBaseUrl": {
-          "type": "string",
-          "default": "https://console.snapback.dev",
-          "description": "Base URL for the SnapBack web application"
-        },
-        "snapback.api.key": {
-          "type": "string",
-          "default": "",
-          "description": "API key for SnapBack (legacy authentication, OAuth is preferred)"
-        },
-        "snapback.api.preferOAuth": {
+        "snapback.showAutoSnapshotNotifications": {
           "type": "boolean",
           "default": true,
-          "description": "Prefer OAuth 2.0 authentication over API key when available"
+          "description": "Show notifications when auto-snapshots are created for protected files",
+          "order": 23
         },
-        "snapback.offlineMode.enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable offline mode to disable all network requests and use cached data only"
-        },
+        "comment10": "═══════════════════════════════════════════════════════════════════════════",
+        "comment11": "Guardian (AI Protection) - Risk detection and prevention",
+        "comment12": "═══════════════════════════════════════════════════════════════════════════",
         "snapback.guardian.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable SnapBack Guardian AI detection and protection"
+          "description": "Enable SnapBack Guardian AI detection and protection",
+          "order": 30
         },
         "snapback.guardian.protectionLevel": {
           "type": "string",
@@ -691,47 +702,109 @@
             "block"
           ],
           "default": "warn",
-          "description": "Protection level for AI-generated code"
+          "description": "Protection level for AI-generated code",
+          "order": 31
         },
         "snapback.guardian.plugins.secretDetection": {
           "type": "boolean",
           "default": true,
-          "description": "Enable secret detection plugin"
+          "description": "Enable secret detection plugin",
+          "order": 32
         },
         "snapback.guardian.plugins.mockReplacement": {
           "type": "boolean",
           "default": true,
-          "description": "Enable mock replacement plugin"
+          "description": "Enable mock replacement detection plugin",
+          "order": 33
         },
         "snapback.guardian.plugins.phantomDependency": {
           "type": "boolean",
           "default": true,
-          "description": "Enable phantom dependency plugin"
+          "description": "Enable phantom dependency detection plugin",
+          "order": 34
         },
         "snapback.guardian.thresholds.warn": {
           "type": "number",
           "default": 6,
-          "description": "Risk score threshold for warnings"
+          "description": "Risk score threshold for warnings (0-10 scale)",
+          "order": 35
         },
         "snapback.guardian.thresholds.block": {
           "type": "number",
           "default": 8,
-          "description": "Risk score threshold for blocking changes"
+          "description": "Risk score threshold for blocking changes (0-10 scale)",
+          "order": 36
         },
+        "comment13": "═══════════════════════════════════════════════════════════════════════════",
+        "comment14": "AI Detection - Session and change detection",
+        "comment15": "═══════════════════════════════════════════════════════════════════════════",
+        "snapback.aiDetection.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable AI detection and session tracking",
+          "order": 40
+        },
+        "snapback.aiDetection.showSessionBadge": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show AI detection result badge in status bar",
+          "order": 41
+        },
+        "snapback.aiDetection.confidenceThreshold": {
+          "type": "number",
+          "default": 6,
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Confidence threshold for showing AI detection results (0-10 scale)",
+          "order": 42
+        },
+        "comment16": "═══════════════════════════════════════════════════════════════════════════",
+        "comment17": "API & Authentication - Connection and authentication settings",
+        "comment18": "═══════════════════════════════════════════════════════════════════════════",
+        "snapback.api.baseUrl": {
+          "type": "string",
+          "default": "https://api.snapback.dev/api",
+          "description": "Base URL for the SnapBack API",
+          "order": 50
+        },
+        "snapback.apiBaseUrl": {
+          "type": "string",
+          "default": "https://api.snapback.dev",
+          "description": "Base URL for the SnapBack API (used by Explorer tree)",
+          "order": 51
+        },
+        "snapback.webBaseUrl": {
+          "type": "string",
+          "default": "https://console.snapback.dev",
+          "description": "Base URL for the SnapBack web application",
+          "order": 52
+        },
+        "snapback.api.key": {
+          "type": "string",
+          "default": "",
+          "description": "API key for SnapBack (legacy - OAuth is preferred)",
+          "order": 53
+        },
+        "snapback.api.preferOAuth": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prefer OAuth 2.0 authentication over API key when available",
+          "order": 54
+        },
+        "comment19": "═══════════════════════════════════════════════════════════════════════════",
+        "comment20": "MCP (Model Context Protocol) - AI assistant integration",
+        "comment21": "═══════════════════════════════════════════════════════════════════════════",
         "snapback.mcp.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Model Context Protocol (MCP) integration for AI assistance"
+          "description": "Enable Model Context Protocol (MCP) integration for AI assistance",
+          "order": 60
         },
         "snapback.mcp.serverUrl": {
           "type": "string",
           "default": "https://mcp.snapback.dev",
-          "description": "URL of the remote MCP server (when empty, uses bundled local server in online mode)"
-        },
-        "snapback.mcp.authToken": {
-          "type": "string",
-          "default": "",
-          "description": "Authentication token for the remote MCP server"
+          "description": "URL of the remote MCP server (when empty, uses bundled local server)",
+          "order": 61
         },
         "snapback.mcp.authType": {
           "type": "string",
@@ -740,36 +813,67 @@
             "apikey"
           ],
           "default": "bearer",
-          "description": "Authentication type for the remote MCP server"
+          "description": "Authentication type for the remote MCP server",
+          "order": 62
+        },
+        "snapback.mcp.authToken": {
+          "type": "string",
+          "default": "",
+          "description": "Authentication token for the remote MCP server",
+          "order": 63
         },
         "snapback.mcp.apiKey": {
           "type": "string",
           "default": "",
-          "description": "API key for the remote MCP server (when using apikey authentication)"
+          "description": "API key for the remote MCP server (when using apikey authentication)",
+          "order": 64
         },
         "snapback.mcp.timeout": {
           "type": "number",
           "default": 5000,
           "description": "Timeout for MCP server connections (milliseconds)",
           "minimum": 1000,
-          "maximum": 30000
+          "maximum": 30000,
+          "order": 65
         },
-        "snapback.aiDetection.enabled": {
+        "comment22": "═══════════════════════════════════════════════════════════════════════════",
+        "comment23": "Advanced Settings - Configuration, onboarding, and system settings",
+        "comment24": "═══════════════════════════════════════════════════════════════════════════",
+        "snapback.config.enableExecutableConfigs": {
+          "type": "boolean",
+          "default": false,
+          "description": "⚠️ Enable loading of executable configuration files (CJS/MJS). WARNING: Only enable in trusted environments.",
+          "order": 70
+        },
+        "snapback.offlineMode.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable offline mode to disable all network requests",
+          "order": 71
+        },
+        "snapback.onboarding.showWelcome": {
           "type": "boolean",
           "default": true,
-          "description": "Enable AI detection and collection (when disabled, no change data is collected and session results return 'unknown')"
+          "description": "Show welcome experience on first run",
+          "order": 72
         },
-        "snapback.aiDetection.showSessionBadge": {
+        "snapback.onboarding.autoDetectCriticalFiles": {
           "type": "boolean",
           "default": true,
-          "description": "Show AI detection result badge in status bar"
+          "description": "Automatically suggest protection for critical files (package.json, .env, etc.)",
+          "order": 73
         },
-        "snapback.aiDetection.confidenceThreshold": {
-          "type": "number",
-          "default": 6,
-          "minimum": 0,
-          "maximum": 10,
-          "description": "Confidence threshold for showing AI detection results in UI (0-10 scale)"
+        "snapback.logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "Logging level for SnapBack extension",
+          "order": 74
         }
       }
     },

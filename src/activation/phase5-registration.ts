@@ -3,6 +3,7 @@ import type { SessionCoordinator } from "../snapshot/SessionCoordinator.js";
 import { VIEW_IDS } from "../views/ViewRegistry.js";
 import type { Phase4Result } from "./phase4-providers.js";
 import { PhaseLogger } from "./phaseLogger.js";
+import { COMMANDS } from "../constants/index.js";
 
 export type Phase5Result = Record<string, never>;
 
@@ -32,7 +33,7 @@ export async function initializePhase5Registration(
 
 		// 🆕 v1.1: Register refresh command for external triggers (e.g., snapshot creation)
 		context.subscriptions.push(
-			vscode.commands.registerCommand("snapback.refreshSafetyDashboard", () => {
+			vscode.commands.registerCommand(COMMANDS.VIEW.REFRESH_DASHBOARD, () => {
 				phase4Result.safetyDashboardTreeProvider.refresh();
 			}),
 		);

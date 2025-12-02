@@ -26,6 +26,7 @@
 
 import * as vscode from "vscode";
 import { logger } from "./utils/logger.js";
+import { SNAPBACK_ICONS } from "./constants/index.js";
 
 /**
  * Represents a structured notification within the SnapBack ecosystem.
@@ -538,7 +539,7 @@ Last stable snapshot: ${changeInfo.lastSnapshot}
 		await this.showNotification({
 			id: `failure-${Date.now()}`,
 			type: "error",
-			icon: "🚨",
+			icon: SNAPBACK_ICONS.CRITICAL,
 			message: "Build failure detected - Recovery available",
 			detail: `Build System Failure Detected
 
@@ -594,12 +595,12 @@ ${failureInfo.recoveryOptions
 
 Current Status: ${statusInfo.currentStatus}
 • AI Detection: ${
-				statusInfo.aiDetection.enabled ? "✅" : "❌"
+				statusInfo.aiDetection.enabled ? SNAPBACK_ICONS.SUCCESS : SNAPBACK_ICONS.FAILED
 			} Enabled (monitoring ${statusInfo.aiDetection.tools.join(", ")})
-• Auto-snapshot: ${statusInfo.autoSnapshot.enabled ? "✅" : "❌"} ${
+• Auto-snapshot: ${statusInfo.autoSnapshot.enabled ? SNAPBACK_ICONS.SUCCESS : SNAPBACK_ICONS.FAILED} ${
 				statusInfo.autoSnapshot.frequency
 			}
-• File watching: ${statusInfo.fileWatching.enabled ? "✅" : "❌"} ${
+• File watching: ${statusInfo.fileWatching.enabled ? SNAPBACK_ICONS.SUCCESS : SNAPBACK_ICONS.FAILED} ${
 				statusInfo.fileWatching.filesMonitored
 			} files monitored
 • Last snapshot: ${statusInfo.lastSnapshot}
@@ -634,7 +635,7 @@ Your code is fully protected. Code fearlessly! \u{1f6e1}`,
 		await this.showNotification({
 			id: `statistics-${Date.now()}`,
 			type: "info",
-			icon: "📊",
+			icon: SNAPBACK_ICONS.OVERVIEW,
 			message: "SnapBack statistics updated",
 			detail: `SnapBack Protection Status: ${statusInfo.protectionStatus.toUpperCase()}
 

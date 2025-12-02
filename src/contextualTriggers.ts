@@ -2,6 +2,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import type { ProtectedFileRegistry } from "./services/protectedFileRegistry.js";
 import type { ProtectionLevel } from "./views/types.js";
+import { SNAPBACK_ICONS } from "./constants/index.js";
 
 export class ContextualTriggers {
 	constructor(private readonly protectedFileRegistry: ProtectedFileRegistry) {}
@@ -57,7 +58,7 @@ export class ContextualTriggers {
 		if (!isProtected) {
 			// Show prompt to protect package.json
 			const response = await vscode.window.showInformationMessage(
-				"📦 Package.json modified. This is a critical configuration file. Add ⚠️ Warning protection to get notified before future changes?",
+				`${SNAPBACK_ICONS.SESSION} Package.json modified. This is a critical configuration file. Add ${SNAPBACK_ICONS.WARN} Warning protection to get notified before future changes?`,
 				"Yes, protect it",
 				"Not now",
 				"Never ask",
@@ -112,7 +113,7 @@ export class ContextualTriggers {
 		if (!isProtected) {
 			// Show prompt to protect configuration files
 			const response = await vscode.window.showInformationMessage(
-				`⚙️ ${fileName} modified. This is a configuration file. Add ⚠️ Warning protection to get notified before future changes?`,
+				`${SNAPBACK_ICONS.SETTINGS} ${fileName} modified. This is a configuration file. Add ${SNAPBACK_ICONS.WARN} Warning protection to get notified before future changes?`,
 				"Yes, protect it",
 				"Not now",
 			);

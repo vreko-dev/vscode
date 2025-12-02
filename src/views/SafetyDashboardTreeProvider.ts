@@ -15,6 +15,7 @@ import type {
 	WorkspaceSafetyService,
 } from "../services/WorkspaceSafetyService";
 import { CORE_CONCEPT_SIGNAGE, REPO_STATUS_SIGNAGE } from "../signage/index.js";
+import { COMMANDS } from "../constants/index.js";
 
 type SafetyTreeNode =
 	| SectionNode
@@ -52,7 +53,7 @@ export class SafetyDashboardTreeProvider
 		provider: SafetyDashboardTreeProvider,
 	): void {
 		context.subscriptions.push(
-			vscode.commands.registerCommand("snapback.refreshSafetyDashboard", () => {
+			vscode.commands.registerCommand(COMMANDS.VIEW.REFRESH_DASHBOARD, () => {
 				provider.refresh();
 			}),
 		);

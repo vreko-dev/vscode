@@ -6,6 +6,7 @@ import {
 	legacyProtectionLevelToCanonical,
 } from "../signage/index.js";
 import type { CommandContext } from "./index.js";
+import { COMMANDS } from "../constants/index.js";
 
 interface EnhancedQuickPickItem extends vscode.QuickPickItem {
 	action?: () => void | Promise<void>;
@@ -25,7 +26,7 @@ export function registerStatusBarCommands(
 	ctx: CommandContext,
 ): vscode.Disposable[] {
 	return [
-		vscode.commands.registerCommand("snapback.showStatus", async () => {
+		vscode.commands.registerCommand(COMMANDS.UTILITY.SHOW_STATUS, async () => {
 			await showProtectionStatus(ctx.protectedFileRegistry);
 		}),
 	];
@@ -41,7 +42,7 @@ async function showProtectionStatus(
 
 	if (files.length === 0) {
 		const result = await vscode.window.showInformationMessage(
-			"🧢 No files are currently protected",
+			`${BRAND_SIGNAGE.logoEmoji} No files are currently protected`,
 			"Protect a File",
 			"Learn More",
 		);
