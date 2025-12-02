@@ -20,8 +20,8 @@ export class MigrationService {
 	) {}
 
 	/**
-	 * Check if user needs migration and show UI if needed
-	 * Returns true if migration was performed or skipped
+	 * Check if user needs migration and show UI if needed (non-blocking)
+	 * Runs asynchronously without blocking extension activation
 	 */
 	async checkAndMigrate(): Promise<void> {
 		try {
@@ -47,8 +47,11 @@ export class MigrationService {
 				`Detected ${protectedFiles.length} protected files - showing migration UI`,
 			);
 
-			// Show migration dialog
-			await this.showMigrationDialog(protectedFiles.length);
+			// ⚡ PERF: Show migration dialog asynchronously
+			// Don't await - let user interact with UI while dialog is open
+			this.showMigrationDialog(protectedFiles.length).catch(err => {
+				logger.error("Migration dialog failed", err as Error);
+			});
 		} catch (error) {
 			logger.error("Migration check failed", error as Error);
 			// Don't block extension activation on migration errors

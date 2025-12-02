@@ -7,7 +7,6 @@ import { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider.
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
 import { StorageManager as ServiceStorageManager } from "../services/StorageManager.js";
 import { WorkspaceSafetyService } from "../services/WorkspaceSafetyService.js";
-import { SessionCoordinator } from "../snapshot/SessionCoordinator.js";
 import type { StorageManager } from "../storage/StorageManager.js";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider.js";
 import type { StatusBarController } from "../ui/statusBar.js";
@@ -43,56 +42,81 @@ export async function initializePhase4Providers(
 	protectedFileRegistry: ProtectedFileRegistry,
 	workspaceRoot: string,
 ): Promise<Phase4Result> {
+	const phase4Start = Date.now();
+	console.log("[PERF] Phase 4 starting...");
 	try {
 		// Initialize document provider
+		let t = Date.now();
 		const snapshotDocumentProvider = new SnapshotDocumentProvider();
+		console.log("[PERF] SnapshotDocumentProvider", { ms: Date.now() - t });
 
 		// Initialize tree providers
 		if (!protectedFileRegistry) {
 			throw new Error("ProtectedFileRegistry is required for tree providers");
 		}
 
+		t = Date.now();
 		const protectedFilesTreeProvider = new ProtectedFilesTreeProvider(
 			protectedFileRegistry,
 		);
+		console.log("[PERF] ProtectedFilesTreeProvider", { ms: Date.now() - t });
 
 		// Initialize decoration providers
+		t = Date.now();
 		const protectionDecorationProvider = new ProtectionDecorationProvider(
 			protectedFileRegistry,
 			workspaceRoot,
 		);
+		console.log("[PERF] ProtectionDecorationProvider", { ms: Date.now() - t });
 
 		// 🆕 Initialize file health decoration provider
+		t = Date.now();
 		const fileHealthDecorationProvider = new FileHealthDecorationProvider();
+		console.log("[PERF] FileHealthDecorationProvider", { ms: Date.now() - t });
 
+		t = Date.now();
 		const snapshotDecorations = new SnapshotDecorations(storage);
+		console.log("[PERF] SnapshotDecorations", { ms: Date.now() - t });
 
 		// Use the status bar controller from phase 3
+		t = Date.now();
 		const statusBarController = phase3Result.statusBarController;
+		console.log("[PERF] StatusBarController (from Phase 3)", { ms: Date.now() - t });
 
 		// Initialize welcome view
+		t = Date.now();
 		const welcomeView = new WelcomeView(context.extensionUri);
+		console.log("[PERF] WelcomeView", { ms: Date.now() - t });
 
 		// Initialize snapshot navigator provider
+		t = Date.now();
 		const snapshotNavigatorProvider = new SnapshotNavigatorProvider(storage);
+		console.log("[PERF] SnapshotNavigatorProvider", { ms: Date.now() - t });
 
 		// Initialize detection code action provider
+		t = Date.now();
 		const detectionCodeActionProvider = new DetectionCodeActionProvider();
+		console.log("[PERF] DetectionCodeActionProvider", { ms: Date.now() - t });
 
 		// Initialize protection CodeLens provider
+		t = Date.now();
 		const protectionCodeLensProvider = new ProtectionCodeLensProvider(
 			protectedFileRegistry,
 		);
+		console.log("[PERF] ProtectionCodeLensProvider", { ms: Date.now() - t });
 
 		// 🆕 Initialize sessions tree provider with storage manager
+		// Use SessionCoordinator from phase3 (already wired to SnapshotManager)
+		t = Date.now();
 		const storageManager = new ServiceStorageManager(workspaceRoot);
-		const sessionCoordinator = new SessionCoordinator(storage);
 		const sessionsTreeProvider = new SessionsTreeProvider(
-			sessionCoordinator,
+			phase3Result.sessionCoordinator,
 			storageManager,
 		);
+		console.log("[PERF] SessionsTreeProvider", { ms: Date.now() - t });
 
 		// 🟢 v1.1: Initialize Safety Dashboard
+		t = Date.now();
 		const workspaceSafetyService = new WorkspaceSafetyService(
 			phase3Result.snapshotSummaryProvider,
 		);
@@ -104,7 +128,9 @@ export async function initializePhase4Providers(
 			protectedFileRegistry,
 			phase3Result.protectionService,
 		);
+		console.log("[PERF] SafetyDashboard", { ms: Date.now() - t });
 
+		console.log("[PERF] Phase 4 completed", { ms: Date.now() - phase4Start });
 		PhaseLogger.logPhase("4: UI Providers");
 
 		return {

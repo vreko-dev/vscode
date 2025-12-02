@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import type { SessionCoordinator } from "../snapshot/SessionCoordinator.js";
 import { VIEW_IDS } from "../views/ViewRegistry.js";
 import type { Phase4Result } from "./phase4-providers.js";
 import { PhaseLogger } from "./phaseLogger.js";
@@ -8,6 +9,7 @@ export type Phase5Result = Record<string, never>;
 export async function initializePhase5Registration(
 	context: vscode.ExtensionContext,
 	phase4Result: Phase4Result,
+	sessionCoordinator: SessionCoordinator,
 ): Promise<Phase5Result> {
 	try {
 		// Register tree data providers
@@ -65,6 +67,16 @@ export async function initializePhase5Registration(
 				"*",
 				phase4Result.protectionCodeLensProvider,
 			),
+		);
+
+		// Register window blur listener for session finalization
+		context.subscriptions.push(
+			vscode.window.onDidChangeWindowState((e) => {
+				if (!e.focused) {
+					console.log("[Phase5] Window blur detected, triggering session finalization");
+					sessionCoordinator.handleWindowBlur();
+				}
+			}),
 		);
 
 		PhaseLogger.logPhase("5: Registration");
