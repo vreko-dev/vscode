@@ -1,8 +1,0 @@
-{
-	"jsonValidation": [
-		{
-			"fileMatch": ".snapbackrc",
-			"url": "./schemas/snapbackrc.schema.json"
-		}
-	]
-}
