@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as vscode from "vscode";
 import { AIWarningManager, type AIDetection } from "./AIWarningManager.js";
 import { logger } from "../utils/logger.js";
+import { isOk } from "../types/result.js";
 
 // Mock vscode module
 vi.mock("vscode");
@@ -55,9 +56,12 @@ describe("AIWarningManager", () => {
 
 			const result = await warningManager.showWarning(detection);
 
-			expect(result.choice).toBe("accept");
-			expect(result.timestamp).toBeGreaterThan(0);
-			expect(result.responseTime).toBeGreaterThan(0);
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.choice).toBe("accept");
+				expect(result.value.timestamp).toBeGreaterThan(0);
+				expect(result.value.responseTime).toBeGreaterThan(0);
+			}
 		});
 
 		it("should return 'review' choice when user selects 'Review Changes'", async () => {
@@ -72,7 +76,10 @@ describe("AIWarningManager", () => {
 
 			const result = await warningManager.showWarning(detection);
 
-			expect(result.choice).toBe("review");
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.choice).toBe("review");
+			}
 		});
 
 		it("should return 'restore' choice when user selects 'Restore Previous'", async () => {
@@ -87,7 +94,10 @@ describe("AIWarningManager", () => {
 
 			const result = await warningManager.showWarning(detection);
 
-			expect(result.choice).toBe("restore");
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.choice).toBe("restore");
+			}
 		});
 
 		it("should return 'dismissed' choice when user closes dialog", async () => {
@@ -102,7 +112,10 @@ describe("AIWarningManager", () => {
 
 			const result = await warningManager.showWarning(detection);
 
-			expect(result.choice).toBe("dismissed");
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.choice).toBe("dismissed");
+			}
 		});
 
 		it("should include confidence level in message", async () => {
@@ -199,8 +212,11 @@ describe("AIWarningManager", () => {
 
 			const result = await warningManager.showWarning(detection);
 
-			expect(result.responseTime).toBeGreaterThanOrEqual(0);
-			expect(result.responseTime).toBeLessThan(10000); // Reasonable upper bound
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.responseTime).toBeGreaterThanOrEqual(0);
+				expect(result.value.responseTime).toBeLessThan(10000); // Reasonable upper bound
+			}
 		});
 
 		it("should handle tool constants correctly in message", async () => {
@@ -286,25 +302,30 @@ describe("AIWarningManager", () => {
 
 			const result = await warningManager.showWarning(detection);
 
-			expect(result.choice).toBe("accept");
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.choice).toBe("accept");
+			}
 			expect(logger.info).toHaveBeenCalled();
 		});
 
-		it("should handle unknown tool name gracefully", async () => {
+		it("should handle unknown tool name and pattern gracefully", async () => {
 			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
 			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
 
 			const detection: AIDetection = {
-				tool: "FUTURE_AI_TOOL_V999",
-				confidence: 0.8,
-				pattern: "burst",
+				tool: "UNKNOWN_TOOL",
+				confidence: 0.75,
+				pattern: "unknown_pattern",
 			};
 
-			await warningManager.showWarning(detection);
+			const result = await warningManager.showWarning(detection);
 
-			const messageArg = mockShowInformationMessage.mock.calls[0][0];
-			// Should include the tool name as fallback
-			expect(messageArg).toContain("FUTURE_AI_TOOL_V999");
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.choice).toBe("accept");
+			}
+			expect(logger.info).toHaveBeenCalled();
 		});
 
 		it("should handle very high confidence (1.0)", async () => {
@@ -319,7 +340,10 @@ describe("AIWarningManager", () => {
 
 			const result = await warningManager.showWarning(detection);
 
-			expect(result.choice).toBe("accept");
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.choice).toBe("accept");
+			}
 			const logCall = (logger.info as any).mock.calls.find(
 				(call: any) => call[0] === "AI warning shown"
 			);
@@ -338,7 +362,10 @@ describe("AIWarningManager", () => {
 
 			const result = await warningManager.showWarning(detection);
 
-			expect(result.choice).toBe("dismissed");
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.choice).toBe("dismissed");
+			}
 			const logCall = (logger.info as any).mock.calls.find(
 				(call: any) => call[0] === "AI warning shown"
 			);
@@ -361,8 +388,11 @@ describe("AIWarningManager", () => {
 			const result = await warningManager.showWarning(detection);
 			const after = Date.now();
 
-			expect(result.timestamp).toBeGreaterThanOrEqual(before);
-			expect(result.timestamp).toBeLessThanOrEqual(after);
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.timestamp).toBeGreaterThanOrEqual(before);
+				expect(result.value.timestamp).toBeLessThanOrEqual(after);
+			}
 		});
 
 		it("should record response time within reasonable bounds", async () => {
@@ -378,7 +408,10 @@ describe("AIWarningManager", () => {
 			const result = await warningManager.showWarning(detection);
 
 			// Response time should be >= 0 (impossible to be negative)
-			expect(result.responseTime).toBeGreaterThanOrEqual(0);
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.responseTime).toBeGreaterThanOrEqual(0);
+			}
 		});
 	});
 
@@ -443,4 +476,6 @@ describe("AIWarningManager", () => {
 		});
 	});
 });
+
+
 

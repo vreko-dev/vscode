@@ -304,8 +304,8 @@ describe("AIWarningManager", () => {
 			await warningManager.showWarning(detection);
 
 			const messageArg = mockShowWarningMessage.mock.calls[0][0];
-			// Should include the tool name as fallback
-			expect(messageArg).toContain("FUTURE_AI_TOOL_V999");
+			// Should include the tool name as fallback (underscores replaced with spaces)
+			expect(messageArg).toContain("FUTURE AI TOOL V999");
 		});
 
 		it("should handle very high confidence (1.0)", async () => {
