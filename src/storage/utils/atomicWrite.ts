@@ -73,7 +73,17 @@ export async function fileExists(uri: vscode.Uri): Promise<boolean> {
 export async function readJsonFile<T>(uri: vscode.Uri): Promise<T | null> {
   try {
     const data = await vscode.workspace.fs.readFile(uri);
-    return JSON.parse(Buffer.from(data).toString('utf-8')) as T;
+    const content = Buffer.from(data).toString('utf-8');
+
+    try {
+      return JSON.parse(content) as T;
+    } catch (parseError) {
+      if (parseError instanceof SyntaxError) {
+        console.warn(`[Storage] Corrupted JSON file: ${uri.fsPath}`);
+        return null;
+      }
+      throw parseError;
+    }
   } catch (error) {
     if ((error as vscode.FileSystemError).code === 'FileNotFound') {
       return null;

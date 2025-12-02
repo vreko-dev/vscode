@@ -103,6 +103,8 @@ export class SnapshotStore {
       const content = await this.blobStore.retrieve(ref.blob);
       if (content !== null) {
         contents[filePath] = content;
+      } else {
+        console.warn(`[SnapshotStore] Missing blob ${ref.blob} for ${filePath} in snapshot ${id}`);
       }
     }
 

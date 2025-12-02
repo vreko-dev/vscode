@@ -105,7 +105,7 @@ const mockVscode = {
 		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
 		asRelativePath: vi.fn((pathOrUri: any) => {
 			const path = typeof pathOrUri === "string" ? pathOrUri : pathOrUri.fsPath;
-			return path.replace(/^.*\//, "");
+			return path.replace(/^.*\\/, "");
 		}),
 		findFiles: vi.fn(async () => []),
 		fs: {
@@ -114,6 +114,7 @@ const mockVscode = {
 			stat: vi.fn(),
 			delete: vi.fn(),
 			rename: vi.fn(),
+			readDirectory: vi.fn(async () => []),
 		},
 		onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
 		onWillSaveTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
@@ -170,6 +171,12 @@ const mockVscode = {
 			path: [base.path, ...pathSegments].join("/"),
 			scheme: "file",
 		})),
+	},
+	FileType: {
+		Unknown: 0,
+		File: 1,
+		Directory: 2,
+		SymbolicLink: 64,
 	},
 	extensions: {
 		all: [],
