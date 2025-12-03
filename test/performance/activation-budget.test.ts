@@ -1,6 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { performance } from "node:perf_hooks";
-import { createMockExtensionContext, createPerformanceMonitor } from "../__mocks__/factories";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	createMockExtensionContext,
+	createPerformanceMonitor,
+} from "../__mocks__/factories";
 
 /**
  * Activation Performance Budget Tests
@@ -21,11 +24,11 @@ import { createMockExtensionContext, createPerformanceMonitor } from "../__mocks
 
 describe("Extension Activation Performance Budget", () => {
 	let monitor: ReturnType<typeof createPerformanceMonitor>;
-	let mockContext: any;
+	let _mockContext: any;
 
 	beforeEach(() => {
 		monitor = createPerformanceMonitor();
-		mockContext = createMockExtensionContext();
+		_mockContext = createMockExtensionContext();
 		vi.clearAllMocks();
 	});
 
@@ -56,7 +59,7 @@ describe("Extension Activation Performance Budget", () => {
 			}> = [];
 
 			// Phase 1: Service initialization (budget: <100ms)
-			const phase1End = await monitor.measure("phase1", async () => {
+			const _phase1End = await monitor.measure("phase1", async () => {
 				await new Promise((resolve) => setTimeout(resolve, 20));
 			});
 			measurements.push({ phase: "service-init", duration: 20 });
@@ -86,7 +89,10 @@ describe("Extension Activation Performance Budget", () => {
 			measurements.push({ phase: "final-reg", duration: 10 });
 
 			// Total should be under 500ms
-			const totalDuration = measurements.reduce((sum, m) => sum + m.duration, 0);
+			const totalDuration = measurements.reduce(
+				(sum, m) => sum + m.duration,
+				0,
+			);
 			expect(totalDuration).toBeLessThan(500);
 
 			// Individual phases should be under budget
@@ -202,7 +208,7 @@ describe("Extension Activation Performance Budget", () => {
 			// First activation
 			state.listeners.push("listener1");
 			state.handlers.set("handler1", vi.fn());
-			const countAfterFirst = state.listeners.length + state.handlers.size;
+			const _countAfterFirst = state.listeners.length + state.handlers.size;
 
 			// Clear state (as it would be between tests)
 			state.listeners = [];

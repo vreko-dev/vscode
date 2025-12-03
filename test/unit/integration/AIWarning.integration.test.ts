@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { logger } from "@snapback/infrastructure";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { AIWarningManager } from "../../../src/ai/AIWarningManager.js";
-import { logger } from "@snapback/infrastructure";
 import { isOk } from "../../../src/types/result.js";
 
 // Mock logger
@@ -21,7 +21,9 @@ describe("AIWarning Integration", () => {
 
 	describe("AI Detection Warning Flow", () => {
 		it("should show warning and track user choice", async () => {
-			const mockShowWarningMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
+			const mockShowWarningMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
 			(vscode.window.showWarningMessage as any) = mockShowWarningMessage;
 
 			const warningManager = new AIWarningManager();
@@ -41,7 +43,9 @@ describe("AIWarning Integration", () => {
 		});
 
 		it("should log telemetry with full detection context", async () => {
-			const mockShowWarningMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
+			const mockShowWarningMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
 			(vscode.window.showWarningMessage as any) = mockShowWarningMessage;
 
 			const warningManager = new AIWarningManager();
@@ -76,7 +80,7 @@ describe("AIWarning Integration", () => {
 						totalDeleted: 100,
 						ratio: 5.0,
 					}),
-				})
+				}),
 			);
 		});
 
@@ -129,7 +133,9 @@ describe("AIWarning Integration", () => {
 
 			// Test: Dismissed (dialog closed)
 			vi.clearAllMocks();
-			(vscode.window.showWarningMessage as any) = vi.fn().mockResolvedValueOnce(undefined);
+			(vscode.window.showWarningMessage as any) = vi
+				.fn()
+				.mockResolvedValueOnce(undefined);
 			result = await warningManager.showWarning({
 				tool: "TABNINE",
 				confidence: 0.7,
@@ -142,7 +148,9 @@ describe("AIWarning Integration", () => {
 		});
 
 		it("should include burst details in message when provided", async () => {
-			const mockShowWarningMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
+			const mockShowWarningMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
 			(vscode.window.showWarningMessage as any) = mockShowWarningMessage;
 
 			const warningManager = new AIWarningManager();
@@ -181,7 +189,9 @@ describe("AIWarning Integration", () => {
 
 			for (const { tool, expected } of testCases) {
 				vi.clearAllMocks();
-				const mockShowWarningMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
+				const mockShowWarningMessage = vi
+					.fn()
+					.mockResolvedValueOnce("Accept & Save");
 				(vscode.window.showWarningMessage as any) = mockShowWarningMessage;
 
 				await warningManager.showWarning({
@@ -200,7 +210,7 @@ describe("AIWarning Integration", () => {
 				() =>
 					new Promise((resolve) => {
 						setTimeout(() => resolve("Accept & Save"), 10);
-					})
+					}),
 			);
 			(vscode.window.showWarningMessage as any) = mockShowWarningMessage;
 
@@ -219,4 +229,3 @@ describe("AIWarning Integration", () => {
 		});
 	});
 });
-

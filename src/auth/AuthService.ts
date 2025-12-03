@@ -8,8 +8,11 @@
  * @implements Token Management, OAuth Flow, Token Refresh
  */
 
-import type { CredentialsManager, ExtensionCredentials } from "./credentials.js";
 import { logger } from "@snapback/infrastructure";
+import type {
+	CredentialsManager,
+	ExtensionCredentials,
+} from "./credentials.js";
 
 /**
  * Authentication token with metadata
@@ -62,10 +65,7 @@ export class AuthService {
 	 * @param credentialsManager - Credential storage manager
 	 * @param apiBaseUrl - API base URL for token refresh
 	 */
-	constructor(
-		credentialsManager: CredentialsManager,
-		apiBaseUrl: string,
-	) {
+	constructor(credentialsManager: CredentialsManager, apiBaseUrl: string) {
 		this.credentialsManager = credentialsManager;
 		this.apiBaseUrl = apiBaseUrl;
 	}
@@ -93,8 +93,7 @@ export class AuthService {
 			logger.info("Access token expired, refreshing...");
 			await this.refreshToken();
 			// Get updated credentials after refresh
-			const updatedCredentials =
-				await this.credentialsManager.getCredentials();
+			const updatedCredentials = await this.credentialsManager.getCredentials();
 			if (!updatedCredentials) {
 				throw new Error("Failed to refresh authentication token");
 			}
@@ -212,7 +211,11 @@ export class AuthService {
 	 *
 	 * @returns User info if authenticated, null otherwise
 	 */
-	async getCurrentUser(): Promise<{ id: string; email: string; name?: string } | null> {
+	async getCurrentUser(): Promise<{
+		id: string;
+		email: string;
+		name?: string;
+	} | null> {
 		const token = await this.getToken();
 		return token?.user ?? null;
 	}

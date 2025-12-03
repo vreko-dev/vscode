@@ -586,13 +586,14 @@ export class SnapBackTreeProvider
 		context: vscode.ExtensionContext,
 		storageManager: IStorageManager,
 		configManager: IConfigManager,
+		viewId = "snapback.dashboard",
 	): {
 		provider: SnapBackTreeProvider;
 		view: vscode.TreeView<SnapBackTreeItem>;
 	} {
 		const provider = new SnapBackTreeProvider(storageManager, configManager);
 
-		const view = vscode.window.createTreeView("snapback-tree", {
+		const view = vscode.window.createTreeView(viewId, {
 			treeDataProvider: provider,
 			showCollapseAll: true,
 		});

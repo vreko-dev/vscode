@@ -27,14 +27,17 @@ export class SessionsTreeProvider
 		private sessionCoordinator: SessionCoordinator,
 		private storageManager: StorageManager,
 	) {
-		console.log('[SessionsTreeProvider] Constructor called');
+		console.log("[SessionsTreeProvider] Constructor called");
 		// Load persisted sessions
 		this.loadSessions();
 
 		// Listen for session finalization events
 		this.disposables.push(
 			this.sessionCoordinator.onSessionFinalized((session) => {
-				console.log('[SessionsTreeProvider] Session finalized event received:', session.id);
+				console.log(
+					"[SessionsTreeProvider] Session finalized event received:",
+					session.id,
+				);
 				this.sessions.push(session);
 				this.storageManager.storeSessionManifest(session);
 				this.refresh();
@@ -43,14 +46,17 @@ export class SessionsTreeProvider
 	}
 
 	private async loadSessions(): Promise<void> {
-		console.log('[SessionsTreeProvider] loadSessions() called');
+		console.log("[SessionsTreeProvider] loadSessions() called");
 		this.sessions = await this.storageManager.listSessionManifests();
-		console.log('[SessionsTreeProvider] Loaded sessions:', this.sessions.length);
+		console.log(
+			"[SessionsTreeProvider] Loaded sessions:",
+			this.sessions.length,
+		);
 		this.refresh();
 	}
 
 	refresh(): void {
-		console.log('[SessionsTreeProvider] refresh() called');
+		console.log("[SessionsTreeProvider] refresh() called");
 		this._onDidChangeTreeData.fire(undefined);
 	}
 
@@ -59,7 +65,10 @@ export class SessionsTreeProvider
 	}
 
 	async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
-		console.log('[SessionsTreeProvider] getChildren() called', { hasElement: !!element, sessionsCount: this.sessions.length });
+		console.log("[SessionsTreeProvider] getChildren() called", {
+			hasElement: !!element,
+			sessionsCount: this.sessions.length,
+		});
 		if (!element) {
 			// Root level - show sessions
 			// Root level - show sessions
@@ -74,7 +83,7 @@ export class SessionsTreeProvider
 								: vscode.TreeItemCollapsibleState.None,
 						),
 				);
-			console.log('[SessionsTreeProvider] Returning items:', items.length);
+			console.log("[SessionsTreeProvider] Returning items:", items.length);
 			return items;
 		}
 

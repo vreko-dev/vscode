@@ -182,8 +182,7 @@ export class SnapshotDecorations {
 			const fileSnapshots = snapshots
 				.filter(
 					(snapshot) =>
-						snapshot.files &&
-						snapshot.files[relativePath] !== undefined,
+						snapshot.files && snapshot.files[relativePath] !== undefined,
 				)
 				.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -328,8 +327,7 @@ export class SnapshotDecorations {
 			const fileSnapshots = snapshots
 				.filter(
 					(snapshot) =>
-						snapshot.files &&
-						snapshot.files[relativePath] !== undefined,
+						snapshot.files && snapshot.files[relativePath] !== undefined,
 				)
 				.sort((a, b) => b.timestamp - a.timestamp);
 

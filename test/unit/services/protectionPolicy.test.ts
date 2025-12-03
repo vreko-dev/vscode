@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
-import {
-	ProtectionManager,
-	type ProtectionPolicy,
-} from "../../../src/services/protectionPolicy";
+import { ProtectionManager } from "../../../src/services/protectionPolicy";
 import type { SnapBackRC } from "../../../src/types/snapbackrc.types";
 
 describe("ProtectionManager", () => {

@@ -119,7 +119,7 @@ export class WorkspaceSafetyService {
 						},
 					});
 				}
-			} catch (error) {}
+			} catch (_error) {}
 		}
 	}
 
@@ -184,7 +184,7 @@ export class WorkspaceSafetyService {
 					"**/node_modules/**",
 				);
 				files.push(...found.map((uri) => uri.fsPath));
-			} catch (error) {}
+			} catch (_error) {}
 		}
 
 		return files;

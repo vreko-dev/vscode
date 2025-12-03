@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Blocking I/O Detection Tests
@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  */
 
 describe("Blocking I/O Detection", () => {
-	let blockingOpsDetected: Array<{
+	const _blockingOpsDetected: Array<{
 		operation: string;
 		path: string;
 		timestamp: number;
@@ -35,7 +35,6 @@ describe("Blocking I/O Detection", () => {
 				// ❌ This is what we want to prevent:
 				// const config = fs.readFileSync('.snapbackrc', 'utf-8');
 				// fs.writeFileSync('.snapback-cache', 'data');
-
 				// ✅ This is what we want to see:
 				// const config = await fs.promises.readFile('.snapbackrc', 'utf-8');
 				// await fs.promises.writeFile('.snapback-cache', 'data');
@@ -79,7 +78,10 @@ describe("Blocking I/O Detection", () => {
 		it("should chunk large file reads instead of loading entire file", async () => {
 			const largeFileSize = 100 * 1024 * 1024;
 
-			const readLargeFile = async (filePath: string, chunkSize: number = 64 * 1024) => {
+			const readLargeFile = async (
+				_filePath: string,
+				chunkSize: number = 64 * 1024,
+			) => {
 				const chunks: string[] = [];
 
 				for (let i = 0; i < largeFileSize; i += chunkSize) {
@@ -95,7 +97,7 @@ describe("Blocking I/O Detection", () => {
 		});
 
 		it("should use streaming for large file operations", async () => {
-			const useStreaming = (filePath: string) => {
+			const useStreaming = (_filePath: string) => {
 				return "streaming";
 			};
 
@@ -109,7 +111,7 @@ describe("Blocking I/O Detection", () => {
 			const loadConfigAsync = async () => {
 				try {
 					return { protectionLevel: "watch" };
-				} catch (error) {
+				} catch (_error) {
 					console.warn("Config not found, using defaults");
 					return { protectionLevel: "watch" };
 				}
@@ -142,7 +144,7 @@ describe("Blocking I/O Detection", () => {
 
 	describe("Workspace Scanning", () => {
 		it("should scan workspace asynchronously", async () => {
-			const scanWorkspace = async (workspacePath: string) => {
+			const scanWorkspace = async (_workspacePath: string) => {
 				return [];
 			};
 

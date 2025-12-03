@@ -297,51 +297,6 @@ export class AnalysisCoordinator {
 	}
 
 	/**
-	 * Basic pattern detection for offline fallback.
-	 * Runs simple regex-based checks for common security issues.
-	 *
-	 * NOTE: Currently unused but reserved for future offline fallback mode.
-	 * Will be called when API is unavailable and guardian.offline mode is enabled.
-	 *
-	 * @param content - File content to analyze
-	 * @returns Promise with basic analysis result
-	 */
-	// @ts-expect-error - Reserved for future offline fallback implementation
-	private async basicPatternDetection(
-		content: string,
-	): Promise<BasicAnalysisResult> {
-		const factors: string[] = [];
-		const recommendations: string[] = [];
-
-		// Check for common patterns
-		if (content.includes("eval(")) {
-			factors.push("eval() usage detected - security risk");
-			recommendations.push(
-				"Avoid using eval() as it can execute arbitrary code",
-			);
-		}
-
-		if (content.includes("Function(")) {
-			factors.push("Function constructor usage detected - security risk");
-			recommendations.push(
-				"Avoid using Function constructor as it can execute arbitrary code",
-			);
-		}
-
-		// Simple score calculation
-		const score = factors.length > 0 ? Math.min(factors.length * 0.2, 1.0) : 0;
-		const severity =
-			factors.length > 0 ? (factors.length > 2 ? "high" : "medium") : "low";
-
-		return {
-			score,
-			factors,
-			recommendations,
-			severity,
-		};
-	}
-
-	/**
 	 * Map analysis severity to VS Code diagnostic severity.
 	 */
 	private getDiagnosticSeverity(

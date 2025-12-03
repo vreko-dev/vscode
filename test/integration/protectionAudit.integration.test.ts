@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type * as vscode from "vscode";
 
 /**
  * Integration tests for Protection Audit System
@@ -244,7 +243,7 @@ describe("Protection Audit - Integration Tests", () => {
 		it("should cache audit results for performance", async () => {
 			createMockWorkspace(["/workspace/.env"]);
 
-			const startTime = Date.now();
+			const _startTime = Date.now();
 
 			// First call - should scan workspace
 			// const audit1 = await protectionManager.computeRepoStatus();

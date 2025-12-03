@@ -1,13 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProtectionLevelHandler } from "../../src/handlers/ProtectionLevelHandler.js";
-import { SnapshotNamingStrategy } from "../../src/snapshot/SnapshotNamingStrategy.js";
 import {
 	createMockDocument,
 	createMockOperationCoordinator,
 } from "../__mocks__/factories.js";
 
 describe("Snapshot Scope Regression Test", () => {
-	let protectionHandler: ProtectionLevelHandler;
+	let _protectionHandler: ProtectionLevelHandler;
 	let mockRegistry: any;
 	let mockOperationCoordinator: any;
 	let mockCooldownService: any;
@@ -34,7 +33,7 @@ describe("Snapshot Scope Regression Test", () => {
 			recordAudit: vi.fn().mockResolvedValue(undefined),
 		};
 
-		protectionHandler = new ProtectionLevelHandler(
+		_protectionHandler = new ProtectionLevelHandler(
 			mockRegistry,
 			mockOperationCoordinator,
 			mockCooldownService,
@@ -43,7 +42,7 @@ describe("Snapshot Scope Regression Test", () => {
 	});
 
 	it("REGRESSION TEST: should create snapshot with ONLY the saved file, not entire workspace", async () => {
-		const document = createMockDocument({
+		const _document = createMockDocument({
 			uri: { fsPath: "/workspace/src/app.ts" },
 		});
 
@@ -66,7 +65,7 @@ describe("Snapshot Scope Regression Test", () => {
 	});
 
 	it("REGRESSION TEST: should NOT scan entire workspace during auto-save snapshot", async () => {
-		const mockStorage = {
+		const _mockStorage = {
 			createSnapshot: vi.fn().mockResolvedValue({
 				id: "snap-1",
 				name: "Test",
@@ -74,19 +73,17 @@ describe("Snapshot Scope Regression Test", () => {
 			}),
 		};
 
-		const mockNotificationManager = {
+		const _mockNotificationManager = {
 			showEnhancedSnapshotCreated: vi.fn(),
 		};
 
-		const mockWorkspaceMemory = {
+		const _mockWorkspaceMemory = {
 			updateLastSnapshot: vi.fn(),
 			saveContext: vi.fn().mockResolvedValue(undefined),
 		};
 
 		const coordinator = {
-			coordinateSnapshotCreation: vi
-				.fn()
-				.mockResolvedValue("snap-1"),
+			coordinateSnapshotCreation: vi.fn().mockResolvedValue("snap-1"),
 		};
 
 		// When auto-save creates snapshot with specificFiles parameter,

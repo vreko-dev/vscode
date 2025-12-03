@@ -270,7 +270,7 @@ describe("OfflineEventQueue", () => {
 			queue.enqueue("test.event", {});
 			const event = queue.peek();
 
-			queue.incrementRetryCount(event!.id);
+			queue.incrementRetryCount(event?.id);
 
 			const updatedEvent = queue.peek();
 			expect(updatedEvent?.retryCount).toBe(1);
@@ -286,7 +286,7 @@ describe("OfflineEventQueue", () => {
 			const event = queue.peek();
 			vi.clearAllMocks();
 
-			queue.incrementRetryCount(event!.id);
+			queue.incrementRetryCount(event?.id);
 
 			expect(mockGlobalState.update).toHaveBeenCalledWith(
 				"snapback.offlineEventQueue",
@@ -307,9 +307,9 @@ describe("OfflineEventQueue", () => {
 			queue.enqueue("test.event", {});
 			const event = queue.peek();
 
-			queue.incrementRetryCount(event!.id);
-			queue.incrementRetryCount(event!.id);
-			queue.incrementRetryCount(event!.id);
+			queue.incrementRetryCount(event?.id);
+			queue.incrementRetryCount(event?.id);
+			queue.incrementRetryCount(event?.id);
 
 			const updatedEvent = queue.peek();
 			expect(updatedEvent?.retryCount).toBe(3);
@@ -343,7 +343,7 @@ describe("OfflineEventQueue", () => {
 			const event = queue.peek();
 			vi.clearAllMocks();
 
-			queue.removeById(event!.id);
+			queue.removeById(event?.id);
 
 			expect(mockGlobalState.update).toHaveBeenCalledWith(
 				"snapback.offlineEventQueue",
@@ -547,9 +547,9 @@ describe("OfflineEventQueue", () => {
 			const event = queue.peek();
 
 			// Simulate 3 retries
-			queue.incrementRetryCount(event!.id);
-			queue.incrementRetryCount(event!.id);
-			queue.incrementRetryCount(event!.id);
+			queue.incrementRetryCount(event?.id);
+			queue.incrementRetryCount(event?.id);
+			queue.incrementRetryCount(event?.id);
 
 			const retriedEvent = queue.peek();
 			expect(queue.shouldRetry(retriedEvent!)).toBe(false);
@@ -564,7 +564,7 @@ describe("OfflineEventQueue", () => {
 			queue.enqueue("event1", {});
 			const event = queue.peek();
 
-			queue.incrementRetryCount(event!.id);
+			queue.incrementRetryCount(event?.id);
 
 			const retriedEvent = queue.peek();
 			expect(queue.shouldRetry(retriedEvent!)).toBe(false);

@@ -6,9 +6,6 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AIRiskService } from "../../../src/services/aiRiskService";
-import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
-import type { ProtectionManager } from "../../../src/services/protectionPolicy";
 import type { ProtectionService } from "../../../src/services/protectionService";
 import { ProtectionService as ProtectionServiceImpl } from "../../../src/services/protectionService";
 

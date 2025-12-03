@@ -39,7 +39,7 @@ export class StorageSnapshotSummaryProvider implements SnapshotSummaryProvider {
 
 	private async readAll(): Promise<Snapshot[]> {
 		try {
-			return await this.storage.listSnapshots() as unknown as Snapshot[];
+			return (await this.storage.listSnapshots()) as unknown as Snapshot[];
 		} catch (error) {
 			logger.warn("StorageSnapshotSummaryProvider:listSnapshots", error);
 			return [];

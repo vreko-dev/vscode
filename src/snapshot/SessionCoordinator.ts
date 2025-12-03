@@ -50,9 +50,12 @@ class VscodeStorageAdapter implements ISessionStorage {
 	constructor(private storage: StorageManager) {}
 
 	async storeSessionManifest(manifest: SessionManifest): Promise<void> {
-		console.log('[VscodeStorageAdapter] storeSessionManifest() called', { manifestId: manifest.id, filesCount: (manifest as any).files?.length });
+		console.log("[VscodeStorageAdapter] storeSessionManifest() called", {
+			manifestId: manifest.id,
+			filesCount: (manifest as any).files?.length,
+		});
 		// Map to new StorageManager API
-		const reason = (manifest as any).reason || 'manual';
+		const reason = (manifest as any).reason || "manual";
 		const files = (manifest as any).files || [];
 
 		// Ensure SessionStore has an active session before finalizing
@@ -61,24 +64,39 @@ class VscodeStorageAdapter implements ISessionStorage {
 		// in SessionStore when SDK is ready to finalize its session.
 		const activeSessionId = this.storage.getActiveSessionId();
 		if (!activeSessionId) {
-			console.log('[VscodeStorageAdapter] No active SessionStore session, starting one');
+			console.log(
+				"[VscodeStorageAdapter] No active SessionStore session, starting one",
+			);
 			await this.storage.createSession(manifest.startedAt);
 		}
 
-		console.log('[VscodeStorageAdapter] Calling storage.finalizeSession()', { manifestId: manifest.id, reason, filesCount: files.length });
-		await this.storage.finalizeSession(manifest.id, manifest.endedAt, reason, files);
-		console.log('[VscodeStorageAdapter] storage.finalizeSession() completed');
+		console.log("[VscodeStorageAdapter] Calling storage.finalizeSession()", {
+			manifestId: manifest.id,
+			reason,
+			filesCount: files.length,
+		});
+		await this.storage.finalizeSession(
+			manifest.id,
+			manifest.endedAt,
+			reason,
+			files,
+		);
+		console.log("[VscodeStorageAdapter] storage.finalizeSession() completed");
 	}
 
 	async listSessionManifests(): Promise<SessionManifest[]> {
 		// Map to new StorageManager API
 		const result = await this.storage.listSessions();
-		return (Array.isArray(result) ? result : []) as unknown as SessionManifest[];
+		return (Array.isArray(result)
+			? result
+			: []) as unknown as SessionManifest[];
 	}
 
 	async getSessionManifest(sessionId: string): Promise<SessionManifest | null> {
 		// Map to new StorageManager API
-		return (await this.storage.getSession(sessionId)) as unknown as SessionManifest | null;
+		return (await this.storage.getSession(
+			sessionId,
+		)) as unknown as SessionManifest | null;
 	}
 }
 
@@ -131,7 +149,11 @@ export class SessionCoordinator {
 		snapshotId: string,
 		stats?: { added: number; deleted: number },
 	): void {
-		console.log('[SessionCoordinator] addCandidate() called', { uri, snapshotId, stats });
+		console.log("[SessionCoordinator] addCandidate() called", {
+			uri,
+			snapshotId,
+			stats,
+		});
 		const perfMonitor = getSessionPerfMonitor();
 		const operationId = perfMonitor?.startOperation(
 			"sessionCoordinator.addCandidate",
@@ -139,7 +161,7 @@ export class SessionCoordinator {
 
 		try {
 			this.sdkCoordinator.addCandidate(uri, snapshotId, stats);
-			console.log('[SessionCoordinator] addCandidate() completed successfully');
+			console.log("[SessionCoordinator] addCandidate() completed successfully");
 		} finally {
 			if (operationId && perfMonitor) {
 				perfMonitor.endOperation(operationId);
@@ -156,7 +178,7 @@ export class SessionCoordinator {
 	async finalizeSession(
 		reason: SessionFinalizeReason,
 	): Promise<SessionId | null> {
-		console.log('[SessionCoordinator] finalizeSession() called', { reason });
+		console.log("[SessionCoordinator] finalizeSession() called", { reason });
 		const perfMonitor = getSessionPerfMonitor();
 		const operationId = perfMonitor?.startOperation(
 			"sessionCoordinator.finalizeSession",
@@ -164,7 +186,9 @@ export class SessionCoordinator {
 
 		try {
 			const result = await this.sdkCoordinator.finalizeSession(reason);
-			console.log('[SessionCoordinator] finalizeSession() completed', { result });
+			console.log("[SessionCoordinator] finalizeSession() completed", {
+				result,
+			});
 			return result;
 		} finally {
 			if (operationId && perfMonitor) {
@@ -177,7 +201,7 @@ export class SessionCoordinator {
 	 * Handle window blur event - finalize session due to window focus change
 	 */
 	handleWindowBlur(): void {
-		console.log('[SessionCoordinator] handleWindowBlur() called');
+		console.log("[SessionCoordinator] handleWindowBlur() called");
 		this.sdkCoordinator.handleWindowBlur();
 	}
 

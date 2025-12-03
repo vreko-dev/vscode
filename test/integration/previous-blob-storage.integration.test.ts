@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * previousBlob Storage Test
@@ -25,9 +25,7 @@ describe("previousBlob Storage - Bug Verification", () => {
 
 		// Setup a simple mock coordinator to track snapshot creation
 		mockOperationCoordinator = {
-			coordinateSnapshotCreation: vi
-				.fn()
-				.mockResolvedValue("snap-123"),
+			coordinateSnapshotCreation: vi.fn().mockResolvedValue("snap-123"),
 		};
 	});
 
@@ -38,15 +36,17 @@ describe("previousBlob Storage - Bug Verification", () => {
 		// Create a more realistic mock that simulates storage behavior
 		const storageCalls: Array<{ filesMap: Map<string, string> }> = [];
 		const mockStorage = {
-			createSnapshot: vi.fn().mockImplementation(async (filesMap: Map<string, string>) => {
-				// Capture what gets stored
-				storageCalls.push({ filesMap });
-				return {
-					id: `snap-${Date.now()}`,
-					timestamp: Date.now(),
-					name: "Test snapshot",
-				};
-			}),
+			createSnapshot: vi
+				.fn()
+				.mockImplementation(async (filesMap: Map<string, string>) => {
+					// Capture what gets stored
+					storageCalls.push({ filesMap });
+					return {
+						id: `snap-${Date.now()}`,
+						timestamp: Date.now(),
+						name: "Test snapshot",
+					};
+				}),
 		};
 
 		// When coordinateSnapshotCreation is called with preSaveContent,
@@ -55,24 +55,26 @@ describe("previousBlob Storage - Bug Verification", () => {
 			storage: mockStorage,
 			coordinateSnapshotCreation: vi.fn(async function (
 				this: any,
-				showNotification: boolean,
+				_showNotification: boolean,
 				specificFiles: string[],
 				providedFileContents?: Record<string, string>,
-				customSnapshotName?: string
+				_customSnapshotName?: string,
 			) {
 				// Simulate the actual coordinateSnapshotCreation behavior
 				if (providedFileContents && specificFiles) {
 					const filesMap = new Map<string, string>();
 
-					Object.entries(providedFileContents).forEach(([filePath, preSaveContent]) => {
-						// This is the key logic from operationCoordinator.ts
-						// We store both current and previous content for diff capability
-						const snapshotFileData = JSON.stringify({
-							content: currentContent,
-							previousBlob: preSaveContent,
-						});
-						filesMap.set(filePath, snapshotFileData);
-					});
+					Object.entries(providedFileContents).forEach(
+						([filePath, preSaveContent]) => {
+							// This is the key logic from operationCoordinator.ts
+							// We store both current and previous content for diff capability
+							const snapshotFileData = JSON.stringify({
+								content: currentContent,
+								previousBlob: preSaveContent,
+							});
+							filesMap.set(filePath, snapshotFileData);
+						},
+					);
 
 					await mockStorage.createSnapshot(filesMap);
 				}
@@ -108,17 +110,19 @@ describe("previousBlob Storage - Bug Verification", () => {
 			"test.ts": "function test() {}",
 		};
 
-		const snapshotId = await mockOperationCoordinator.coordinateSnapshotCreation(
-			false,
-			["test.ts"],
-			providedContents,
-			"Test snapshot",
-		);
+		const snapshotId =
+			await mockOperationCoordinator.coordinateSnapshotCreation(
+				false,
+				["test.ts"],
+				providedContents,
+				"Test snapshot",
+			);
 
 		expect(snapshotId).toBeDefined();
 
 		// Verify storage was called with the provided contents
-		const calls = mockOperationCoordinator.coordinateSnapshotCreation.mock.calls;
+		const calls =
+			mockOperationCoordinator.coordinateSnapshotCreation.mock.calls;
 		expect(calls.length).toBeGreaterThan(0);
 		const [, , contents] = calls[0];
 		expect(contents).toEqual(providedContents);
@@ -130,16 +134,18 @@ describe("previousBlob Storage - Bug Verification", () => {
 			"file2.ts": "content 2",
 		};
 
-		const snapshotId = await mockOperationCoordinator.coordinateSnapshotCreation(
-			false,
-			["file1.ts", "file2.ts"],
-			providedContents,
-			"Test with multiple files",
-		);
+		const snapshotId =
+			await mockOperationCoordinator.coordinateSnapshotCreation(
+				false,
+				["file1.ts", "file2.ts"],
+				providedContents,
+				"Test with multiple files",
+			);
 
 		expect(snapshotId).toBeDefined();
 
-		const calls = mockOperationCoordinator.coordinateSnapshotCreation.mock.calls;
+		const calls =
+			mockOperationCoordinator.coordinateSnapshotCreation.mock.calls;
 		const [, , contents] = calls[0];
 		expect(contents).toHaveProperty("file1.ts");
 		expect(contents).toHaveProperty("file2.ts");

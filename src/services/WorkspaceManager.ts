@@ -153,7 +153,10 @@ export class WorkspaceManager {
 		const workspaceRoot = this.getWorkspaceRootForFile(fileUri);
 		const key = `snapback.recentBranches.${workspaceRoot}`;
 		const recent = await this.getRecentBranches(fileUri);
-		const updated = [branch, ...recent.filter((b) => b !== branch)].slice(0, 10);
+		const updated = [branch, ...recent.filter((b) => b !== branch)].slice(
+			0,
+			10,
+		);
 		await this.workspaceState.update(key, updated);
 	}
 

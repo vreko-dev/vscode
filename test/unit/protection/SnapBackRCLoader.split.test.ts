@@ -1,7 +1,5 @@
-import * as path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
-import type { SnapBackRC } from "../../../src/types/snapbackrc.types";
 
 /**
  * RED PHASE: Tests for SnapBackRCLoader method split
@@ -127,7 +125,7 @@ describe("SnapBackRCLoader - Method Split - RED Phase", () => {
 			)) as any;
 			const SnapBackRCLoader = module.SnapBackRCLoader;
 
-			const loader = new SnapBackRCLoader(mockRegistry, workspaceRoot);
+			const _loader = new SnapBackRCLoader(mockRegistry, workspaceRoot);
 
 			// This test will verify that applyProtections() handles null mergedConfig gracefully
 			// (either throws error or silently returns in GREEN phase)
@@ -167,7 +165,7 @@ describe("SnapBackRCLoader - Method Split - RED Phase", () => {
 			)) as any;
 			const SnapBackRCLoader = module.SnapBackRCLoader;
 
-			const loader = new SnapBackRCLoader(mockRegistry, workspaceRoot);
+			const _loader = new SnapBackRCLoader(mockRegistry, workspaceRoot);
 			// Method signature should accept optional silent parameter
 			expect(
 				SnapBackRCLoader.prototype.loadAndApplyConfig.length,

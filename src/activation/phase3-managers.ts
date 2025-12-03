@@ -114,7 +114,9 @@ export async function initializePhase3Managers(
 		// Initialize SnapshotSummaryProvider
 		t = Date.now();
 		const snapshotSummaryProvider = new StorageSnapshotSummaryProvider(storage);
-		console.log("[PERF] StorageSnapshotSummaryProvider", { ms: Date.now() - t });
+		console.log("[PERF] StorageSnapshotSummaryProvider", {
+			ms: Date.now() - t,
+		});
 
 		// Initialize StatusBarController
 		t = Date.now();
@@ -153,12 +155,14 @@ export async function initializePhase3Managers(
 					await vscode.commands.executeCommand("setContext", key, value);
 				},
 			);
-			console.log("[PERF] ProtectionManager + ProtectionService", { ms: Date.now() - t });
+			console.log("[PERF] ProtectionManager + ProtectionService", {
+				ms: Date.now() - t,
+			});
 
 			// ⚡ DEFER AUDIT: Run audit asynchronously after activation
 			// This prevents blocking the 500ms activation budget
 			setImmediate(() => {
-				protectionService.auditRepo().catch(err => {
+				protectionService.auditRepo().catch((err) => {
 					console.error("Deferred repo audit failed:", err);
 				});
 			});
@@ -173,7 +177,9 @@ export async function initializePhase3Managers(
 				new NoopAIRiskService(),
 				() => Promise.resolve(),
 			);
-			console.log("[PERF] ProtectionService (fallback)", { ms: Date.now() - t });
+			console.log("[PERF] ProtectionService (fallback)", {
+				ms: Date.now() - t,
+			});
 		}
 
 		console.log("[PERF] Phase 3 completed", { ms: Date.now() - phase3Start });

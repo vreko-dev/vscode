@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * API Client Method Existence Test
@@ -111,7 +111,7 @@ describe("API Client Method Existence", () => {
 			apiClient.analyzeFiles.mockRejectedValueOnce(networkError);
 
 			await expect(apiClient.analyzeFiles(["app.ts"])).rejects.toThrow(
-				"Network timeout"
+				"Network timeout",
 			);
 		});
 
@@ -120,7 +120,7 @@ describe("API Client Method Existence", () => {
 
 			apiClient.analyzeFiles.mockRejectedValueOnce(networkError);
 
-			let crashed = false;
+			const crashed = false;
 
 			try {
 				await apiClient.analyzeFiles(["app.ts"]);
@@ -142,7 +142,7 @@ describe("API Client Method Existence", () => {
 				try {
 					await apiClient.analyzeFiles(["app.ts"]);
 					return { success: true, analysis: [] };
-				} catch (error) {
+				} catch (_error) {
 					// Graceful fallback
 					return {
 						success: false,
@@ -165,7 +165,7 @@ describe("API Client Method Existence", () => {
 
 			// First call fails
 			await expect(apiClient.analyzeFiles(["app.ts"])).rejects.toThrow(
-				"Timeout"
+				"Timeout",
 			);
 
 			// Second call succeeds
@@ -175,9 +175,7 @@ describe("API Client Method Existence", () => {
 		});
 
 		it("should not retry indefinitely", async () => {
-			apiClient.analyzeFiles.mockRejectedValue(
-				new Error("Network error")
-			);
+			apiClient.analyzeFiles.mockRejectedValue(new Error("Network error"));
 
 			const maxRetries = 3;
 			let attempts = 0;
@@ -213,8 +211,9 @@ describe("API Client Method Existence", () => {
 		});
 
 		it("should handle large file lists", async () => {
-			const largeFileList = Array.from({ length: 1000 }, (_, i) =>
-				`file${i}.ts`
+			const largeFileList = Array.from(
+				{ length: 1000 },
+				(_, i) => `file${i}.ts`,
 			);
 
 			apiClient.analyzeFiles.mockResolvedValueOnce({
@@ -269,9 +268,7 @@ describe("API Client Method Existence", () => {
 
 			const result = await apiClient.analyzeFiles(["app.ts"]);
 
-			expect(["low", "medium", "high"]).toContain(
-				result.analysis[0].risk
-			);
+			expect(["low", "medium", "high"]).toContain(result.analysis[0].risk);
 		});
 	});
 
@@ -281,7 +278,7 @@ describe("API Client Method Existence", () => {
 				() =>
 					new Promise((resolve) => {
 						setTimeout(() => resolve({ analysis: [] }), 10000); // 10 seconds
-					})
+					}),
 			);
 
 			const timeoutPromise = new Promise((_, reject) => {
@@ -300,12 +297,9 @@ describe("API Client Method Existence", () => {
 			const handleTimeout = async () => {
 				try {
 					await new Promise((_, reject) => {
-						setTimeout(
-							() => reject(new Error("Timeout")),
-							100
-						);
+						setTimeout(() => reject(new Error("Timeout")), 100);
 					});
-				} catch (error) {
+				} catch (_error) {
 					return {
 						success: false,
 						timeout: true,
@@ -344,7 +338,7 @@ describe("API Client Method Existence", () => {
 		it("should include credentials in requests", async () => {
 			const clientWithAuth = {
 				apiKey: "secret-key",
-				analyzeFiles: vi.fn().mockImplementation((files, options) => {
+				analyzeFiles: vi.fn().mockImplementation((_files, _options) => {
 					// Auth should be included in request
 					return Promise.resolve({
 						analysis: [],

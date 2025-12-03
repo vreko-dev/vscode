@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as vscode from "vscode";
 import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry.js";
 import type { StorageSnapshotSummaryProvider } from "../../../src/services/snapshotSummaryProvider.js";
 import type { WorkspaceSafetyService } from "../../../src/services/WorkspaceSafetyService.js";

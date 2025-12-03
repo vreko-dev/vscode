@@ -14,6 +14,7 @@ import type {
 	SnapshotIconMetadata as SnapshotMetadata,
 } from "../types/snapshotInfo";
 import { EncryptionService } from "./EncryptionService.js";
+import type { SessionCoordinator } from "./SessionCoordinator.js";
 import type { FileState, SnapshotState } from "./SnapshotDeduplicator.js";
 import { SnapshotDeduplicator } from "./SnapshotDeduplicator.js";
 import type {
@@ -24,7 +25,6 @@ import type {
 import { SnapshotDeletionService } from "./SnapshotDeletionService.js";
 import { SnapshotIconStrategy } from "./SnapshotIconStrategy.js";
 import { SnapshotNamingStrategy } from "./SnapshotNamingStrategy.js";
-import type { SessionCoordinator } from "./SessionCoordinator.js";
 
 /**
  * SnapshotManager - Central orchestrator for snapshot intelligence system
@@ -265,14 +265,18 @@ export class SnapshotManager {
 					// Add each file to the session with basic stats
 					for (const file of files) {
 						const stats = {
-							added: file.action === "add" ? file.content.split("\n").length : 0,
+							added:
+								file.action === "add" ? file.content.split("\n").length : 0,
 							deleted: file.action === "delete" ? 1 : 0,
 						};
 						this.sessionCoordinator.addCandidate(file.path, snapshot.id, stats);
 					}
 				} catch (sessionError) {
 					// Log but don't fail snapshot creation
-					console.error("[SnapshotManager] Failed to add session candidate:", sessionError);
+					console.error(
+						"[SnapshotManager] Failed to add session candidate:",
+						sessionError,
+					);
 				}
 			}
 

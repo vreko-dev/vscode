@@ -522,26 +522,29 @@ export type SaveError =
 			reason: string;
 			protectionLevel: string;
 			filePath: string;
-		}
+	  }
 	| {
 			/** Analysis/risk evaluation failed */
 			type: "analysis_failed";
 			message: string;
 			filePath: string;
 			cause?: Error;
-		}
+	  }
 	| {
 			/** Snapshot creation failed */
 			type: "snapshot_failed";
 			message: string;
 			filePath: string;
 			cause?: Error;
-		}
+	  }
 	| {
 			/** User cancelled save operation */
 			type: "user_cancelled";
-			reason: "user_cancelled_protection" | "user_cancelled_ai_warning" | "user_cancelled_other";
-		};
+			reason:
+				| "user_cancelled_protection"
+				| "user_cancelled_ai_warning"
+				| "user_cancelled_other";
+	  };
 
 /**
  * Type guard for SaveError

@@ -85,7 +85,10 @@ export class CooldownManager {
 			const message = error instanceof Error ? error.message : String(error);
 
 			// Log the detailed error for debugging
-			logger.error("[StorageBroker] Failed to initialize CooldownManager", error as Error);
+			logger.error(
+				"[StorageBroker] Failed to initialize CooldownManager",
+				error as Error,
+			);
 
 			// Extract actionable information from the error
 			if (message.includes("sql.js")) {

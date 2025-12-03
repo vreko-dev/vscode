@@ -1,7 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProtectionLevelHandler } from "../../src/handlers/ProtectionLevelHandler.js";
-import { CooldownService } from "../../src/handlers/CooldownService.js";
-import { AuditLogger } from "../../src/handlers/AuditLogger.js";
 import {
 	createMockDocument,
 	createMockOperationCoordinator,
@@ -13,7 +11,7 @@ describe("Block Dialog - No Bypass via Cooldown", () => {
 	let mockOperationCoordinator: any;
 	let mockCooldownService: any;
 	let mockAuditLogger: any;
-	let mockShowWarningMessage: ReturnType<typeof vi.fn>;
+	let _mockShowWarningMessage: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -27,9 +25,7 @@ describe("Block Dialog - No Bypass via Cooldown", () => {
 		};
 
 		mockOperationCoordinator = createMockOperationCoordinator({
-			coordinateSnapshotCreation: vi
-				.fn()
-				.mockResolvedValue("snap-1"),
+			coordinateSnapshotCreation: vi.fn().mockResolvedValue("snap-1"),
 		});
 
 		mockCooldownService = {
@@ -41,9 +37,7 @@ describe("Block Dialog - No Bypass via Cooldown", () => {
 			recordAudit: vi.fn().mockResolvedValue(undefined),
 		};
 
-		mockShowWarningMessage = vi
-			.fn()
-			.mockResolvedValue("Cancel");
+		_mockShowWarningMessage = vi.fn().mockResolvedValue("Cancel");
 
 		// Don't need to mock vscode - just track the warning message calls separately
 

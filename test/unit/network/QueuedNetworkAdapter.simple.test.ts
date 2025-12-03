@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { QueuedNetworkAdapter } from "../../../src/network/QueuedNetworkAdapter.js";
 
 describe("QueuedNetworkAdapter Simple Test", () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Block Mode Dialog Bypass Prevention Test
@@ -35,7 +35,7 @@ describe("Block Mode Dialog - Bypass Prevention", () => {
 				(callback: any) => {
 					saveListeners.push(callback);
 					return { dispose: () => {} };
-				}
+				},
 			);
 
 			mockVscode.window.showQuickPick.mockResolvedValueOnce("Keep");
@@ -45,10 +45,10 @@ describe("Block Mode Dialog - Bypass Prevention", () => {
 				(callback: any) => {
 					saveListener_.push(callback);
 					return { dispose: () => {} };
-				}
+				},
 			);
 
-			const event = {
+			const _event = {
 				document: { fileName: "/test/app.ts", getText: () => "code" },
 				reason: 1,
 				waitUntil: vi.fn(),
@@ -131,7 +131,7 @@ describe("Block Mode Dialog - Bypass Prevention", () => {
 				if (choice === undefined) {
 					// Must reject to block save
 					const blockPromise = Promise.reject(
-						new Error("Block dialog: Cancel clicked")
+						new Error("Block dialog: Cancel clicked"),
 					);
 					event.waitUntil(blockPromise);
 					return;
@@ -171,9 +171,7 @@ describe("Block Mode Dialog - Bypass Prevention", () => {
 				}
 
 				// Otherwise reject
-				event.waitUntil(
-					Promise.reject(new Error("User cancelled save"))
-				);
+				event.waitUntil(Promise.reject(new Error("User cancelled save")));
 			};
 
 			await handleWillSave(mockEvent);
@@ -196,7 +194,7 @@ describe("Block Mode Dialog - Bypass Prevention", () => {
 
 			// Handler should register on onWillSave, NOT onDidSave
 			const registerBlockHandler = (vscode: any) => {
-				vscode.workspace.onWillSaveTextDocument((event: any) => {
+				vscode.workspace.onWillSaveTextDocument((_event: any) => {
 					// Can block by calling waitUntil with rejecting promise
 					willSaveCalls();
 				});
@@ -249,9 +247,7 @@ describe("Block Mode Dialog - Bypass Prevention", () => {
 
 			const simulateRapidSaves = async () => {
 				for (let i = 0; i < 5; i++) {
-					mockVscode.window.showQuickPick.mockResolvedValueOnce(
-						"Keep"
-					);
+					mockVscode.window.showQuickPick.mockResolvedValueOnce("Keep");
 					await new Promise((resolve) => {
 						setTimeout(() => {
 							timeouts.push(Date.now());
@@ -286,7 +282,7 @@ describe("Block Mode Dialog - Bypass Prevention", () => {
 			const disposable = { dispose: vi.fn() };
 
 			mockVscode.workspace.onWillSaveTextDocument.mockReturnValueOnce(
-				disposable
+				disposable,
 			);
 
 			const deactivateExtension = () => {

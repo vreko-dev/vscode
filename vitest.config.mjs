@@ -48,13 +48,10 @@ export default defineConfig({
 		alias: {
 			"@": path.resolve(__dirname, "./src"),
 			"@test": path.resolve(__dirname, "./test"),
-			"@snapback/core": path.resolve(
-				__dirname,
-				"../../packages/core/src"
-			),
+			"@snapback/core": path.resolve(__dirname, "../../packages/core/src"),
 			"@snapback/contracts": path.resolve(
 				__dirname,
-				"../../packages/contracts/src"
+				"../../packages/contracts/src",
 			),
 		},
 	},

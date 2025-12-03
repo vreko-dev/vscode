@@ -262,7 +262,7 @@ export class RepoProtectionScanner {
 		const ext = path.extname(filePath).toLowerCase();
 
 		// H2: Use merged config patterns if available (config-driven, not hardcoded)
-		if (this.snapbackConfig && this.snapbackConfig.protection) {
+		if (this.snapbackConfig?.protection) {
 			for (const rule of this.snapbackConfig.protection) {
 				// Check if file path matches the pattern
 				if (this.matchesPattern(filePath, rule.pattern)) {
@@ -496,7 +496,6 @@ export class RepoProtectionScanner {
 				return "🔐 Sensitive Credentials";
 			case "Warning":
 				return "⚙️ Configuration Files";
-			case "Watched":
 			default:
 				return "📄 Source Code";
 		}

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * API Client Methods - Regression Test
@@ -139,13 +139,11 @@ describe("API Client Methods - Regression Test (Should PASS)", () => {
 	it("should handle API errors gracefully", async () => {
 		// Mock an error response
 		mockApiClient.analyzeFiles.mockRejectedValue(
-			new Error("API connection failed")
+			new Error("API connection failed"),
 		);
 
 		try {
-			await mockApiClient.analyzeFiles([
-				{ path: "app.ts", content: "code" },
-			]);
+			await mockApiClient.analyzeFiles([{ path: "app.ts", content: "code" }]);
 			// Should not reach here
 			expect(true).toBe(false);
 		} catch (error: any) {

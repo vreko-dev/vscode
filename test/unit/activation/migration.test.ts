@@ -1,5 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
+import { describe, expect, it } from "vitest";
 
 /**
  * RED PHASE: Tests for migration of existing users with 140+ auto-protected files

@@ -732,15 +732,20 @@ export class OperationCoordinator {
 					});
 
 					// Determine trigger type from snapshotTrigger string
-					let trigger: 'auto' | 'manual' | 'ai-detected' | 'pre-save' = 'manual';
-					if (snapshotTrigger.includes('Auto-save')) {
-						trigger = 'auto';
-					} else if (snapshotTrigger.includes('AI')) {
-						trigger = 'ai-detected';
+					let trigger: "auto" | "manual" | "ai-detected" | "pre-save" =
+						"manual";
+					if (snapshotTrigger.includes("Auto-save")) {
+						trigger = "auto";
+					} else if (snapshotTrigger.includes("AI")) {
+						trigger = "ai-detected";
 					}
 
 					const snapshotManifest = await this.storage.createSnapshot(filesMap, {
-						name: customSnapshotName || (isIncremental ? `Auto-save: ${specificFiles?.length} file(s)` : "Manual snapshot"),
+						name:
+							customSnapshotName ||
+							(isIncremental
+								? `Auto-save: ${specificFiles?.length} file(s)`
+								: "Manual snapshot"),
 						trigger,
 						metadata: {
 							riskScore: 0,
@@ -1017,12 +1022,18 @@ export class OperationCoordinator {
 				}> = [];
 
 				// Check each file in snapshot against workspace
-				for (const [filePath, rawSnapshotContent] of Object.entries(snapshot.contents || {})) {
+				for (const [filePath, rawSnapshotContent] of Object.entries(
+					snapshot.contents || {},
+				)) {
 					// Handle both JSON-stringified and plain text formats
 					let snapshotContent: string;
 					try {
 						const parsed = JSON.parse(rawSnapshotContent);
-						if (typeof parsed === 'object' && parsed !== null && 'content' in parsed) {
+						if (
+							typeof parsed === "object" &&
+							parsed !== null &&
+							"content" in parsed
+						) {
 							snapshotContent = parsed.content;
 						} else {
 							// Invalid JSON format, treat as plain text
@@ -1091,7 +1102,11 @@ export class OperationCoordinator {
 								let content: string;
 								try {
 									const parsed = JSON.parse(rawContent);
-									if (typeof parsed === 'object' && parsed !== null && 'content' in parsed) {
+									if (
+										typeof parsed === "object" &&
+										parsed !== null &&
+										"content" in parsed
+									) {
 										content = parsed.content;
 									} else {
 										// Invalid JSON format, treat as plain text
@@ -1102,8 +1117,13 @@ export class OperationCoordinator {
 									content = rawContent;
 								}
 
-								const fileUri = vscode.Uri.file(path.join(workspaceRoot, filePath));
-								await vscode.workspace.fs.writeFile(fileUri, Buffer.from(content, "utf-8"));
+								const fileUri = vscode.Uri.file(
+									path.join(workspaceRoot, filePath),
+								);
+								await vscode.workspace.fs.writeFile(
+									fileUri,
+									Buffer.from(content, "utf-8"),
+								);
 							}
 						}
 					}
@@ -1123,7 +1143,8 @@ export class OperationCoordinator {
 			this.updateOperationProgress(operationId, 60);
 			if (snapshot && !options?.dryRun) {
 				// Filter files if options specify which ones to restore
-				const filesToRestore = options?.files || Object.keys(snapshot.contents || {});
+				const filesToRestore =
+					options?.files || Object.keys(snapshot.contents || {});
 				for (const filePath of filesToRestore) {
 					const rawContent = snapshot.contents?.[filePath];
 					if (rawContent) {
@@ -1131,7 +1152,11 @@ export class OperationCoordinator {
 						let content: string;
 						try {
 							const parsed = JSON.parse(rawContent);
-							if (typeof parsed === 'object' && parsed !== null && 'content' in parsed) {
+							if (
+								typeof parsed === "object" &&
+								parsed !== null &&
+								"content" in parsed
+							) {
 								content = parsed.content;
 							} else {
 								// Invalid JSON format, treat as plain text
@@ -1143,7 +1168,10 @@ export class OperationCoordinator {
 						}
 
 						const fileUri = vscode.Uri.file(path.join(workspaceRoot, filePath));
-						await vscode.workspace.fs.writeFile(fileUri, Buffer.from(content, "utf-8"));
+						await vscode.workspace.fs.writeFile(
+							fileUri,
+							Buffer.from(content, "utf-8"),
+						);
 					}
 				}
 			}

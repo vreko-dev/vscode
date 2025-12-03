@@ -358,7 +358,9 @@ async function restoreSessionFiles(
 
 				try {
 					// Get the full snapshot with content
-					const snapshotWithContent = await storage.getSnapshot(fileEntry.snapshotId);
+					const snapshotWithContent = await storage.getSnapshot(
+						fileEntry.snapshotId,
+					);
 					if (!snapshotWithContent) {
 						errors.push(`Snapshot content not found: ${fileEntry.snapshotId}`);
 						continue;
@@ -373,9 +375,7 @@ async function restoreSessionFiles(
 					}
 
 					// Write file to workspace
-					const fileUri = vscode.Uri.file(
-						path.join(workspaceRoot, filePath),
-					);
+					const fileUri = vscode.Uri.file(path.join(workspaceRoot, filePath));
 					await vscode.workspace.fs.writeFile(
 						fileUri,
 						Buffer.from(fileContent, "utf-8"),

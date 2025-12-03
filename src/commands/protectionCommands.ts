@@ -18,13 +18,13 @@
  */
 
 import * as vscode from "vscode";
+import { ProtectionNotifications } from "../notifications/protectionNotifications.js";
+import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader.js";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
 import { logger } from "../utils/logger.js";
-import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader.js";
 import type { ProtectionLevel } from "../views/types.js";
 import { PROTECTION_LEVELS } from "../views/types.js";
 import type { CommandContext } from "./index.js";
-import { ProtectionNotifications } from "../notifications/protectionNotifications.js";
 
 /**
  * Module-level ProtectionNotifications instance
@@ -286,10 +286,10 @@ export function registerProtectionCommands(
 				try {
 					if (snapbackrcLoader) {
 						// Add rule to .snapbackrc (source of truth) - defaults to Watched if not specified,
-                        // but here we want to be explicit about the default behavior if needed,
-                        // though addProtectionRule might need a level.
-                        // Let's check the registry.add behavior - it defaulted to Watched?
-                        // Registry.add defaults to Watched. We should do the same.
+						// but here we want to be explicit about the default behavior if needed,
+						// though addProtectionRule might need a level.
+						// Let's check the registry.add behavior - it defaulted to Watched?
+						// Registry.add defaults to Watched. We should do the same.
 						await snapbackrcLoader.addProtectionRule(fileUri.fsPath, "Watched");
 					} else {
 						await protectedFileRegistry.add(fileUri.fsPath);
@@ -687,15 +687,16 @@ export function registerProtectionCommands(
 
 				refreshViews();
 
-				vscode.window.showInformationMessage(
-					"✅ SnapBack: Repository protection defaults applied successfully.",
-					"View Protected Files",
-				).then((choice) => {
-					if (choice === "View Protected Files") {
-						vscode.commands.executeCommand("snapback.showAllProtectedFiles");
-					}
-				});
-
+				vscode.window
+					.showInformationMessage(
+						"✅ SnapBack: Repository protection defaults applied successfully.",
+						"View Protected Files",
+					)
+					.then((choice) => {
+						if (choice === "View Protected Files") {
+							vscode.commands.executeCommand("snapback.showAllProtectedFiles");
+						}
+					});
 			} catch (error) {
 				logger.error("Failed to protect entire repository", error as Error);
 				vscode.window.showErrorMessage(
@@ -719,7 +720,7 @@ export function registerProtectionCommands(
 			async () => {
 				if (!protectionNotifications) {
 					vscode.window.showWarningMessage(
-						"SnapBack: Notification system not initialized"
+						"SnapBack: Notification system not initialized",
 					);
 					return;
 				}
@@ -729,14 +730,14 @@ export function registerProtectionCommands(
 					await protectionNotifications.resetAcknowledgment("", undefined);
 
 					vscode.window.showInformationMessage(
-						"✅ SnapBack notification preferences have been reset. All protection level notifications will appear again."
+						"✅ SnapBack notification preferences have been reset. All protection level notifications will appear again.",
 					);
 				} catch (error) {
 					vscode.window.showErrorMessage(
-						`Failed to reset notification preferences: ${(error as Error).message}`
+						`Failed to reset notification preferences: ${(error as Error).message}`,
 					);
 				}
-			}
+			},
 		),
 	);
 
@@ -800,7 +801,10 @@ async function setProtectionLevelQuick(
 				});
 			} else {
 				// Update existing file's protection level
-				await protectedFileRegistry.updateProtectionLevel(fileUri.fsPath, level);
+				await protectedFileRegistry.updateProtectionLevel(
+					fileUri.fsPath,
+					level,
+				);
 			}
 			refreshViews();
 		}

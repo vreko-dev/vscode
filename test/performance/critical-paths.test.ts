@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 /**
  * Critical Path E2E Tests
@@ -67,7 +67,8 @@ describe("Critical Path E2E Tests", () => {
 			const currentContent = "const x = 2;";
 			const snapshotContent = "const x = 1;";
 
-			const hasConflict = (currentContent as string) !== (snapshotContent as string);
+			const hasConflict =
+				(currentContent as string) !== (snapshotContent as string);
 
 			expect(hasConflict).toBe(true);
 
@@ -111,7 +112,7 @@ describe("Critical Path E2E Tests", () => {
 		});
 
 		it("should restore protected file after recovery", async () => {
-			const filePath = "/workspace/protected.ts";
+			const _filePath = "/workspace/protected.ts";
 
 			// File is protected
 			let status = "protected";
@@ -127,7 +128,7 @@ describe("Critical Path E2E Tests", () => {
 		});
 
 		it("should handle protection level changes", async () => {
-			const filePath = "/workspace/config.json";
+			const _filePath = "/workspace/config.json";
 			const levels = ["watch", "warn", "block"];
 
 			let currentLevel = "watch";
@@ -358,7 +359,9 @@ describe("Critical Path E2E Tests", () => {
 			}));
 
 			const startTime = performance.now();
-			const filtered = snapshots.filter((s) => s.timestamp > Date.now() - 3600000);
+			const filtered = snapshots.filter(
+				(s) => s.timestamp > Date.now() - 3600000,
+			);
 			const duration = performance.now() - startTime;
 
 			expect(duration).toBeLessThan(10);

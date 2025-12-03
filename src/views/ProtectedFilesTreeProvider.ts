@@ -1,13 +1,13 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { CORE_CONCEPT_SIGNAGE, PROTECTION_LEVEL_SIGNAGE } from "../signage/index.js";
+import {
+	CORE_CONCEPT_SIGNAGE,
+	PROTECTION_LEVEL_SIGNAGE,
+} from "../signage/index.js";
 import type { ProtectionLevelCanonical } from "../signage/types.js";
 import { logger } from "../utils/logger.js";
-import type {
-	ProtectedFileEntry,
-	ProtectionLevel,
-} from "./types";
+import type { ProtectedFileEntry, ProtectionLevel } from "./types";
 
 /**
  * Explorer-integrated tree provider for protected files
@@ -101,9 +101,7 @@ export class ProtectedFilesTreeProvider
 				}
 
 				if (warnFiles.length > 0) {
-					sections.push(
-						createProtectionLevelSection("warn", warnFiles.length),
-					);
+					sections.push(createProtectionLevelSection("warn", warnFiles.length));
 				}
 
 				if (watchFiles.length > 0) {
@@ -124,17 +122,19 @@ export class ProtectedFilesTreeProvider
 
 		// Section level: show files in that protection level
 		if (element.contextValue?.startsWith("protectionLevel.")) {
-			const canonicalLevel = element.contextValue.split(".")[1] as ProtectionLevelCanonical;
+			const canonicalLevel = element.contextValue.split(
+				".",
+			)[1] as ProtectionLevelCanonical;
 			// Map canonical to legacy for filtering
 			const levelMap: Record<ProtectionLevelCanonical, ProtectionLevel> = {
 				block: "Protected",
 				warn: "Warning",
 				watch: "Watched",
-				};
+			};
 			const level = levelMap[canonicalLevel];
 			try {
 				const files = await this.protectedFiles.list();
-				const validFiles = files.filter((file) => file && file.label);
+				const validFiles = files.filter((file) => file?.label);
 
 				// Filter files by protection level
 				let levelFiles = validFiles.filter((f) => {

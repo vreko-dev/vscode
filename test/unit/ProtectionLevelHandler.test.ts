@@ -44,7 +44,7 @@ describe("ProtectionLevelHandler - Temporary Allowance + Snapshot (M2)", () => {
 	it("P1 - Warning level creates snapshot before save", async () => {
 		const filePath = "/repo/config.yml";
 		const preSaveContent = "OLD";
-		const protectionLevel: ProtectionLevel = "Warning";
+		const _protectionLevel: ProtectionLevel = "Warning";
 
 		const shouldDebounce = mockCooldownService.shouldDebounce(filePath);
 		expect(shouldDebounce).toBe(false);
@@ -56,7 +56,7 @@ describe("ProtectionLevelHandler - Temporary Allowance + Snapshot (M2)", () => {
 				"config.yml",
 				preSaveContent,
 			);
-		} catch (error) {
+		} catch (_error) {
 			// Handle error
 		}
 
@@ -125,7 +125,7 @@ describe("ProtectionLevelHandler - Temporary Allowance + Snapshot (M2)", () => {
 						snapshotId,
 					);
 				}
-			} catch (error) {
+			} catch (_error) {
 				// Error logged but continue
 			}
 
@@ -181,9 +181,9 @@ describe("ProtectionLevelHandler - Temporary Allowance + Snapshot (M2)", () => {
 		});
 
 		if (mockRegistry.hasTemporaryAllowance(filePath)) {
-			let snapshotId: string | undefined;
+			let _snapshotId: string | undefined;
 			try {
-				snapshotId = await mockCreateSnapshotForFile(
+				_snapshotId = await mockCreateSnapshotForFile(
 					filePath,
 					".env",
 					preSaveContent,

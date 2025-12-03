@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ProtectionLevelHandler } from "../../src/handlers/ProtectionLevelHandler.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
 import type { SessionManager } from "@snapback/sdk";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ProtectionLevelHandler } from "../../src/handlers/ProtectionLevelHandler.js";
 import {
 	createMockDocument,
 	createMockOperationCoordinator,
@@ -77,7 +76,7 @@ describe("Session Linking - Bug Verification", () => {
 		const document = createMockDocument();
 
 		// Call handleProtectionLevel which should eventually call coordinateSnapshotCreation
-		const result = await protectionHandler.handleProtectionLevel(
+		const _result = await protectionHandler.handleProtectionLevel(
 			"/protected/file.ts",
 			"file.ts",
 			"const x = 1;",
@@ -85,13 +84,21 @@ describe("Session Linking - Bug Verification", () => {
 		);
 
 		// Extract the calls to coordinateSnapshotCreation
-		const coordinatorCalls = (mockOperationCoordinator.coordinateSnapshotCreation as any).mock.calls;
+		const coordinatorCalls = (
+			mockOperationCoordinator.coordinateSnapshotCreation as any
+		).mock.calls;
 
 		// NOW THIS SHOULD PASS - sessionId parameter is passed as the 5th parameter
 		expect(coordinatorCalls.length).toBeGreaterThan(0);
 
 		// Get the call arguments
-		const [showNotif, specificFiles, providedContent, customName, sessionId] = coordinatorCalls[0];
+		const [
+			_showNotif,
+			_specificFiles,
+			_providedContent,
+			_customName,
+			sessionId,
+		] = coordinatorCalls[0];
 
 		// THIS ASSERTION NOW PASSES - sessionId is defined
 		expect(sessionId).toBeDefined();
@@ -168,12 +175,10 @@ describe("Session Linking - Bug Verification", () => {
 		// Multiple saves should use the same session ID
 
 		const mockSessionManager = {
-			getCurrentSession: vi
-				.fn()
-				.mockResolvedValue({
-					id: "sess-persistent",
-					status: "active",
-				}),
+			getCurrentSession: vi.fn().mockResolvedValue({
+				id: "sess-persistent",
+				status: "active",
+			}),
 		};
 
 		// Simulate 3 saves in one session

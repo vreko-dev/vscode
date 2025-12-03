@@ -1,6 +1,4 @@
-import { describe, it, expect } from "vitest";
-import * as fs from "node:fs";
-import * as path from "node:path";
+import { describe, expect, it } from "vitest";
 
 /**
  * Bundle Size Constraint Tests
@@ -68,7 +66,7 @@ describe("Bundle Size Constraints", () => {
 			]);
 
 			const lodashVariants = Array.from(dependencies.keys()).filter(
-				(name) => name.includes("lodash") || name.includes("underscore")
+				(name) => name.includes("lodash") || name.includes("underscore"),
 			);
 
 			// Should not have multiple similar libraries (having 2 is OK if one is modern)
@@ -98,7 +96,7 @@ describe("Bundle Size Constraints", () => {
 				"src/commands/index.ts": 25 * 1024,
 			};
 
-			Object.entries(modules).forEach(([name, size]) => {
+			Object.entries(modules).forEach(([_name, size]) => {
 				if (size > moduleSizeLimit * 1.5) {
 					// Over 150% of limit should be flagged
 					expect(size).toBeLessThanOrEqual(moduleSizeLimit * 1.5);
@@ -125,7 +123,7 @@ describe("Bundle Size Constraints", () => {
 			const dependencies = {
 				"@snapback/core": true,
 				"@snapback/contracts": true,
-				"vscode": true,
+				vscode: true,
 				"unused-library": false, // Not used anywhere
 				"another-unused": false,
 			};
@@ -157,15 +155,20 @@ describe("Bundle Size Constraints", () => {
 
 		it("should not include development dependencies in production bundle", () => {
 			const productionBundle = {
-				"vscode": true,
+				vscode: true,
 				"@snapback/core": true,
-				"pino": true, // logging
+				pino: true, // logging
 			};
 
-			const devDependencies = ["vitest", "@types/node", "typescript", "@biomejs/biome"];
+			const devDependencies = [
+				"vitest",
+				"@types/node",
+				"typescript",
+				"@biomejs/biome",
+			];
 
 			const hasDevDeps = devDependencies.some(
-				(dep) => productionBundle[dep as keyof typeof productionBundle]
+				(dep) => productionBundle[dep as keyof typeof productionBundle],
 			);
 
 			expect(hasDevDeps).toBe(false);
@@ -199,7 +202,7 @@ describe("Bundle Size Constraints", () => {
 					"activation-events": ["onStartupFinished"],
 				},
 				null,
-				2 // Pretty-printed
+				2, // Pretty-printed
 			).length;
 
 			// Compressed (minified)
@@ -229,7 +232,8 @@ describe("Bundle Size Constraints", () => {
 			const currentBuildSize = 1550 * 1024; // 1.55MB
 
 			// Should not increase by >15%
-			const regression = (currentBuildSize - previousBuildSize) / previousBuildSize;
+			const regression =
+				(currentBuildSize - previousBuildSize) / previousBuildSize;
 			expect(regression).toBeLessThan(0.15);
 		});
 

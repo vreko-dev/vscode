@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Session Creation & Linking Test
@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 describe("Session Creation & Linking", () => {
 	let mockSessionManager: any;
-	let mockSnapshotService: any;
+	let _mockSnapshotService: any;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -31,7 +31,7 @@ describe("Session Creation & Linking", () => {
 			getActiveSession: vi.fn(),
 		};
 
-		mockSnapshotService = {
+		_mockSnapshotService = {
 			createSnapshot: vi.fn(),
 		};
 	});
@@ -39,7 +39,7 @@ describe("Session Creation & Linking", () => {
 	describe("Automatic Session Creation", () => {
 		it("should create session on FIRST save", async () => {
 			// Start: no sessions
-			let sessions: any[] = [];
+			const sessions: any[] = [];
 			mockSessionManager.listSessions.mockResolvedValue(sessions);
 
 			expect(sessions).toHaveLength(0);
@@ -59,7 +59,7 @@ describe("Session Creation & Linking", () => {
 		});
 
 		it("should NOT create new session on second save (same session)", async () => {
-			let sessions: any[] = [];
+			const sessions: any[] = [];
 
 			// First save creates session
 			sessions.push({
@@ -73,7 +73,7 @@ describe("Session Creation & Linking", () => {
 			// Second save - should reuse session, not create new one
 			// (just do another snapshot in same session)
 
-			const snapshot2 = {
+			const _snapshot2 = {
 				sessionId: "sess-1", // Same session
 			};
 
@@ -84,7 +84,7 @@ describe("Session Creation & Linking", () => {
 		it("should create NEW session after idle timeout", async () => {
 			vi.useFakeTimers();
 
-			let sessions: any[] = [];
+			const sessions: any[] = [];
 
 			const session1: any = {
 				id: "sess-1",
@@ -361,7 +361,7 @@ describe("Session Creation & Linking", () => {
 
 			// All should be finalized/cleanable
 			const completedSessions = sessions.filter(
-				(s) => s.status === "completed"
+				(s) => s.status === "completed",
 			);
 
 			expect(completedSessions).toHaveLength(100);

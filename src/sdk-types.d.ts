@@ -1,7 +1,5 @@
 // Type declarations for Snapback SDK exports that are not properly exported due to dts: false in SDK
 
-import type { AnalyticsResponse, FileMetadata } from "@snapback/contracts";
-
 export type ClientSurface = "vscode" | "mcp" | "cli" | "web";
 
 export interface Envelope {

@@ -1,5 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as vscode from "vscode";
+import { describe, expect, it } from "vitest";
 
 /**
  * RED PHASE: Tests for Phase 2 activation to NOT auto-protect on startup

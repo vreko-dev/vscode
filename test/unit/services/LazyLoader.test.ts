@@ -83,7 +83,7 @@ describe("LazyLoader", () => {
 
 			// Resolve factory after all get() calls started
 			const service = { name: "TestService" };
-			resolveFactory!(service);
+			resolveFactory?.(service);
 
 			const [result1, result2, result3] = await Promise.all([
 				promise1,
@@ -196,7 +196,7 @@ describe("LazyLoader", () => {
 			expect(loader.isLoaded()).toBe(false);
 			expect(loader.isLoading()).toBe(true);
 
-			resolveFactory!({ name: "TestService" });
+			resolveFactory?.({ name: "TestService" });
 			await getPromise;
 
 			expect(loader.isLoaded()).toBe(true);
@@ -228,7 +228,7 @@ describe("LazyLoader", () => {
 
 			expect(loader.isLoading()).toBe(true);
 
-			resolveFactory!({ name: "TestService" });
+			resolveFactory?.({ name: "TestService" });
 			await getPromise;
 
 			expect(loader.isLoading()).toBe(false);
@@ -326,7 +326,7 @@ describe("LazyLoader", () => {
 
 			// Resolve factory
 			const service = { name: "TestService" };
-			resolveFactory!(service);
+			resolveFactory?.(service);
 
 			// get() should return the preloaded service
 			const result = await loader.get();
@@ -363,7 +363,7 @@ describe("LazyLoader", () => {
 
 			expect(factory).toHaveBeenCalledOnce();
 
-			resolveFactory!({ name: "TestService" });
+			resolveFactory?.({ name: "TestService" });
 			await loader.get();
 		});
 	});
@@ -424,7 +424,7 @@ describe("LazyLoader", () => {
 			expect(loader.isLoaded()).toBe(false);
 
 			// Original promise should still reject or handle gracefully
-			resolveFactory!({ name: "TestService" });
+			resolveFactory?.({ name: "TestService" });
 			await getPromise; // Should complete even after reset
 		});
 

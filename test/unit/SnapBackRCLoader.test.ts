@@ -7,11 +7,11 @@ import type { SnapBackRC } from "../../src/types/snapbackrc.types";
  * Validates that defaults + .snapbackrc merge correctly and expose merged config
  */
 describe("SnapBackRCLoader - Config Merge & getMergedConfig", () => {
-	let mockRegistry: ProtectedFileRegistry;
+	let _mockRegistry: ProtectedFileRegistry;
 
 	beforeEach(() => {
 		// Mock ProtectedFileRegistry to avoid filesystem dependencies
-		mockRegistry = {
+		_mockRegistry = {
 			add: vi.fn(),
 			isProtected: vi.fn(() => false),
 			getProtectionLevel: vi.fn(),
@@ -81,13 +81,13 @@ describe("SnapBackRCLoader - Config Merge & getMergedConfig", () => {
 
 		// Verify the merged result
 		expect(merged.protection).toHaveLength(2);
-		const envRule = merged.protection!.find((r) => r.pattern === "**/.env*");
+		const envRule = merged.protection?.find((r) => r.pattern === "**/.env*");
 		expect(envRule).toBeDefined();
 		expect(envRule?.level).toBe("Watched"); // User override wins
 		expect(envRule?.reason).toBe("User override");
 
 		// Verify other defaults are preserved
-		const packageRule = merged.protection!.find(
+		const packageRule = merged.protection?.find(
 			(r) => r.pattern === "package.json",
 		);
 		expect(packageRule).toBeDefined();
@@ -150,13 +150,13 @@ describe("SnapBackRCLoader - Config Merge & getMergedConfig", () => {
 
 		// Verify merged result
 		expect(merged.protection).toHaveLength(3); // All 3 rules present
-		expect(merged.protection!.map((r) => r.pattern)).toEqual([
+		expect(merged.protection?.map((r) => r.pattern)).toEqual([
 			"**/.env*",
 			"package.json",
 			"**/*.custom",
 		]);
 		expect(
-			merged.protection!.find((r) => r.pattern === "**/*.custom")?.level,
+			merged.protection?.find((r) => r.pattern === "**/*.custom")?.level,
 		).toBe("Warning");
 	});
 
@@ -186,8 +186,8 @@ describe("SnapBackRCLoader - Config Merge & getMergedConfig", () => {
 		// Verify merged equals defaults
 		expect(merged).toEqual(defaults);
 		expect(merged.protection).toHaveLength(2);
-		expect(merged.protection![0].pattern).toBe("**/.env*");
-		expect(merged.protection![0].level).toBe("Protected");
+		expect(merged.protection?.[0].pattern).toBe("**/.env*");
+		expect(merged.protection?.[0].level).toBe("Protected");
 	});
 
 	/**

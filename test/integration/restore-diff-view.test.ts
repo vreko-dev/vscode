@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Diff View Before Restore Test
@@ -41,8 +41,8 @@ describe("Restore Diff View", () => {
 		it("should execute vscode.diff BEFORE restore confirmation", async () => {
 			const snapshotId = "snap-123";
 			const filePath = "src/app.ts";
-			const oldContent = "const x = 1;";
-			const newContent = "const x = 2;";
+			const _oldContent = "const x = 1;";
+			const _newContent = "const x = 2;";
 
 			mockVscode.commands.executeCommand.mockResolvedValueOnce(undefined);
 
@@ -53,7 +53,7 @@ describe("Restore Diff View", () => {
 					"vscode.diff",
 					`file:///snapshot/${id}/${file}`,
 					`file:///${file}`,
-					`Diff: ${file}`
+					`Diff: ${file}`,
 				);
 
 				// Step 2: Only then ask for confirmation
@@ -67,13 +67,12 @@ describe("Restore Diff View", () => {
 				"vscode.diff",
 				expect.any(String),
 				expect.any(String),
-				expect.stringContaining("app.ts")
+				expect.stringContaining("app.ts"),
 			);
 		});
 
 		it("should show BOTH old and new content in diff", async () => {
-			const diffCall =
-				mockVscode.commands.executeCommand.mock.calls[0] || [];
+			const diffCall = mockVscode.commands.executeCommand.mock.calls[0] || [];
 
 			// vscode.diff(oldUri, newUri, title)
 			// oldUri should be snapshot version
@@ -93,7 +92,7 @@ describe("Restore Diff View", () => {
 				"vscode.diff",
 				"file:///snapshot/app.ts",
 				"file:///database.ts",
-				`Diff: ${filename}`
+				`Diff: ${filename}`,
 			);
 
 			const callArgs = mockVscode.commands.executeCommand.mock.calls[0];
@@ -113,7 +112,7 @@ describe("Restore Diff View", () => {
 				const choice = await mockVscode.window.showWarningMessage(
 					"Restore this file?",
 					"Yes",
-					"Cancel"
+					"Cancel",
 				);
 
 				if (choice === "Cancel") {
@@ -136,7 +135,7 @@ describe("Restore Diff View", () => {
 				const confirmed = await mockVscode.window.showWarningMessage(
 					"Really restore?",
 					"Yes",
-					"Cancel"
+					"Cancel",
 				);
 				return confirmed === "Yes";
 			};
@@ -154,7 +153,7 @@ describe("Restore Diff View", () => {
 				const confirmed = await mockVscode.window.showWarningMessage(
 					"Restore this file?",
 					"Yes",
-					"Cancel"
+					"Cancel",
 				);
 				if (confirmed === "Yes") {
 					return true;
@@ -193,9 +192,7 @@ describe("Restore Diff View", () => {
 				return files; // Single file, no picker
 			};
 
-			const selectedFiles = await showFilePicker(
-				Object.keys(snapshot.files)
-			);
+			const selectedFiles = await showFilePicker(Object.keys(snapshot.files));
 
 			expect(mockVscode.window.showQuickPick).toHaveBeenCalled();
 			expect(selectedFiles).toHaveLength(2);
@@ -237,7 +234,7 @@ describe("Restore Diff View", () => {
 				return {
 					restored: files,
 					skipped: Object.keys(snapshot.files).filter(
-						(f) => !files.includes(f)
+						(f) => !files.includes(f),
 					),
 				};
 			};
@@ -262,7 +259,7 @@ describe("Restore Diff View", () => {
 				await mockVscode.commands.executeCommand(
 					"vscode.diff",
 					`snapshot://${file}`,
-					`file://${file}`
+					`file://${file}`,
 				);
 			}
 
@@ -284,7 +281,7 @@ describe("Restore Diff View", () => {
 				const confirmed = await mockVscode.window.showWarningMessage(
 					"Proceed with restore?",
 					"Restore",
-					"Cancel"
+					"Cancel",
 				);
 
 				return confirmed === "Restore";
@@ -307,7 +304,7 @@ describe("Restore Diff View", () => {
 			const willRestore = await mockVscode.window.showWarningMessage(
 				"Restore after viewing diff?",
 				"Restore",
-				"Cancel"
+				"Cancel",
 			);
 
 			expect(willRestore).toBe("Cancel");
@@ -318,7 +315,7 @@ describe("Restore Diff View", () => {
 	describe("Error Handling During Restore", () => {
 		it("should handle diff command failure gracefully", async () => {
 			mockVscode.commands.executeCommand.mockRejectedValueOnce(
-				new Error("Failed to show diff")
+				new Error("Failed to show diff"),
 			);
 
 			const restore = async () => {

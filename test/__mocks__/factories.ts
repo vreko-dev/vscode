@@ -32,14 +32,12 @@ export function createMockExtensionContext(overrides: any = {}) {
 		extensionPath: "/test-extension",
 		globalState: {
 			get: (key: string) => globalState.get(key),
-			update: (key: string, value: unknown) =>
-				globalState.set(key, value),
+			update: (key: string, value: unknown) => globalState.set(key, value),
 			keys: () => Array.from(globalState.keys()),
 		},
 		workspaceState: {
 			get: (key: string) => workspaceState.get(key),
-			update: (key: string, value: unknown) =>
-				workspaceState.set(key, value),
+			update: (key: string, value: unknown) => workspaceState.set(key, value),
 			keys: () => Array.from(workspaceState.keys()),
 		},
 		...overrides,
@@ -52,9 +50,7 @@ export function createMockExtensionContext(overrides: any = {}) {
 
 export function createMockGuardian(overrides: any = {}) {
 	return {
-		analyze: vi
-			.fn()
-			.mockResolvedValue({ risk: "low", score: 0, findings: [] }),
+		analyze: vi.fn().mockResolvedValue({ risk: "low", score: 0, findings: [] }),
 		detectSecrets: vi.fn().mockResolvedValue([]),
 		evaluatePolicy: vi.fn().mockResolvedValue({ allowed: true }),
 		validateSnapshot: vi.fn().mockResolvedValue(true),
@@ -78,18 +74,14 @@ export function createMockFileSystemStorage(overrides: any = {}) {
 
 	return {
 		read: vi.fn((key: string) => storage.get(key)),
-		write: vi
-			.fn()
-			.mockImplementation((key: string, value: string) => {
-				storage.set(key, value);
-				return Promise.resolve();
-			}),
-		delete: vi
-			.fn()
-			.mockImplementation((key: string) => {
-				storage.delete(key);
-				return Promise.resolve();
-			}),
+		write: vi.fn().mockImplementation((key: string, value: string) => {
+			storage.set(key, value);
+			return Promise.resolve();
+		}),
+		delete: vi.fn().mockImplementation((key: string) => {
+			storage.delete(key);
+			return Promise.resolve();
+		}),
 		exists: vi.fn((key: string) => storage.has(key)),
 		list: vi.fn(() => Array.from(storage.keys())),
 		clear: vi.fn(() => {
@@ -141,7 +133,10 @@ export function createMockTextEditor(document: any = null) {
 
 	return {
 		document: doc,
-		selection: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+		selection: {
+			start: { line: 0, character: 0 },
+			end: { line: 0, character: 0 },
+		},
 		selections: [],
 		options: { tabSize: 4, insertSpaces: true },
 		viewColumn: 1,
@@ -183,7 +178,7 @@ export function createMockWillSaveEvent(document: any = null) {
 
 export function createMockWorkspaceFolder(
 	name: string = "test-workspace",
-	index: number = 0
+	index: number = 0,
 ) {
 	return {
 		uri: { fsPath: `/workspace/${name}`, path: `/workspace/${name}` },
@@ -301,9 +296,7 @@ export function createMockStorageManager(overrides: any = {}) {
 
 export function createMockOperationCoordinator(overrides: any = {}) {
 	return {
-		coordinateSnapshotCreation: vi
-			.fn()
-			.mockResolvedValue(`snap-${Date.now()}`),
+		coordinateSnapshotCreation: vi.fn().mockResolvedValue(`snap-${Date.now()}`),
 		createSnapshot: vi.fn().mockResolvedValue(createMockSnapshot()),
 		restoreSnapshot: vi.fn().mockResolvedValue(true),
 		deleteSnapshot: vi.fn().mockResolvedValue(true),
@@ -400,16 +393,13 @@ export function createMockEventEmitter<T = any>() {
 // Test Workspace Factory (for file system simulation)
 // ============================================
 
-export async function createTestWorkspace(
-	files: Record<string, string> = {}
-) {
+export async function createTestWorkspace(files: Record<string, string> = {}) {
 	const workspace = new Map(Object.entries(files));
 
 	return {
 		files: workspace,
 		readFile: (path: string) => workspace.get(path),
-		writeFile: (path: string, content: string) =>
-			workspace.set(path, content),
+		writeFile: (path: string, content: string) => workspace.set(path, content),
 		deleteFile: (path: string) => workspace.delete(path),
 		listFiles: () => Array.from(workspace.keys()),
 		clear: () => workspace.clear(),
@@ -437,20 +427,15 @@ export function createPerformanceMonitor() {
 				return duration;
 			};
 		}),
-		measure: vi.fn(
-			async (
-				name: string,
-				fn: () => Promise<void> | void
-			) => {
-				const start = performance.now();
-				try {
-					await fn();
-				} finally {
-					const duration = performance.now() - start;
-					measurements.push({ name, duration, timestamp: start });
-				}
+		measure: vi.fn(async (name: string, fn: () => Promise<void> | void) => {
+			const start = performance.now();
+			try {
+				await fn();
+			} finally {
+				const duration = performance.now() - start;
+				measurements.push({ name, duration, timestamp: start });
 			}
-		),
+		}),
 		getMeasurements: () => [...measurements],
 		getAverage: (name: string) => {
 			const relevant = measurements.filter((m) => m.name === name);

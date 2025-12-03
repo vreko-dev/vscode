@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Memory Leak Detection Tests
@@ -237,7 +237,7 @@ describe("Memory Leak Detection", () => {
 			// Read with error should still cleanup
 			try {
 				await openAndRead("/file2.txt", true);
-			} catch (error) {
+			} catch (_error) {
 				// Expected
 			}
 			expect(openHandles.size).toBe(0);
@@ -293,7 +293,7 @@ describe("Memory Leak Detection", () => {
 		it("should clear timers on dispose", () => {
 			const timers = new Set<NodeJS.Timeout>();
 
-			const setTimeout_ = (fn: () => void, delay: number) => {
+			const setTimeout_ = (_fn: () => void, _delay: number) => {
 				// Mock timeout
 				const timer = { _id: Math.random() } as any;
 				timers.add(timer);
@@ -323,7 +323,7 @@ describe("Memory Leak Detection", () => {
 		it("should prevent timer accumulation in event handlers", () => {
 			const timerIds: number[] = [];
 
-			const setInterval_ = (fn: () => void, interval: number) => {
+			const setInterval_ = (_fn: () => void, _interval: number) => {
 				const id = Math.random();
 				timerIds.push(id as any);
 				return id;
@@ -384,7 +384,10 @@ describe("Memory Leak Detection", () => {
 				estimatedMemory: 2 * 1024 * 1024, // 2MB
 			});
 
-			const totalMemory = operations.reduce((sum, op) => sum + op.estimatedMemory, 0);
+			const totalMemory = operations.reduce(
+				(sum, op) => sum + op.estimatedMemory,
+				0,
+			);
 
 			expect(totalMemory).toBeLessThan(50 * 1024 * 1024);
 		});

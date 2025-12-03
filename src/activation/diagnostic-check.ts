@@ -21,9 +21,7 @@ export class DiagnosticCheck {
 		wasmPath?: string;
 		error?: string;
 	}> {
-		logger.warn(
-			"[DiagnosticCheck] checkSqlJsWasm is deprecated and not used",
-		);
+		logger.warn("[DiagnosticCheck] checkSqlJsWasm is deprecated and not used");
 		return { available: false, error: "Deprecated method" };
 	}
 

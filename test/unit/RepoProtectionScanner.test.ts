@@ -1,4 +1,3 @@
-import * as path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RepoProtectionScanner } from "../../src/repoProtectionScanner";
 import type { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry";
@@ -168,9 +167,7 @@ describe("RepoProtectionScanner - Config-driven Patterns & Registry Updates", ()
 	 */
 	it("S4 - applyRecommendations updates existing entry when level differs", async () => {
 		const mockUpdateFn = vi.fn();
-		mockRegistry.isProtected = vi.fn((path) =>
-			path === "/repo/.env" ? true : false,
-		);
+		mockRegistry.isProtected = vi.fn((path) => path === "/repo/.env");
 		mockRegistry.getProtectionLevel = vi.fn((path) =>
 			path === "/repo/.env" ? "Protected" : undefined,
 		);
@@ -216,9 +213,7 @@ describe("RepoProtectionScanner - Config-driven Patterns & Registry Updates", ()
 	 */
 	it("S4b - applyRecommendations skips update when level is same", async () => {
 		const mockUpdateFn = vi.fn();
-		mockRegistry.isProtected = vi.fn((fpath) =>
-			fpath === "/repo/.env" ? true : false,
-		);
+		mockRegistry.isProtected = vi.fn((fpath) => fpath === "/repo/.env");
 		mockRegistry.getProtectionLevel = vi.fn((fpath) =>
 			fpath === "/repo/.env" ? "Protected" : undefined,
 		);
@@ -310,7 +305,7 @@ describe("RepoProtectionScanner - Config-driven Patterns & Registry Updates", ()
 		);
 		expect(test1?.recommendedLevel).toBe("Warning");
 
-		const test2 = scannerAny.getProtectionRecommendation(
+		const _test2 = scannerAny.getProtectionRecommendation(
 			"/repo/src/.env.local",
 		);
 		// Note: src/.env.local doesn't match **/.env.*.local (needs a name between env and .local)

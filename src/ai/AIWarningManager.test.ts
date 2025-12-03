@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { AIWarningManager, type AIDetection } from "./AIWarningManager.js";
-import { logger } from "../utils/logger.js";
 import { isOk } from "../types/result.js";
+import { logger } from "../utils/logger.js";
+import { type AIDetection, AIWarningManager } from "./AIWarningManager.js";
 
 // Mock vscode module
 vi.mock("vscode");
@@ -27,8 +27,11 @@ describe("AIWarningManager", () => {
 
 	describe("showWarning", () => {
 		it("should show warning dialog with correct title and message", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "GITHUB_COPILOT",
@@ -41,12 +44,19 @@ describe("AIWarningManager", () => {
 			expect(mockShowInformationMessage).toHaveBeenCalledOnce();
 			const call = mockShowInformationMessage.mock.calls[0];
 			expect(call[0]).toContain("AI-Assisted Code Detected");
-			expect(call[1]).toEqual(["Review Changes", "Accept & Save", "Restore Previous"]);
+			expect(call[1]).toEqual([
+				"Review Changes",
+				"Accept & Save",
+				"Restore Previous",
+			]);
 		});
 
 		it("should return 'accept' choice when user selects 'Accept & Save'", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "CLAUDE",
@@ -65,8 +75,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should return 'review' choice when user selects 'Review Changes'", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Review Changes");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Review Changes");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "CURSOR",
@@ -83,8 +96,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should return 'restore' choice when user selects 'Restore Previous'", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Restore Previous");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Restore Previous");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "GITHUB_COPILOT",
@@ -101,8 +117,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should return 'dismissed' choice when user closes dialog", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce(undefined);
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce(undefined);
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "CLAUDE",
@@ -119,8 +138,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should include confidence level in message", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "GITHUB_COPILOT",
@@ -135,8 +157,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should include tool name in message", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "CURSOR",
@@ -151,8 +176,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should include burst details when burst detection provided", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "GITHUB_COPILOT",
@@ -178,8 +206,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should log warning event with structured data", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "CLAUDE",
@@ -196,13 +227,16 @@ describe("AIWarningManager", () => {
 					confidence: 0.88,
 					pattern: "burst",
 					choice: "accept",
-				})
+				}),
 			);
 		});
 
 		it("should measure response time accurately", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "GITHUB_COPILOT",
@@ -220,8 +254,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should handle tool constants correctly in message", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "GITHUB_COPILOT",
@@ -291,8 +328,11 @@ describe("AIWarningManager", () => {
 
 	describe("edge cases and error handling", () => {
 		it("should handle detection with missing optional burst property", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "UNKNOWN_TOOL",
@@ -310,8 +350,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should handle unknown tool name and pattern gracefully", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "UNKNOWN_TOOL",
@@ -329,8 +372,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should handle very high confidence (1.0)", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "GITHUB_COPILOT",
@@ -345,14 +391,17 @@ describe("AIWarningManager", () => {
 				expect(result.value.choice).toBe("accept");
 			}
 			const logCall = (logger.info as any).mock.calls.find(
-				(call: any) => call[0] === "AI warning shown"
+				(call: any) => call[0] === "AI warning shown",
 			);
 			expect(logCall[1].confidence).toBe(1.0);
 		});
 
 		it("should handle dialog cancellation (undefined response)", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce(undefined);
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce(undefined);
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "CLAUDE",
@@ -367,7 +416,7 @@ describe("AIWarningManager", () => {
 				expect(result.value.choice).toBe("dismissed");
 			}
 			const logCall = (logger.info as any).mock.calls.find(
-				(call: any) => call[0] === "AI warning shown"
+				(call: any) => call[0] === "AI warning shown",
 			);
 			expect(logCall[1].choice).toBe("dismissed");
 		});
@@ -375,8 +424,11 @@ describe("AIWarningManager", () => {
 
 	describe("timestamp and timing", () => {
 		it("should record timestamp in milliseconds", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const before = Date.now();
 			const detection: AIDetection = {
@@ -396,8 +448,11 @@ describe("AIWarningManager", () => {
 		});
 
 		it("should record response time within reasonable bounds", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "GITHUB_COPILOT",
@@ -417,13 +472,21 @@ describe("AIWarningManager", () => {
 
 	describe("logging integration", () => {
 		it("should log all choice types correctly", async () => {
-			const choices = ["Review Changes", "Accept & Save", "Restore Previous", undefined];
+			const choices = [
+				"Review Changes",
+				"Accept & Save",
+				"Restore Previous",
+				undefined,
+			];
 			const expectedChoices = ["review", "accept", "restore", "dismissed"];
 
 			for (let i = 0; i < choices.length; i++) {
 				vi.clearAllMocks();
-				const mockShowInformationMessage = vi.fn().mockResolvedValueOnce(choices[i]);
-				(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+				const mockShowInformationMessage = vi
+					.fn()
+					.mockResolvedValueOnce(choices[i]);
+				(vscode.window.showInformationMessage as any) =
+					mockShowInformationMessage;
 
 				const detection: AIDetection = {
 					tool: "GITHUB_COPILOT",
@@ -434,15 +497,18 @@ describe("AIWarningManager", () => {
 				await warningManager.showWarning(detection);
 
 				const logCall = (logger.info as any).mock.calls.find(
-					(call: any) => call[0] === "AI warning shown"
+					(call: any) => call[0] === "AI warning shown",
 				);
 				expect(logCall[1].choice).toBe(expectedChoices[i]);
 			}
 		});
 
 		it("should include all detection details in log", async () => {
-			const mockShowInformationMessage = vi.fn().mockResolvedValueOnce("Accept & Save");
-			(vscode.window.showInformationMessage as any) = mockShowInformationMessage;
+			const mockShowInformationMessage = vi
+				.fn()
+				.mockResolvedValueOnce("Accept & Save");
+			(vscode.window.showInformationMessage as any) =
+				mockShowInformationMessage;
 
 			const detection: AIDetection = {
 				tool: "CURSOR",
@@ -464,7 +530,7 @@ describe("AIWarningManager", () => {
 			await warningManager.showWarning(detection);
 
 			const logCall = (logger.info as any).mock.calls.find(
-				(call: any) => call[0] === "AI warning shown"
+				(call: any) => call[0] === "AI warning shown",
 			);
 			expect(logCall[1]).toMatchObject({
 				tool: "CURSOR",
@@ -476,6 +542,3 @@ describe("AIWarningManager", () => {
 		});
 	});
 });
-
-
-

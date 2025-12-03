@@ -202,7 +202,10 @@ class VSIXPackager {
 				log("  ✓ better-sqlite3 found in node_modules", "green");
 
 				// Rebuild better-sqlite3 for the current Node.js version
-				log("  🔨 Rebuilding better-sqlite3 for current Node.js version...", "cyan");
+				log(
+					"  🔨 Rebuilding better-sqlite3 for current Node.js version...",
+					"cyan",
+				);
 				try {
 					execCommand("npm rebuild better-sqlite3 --build-from-source", {
 						cwd: this.extensionRoot,
@@ -226,22 +229,13 @@ class VSIXPackager {
 				const vscodeVersion =
 					packageJson.engines?.vscode?.replace("^", "") || "1.99.0";
 
-				log(
-					`  ℹ VS Code minimum version: ${vscodeVersion}`,
-					"cyan",
-				);
-				log(
-					"  ✓ Native module handling complete",
-					"green",
-				);
+				log(`  ℹ VS Code minimum version: ${vscodeVersion}`, "cyan");
+				log("  ✓ Native module handling complete", "green");
 			} else {
 				log("  ℹ better-sqlite3 not found in node_modules", "yellow");
 			}
 		} catch (error) {
-			log(
-				`  ⚠ Warning: Native module handling: ${error.message}`,
-				"yellow",
-			);
+			log(`  ⚠ Warning: Native module handling: ${error.message}`, "yellow");
 		}
 	}
 

@@ -8,9 +8,12 @@
  * - Error handling and edge cases
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthService } from "../../../src/auth/AuthService.js";
-import type { CredentialsManager, ExtensionCredentials } from "../../../src/auth/credentials.js";
+import type {
+	CredentialsManager,
+	ExtensionCredentials,
+} from "../../../src/auth/credentials.js";
 
 // Mock logger
 vi.mock("@snapback/infrastructure", () => ({
@@ -26,7 +29,8 @@ describe("AuthService", () => {
 	let credentialsManager: CredentialsManager;
 
 	const mockToken = {
-		accessToken: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTIzIn0.sig",
+		accessToken:
+			"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTIzIn0.sig",
 		refreshToken: "refresh_token_123",
 		expiresAt: Date.now() + 900000, // 15 minutes
 		user: {
@@ -62,9 +66,7 @@ describe("AuthService", () => {
 
 	describe("getToken", () => {
 		it("should return null when not authenticated", async () => {
-			vi.mocked(credentialsManager.getCredentials).mockResolvedValueOnce(
-				null,
-			);
+			vi.mocked(credentialsManager.getCredentials).mockResolvedValueOnce(null);
 
 			const token = await authService.getToken();
 

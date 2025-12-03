@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Snapshot Scope Validation Test
@@ -14,13 +14,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  */
 
 describe("Snapshot Scope Validation", () => {
-	let mockStorage: any;
+	let _mockStorage: any;
 	let mockVscode: any;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 
-		mockStorage = {
+		_mockStorage = {
 			saveSnapshot: vi.fn(),
 			getSnapshot: vi.fn(),
 		};
@@ -36,8 +36,9 @@ describe("Snapshot Scope Validation", () => {
 	describe("Auto-Save Snapshot Scope", () => {
 		it("should snapshot ONLY the saved file (not entire workspace)", async () => {
 			// Setup: workspace with 600 files
-			const workspaceFiles = Array.from({ length: 600 }, (_, i) =>
-				`file${i}.ts`
+			const workspaceFiles = Array.from(
+				{ length: 600 },
+				(_, i) => `file${i}.ts`,
 			);
 
 			mockVscode.workspace.findFiles.mockResolvedValue(workspaceFiles);
@@ -62,7 +63,7 @@ describe("Snapshot Scope Validation", () => {
 		});
 
 		it("should NOT scan entire workspace during auto-save", async () => {
-			const findFilesSpy = mockVscode.workspace.findFiles;
+			const _findFilesSpy = mockVscode.workspace.findFiles;
 
 			// When auto-saving a single file, should NOT call findFiles
 			const createAutoSnapshot = async (filePath: string) => {
@@ -116,7 +117,7 @@ describe("Snapshot Scope Validation", () => {
 		});
 
 		it("should NOT include unselected files in manual checkpoint", async () => {
-			const workspaceFiles = ["app.ts", "utils.ts", "types.ts", "ignore.ts"];
+			const _workspaceFiles = ["app.ts", "utils.ts", "types.ts", "ignore.ts"];
 			const userSelectedFiles = ["app.ts", "utils.ts"];
 
 			const checkpoint = {
@@ -125,7 +126,7 @@ describe("Snapshot Scope Validation", () => {
 						acc[file] = { content: "..." };
 						return acc;
 					},
-					{} as Record<string, any>
+					{} as Record<string, any>,
 				),
 			};
 
@@ -167,7 +168,7 @@ describe("Snapshot Scope Validation", () => {
 			// Should store just this one large file
 			expect(Object.keys(snapshot.files)).toHaveLength(1);
 			expect(snapshot.files["large.ts"].content.length).toBe(
-				largeContent.length
+				largeContent.length,
 			);
 		});
 	});
@@ -205,9 +206,7 @@ describe("Snapshot Scope Validation", () => {
 			const createSnapshot = (fileContent: string) => {
 				const size = fileContent.length;
 				if (size > maxMemoryForSnapshot) {
-					throw new Error(
-						`File too large for snapshot: ${size} bytes`
-					);
+					throw new Error(`File too large for snapshot: ${size} bytes`);
 				}
 				return {
 					files: {
@@ -246,7 +245,7 @@ describe("Snapshot Scope Validation", () => {
 		});
 
 		it("should handle multi-root workspace correctly", async () => {
-			const workspaceFolders = [
+			const _workspaceFolders = [
 				{ name: "root1", uri: { fsPath: "/root1" } },
 				{ name: "root2", uri: { fsPath: "/root2" } },
 			];
