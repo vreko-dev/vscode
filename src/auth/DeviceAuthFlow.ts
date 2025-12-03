@@ -61,13 +61,13 @@ export class DeviceAuthFlow {
 			// Step 1: Request device code
 			const deviceCodeResponse = await this.requestDeviceCode();
 
-			if (!deviceCodeResponse.data) {
+			if (!deviceCodeResponse.device_code) {
 				throw new Error(
-					`Failed to get device code: ${deviceCodeResponse.error}`,
+					`Failed to get device code: Device code response missing required field`,
 				);
 			}
 
-			const { device_code, expires_in, interval } = deviceCodeResponse.data;
+			const { device_code, expires_in, interval } = deviceCodeResponse;
 
 			// Step 2: Set up polling
 			this.currentInterval = interval * 1000; // Convert to milliseconds
@@ -75,7 +75,7 @@ export class DeviceAuthFlow {
 			this.state = "waiting_for_approval";
 
 			logger.info("Device code obtained, polling for approval", {
-				userCode: deviceCodeResponse.data.user_code,
+				userCode: deviceCodeResponse.user_code,
 				expiresIn: expires_in,
 				initialInterval: interval,
 			});
@@ -101,36 +101,45 @@ export class DeviceAuthFlow {
 	}
 
 	/**
-	 * Request device code from backend
+	 * Request device code from backend (oRPC endpoint)
 	 */
 	private async requestDeviceCode(): Promise<{
-		success: boolean;
-		data?: {
-			device_code: string;
-			user_code: string;
-			verification_uri: string;
-			expires_in: number;
-			interval: number;
-		};
-		error?: string;
+		device_code: string;
+		user_code: string;
+		verification_uri: string;
+		verification_uri_complete?: string;
+		expires_in: number;
+		interval: number;
 	}> {
 		try {
-			const response = await fetch(`${this.apiBaseUrl}/auth/device-code`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
+			const response = await fetch(
+				`${this.apiBaseUrl}/deviceAuth/requestCode`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						client_id: "vscode-extension",
+					}),
+					signal: this.abortController?.signal,
 				},
-				body: JSON.stringify({
-					client_id: "vscode-extension",
-				}),
-				signal: this.abortController?.signal,
-			});
+			);
 
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 			}
 
-			return (await response.json()) as any;
+			// oRPC returns the device code response directly
+			const data = (await response.json()) as {
+				device_code: string;
+				user_code: string;
+				verification_uri: string;
+				verification_uri_complete?: string;
+				expires_in: number;
+				interval: number;
+			};
+			return data;
 		} catch (error) {
 			const message =
 				error instanceof Error
@@ -166,26 +175,51 @@ export class DeviceAuthFlow {
 
 			try {
 				// Poll for token
-				const response = await fetch(`${this.apiBaseUrl}/auth/device-token`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
+				const response = await fetch(
+					`${this.apiBaseUrl}/deviceAuth/pollToken`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							device_code: deviceCode,
+							grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+						}),
+						signal: this.abortController?.signal,
 					},
-					body: JSON.stringify({
-						device_code: deviceCode,
-					}),
-					signal: this.abortController?.signal,
-				});
+				);
 
 				if (!response.ok) {
 					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 				}
 
-				const data = (await response.json()) as any;
+				const data = (await response.json()) as
+					| {
+							access_token: string;
+							token_type: "Bearer";
+							expires_in?: number;
+							refresh_token?: string;
+							scope?: string;
+					  }
+					| {
+							error:
+								| "authorization_pending"
+								| "slow_down"
+								| "expired_token"
+								| "invalid_request";
+							error_description?: string;
+					  };
 
-				// Handle success
-				if ((data as any).success && (data as any).data) {
-					const { api_key, user_id, tier } = (data as any).data;
+				// Handle success - oRPC returns token directly or error object
+				if ("access_token" in data) {
+					const { access_token } = data;
+
+					// TODO: In production, use access_token as Bearer token or exchange for API key
+					// For now, treat access_token as the api_key
+					const api_key = access_token;
+					const user_id = "user-from-token"; // Extract from token in production
+					const tier: "free" | "pro" | "enterprise" = "free"; // Extract from token in production
 
 					// Store API key securely
 					await this.context.secrets.store("snapback.apiKey", api_key);
@@ -203,8 +237,8 @@ export class DeviceAuthFlow {
 				}
 
 				// Handle RFC 8628 errors
-				if ((data as any).error) {
-					switch ((data as any).error) {
+				if ("error" in data) {
+					switch (data.error) {
 						case "authorization_pending":
 							// User hasn't approved yet - continue polling
 							logger.debug("Waiting for user approval...");
@@ -224,8 +258,10 @@ export class DeviceAuthFlow {
 						case "invalid_request":
 							throw new Error("Invalid device code format");
 
-						default:
-							throw new Error(`Unknown error: ${(data as any).error}`);
+						default: {
+							const _exhaustive: never = data.error;
+							throw new Error(`Unknown error: ${_exhaustive}`);
+						}
 					}
 				}
 			} catch (error) {
