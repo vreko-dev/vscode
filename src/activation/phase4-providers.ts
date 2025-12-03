@@ -1,4 +1,6 @@
 import type * as vscode from "vscode";
+import type { AuthedApiClient } from "../api/authedApiClient.js";
+import type { CredentialsManager } from "../auth/credentials.js";
 import { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider.js";
 import { SnapshotDecorations } from "../decorations/snapshotDecorations.js";
 import { DetectionCodeActionProvider } from "../providers/DetectionCodeActionProvider.js";
@@ -10,16 +12,17 @@ import { WorkspaceSafetyService } from "../services/WorkspaceSafetyService.js";
 import type { StorageManager } from "../storage/StorageManager.js";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider.js";
 import type { StatusBarController } from "../ui/statusBar.js";
+import { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider.js";
 import { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider.js";
-import { SafetyDashboardTreeProvider } from "../views/SafetyDashboardTreeProvider.js";
 import { SessionsTreeProvider } from "../views/SessionsTreeProvider.js";
-
+import { SnapBackTreeProvider } from "../views/SnapBackTreeProvider.js";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider.js";
 import { WelcomeView } from "../welcomeView.js";
 import type { Phase3Result } from "./phase3-managers.js";
 import { PhaseLogger } from "./phaseLogger.js";
 
 export interface Phase4Result {
+	snapBackTreeProvider: SnapBackTreeProvider;
 	protectedFilesTreeProvider: ProtectedFilesTreeProvider;
 	snapshotDocumentProvider: SnapshotDocumentProvider;
 	protectionDecorationProvider: ProtectionDecorationProvider;
@@ -32,7 +35,7 @@ export interface Phase4Result {
 	fileHealthDecorationProvider: FileHealthDecorationProvider;
 	sessionsTreeProvider: SessionsTreeProvider;
 	workspaceSafetyService: WorkspaceSafetyService;
-	safetyDashboardTreeProvider: SafetyDashboardTreeProvider;
+	explorerTreeProvider?: SnapBackExplorerTreeProvider;
 }
 
 export async function initializePhase4Providers(
@@ -41,6 +44,8 @@ export async function initializePhase4Providers(
 	storage: StorageManager,
 	protectedFileRegistry: ProtectedFileRegistry,
 	workspaceRoot: string,
+	apiClient?: AuthedApiClient,
+	credentialsManager?: CredentialsManager,
 ): Promise<Phase4Result> {
 	const phase4Start = Date.now();
 	console.log("[PERF] Phase 4 starting...");
@@ -81,7 +86,9 @@ export async function initializePhase4Providers(
 		// Use the status bar controller from phase 3
 		t = Date.now();
 		const statusBarController = phase3Result.statusBarController;
-		console.log("[PERF] StatusBarController (from Phase 3)", { ms: Date.now() - t });
+		console.log("[PERF] StatusBarController (from Phase 3)", {
+			ms: Date.now() - t,
+		});
 
 		// Initialize welcome view
 		t = Date.now();
@@ -115,25 +122,41 @@ export async function initializePhase4Providers(
 		);
 		console.log("[PERF] SessionsTreeProvider", { ms: Date.now() - t });
 
-		// 🟢 v1.1: Initialize Safety Dashboard
+		// 🟢 Phase 2: Initialize SnapBack TreeView (replaces SafetyDashboard)
 		t = Date.now();
+		const { provider: snapBackTreeProvider } = SnapBackTreeProvider.register(
+			context,
+			storage,
+			protectedFileRegistry,
+		);
+		console.log("[PERF] SnapBackTreeProvider", { ms: Date.now() - t });
+
+		t = Date.now();
+		// Initialize WorkspaceSafetyService (still used by other components)
 		const workspaceSafetyService = new WorkspaceSafetyService(
 			phase3Result.snapshotSummaryProvider,
 		);
 		workspaceSafetyService.startAutoRefresh(); // Auto-refresh every 60s
+		console.log("[PERF] WorkspaceSafetyService", { ms: Date.now() - t });
 
-		const safetyDashboardTreeProvider = new SafetyDashboardTreeProvider(
-			workspaceSafetyService,
-			phase3Result.snapshotSummaryProvider,
-			protectedFileRegistry,
-			phase3Result.protectionService,
-		);
-		console.log("[PERF] SafetyDashboard", { ms: Date.now() - t });
+		// 🌐 Initialize SnapBack Explorer Tree (cloud features)
+		let explorerTreeProvider: SnapBackExplorerTreeProvider | undefined;
+		if (apiClient && credentialsManager) {
+			t = Date.now();
+			explorerTreeProvider = new SnapBackExplorerTreeProvider(
+				apiClient,
+				credentialsManager,
+			);
+			console.log("[PERF] SnapBackExplorerTreeProvider", {
+				ms: Date.now() - t,
+			});
+		}
 
 		console.log("[PERF] Phase 4 completed", { ms: Date.now() - phase4Start });
 		PhaseLogger.logPhase("4: UI Providers");
 
 		return {
+			snapBackTreeProvider,
 			protectedFilesTreeProvider,
 			snapshotDocumentProvider,
 			protectionDecorationProvider,
@@ -146,7 +169,7 @@ export async function initializePhase4Providers(
 			fileHealthDecorationProvider,
 			sessionsTreeProvider,
 			workspaceSafetyService,
-			safetyDashboardTreeProvider,
+			explorerTreeProvider,
 		};
 	} catch (error) {
 		PhaseLogger.logError("4: UI Providers", error as Error);

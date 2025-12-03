@@ -328,6 +328,12 @@
           "id": "snapback.sessions",
           "name": "Sessions",
           "when": "snapback.isActive"
+        },
+        {
+          "id": "snapback.explorer",
+          "name": "SnapBack Cloud",
+          "when": "snapback.isActive && snapback:connected",
+          "icon": "$(cloud)"
         }
       ]
     },

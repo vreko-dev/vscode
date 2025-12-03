@@ -1,4 +1,10 @@
 import * as vscode from "vscode";
+import {
+	registerConnectCommand,
+	registerOpenSnapshotInWebCommand,
+	registerRefreshTreeCommand,
+} from "../commands/explorerTree.js";
+import { registerToggleGroupingModeCommand } from "../commands/toggleGroupingMode.js";
 import { COMMANDS } from "../constants/index.js";
 import type { SessionCoordinator } from "../snapshot/SessionCoordinator.js";
 import { VIEW_IDS } from "../views/ViewRegistry.js";
@@ -19,23 +25,49 @@ export async function initializePhase5Registration(
 			phase4Result.protectedFilesTreeProvider,
 		);
 
-		// 🆕 Register sessions tree provider
+		// 🟢 Phase 2: Register SnapBack TreeView (primary dashboard view)
+		// Note: SnapBackTreeProvider already creates and registers its own TreeView
+		// via SnapBackTreeProvider.register() in phase4, so no additional registration needed
+
+		// Register sessions tree provider
 		vscode.window.registerTreeDataProvider(
 			VIEW_IDS.SESSIONS,
 			phase4Result.sessionsTreeProvider,
 		);
 
-		// 🆕 v1.1: Register Safety Dashboard tree provider
-		vscode.window.registerTreeDataProvider(
-			VIEW_IDS.DASHBOARD,
-			phase4Result.safetyDashboardTreeProvider,
-		);
+		// 🆕 Register SnapBack Explorer (Cloud Features) tree provider
+		if (phase4Result.explorerTreeProvider) {
+			vscode.window.registerTreeDataProvider(
+				VIEW_IDS.EXPLORER,
+				phase4Result.explorerTreeProvider,
+			);
 
-		// 🆕 v1.1: Register refresh command for external triggers (e.g., snapshot creation)
+			// Register Explorer tree commands
+			context.subscriptions.push(
+				registerConnectCommand(context, phase4Result.explorerTreeProvider),
+				registerRefreshTreeCommand(context, phase4Result.explorerTreeProvider),
+				registerOpenSnapshotInWebCommand(context),
+			);
+		}
+
+		// 🆕 v1.1: Register Safety Dashboard tree provider
+		// Note: Replaced by SnapBackTreeProvider in Phase 2
+		// vscode.window.registerTreeDataProvider(
+		// 	VIEW_IDS.DASHBOARD,
+		// 	phase4Result.safetyDashboardTreeProvider,
+		// );
+
+		// 🆕 v1.1: Register refresh command for SnapBackTreeProvider (Phase 2)
 		context.subscriptions.push(
 			vscode.commands.registerCommand(COMMANDS.VIEW.REFRESH_DASHBOARD, () => {
-				phase4Result.safetyDashboardTreeProvider.refresh();
+				phase4Result.snapBackTreeProvider.refresh();
 			}),
+		);
+
+		// 🟢 Phase 2: Register toggle grouping mode command
+		registerToggleGroupingModeCommand(
+			context,
+			phase4Result.snapBackTreeProvider,
 		);
 
 		// Register file decoration providers

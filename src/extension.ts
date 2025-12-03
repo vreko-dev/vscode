@@ -20,7 +20,7 @@ import { createAuthedApiClient } from "./api/authedApiClient.js";
 import { createCredentialsManager } from "./auth/credentials.js";
 import { SnapBackOAuthProvider } from "./auth/OAuthProvider.js"; // 🆕 Import OAuth provider
 import { registerAllCommands } from "./commands/index.js";
-import { initializeProtectionNotifications } from "./commands/protectionCommands.js"
+import { initializeProtectionNotifications } from "./commands/protectionCommands.js";
 import { ContextManager } from "./contextManager.js";
 import { FileHealthDecorationProvider } from "./decorations/FileHealthDecorationProvider.js"; // 🆕 Import FileHealthDecorationProvider
 import { SaveHandler } from "./handlers/SaveHandler.js";
@@ -44,7 +44,6 @@ import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI.js";
 import { logger } from "./utils/logger.js";
 import { findProjectRoot } from "./utils/projectRoot.js";
 import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver.js"; // 🆕 Import WorkspaceFolderResolver
-import { SnapBackExplorerTreeProvider } from "./views/explorerTree/SnapBackExplorerTreeProvider.js";
 import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry.js";
 
 // Import the new EventBus and feature flag
@@ -171,8 +170,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	// If offline mode is enabled, show a notification asynchronously
 	if (offlineModeEnabled) {
 		setTimeout(
-			() => vscode.window.showInformationMessage("SnapBack is running in offline mode"),
-			100
+			() =>
+				vscode.window.showInformationMessage(
+					"SnapBack is running in offline mode",
+				),
+			100,
 		);
 	}
 
@@ -271,28 +273,26 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Phase 4: UI providers
 		const phase4Start = Date.now();
+		const credentialsManager = createCredentialsManager(context.secrets);
+		const apiClient = createAuthedApiClient(context);
 		const phase4Result = await initializePhase4Providers(
 			context,
 			phase3Result,
 			phase2Result.storage,
 			phase2Result.protectedFileRegistry,
 			workspaceRoot,
-		);
-		phaseTimings["Phase 4 (Providers)"] = Date.now() - phase4Start;
-
-		// 🆕 Initialize Explorer Tree View
-		const credentialsManager = createCredentialsManager(context.secrets);
-		const apiClient = createAuthedApiClient(context);
-		const explorerTreeProvider = new SnapBackExplorerTreeProvider(
 			apiClient,
 			credentialsManager,
 		);
-		context.subscriptions.push(explorerTreeProvider);
-		logger.info("SnapBack Explorer Tree View initialized");
+		phaseTimings["Phase 4 (Providers)"] = Date.now() - phase4Start;
 
 		// Phase 5: Registration
 		const phase5Start = Date.now();
-		await initializePhase5Registration(context, phase4Result, phase3Result.sessionCoordinator);
+		await initializePhase5Registration(
+			context,
+			phase4Result,
+			phase3Result.sessionCoordinator,
+		);
 		phaseTimings["Phase 5 (Registration)"] = Date.now() - phase5Start;
 
 		// Set offline mode status in the status bar controller
@@ -342,12 +342,19 @@ export async function activate(context: vscode.ExtensionContext) {
 		setTimeout(() => {
 			console.log("[PERF] Running deferred auditRepo...");
 			const auditStart = Date.now();
-			protectionService.auditRepo().catch(err => {
-				logger.error("Deferred protection audit failed", err as Error);
-				console.log("[PERF] auditRepo failed", { ms: Date.now() - auditStart });
-			}).then(() => {
-				console.log("[PERF] auditRepo completed", { ms: Date.now() - auditStart });
-			});
+			protectionService
+				.auditRepo()
+				.catch((err) => {
+					logger.error("Deferred protection audit failed", err as Error);
+					console.log("[PERF] auditRepo failed", {
+						ms: Date.now() - auditStart,
+					});
+				})
+				.then(() => {
+					console.log("[PERF] auditRepo completed", {
+						ms: Date.now() - auditStart,
+					});
+				});
 		}, 50); // Run early but after UI is responsive
 
 		// Create refreshViews function
@@ -557,7 +564,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			protectedFilesTreeProvider: phase4Result.protectedFilesTreeProvider,
 			snapshotNavigatorProvider: phase4Result.snapshotNavigatorProvider,
 			snapshotSummaryProvider: phase3Result.snapshotSummaryProvider,
-			explorerTreeProvider: explorerTreeProvider,
+			explorerTreeProvider: phase4Result.explorerTreeProvider,
 
 			// Configuration
 			configManager: phase2Result.configManager,
@@ -620,7 +627,9 @@ export async function activate(context: vscode.ExtensionContext) {
 					await updateFileProtectionContext(activeEditor.document.uri);
 					logger.info("File protection context updated for active editor");
 				}
-				console.log("[PERF] Context updates completed", { ms: Date.now() - ctxStart });
+				console.log("[PERF] Context updates completed", {
+					ms: Date.now() - ctxStart,
+				});
 			} catch (err) {
 				logger.error("Failed to update context in background", err as Error);
 			}
@@ -652,8 +661,8 @@ export async function activate(context: vscode.ExtensionContext) {
 					phase3Result.protectionService.invalidateAuditCache();
 					// Run audit with force=true to bypass cache
 					await phase3Result.protectionService.auditRepo(true);
-					// Refresh Safety Dashboard to show updated status
-					phase4Result.safetyDashboardTreeProvider.refresh();
+					// 🟢 Phase 2: Refresh SnapBack TreeView to show updated status
+					phase4Result.snapBackTreeProvider.refresh();
 				}, 300); // 300ms debounce for responsive feel
 
 				// Publish event when protection changes
@@ -772,9 +781,9 @@ export function getWorkspaceManager(): WorkspaceManager | null {
  * Called after activation completes to avoid blocking extension startup.
  */
 async function showDeferredWorkspaceTrustWarning(
-	context: vscode.ExtensionContext
+	context: vscode.ExtensionContext,
 ): Promise<void> {
-	const ACK_KEY = 'snapback.workspace-trust-warning-acknowledged';
+	const ACK_KEY = "snapback.workspace-trust-warning-acknowledged";
 
 	// Check if already acknowledged
 	if (context.globalState.get<boolean>(ACK_KEY)) {
@@ -786,7 +795,7 @@ async function showDeferredWorkspaceTrustWarning(
 			"SnapBack is running in limited mode because this workspace is not trusted. Some features like snapshot creation and risk analysis are disabled.",
 			"Trust Workspace",
 			"Continue Anyway",
-			"Don't Show Again"
+			"Don't Show Again",
 		);
 
 		if (result === "Trust Workspace") {

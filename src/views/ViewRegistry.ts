@@ -8,6 +8,7 @@ export const VIEW_IDS = {
 	PROTECTED_FILES: "snapback.protectedFiles",
 	DASHBOARD: "snapback.dashboard",
 	SESSIONS: "snapback.sessions",
+	EXPLORER: "snapback.explorer",
 } as const;
 
 /**

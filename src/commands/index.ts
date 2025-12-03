@@ -135,7 +135,7 @@ export interface CommandContext {
 	/** Provides snapshot metadata and summaries */
 	snapshotSummaryProvider: StorageSnapshotSummaryProvider;
 	/** 🆕 Provides Explorer tree view data for workspace safety and snapshots */
-	explorerTreeProvider: SnapBackExplorerTreeProvider;
+	explorerTreeProvider?: SnapBackExplorerTreeProvider;
 
 	// Configuration Management
 	/** Manages .snapbackrc configuration files */
@@ -274,10 +274,17 @@ export function registerAllCommands(
 		...registerDetectionCommands(context, commandContext),
 		...registerDecorationCommands(context, commandContext), // 🆕 Register decoration commands
 		...mcpCommandDisposables, // 🆕 Register MCP commands if available
-		// 🆕 Register Explorer Tree commands
-		registerConnectCommand(context, commandContext.explorerTreeProvider),
-		registerRefreshTreeCommand(context, commandContext.explorerTreeProvider),
-		registerOpenSnapshotInWebCommand(context),
+		// 🆕 Register Explorer Tree commands (cloud features) - only if available
+		...(commandContext.explorerTreeProvider
+			? [
+					registerConnectCommand(context, commandContext.explorerTreeProvider),
+					registerRefreshTreeCommand(
+						context,
+						commandContext.explorerTreeProvider,
+					),
+					registerOpenSnapshotInWebCommand(context),
+				]
+			: []),
 		// NOTE: snapback.createSnapshot is registered in registerSnapshotCreationCommands above
 	];
 }
