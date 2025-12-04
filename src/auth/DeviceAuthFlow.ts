@@ -1,5 +1,8 @@
 import { logger } from "@snapback/infrastructure";
+import * as vscode from "vscode";
 import type { ExtensionContext } from "vscode";
+import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker.js";
+import { TelemetryProxy } from "../services/telemetry-proxy.js";
 
 /**
  * Device Authorization Flow (RFC 8628)
@@ -13,6 +16,7 @@ import type { ExtensionContext } from "vscode";
  * 3. User visits URL in browser, enters code, logs in via OAuth
  * 4. Extension polls /api/auth/device-token until approval
  * 5. Returns API key for authenticated requests
+ * 6. Events tracked: auth.provider.selected, auth.browser.opened, auth.approval.received
  */
 export interface AuthResult {
 	api_key: string;
@@ -37,14 +41,22 @@ export class DeviceAuthFlow {
 	private currentInterval = 0;
 	private pollStartTime = 0;
 
+	// Event tracking
+	private diagnosticTracker: DiagnosticEventTracker;
+
 	constructor(
 		private context: ExtensionContext,
 		private apiBaseUrl: string = "http://localhost:3000/api",
-	) {}
+	) {
+		// Initialize diagnostic event tracker
+		const telemetryProxy = new TelemetryProxy(context);
+		this.diagnosticTracker = new DiagnosticEventTracker(telemetryProxy);
+	}
 
 	/**
 	 * Start device authorization flow
 	 * Returns API key when approved, throws if cancelled or timeout
+	 * Tracks events: auth.provider.selected, auth.browser.opened, auth.approval.received
 	 */
 	async authenticate(): Promise<AuthResult> {
 		// Prevent concurrent authentications
@@ -58,6 +70,12 @@ export class DeviceAuthFlow {
 		this.abortController = new AbortController();
 
 		try {
+			// Track: User selected device flow as auth provider
+			this.diagnosticTracker.trackAuthProviderSelected(
+				"device_flow",
+				"user_selected",
+			);
+
 			// Step 1: Request device code
 			const deviceCodeResponse = await this.requestDeviceCode();
 
@@ -67,7 +85,7 @@ export class DeviceAuthFlow {
 				);
 			}
 
-			const { device_code, expires_in, interval } = deviceCodeResponse;
+			const { device_code, expires_in, interval, verification_uri, user_code } = deviceCodeResponse;
 
 			// Step 2: Set up polling
 			this.currentInterval = interval * 1000; // Convert to milliseconds
@@ -75,10 +93,13 @@ export class DeviceAuthFlow {
 			this.state = "waiting_for_approval";
 
 			logger.info("Device code obtained, polling for approval", {
-				userCode: deviceCodeResponse.user_code,
+				userCode: user_code,
 				expiresIn: expires_in,
 				initialInterval: interval,
 			});
+
+			// Step 2a: Display verification URI to user and attempt to open browser
+			await this.showVerificationPrompt(verification_uri, user_code);
 
 			// Step 3: Poll for token with exponential backoff
 			return await this.pollForToken(device_code, expires_in);
@@ -215,6 +236,10 @@ export class DeviceAuthFlow {
 				if ("access_token" in data) {
 					const { access_token } = data;
 
+					// Track: Server approved the authentication request
+					const approvalTimeMs = Date.now() - this.pollStartTime;
+					this.diagnosticTracker.trackAuthApprovalReceived(approvalTimeMs);
+
 					// TODO: In production, use access_token as Bearer token or exchange for API key
 					// For now, treat access_token as the api_key
 					const api_key = access_token;
@@ -327,5 +352,53 @@ export class DeviceAuthFlow {
 				resolve();
 			});
 		});
+	}
+
+	/**
+	 * Show verification prompt to user and attempt to open browser
+	 * Tracks browser opening attempt with diagnostic event
+	 */
+	private async showVerificationPrompt(
+		verificationUri: string,
+		userCode: string,
+	): Promise<void> {
+		const message = `SnapBack: Visit the link below and enter code: **${userCode}**`;
+		const action = await vscode.window.showInformationMessage(
+			message,
+			"Open Browser",
+			"Copy Code",
+		);
+
+		if (action === "Open Browser") {
+			try {
+				await vscode.env.openExternal(vscode.Uri.parse(verificationUri));
+				// Track successful browser opening
+				this.diagnosticTracker.trackAuthBrowserOpened(
+					true,
+					"external_command",
+				);
+				logger.info("Browser opened for device auth");
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : String(error);
+				// Track failed browser opening
+				this.diagnosticTracker.trackAuthBrowserOpened(false, "error", errorMsg);
+				logger.warn("Failed to open browser", { error: errorMsg });
+
+				// Show fallback UI with copy-to-clipboard option
+				await vscode.window.showInformationMessage(
+					`Couldn't open browser. Visit this link manually: ${verificationUri}`,
+					"Copy Link",
+				);
+			}
+		} else if (action === "Copy Code") {
+			// User chose to copy code
+			await vscode.env.clipboard.writeText(userCode);
+			// Track clipboard method
+			this.diagnosticTracker.trackAuthBrowserOpened(true, "clipboard");
+			logger.info("Device code copied to clipboard");
+		} else {
+			// User dismissed the prompt
+			logger.debug("Device auth prompt dismissed by user");
+		}
 	}
 }
