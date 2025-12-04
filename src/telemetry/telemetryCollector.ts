@@ -345,7 +345,7 @@ export class TelemetryCollector {
 		// /home/alice/workspace/app/config.json → ./app/config.json
 		const match = filePath.match(/\/(project|workspace|app)\/(.+)$/);
 		if (match) {
-			return "." + filePath.substring(filePath.indexOf(match[1]) + match[1].length);
+			return `.${filePath.substring(filePath.indexOf(match[1]) + match[1].length)}`;
 		}
 		return filePath;
 	}

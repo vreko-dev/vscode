@@ -16,15 +16,15 @@
  */
 
 import * as vscode from "vscode";
-import * as crypto from "crypto";
-import * as path from "path";
+import * as crypto from "node:crypto";
+import * as path from "node:path";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
-import { NotificationManager } from "../notifications/notificationManager";
+import type { NotificationManager } from "../notifications/notificationManager";
 import { AutoDecisionEngine } from "../domain/engine";
 import { SaveContextBuilder } from "../domain/saveContextBuilder";
 import { NotificationAdapter } from "../domain/notificationAdapter";
 import { SnapshotOrchestrator } from "../domain/snapshotOrchestrator";
-import { SignalAggregator, createSignalAggregator } from "../domain/signalAggregator";
+import { type SignalAggregator, createSignalAggregator } from "../domain/signalAggregator";
 import { GlobalStateStorageAdapter } from "../adapters/GlobalStateStorageAdapter";
 import { SettingsLoader } from "../config/settingsLoader";
 import type {
@@ -48,9 +48,7 @@ export interface FileChangeEvent {
  */
 export class AutoDecisionIntegration {
 	private engine: AutoDecisionEngine;
-	private builder: SaveContextBuilder;
 	private adapter: NotificationAdapter;
-	private orchestrator: SnapshotOrchestrator;
 	private signalAggregator: SignalAggregator;
 	private settingsLoader: SettingsLoader | null = null;
 
@@ -86,11 +84,9 @@ export class AutoDecisionIntegration {
 		".bin",
 	];
 
-	constructor(
-		private snapshotManager: SnapshotManager,
+	constructor(_snapshotManager: SnapshotManager,
 		private notificationManager: NotificationManager,
-		config?: Partial<AutoDecisionConfig>,
-		private context?: vscode.ExtensionContext,
+		config?: Partial<AutoDecisionConfig>,context?: vscode.ExtensionContext,
 	) {
 		// Initialize SettingsLoader if context available
 		if (context) {

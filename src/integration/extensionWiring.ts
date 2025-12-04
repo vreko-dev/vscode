@@ -14,7 +14,6 @@
 import type {
 	ProtectionDecision,
 	SaveContext,
-	SnapshotIntent,
 } from "../domain/types";
 import type { FileInfo } from "../domain/signalAggregator";
 import type { UserNotification } from "../domain/notificationAdapter";
@@ -303,7 +302,7 @@ export class ExtensionWiring {
 	 * Restore snapshot
 	 */
 	async restoreSnapshot(
-		snapshotId: string,
+		_snapshotId: string,
 	): Promise<{ success: boolean; filesRestored: number }> {
 		if (!this.state.lastSnapshot) {
 			return { success: false, filesRestored: 0 };

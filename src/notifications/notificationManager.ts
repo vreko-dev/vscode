@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { CooldownCache } from "../storage/CooldownCache";
-import { AuditLog } from "../storage/AuditLog";
+import type { CooldownCache } from "../storage/CooldownCache";
+import type { AuditLog } from "../storage/AuditLog";
 import { logger } from "@snapback/infrastructure";
 
 /**
@@ -31,7 +31,6 @@ export interface NotificationContext {
  * Uses AuditLog to persist events for Phase 23 (Analytics).
  */
 export class NotificationManager {
-	private cooldownCache: CooldownCache;
 	private auditLog: AuditLog;
 	private shownNotifications = new Map<string, number>(); // Track shown times locally
 

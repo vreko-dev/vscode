@@ -49,7 +49,7 @@ export class SettingsLoader {
 	readonly onSettingsChange =
 		this.onSettingsChangeEmitter.event;
 
-	constructor(private context: vscode.ExtensionContext) {
+	constructor(context: vscode.ExtensionContext) {
 		// Listen for configuration changes
 		context.subscriptions.push(
 			vscode.workspace.onDidChangeConfiguration(

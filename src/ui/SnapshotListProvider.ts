@@ -55,7 +55,7 @@ export class SnapshotListProvider
 	implements vscode.TreeDataProvider<SnapshotTreeItem>
 {
 	private onDidChangeTreeDataEmitter = new vscode.EventEmitter<
-		SnapshotTreeItem | undefined | null | void
+		SnapshotTreeItem | undefined | null | undefined
 	>();
 	readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
@@ -99,7 +99,7 @@ export class SnapshotListProvider
 	/**
 	 * Refresh specific snapshot in tree
 	 */
-	refreshSnapshot(snapshotId: string): void {
+	refreshSnapshot(_snapshotId: string): void {
 		// Would update single node if found
 		this.onDidChangeTreeDataEmitter.fire();
 	}
