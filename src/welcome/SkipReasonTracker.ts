@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { DiagnosticEventTracker } from "../telemetry/DiagnosticEventTracker.js";
+import type { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker.js";
 
 /**
  * Tracks user skip behavior in welcome panel with semantic distinction:
@@ -19,7 +19,8 @@ export class SkipReasonTracker {
 	private detailsExpanded: boolean = false;
 	private timeoutHandle: NodeJS.Timeout | null = null;
 
-	private readonly STORAGE_KEY_DETAILS_EXPANDED = "snapback.welcomePanel.detailsExpanded";
+	private readonly STORAGE_KEY_DETAILS_EXPANDED =
+		"snapback.welcomePanel.detailsExpanded";
 	private readonly PANEL_TIMEOUT_MS = 60_000; // 60 seconds
 
 	constructor(
@@ -229,6 +230,10 @@ export class SkipReasonTracker {
 /**
  * Semantic skip reasons
  */
-type SkipReason = "user_clicked_skip" | "informed_skip" | "panel_closed" | "timeout";
+type SkipReason =
+	| "user_clicked_skip"
+	| "informed_skip"
+	| "panel_closed"
+	| "timeout";
 
 export type { SkipReason };
