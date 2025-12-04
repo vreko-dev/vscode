@@ -314,7 +314,7 @@
       "snapback": [
         {
           "id": "snapback.dashboard",
-          "name": "Safety Dashboard",
+          "name": "SnapBack",
           "when": "snapback.isActive",
           "icon": "$(shield)"
         },
