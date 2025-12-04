@@ -750,3 +750,281 @@ describe("DeviceAuthFlow", () => {
 		});
 	});
 });
+
+describe("RFC 8628 Error Path Handling", () => {
+	describe("Device Code Request Failures", () => {
+		it("should handle network error on device code request", async () => {
+			// Simulate network failure
+			fetchQueue.push({
+				ok: false,
+				status: 0,
+				json: async () => ({}),
+			});
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow(
+				/device code request|failed/i,
+			);
+		});
+
+		it("should handle 401 Unauthorized on device code request", async () => {
+			fetchQueue.push({
+				ok: false,
+				status: 401,
+				json: async () => ({
+					error: "unauthorized",
+				}),
+			});
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow(
+				/401|unauthorized/i,
+			);
+		});
+
+		it("should handle 429 Rate Limited on device code request", async () => {
+			fetchQueue.push({
+				ok: false,
+				status: 429,
+				json: async () => ({
+					error: "too_many_requests",
+				}),
+			});
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow(
+				/429|rate limit|too_many_requests/i,
+			);
+		});
+
+		it("should handle 500 Server Error on device code request", async () => {
+			fetchQueue.push({
+				ok: false,
+				status: 500,
+				json: async () => ({
+					error: "internal_server_error",
+				}),
+			});
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow(
+				/500|internal|server error/i,
+			);
+		});
+
+		it("should handle malformed JSON response", async () => {
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => {
+					throw new SyntaxError("Unexpected token");
+				},
+			});
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow();
+		});
+
+		it("should handle missing device_code in response", async () => {
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					success: true,
+					data: {
+						user_code: "ABCD-WXYZ",
+						verification_uri: "https://snapback.dev/auth/device",
+						// Missing: device_code
+						expires_in: 900,
+						interval: 5,
+					},
+				}),
+			});
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow(
+				/missing required field|device_code/i,
+			);
+		});
+	});
+
+	describe("Token Poll Failures", () => {
+		it("should handle network error on token poll", async () => {
+			// Device code request - success
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					success: true,
+					data: {
+						device_code: "AUTH_NET_ERROR",
+						user_code: "NETERR-CD",
+						verification_uri: "https://snapback.dev/auth/device",
+						expires_in: 900,
+						interval: 0.1,
+					},
+				}),
+			});
+
+			// Token poll - network error
+			fetchQueue.push({
+				ok: false,
+				status: 0,
+				json: async () => {
+					throw new Error("Network error");
+				},
+			});
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow(/timeout|expire/i);
+		}, 5000);
+
+		it("should handle 401 Unauthorized on token poll", async () => {
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					success: true,
+					data: {
+						device_code: "AUTH_401",
+						user_code: "UNAUTH-CD",
+						verification_uri: "https://snapback.dev/auth/device",
+						expires_in: 0.1,
+						interval: 0.05,
+					},
+				}),
+			});
+
+			fetchQueue.push({
+				ok: false,
+				status: 401,
+				json: async () => ({
+					error: "unauthorized",
+				}),
+			});
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow();
+		}, 5000);
+	});
+
+	describe("RFC 8628 Error Responses", () => {
+		it("should handle slow_down error with interval increase", async () => {
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					success: true,
+					data: {
+						device_code: "AUTH_SLOWDOWN",
+						user_code: "SLOW-CODE",
+						verification_uri: "https://snapback.dev/auth/device",
+						expires_in: 900,
+						interval: 1,
+					},
+				}),
+			});
+
+			// First poll: slow_down
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					error: "slow_down",
+				}),
+			});
+
+			// Second poll: success
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					success: true,
+					data: {
+						api_key: "sk_live_slowdown_recovered",
+						user_id: "user_slowdown",
+						tier: "free",
+					},
+				}),
+			});
+
+			const result = await deviceAuthFlow.authenticate();
+			expect(result.api_key).toBe("sk_live_slowdown_recovered");
+		});
+
+		it("should throw on expired_token error", async () => {
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					success: true,
+					data: {
+						device_code: "AUTH_EXPIRED",
+						user_code: "EXPIRED-CD",
+						verification_uri: "https://snapback.dev/auth/device",
+						expires_in: 900,
+						interval: 1,
+					},
+				}),
+			});
+
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					error: "expired_token",
+					error_description: "Device code has expired",
+				}),
+			});
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow(/expired/i);
+		});
+
+		it("should throw on invalid_request error", async () => {
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					success: true,
+					data: {
+						device_code: "INVALID_FORMAT",
+						user_code: "INVALID-CD",
+						verification_uri: "https://snapback.dev/auth/device",
+						expires_in: 900,
+						interval: 1,
+					},
+				}),
+			});
+
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					error: "invalid_request",
+					error_description: "Invalid device code format",
+				}),
+			});
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow(/invalid/i);
+		});
+	});
+
+	describe("Cancellation During Error Recovery", () => {
+		it("should not override cancelled state on network error", async () => {
+			fetchQueue.push({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					success: true,
+					data: {
+						device_code: "AUTH_CANCEL",
+						user_code: "CANCEL-CD",
+						verification_uri: "https://snapback.dev/auth/device",
+						expires_in: 900,
+						interval: 2,
+					},
+				}),
+			});
+
+			// Cancel immediately
+			setTimeout(() => {
+				deviceAuthFlow.cancel();
+			}, 100);
+
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow();
+			expect(deviceAuthFlow.getState()).toBe("cancelled");
+		});
+	});
+});
