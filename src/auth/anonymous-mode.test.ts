@@ -10,10 +10,17 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
-import { AuthState } from "./AuthState.js";
 import { AnonymousIdManager } from "./AnonymousIdManager.js";
-import type { CredentialsManager, ExtensionCredentials } from "./credentials.js";
-import { canAccessFeature, isAnonymousContext, isAuthenticatedContext } from "./UserContext.js";
+import { AuthState } from "./AuthState.js";
+import type {
+	CredentialsManager,
+	ExtensionCredentials,
+} from "./credentials.js";
+import {
+	canAccessFeature,
+	isAnonymousContext,
+	isAuthenticatedContext,
+} from "./UserContext.js";
 
 /**
  * Test AuthState class - Single responsibility: auth status checking
@@ -41,7 +48,9 @@ describe("AuthState", () => {
 			user: { id: "user1", email: "test@example.com" },
 		};
 
-		vi.mocked(mockCredentialsManager.getCredentials).mockResolvedValue(mockCreds);
+		vi.mocked(mockCredentialsManager.getCredentials).mockResolvedValue(
+			mockCreds,
+		);
 
 		const isAuth = await authState.isAuthenticated();
 		expect(isAuth).toBe(true);
@@ -69,7 +78,9 @@ describe("AuthState", () => {
 			user: { id: "user1", email: "test@example.com", name: "Test User" },
 		};
 
-		vi.mocked(mockCredentialsManager.getCredentials).mockResolvedValue(mockCreds);
+		vi.mocked(mockCredentialsManager.getCredentials).mockResolvedValue(
+			mockCreds,
+		);
 
 		const creds = await authState.getCredentials();
 		expect(creds).toEqual({
@@ -98,7 +109,8 @@ describe("AnonymousIdManager", () => {
 		mockMemento = {};
 
 		const mockGlobalState: vscode.Memento = {
-			get: (key: string, defaultValue?: any) => mockMemento[key] ?? defaultValue,
+			get: (key: string, defaultValue?: any) =>
+				mockMemento[key] ?? defaultValue,
 			update: vi.fn(async (key: string, value: any) => {
 				mockMemento[key] = value;
 			}),
@@ -141,7 +153,8 @@ describe("AnonymousIdManager", () => {
 	});
 
 	it("should reset anonymous ID", async () => {
-		mockMemento["snapback.anonymousId"] = "550e8400-e29b-41d4-a716-446655440000";
+		mockMemento["snapback.anonymousId"] =
+			"550e8400-e29b-41d4-a716-446655440000";
 
 		await anonIdManager.reset();
 
@@ -234,7 +247,8 @@ describe("Auth State Integration", () => {
 		};
 
 		const mockGlobalState: vscode.Memento = {
-			get: (key: string, defaultValue?: any) => mockMemento[key] ?? defaultValue,
+			get: (key: string, defaultValue?: any) =>
+				mockMemento[key] ?? defaultValue,
 			update: vi.fn(async (key: string, value: any) => {
 				mockMemento[key] = value;
 			}),
@@ -254,7 +268,9 @@ describe("Auth State Integration", () => {
 			workspace: { id: "ws1", name: "My Workspace", plan: "free" },
 		};
 
-		vi.mocked(mockCredentialsManager.getCredentials).mockResolvedValue(mockCreds);
+		vi.mocked(mockCredentialsManager.getCredentials).mockResolvedValue(
+			mockCreds,
+		);
 
 		const isAuth = await authState.isAuthenticated();
 		const credentials = await authState.getCredentials();

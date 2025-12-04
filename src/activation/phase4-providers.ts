@@ -1,7 +1,6 @@
 import type * as vscode from "vscode";
 import type { AuthedApiClient } from "../api/authedApiClient.js";
 import type { CredentialsManager } from "../auth/credentials.js";
-import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker.js";
 import { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider.js";
 import { SnapshotDecorations } from "../decorations/snapshotDecorations.js";
 import { DetectionCodeActionProvider } from "../providers/DetectionCodeActionProvider.js";
@@ -11,6 +10,7 @@ import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js
 import { StorageManager as ServiceStorageManager } from "../services/StorageManager.js";
 import { WorkspaceSafetyService } from "../services/WorkspaceSafetyService.js";
 import type { StorageManager } from "../storage/StorageManager.js";
+import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker.js";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider.js";
 import type { StatusBarController } from "../ui/statusBar.js";
 import { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider.js";
@@ -19,7 +19,6 @@ import { SessionsTreeProvider } from "../views/SessionsTreeProvider.js";
 import { SnapBackTreeProvider } from "../views/SnapBackTreeProvider.js";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider.js";
 import { WelcomeView } from "../welcomeView.js";
-import { TelemetryProxy } from "../services/telemetry-proxy.js";
 import type { Phase3Result } from "./phase3-managers.js";
 import { PhaseLogger } from "./phaseLogger.js";
 

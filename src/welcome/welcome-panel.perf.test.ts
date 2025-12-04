@@ -11,7 +11,7 @@
  * Reference: Web Vitals
  */
 
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 interface PerformanceMetric {
 	name: string;
@@ -411,9 +411,7 @@ async function closePanel(): Promise<void> {
 	await delay(Math.random() * 100);
 }
 
-async function renderComponents(
-	components: string[],
-): Promise<unknown[]> {
+async function renderComponents(components: string[]): Promise<unknown[]> {
 	await delay(Math.random() * 200 + 50);
 	return components.map((name) => ({
 		tagName: "div",
@@ -441,7 +439,10 @@ async function simulateAuth(_timeoutMs: number): Promise<void> {
 	await delay(Math.random() * 1000 + 200);
 }
 
-async function animatePanel(_action: string, _durationMs: number): Promise<void> {
+async function animatePanel(
+	_action: string,
+	_durationMs: number,
+): Promise<void> {
 	await delay(Math.random() * 200 + 50);
 }
 
@@ -467,9 +468,7 @@ function captureMemory(): MemorySnapshot {
 	};
 }
 
-function measureFrameRate(
-	animation: () => Promise<void>,
-): Promise<number> {
+function measureFrameRate(_animation: () => Promise<void>): Promise<number> {
 	// Simulated frame counting
 	return Promise.resolve(Math.random() * 10 + 55); // 55-65 frames
 }

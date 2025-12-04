@@ -11,7 +11,7 @@
  */
 
 import { CORE_TELEMETRY_EVENTS } from "@snapback/contracts";
-import { TelemetryProxy } from "../services/telemetry-proxy";
+import type { TelemetryProxy } from "../services/telemetry-proxy";
 
 /**
  * Diagnostic event tracker class
@@ -30,11 +30,14 @@ export class DiagnosticEventTracker {
 		provider: "oauth" | "device_flow",
 		trigger: "user_selected" | "fallback" | "auto",
 	): void {
-		this.telemetryProxy.trackEvent(CORE_TELEMETRY_EVENTS.AUTH_PROVIDER_SELECTED, {
-			provider,
-			trigger,
-			timestamp_utc: Date.now(),
-		});
+		this.telemetryProxy.trackEvent(
+			CORE_TELEMETRY_EVENTS.AUTH_PROVIDER_SELECTED,
+			{
+				provider,
+				trigger,
+				timestamp_utc: Date.now(),
+			},
+		);
 	}
 
 	/**
@@ -75,8 +78,27 @@ export class DiagnosticEventTracker {
 	 * @param approvalTimeMs - Time from request to approval in milliseconds
 	 */
 	trackAuthApprovalReceived(approvalTimeMs: number): void {
-		this.telemetryProxy.trackEvent(CORE_TELEMETRY_EVENTS.AUTH_APPROVAL_RECEIVED, {
-			approval_time_ms: approvalTimeMs,
+		this.telemetryProxy.trackEvent(
+			CORE_TELEMETRY_EVENTS.AUTH_APPROVAL_RECEIVED,
+			{
+				approval_time_ms: approvalTimeMs,
+				timestamp_utc: Date.now(),
+			},
+		);
+	}
+
+	/**
+	 * Generic track method for custom events
+	 * Allows SkipReasonTracker and other components to track arbitrary events
+	 *
+	 * @param eventData - Event object with 'event' name and 'properties'
+	 */
+	track(eventData: {
+		event: string;
+		properties: Record<string, unknown>;
+	}): void {
+		this.telemetryProxy.trackEvent(eventData.event, {
+			...eventData.properties,
 			timestamp_utc: Date.now(),
 		});
 	}
@@ -93,12 +115,15 @@ export class DiagnosticEventTracker {
 		position: number,
 		trigger: "onboarding" | "nudge" | "manual",
 	): void {
-		this.telemetryProxy.trackEvent(CORE_TELEMETRY_EVENTS.WELCOME_FEATURE_VIEWED, {
-			feature,
-			position,
-			trigger,
-			timestamp_utc: Date.now(),
-		});
+		this.telemetryProxy.trackEvent(
+			CORE_TELEMETRY_EVENTS.WELCOME_FEATURE_VIEWED,
+			{
+				feature,
+				position,
+				trigger,
+				timestamp_utc: Date.now(),
+			},
+		);
 	}
 
 	/**
@@ -113,11 +138,14 @@ export class DiagnosticEventTracker {
 		feature: string,
 		timeViewedMs: number,
 	): void {
-		this.telemetryProxy.trackEvent(CORE_TELEMETRY_EVENTS.WELCOME_ACTION_TRIGGERED, {
-			action,
-			feature,
-			time_viewed_ms: timeViewedMs,
-			timestamp_utc: Date.now(),
-		});
+		this.telemetryProxy.trackEvent(
+			CORE_TELEMETRY_EVENTS.WELCOME_ACTION_TRIGGERED,
+			{
+				action,
+				feature,
+				time_viewed_ms: timeViewedMs,
+				timestamp_utc: Date.now(),
+			},
+		);
 	}
 }

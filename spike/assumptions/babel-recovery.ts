@@ -79,15 +79,15 @@ export async function runBabelRecovery(): Promise<SpikeResult> {
 			});
 
 			results.push({
-				code: code.slice(0, 50) + "...",
+				code: `${code.slice(0, 50)}...`,
 				symbols,
 				hadError: !!(ast.errors && ast.errors.length > 0),
 			});
-		} catch (error) {
+		} catch (_error) {
 			// Even with errorRecovery, catastrophic failures can happen
 			// This is where lexical fallback would activate
 			results.push({
-				code: code.slice(0, 50) + "...",
+				code: `${code.slice(0, 50)}...`,
 				symbols: [],
 				hadError: true,
 			});

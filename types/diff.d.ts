@@ -1,3 +1,4 @@
+// biome-ignore lint/suspicious/noExplicitAny: Third-party type definitions for 'diff' library
 declare module "diff" {
 	export function diffChars(oldStr: string, newStr: string): any[];
 	export function diffWords(oldStr: string, newStr: string): any[];

@@ -10,9 +10,9 @@
  * - Platform-specific dependencies
  */
 
-const fs = require("fs");
-const path = require("path");
-const { execSync } = require("child_process");
+const fs = require("node:fs");
+const path = require("node:path");
+const { execSync } = require("node:child_process");
 
 const PROBLEMATIC_PATTERNS = {
 	native_modules: [
@@ -134,7 +134,7 @@ const esbuildConfig = fs.readFileSync(
 
 const externalDeps = [...findings.native, ...findings.workers];
 const missingExternal = externalDeps.filter((dep) => {
-	return !esbuildConfig.includes(dep) && !esbuildConfig.includes(dep + "-stub");
+	return !esbuildConfig.includes(dep) && !esbuildConfig.includes(`${dep}-stub`);
 });
 
 if (missingExternal.length > 0) {

@@ -67,7 +67,10 @@ export class WelcomeErrorRecovery {
 	/**
 	 * Handle authentication failure during welcome panel
 	 */
-	async handleAuthError(error: Error, userId?: string): Promise<RecoveryAction> {
+	async handleAuthError(
+		error: Error,
+		userId?: string,
+	): Promise<RecoveryAction> {
 		const errorState: ErrorState = {
 			code: WELCOME_ERROR_CODES.AUTH_FAILED,
 			message: "Failed to authenticate during welcome setup",

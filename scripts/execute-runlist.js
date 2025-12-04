@@ -6,8 +6,8 @@
  * Agent: QODER
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 console.log("Executing SnapBack Test Battery Runlist v1.1");
 console.log("Agent: QODER");

@@ -7,9 +7,9 @@
  * Failure: Finds nothing or incorrect boundaries
  */
 
-import * as fs from "fs";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { glob } from "glob";
-import * as path from "path";
 import { type SpikeResult, timer } from "../utils";
 
 interface DetectedSystem {

@@ -7,7 +7,6 @@
  * Failure: >100ms indicates need for caching layer
  */
 
-import * as path from "path";
 import { type SpikeResult, timer } from "../utils";
 
 interface SystemMapping {
@@ -100,7 +99,7 @@ function getSystemForFile(
 		return mapping.fileCache.get(filePath)!;
 	}
 
-	for (const [name, system] of mapping.systems) {
+	for (const [_name, system] of mapping.systems) {
 		if (filePath.startsWith(system.basePath)) {
 			if (useCache) mapping.fileCache.set(filePath, system.name);
 			return system.name;

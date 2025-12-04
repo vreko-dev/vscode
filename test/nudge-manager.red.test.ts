@@ -1,5 +1,5 @@
 // @ts-nocheck - RED test: NudgeManager not yet implemented
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * RED Test: NudgeManager Race Condition Prevention
@@ -64,7 +64,7 @@ describe("NudgeManager", () => {
 		});
 
 		it("should use in-memory lock to prevent concurrent execution", async () => {
-			const startTime = Date.now();
+			const _startTime = Date.now();
 			mockContext.globalState.set("snapback.lastAuthNudge", 0); // Long time ago
 
 			// Call maybeNudge without awaiting - simulate concurrent calls
@@ -170,7 +170,9 @@ describe("NudgeManager", () => {
 
 			// Mock showing nudge to throw error
 			// @ts-expect-error - nudgeManager not yet implemented
-			vi.spyOn(nudgeManager, "showNudge").mockRejectedValueOnce(new Error("Display failed"));
+			vi.spyOn(nudgeManager, "showNudge").mockRejectedValueOnce(
+				new Error("Display failed"),
+			);
 
 			// First call should throw but lock should be reset
 			// @ts-expect-error - nudgeManager not yet implemented
@@ -191,7 +193,9 @@ describe("NudgeManager", () => {
 			await nudgeManager.maybeNudge("auth_failed");
 
 			const afterTime = Date.now();
-			const storedTime = mockContext.globalState.get("snapback.lastAuthNudge") as number;
+			const storedTime = mockContext.globalState.get(
+				"snapback.lastAuthNudge",
+			) as number;
 
 			expect(storedTime).toBeGreaterThanOrEqual(beforeTime);
 			expect(storedTime).toBeLessThanOrEqual(afterTime);
@@ -199,7 +203,9 @@ describe("NudgeManager", () => {
 
 		it("should handle missing globalState gracefully", async () => {
 			// If globalState is empty (first run), should treat as never nudged
-			expect(mockContext.globalState.get("snapback.lastAuthNudge")).toBeUndefined();
+			expect(
+				mockContext.globalState.get("snapback.lastAuthNudge"),
+			).toBeUndefined();
 
 			// Should proceed normally
 			// @ts-expect-error - nudgeManager not yet implemented

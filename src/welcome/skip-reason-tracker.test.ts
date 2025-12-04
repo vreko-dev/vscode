@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
 
 /**
@@ -24,7 +24,7 @@ describe("SkipReasonTracker", () => {
 
 	beforeEach(() => {
 		mockGlobalState = {
-			get: vi.fn((key: string, defaultValue?: any) => defaultValue),
+			get: vi.fn((_key: string, defaultValue?: any) => defaultValue),
 			update: vi.fn(async () => {}),
 			keys: () => [],
 		};

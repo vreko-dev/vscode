@@ -5,12 +5,12 @@ const pkg = require("../package.json");
 // Get all defined commands
 const definedCommands = new Set(pkg.contributes.commands.map((c) => c.command));
 
-console.log("📋 Defined commands (" + definedCommands.size + "):");
+console.log(`📋 Defined commands (${definedCommands.size}):`);
 [...definedCommands].sort().forEach((cmd) => console.log("  ✓", cmd));
 
 // Extract all commands used in menus
 const usedInMenus = new Set();
-for (const [menuName, items] of Object.entries(pkg.contributes.menus || {})) {
+for (const [_menuName, items] of Object.entries(pkg.contributes.menus || {})) {
 	for (const item of items) {
 		if (item.command) usedInMenus.add(item.command);
 		if (item.submenu) {
@@ -23,12 +23,12 @@ for (const [menuName, items] of Object.entries(pkg.contributes.menus || {})) {
 	}
 }
 
-console.log("\n🔍 Commands used in menus (" + usedInMenus.size + "):");
+console.log(`\n🔍 Commands used in menus (${usedInMenus.size}):`);
 [...usedInMenus].sort().forEach((cmd) => console.log("  ➜", cmd));
 
 // Find missing commands
 const missing = [...usedInMenus].filter((cmd) => !definedCommands.has(cmd));
-console.log("\n❌ Missing command definitions (" + missing.length + "):");
+console.log(`\n❌ Missing command definitions (${missing.length}):`);
 if (missing.length === 0) {
 	console.log("  ✅ All menu commands are properly defined!");
 } else {
@@ -38,5 +38,5 @@ if (missing.length === 0) {
 
 // Find unused commands
 const unused = [...definedCommands].filter((cmd) => !usedInMenus.has(cmd));
-console.log("\n⚪ Defined but not in menus (" + unused.length + "):");
+console.log(`\n⚪ Defined but not in menus (${unused.length}):`);
 unused.forEach((cmd) => console.log("  ℹ️ ", cmd));

@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // Read the package.json file
 const packagePath = path.join(__dirname, "..", "package.json");
@@ -15,6 +15,6 @@ packageJson.scripts = {
 };
 
 // Write the updated package.json file
-fs.writeFileSync(packagePath, JSON.stringify(packageJson, null, 2) + "\n");
+fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
 console.log("Test scripts added to package.json");

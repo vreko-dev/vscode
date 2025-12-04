@@ -10,7 +10,7 @@
  * @package apps/vscode/src/auth
  */
 
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type * as vscode from "vscode";
 
 /**
@@ -64,7 +64,7 @@ export class AnonymousIdManager {
 	 */
 	async get(): Promise<string | null> {
 		const id = this.globalState.get<string>(this.STORAGE_KEY);
-		return (id && this.isValidUUID(id)) ? id : null;
+		return id && this.isValidUUID(id) ? id : null;
 	}
 
 	/**
@@ -85,7 +85,8 @@ export class AnonymousIdManager {
 	 * @internal
 	 */
 	private isValidUUID(value: string): boolean {
-		const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+		const uuidRegex =
+			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 		return uuidRegex.test(value);
 	}
 }

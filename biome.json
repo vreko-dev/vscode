@@ -12,13 +12,22 @@
 		}
 	},
 	"files": {
+		"ignoreUnknown": true,
 		"includes": [
 			"**",
 			"!**/node_modules",
 			"!**/dist",
 			"!**/out",
 			"!**/*.vsix",
-			"!**/*.tsbuildinfo"
+			"!**/*.tsbuildinfo",
+			"!types/diff.d.ts",
+			"!demo-e2e-test.js",
+			"!run-e2e-demo.js",
+			"!scripts",
+			"!spike",
+			"!**/*.test.ts",
+			"!**/*.test.tsx",
+			"!test"
 		]
 	}
 }

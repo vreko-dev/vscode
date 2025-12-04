@@ -5,8 +5,8 @@
  * This script helps resolve ABI mismatch issues between Node.js and Electron
  */
 
-const { execSync } = require("child_process");
-const path = require("path");
+const { execSync } = require("node:child_process");
+const _path = require("node:path");
 
 console.log("🔧 Rebuilding better-sqlite3 for Electron...");
 
@@ -15,7 +15,7 @@ try {
 	console.log("🔍 Checking for electron-rebuild...");
 	execSync("npx electron-rebuild --version", { stdio: "ignore" });
 	console.log("✅ electron-rebuild found");
-} catch (error) {
+} catch (_error) {
 	console.log("⚠️ electron-rebuild not found, installing...");
 	try {
 		execSync("npm install --no-save electron-rebuild", { stdio: "inherit" });

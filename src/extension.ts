@@ -17,10 +17,10 @@ import { initializePhase3Managers } from "./activation/phase3-managers.js";
 import { initializePhase4Providers } from "./activation/phase4-providers.js";
 import { initializePhase5Registration } from "./activation/phase5-registration.js";
 import { createAuthedApiClient } from "./api/authedApiClient.js";
+import { AnonymousIdManager } from "./auth/AnonymousIdManager.js";
+import { AuthState } from "./auth/AuthState.js";
 import { createCredentialsManager } from "./auth/credentials.js";
 import { SnapBackOAuthProvider } from "./auth/OAuthProvider.js"; // 🆕 Import OAuth provider
-import { AuthState } from "./auth/AuthState.js";
-import { AnonymousIdManager } from "./auth/AnonymousIdManager.js";
 import { registerAllCommands } from "./commands/index.js";
 import { initializeProtectionNotifications } from "./commands/protectionCommands.js";
 import { ContextManager } from "./contextManager.js";

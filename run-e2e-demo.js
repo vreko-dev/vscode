@@ -4,7 +4,7 @@
  */
 
 const { runTests } = require("@vscode/test-electron");
-const path = require("path");
+const path = require("node:path");
 
 async function runE2ETest() {
 	try {

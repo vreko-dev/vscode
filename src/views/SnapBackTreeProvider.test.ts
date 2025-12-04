@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
+import type { IStorageManager, SnapshotManifest } from "../storage/types.js";
 import { SnapBackTreeProvider } from "./SnapBackTreeProvider.js";
-import type { SnapshotManifest, IStorageManager } from "../storage/types.js";
 
 // Mock vscode module
 vi.mock("vscode", () => ({
@@ -38,7 +38,7 @@ vi.mock("vscode", () => ({
 		dispose = vi.fn();
 	},
 	window: {
-		createTreeView: vi.fn((viewId, options) => ({
+		createTreeView: vi.fn((_viewId, _options) => ({
 			dispose: vi.fn(),
 			visible: true,
 		})),
@@ -132,7 +132,7 @@ describe("SnapBackTreeProvider", () => {
 		// Create provider instance
 		provider = new SnapBackTreeProvider(
 			mockStorageManager as unknown as IStorageManager,
-			mockConfigManager
+			mockConfigManager,
 		);
 	});
 
@@ -153,7 +153,7 @@ describe("SnapBackTreeProvider", () => {
 
 	describe("refresh", () => {
 		it("should fire onDidChangeTreeData event", () => {
-			const fireSpy = vi.spyOn(provider["_onDidChangeTreeData"], "fire");
+			const fireSpy = vi.spyOn(provider._onDidChangeTreeData, "fire");
 
 			provider.refresh();
 
@@ -185,7 +185,7 @@ describe("SnapBackTreeProvider", () => {
 			const children = await provider.getChildren();
 
 			const protectionSection = children.find(
-				(item) => item.label === "🛡️ 10 files protected"
+				(item) => item.label === "🛡️ 10 files protected",
 			);
 
 			expect(protectionSection).toBeDefined();
@@ -195,7 +195,8 @@ describe("SnapBackTreeProvider", () => {
 			const children = await provider.getChildren();
 
 			const snapshotsSection = children.find(
-				(item) => typeof item.label === "string" && item.label.includes("Snapshots")
+				(item) =>
+					typeof item.label === "string" && item.label.includes("Snapshots"),
 			);
 
 			expect(snapshotsSection).toBeDefined();
@@ -204,9 +205,7 @@ describe("SnapBackTreeProvider", () => {
 		it("should include actions section", async () => {
 			const children = await provider.getChildren();
 
-			const actionsSection = children.find(
-				(item) => item.label === "Actions"
-			);
+			const actionsSection = children.find((item) => item.label === "Actions");
 
 			expect(actionsSection).toBeDefined();
 		});
@@ -215,7 +214,7 @@ describe("SnapBackTreeProvider", () => {
 			const children = await provider.getChildren();
 
 			const problemsSection = children.find(
-				(item) => item.label === "Problems"
+				(item) => item.label === "Problems",
 			);
 
 			expect(problemsSection).toBeUndefined();
@@ -227,7 +226,8 @@ describe("SnapBackTreeProvider", () => {
 			const children = await provider.getChildren();
 
 			const protectionSection = children.find(
-				(item) => typeof item.label === "string" && item.label.includes("protected")
+				(item) =>
+					typeof item.label === "string" && item.label.includes("protected"),
 			);
 
 			// Protection summary should still show at root (it's the header)
@@ -239,7 +239,8 @@ describe("SnapBackTreeProvider", () => {
 		it("should show breakdown when protection summary is expanded", async () => {
 			const rootChildren = await provider.getChildren();
 			const protectionSection = rootChildren.find(
-				(item) => typeof item.label === "string" && item.label.includes("protected")
+				(item) =>
+					typeof item.label === "string" && item.label.includes("protected"),
 			);
 
 			expect(protectionSection).toBeDefined();
@@ -260,7 +261,7 @@ describe("SnapBackTreeProvider", () => {
 			});
 
 			expect(blockItem).toBeDefined();
-			expect(blockItem!.label).toContain("5 files");
+			expect(blockItem?.label).toContain("5 files");
 		});
 
 		it("should show correct warn count", async () => {
@@ -274,7 +275,7 @@ describe("SnapBackTreeProvider", () => {
 			});
 
 			expect(warnItem).toBeDefined();
-			expect(warnItem!.label).toContain("3 files");
+			expect(warnItem?.label).toContain("3 files");
 		});
 
 		it("should show correct watch count", async () => {
@@ -288,7 +289,7 @@ describe("SnapBackTreeProvider", () => {
 			});
 
 			expect(watchItem).toBeDefined();
-			expect(watchItem!.label).toContain("2 files");
+			expect(watchItem?.label).toContain("2 files");
 		});
 	});
 
@@ -296,7 +297,8 @@ describe("SnapBackTreeProvider", () => {
 		it("should group snapshots by time periods", async () => {
 			const rootChildren = await provider.getChildren();
 			const snapshotsSection = rootChildren.find(
-				(item) => typeof item.label === "string" && item.label.includes("Snapshots")
+				(item) =>
+					typeof item.label === "string" && item.label.includes("Snapshots"),
 			);
 
 			expect(snapshotsSection).toBeDefined();
@@ -352,7 +354,7 @@ describe("SnapBackTreeProvider", () => {
 		it("should show action items", async () => {
 			const rootChildren = await provider.getChildren();
 			const actionsSection = rootChildren.find(
-				(item) => item.label === "Actions"
+				(item) => item.label === "Actions",
 			);
 
 			expect(actionsSection).toBeDefined();
@@ -365,7 +367,7 @@ describe("SnapBackTreeProvider", () => {
 		it("should include 'Create Snapshot' action", async () => {
 			const rootChildren = await provider.getChildren();
 			const actionsSection = rootChildren.find(
-				(item) => item.label === "Actions"
+				(item) => item.label === "Actions",
 			);
 
 			const actions = await provider.getChildren(actionsSection!);
@@ -380,7 +382,7 @@ describe("SnapBackTreeProvider", () => {
 		it("should include 'View All Snapshots' action", async () => {
 			const rootChildren = await provider.getChildren();
 			const actionsSection = rootChildren.find(
-				(item) => item.label === "Actions"
+				(item) => item.label === "Actions",
 			);
 
 			const actions = await provider.getChildren(actionsSection!);
@@ -415,7 +417,7 @@ describe("SnapBackTreeProvider", () => {
 		});
 
 		it("should fire refresh after changing grouping mode", () => {
-			const fireSpy = vi.spyOn(provider["_onDidChangeTreeData"], "fire");
+			const fireSpy = vi.spyOn(provider._onDidChangeTreeData, "fire");
 
 			provider.setGroupingMode("time");
 
@@ -435,7 +437,7 @@ describe("SnapBackTreeProvider", () => {
 			const result = SnapBackTreeProvider.register(
 				mockContext,
 				mockStorageManager,
-				mockConfigManager
+				mockConfigManager,
 			);
 
 			expect(result.provider).toBeInstanceOf(SnapBackTreeProvider);
@@ -450,7 +452,7 @@ describe("SnapBackTreeProvider", () => {
 			SnapBackTreeProvider.register(
 				mockContext,
 				mockStorageManager as unknown as IStorageManager,
-				mockConfigManager
+				mockConfigManager,
 			);
 
 			expect(vscode.window.createTreeView).toHaveBeenCalledWith(
@@ -458,7 +460,7 @@ describe("SnapBackTreeProvider", () => {
 				expect.objectContaining({
 					treeDataProvider: expect.any(SnapBackTreeProvider),
 					showCollapseAll: true,
-				})
+				}),
 			);
 		});
 
@@ -470,7 +472,7 @@ describe("SnapBackTreeProvider", () => {
 			SnapBackTreeProvider.register(
 				mockContext,
 				mockStorageManager as unknown as IStorageManager,
-				mockConfigManager
+				mockConfigManager,
 			);
 
 			expect(mockContext.subscriptions.length).toBeGreaterThan(0);
@@ -485,12 +487,12 @@ describe("SnapBackTreeProvider", () => {
 				mockContext,
 				mockStorageManager as unknown as IStorageManager,
 				mockConfigManager,
-				"custom.view.id"
+				"custom.view.id",
 			);
 
 			expect(vscode.window.createTreeView).toHaveBeenCalledWith(
 				"custom.view.id",
-				expect.anything()
+				expect.anything(),
 			);
 		});
 	});
@@ -516,13 +518,14 @@ describe("SnapBackTreeProvider", () => {
 			// Need to create new provider to reset cache
 			const emptyProvider = new SnapBackTreeProvider(
 				mockStorageManager as unknown as IStorageManager,
-				mockConfigManager
+				mockConfigManager,
 			);
 
 			const rootChildren = await emptyProvider.getChildren();
 
 			const snapshotsSection = rootChildren.find(
-				(item) => typeof item.label === "string" && item.label.includes("Snapshots")
+				(item) =>
+					typeof item.label === "string" && item.label.includes("Snapshots"),
 			);
 
 			// Following "no news is good news" - hide empty snapshots section
@@ -539,11 +542,12 @@ describe("SnapBackTreeProvider", () => {
 			const rootChildren = await provider.getChildren();
 
 			const protectionSection = rootChildren.find(
-				(item) => typeof item.label === "string" && item.label.includes("protected")
+				(item) =>
+					typeof item.label === "string" && item.label.includes("protected"),
 			);
 
 			expect(protectionSection).toBeDefined();
-			expect(protectionSection!.label).toContain("0 files");
+			expect(protectionSection?.label).toContain("0 files");
 		});
 	});
 
@@ -556,7 +560,7 @@ describe("SnapBackTreeProvider", () => {
 			// Create new provider to avoid cached data
 			const errorProvider = new SnapBackTreeProvider(
 				mockStorageManager as unknown as IStorageManager,
-				mockConfigManager
+				mockConfigManager,
 			);
 
 			const rootChildren = await errorProvider.getChildren();
@@ -573,7 +577,7 @@ describe("SnapBackTreeProvider", () => {
 			// Create new provider
 			const errorProvider = new SnapBackTreeProvider(
 				mockStorageManager as unknown as IStorageManager,
-				mockConfigManager
+				mockConfigManager,
 			);
 
 			const rootChildren = await errorProvider.getChildren();

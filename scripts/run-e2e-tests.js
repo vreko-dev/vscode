@@ -3,7 +3,7 @@
  * This provides 95% confidence by testing the actual extension in a real VS Code environment
  */
 
-const path = require("path");
+const path = require("node:path");
 const { runTests } = require("@vscode/test-electron");
 
 async function main() {

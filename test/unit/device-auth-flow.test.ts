@@ -869,7 +869,9 @@ describe("RFC 8628 Error Path Handling", () => {
 				},
 			});
 
-			await expect(deviceAuthFlow.authenticate()).rejects.toThrow(/timeout|expire/i);
+			await expect(deviceAuthFlow.authenticate()).rejects.toThrow(
+				/timeout|expire/i,
+			);
 		}, 5000);
 
 		it("should handle 401 Unauthorized on token poll", async () => {

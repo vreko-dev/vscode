@@ -11,8 +11,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DeviceAuthFlow } from "./DeviceAuthFlow";
 import type { ExtensionContext } from "vscode";
+import { DeviceAuthFlow } from "./DeviceAuthFlow";
 
 // Mock the TelemetryProxy
 vi.mock("../services/telemetry-proxy");

@@ -1,8 +1,8 @@
 import { logger } from "@snapback/infrastructure";
-import * as vscode from "vscode";
 import type { ExtensionContext } from "vscode";
-import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker.js";
+import * as vscode from "vscode";
 import { TelemetryProxy } from "../services/telemetry-proxy.js";
+import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker.js";
 
 /**
  * Device Authorization Flow (RFC 8628)
@@ -85,7 +85,8 @@ export class DeviceAuthFlow {
 				);
 			}
 
-			const { device_code, expires_in, interval, verification_uri, user_code } = deviceCodeResponse;
+			const { device_code, expires_in, interval, verification_uri, user_code } =
+				deviceCodeResponse;
 
 			// Step 2: Set up polling
 			this.currentInterval = interval * 1000; // Convert to milliseconds
@@ -373,10 +374,7 @@ export class DeviceAuthFlow {
 			try {
 				await vscode.env.openExternal(vscode.Uri.parse(verificationUri));
 				// Track successful browser opening
-				this.diagnosticTracker.trackAuthBrowserOpened(
-					true,
-					"external_command",
-				);
+				this.diagnosticTracker.trackAuthBrowserOpened(true, "external_command");
 				logger.info("Browser opened for device auth");
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : String(error);

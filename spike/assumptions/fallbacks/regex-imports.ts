@@ -3,9 +3,9 @@
  * Used when madge times out or fails
  */
 
-import * as fs from "fs";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { glob } from "glob";
-import * as path from "path";
 
 export async function getBasicImportGraph(
 	workspace: string,
@@ -76,7 +76,7 @@ function extractImports(
 function resolveImport(
 	importPath: string,
 	fromFile: string,
-	workspace: string,
+	_workspace: string,
 ): string | null {
 	const dir = path.dirname(fromFile);
 

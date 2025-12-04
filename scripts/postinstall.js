@@ -6,8 +6,8 @@
  */
 
 const { execSync } = require("node:child_process");
-const fs = require("fs");
-const p = require("path");
+const fs = require("node:fs");
+const p = require("node:path");
 const hook = `#!/bin/sh
 pnpm --silent snapback:check --staged
 if [ $? -ne 0 ]; then echo "❌ SnapBack blocked commit"; exit 1; fi

@@ -10,7 +10,7 @@
  * - Motion and animation (respects prefers-reduced-motion)
  */
 
-import { describe, expect, it, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 interface A11yElement {
 	element?: string;
@@ -29,12 +29,12 @@ interface FocusEvent {
 }
 
 describe("Welcome Panel - Accessibility (A11y)", () => {
-	let focusLog: FocusEvent[] = [];
-	let currentFocusedElement: string = "";
+	let _focusLog: FocusEvent[] = [];
+	let _currentFocusedElement: string = "";
 
 	beforeEach(() => {
-		focusLog = [];
-		currentFocusedElement = "";
+		_focusLog = [];
+		_currentFocusedElement = "";
 	});
 
 	describe("Keyboard Navigation", () => {
@@ -202,7 +202,7 @@ describe("Welcome Panel - Accessibility (A11y)", () => {
 				style: "solid",
 			};
 
-			expect(parseInt(focusRing.width)).toBeGreaterThanOrEqual(2);
+			expect(parseInt(focusRing.width, 10)).toBeGreaterThanOrEqual(2);
 		});
 
 		it("should not use focus:outline-none without visible alternative", async () => {
@@ -216,7 +216,7 @@ describe("Welcome Panel - Accessibility (A11y)", () => {
 		});
 
 		it("should restore focus to trigger element after panel closes", async () => {
-			const triggerElement = "welcome-open-button";
+			const _triggerElement = "welcome-open-button";
 			const restoreFocus = true;
 
 			expect(restoreFocus).toBe(true);
@@ -269,11 +269,13 @@ describe("Welcome Panel - Accessibility (A11y)", () => {
 		it("should support text scaling up to 200%", async () => {
 			const baseSize = "14px";
 			const scaledSize = "28px"; // 200%
-			expect(parseInt(scaledSize)).toBeLessThanOrEqual(parseInt(baseSize) * 2);
+			expect(parseInt(scaledSize, 10)).toBeLessThanOrEqual(
+				parseInt(baseSize, 10) * 2,
+			);
 		});
 
 		it("should not have horizontal scroll at narrow viewports", async () => {
-			const viewportWidth = 320; // Mobile width
+			const _viewportWidth = 320; // Mobile width
 			const requiresHorizontalScroll = false;
 			expect(requiresHorizontalScroll).toBe(false);
 		});
@@ -349,7 +351,7 @@ describe("Welcome Panel - Accessibility (A11y)", () => {
 		});
 
 		it("should not assume text directionality for layout", async () => {
-			const flexLayout = "flex";
+			const _flexLayout = "flex";
 			const usesRowColumn = true; // Uses logical properties
 			expect(usesRowColumn).toBe(true);
 		});
@@ -364,7 +366,7 @@ describe("Welcome Panel - Accessibility (A11y)", () => {
 
 		it("should pass WAVE accessibility evaluation", async () => {
 			const errors: unknown[] = [];
-			const alerts: unknown[] = [];
+			const _alerts: unknown[] = [];
 			expect(errors).toHaveLength(0);
 		});
 

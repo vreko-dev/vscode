@@ -74,7 +74,7 @@ async function main() {
 		reserveProps: undefined, // Don't reserve any properties
 
 		// Source maps (dev only)
-		sourcemap: production ? false : true, // No sourcemaps in production to reduce bundle size
+		sourcemap: !production, // No sourcemaps in production to reduce bundle size
 
 		// Drop console/debugger in production - DISABLED to preserve important logs
 		drop: [], // Don't drop console/debugger statements
