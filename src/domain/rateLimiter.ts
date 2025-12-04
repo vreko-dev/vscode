@@ -163,6 +163,9 @@ export class SnapshotRateLimiter {
  * @param windowSizeMs - Window size in milliseconds (default: 60000)
  * @returns New SnapshotRateLimiter instance
  */
-export function createRateLimiter(maxSnapshots: number = 4, windowSizeMs: number = 60000): SnapshotRateLimiter {
+export function createRateLimiter(
+	maxSnapshots: number = 4,
+	windowSizeMs: number = 60000,
+): SnapshotRateLimiter {
 	return new SnapshotRateLimiter({ maxSnapshots, windowSizeMs });
 }

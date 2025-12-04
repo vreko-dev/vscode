@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import type { SnapshotManager } from "../snapshot/SnapshotManager.js";
 import type { FileState } from "../snapshot/SnapshotDeduplicator.js";
+import type { SnapshotManager } from "../snapshot/SnapshotManager.js";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -86,7 +86,9 @@ export class SnapshotContentProvider
 			}
 
 			// Find file in snapshot
-			const fileState = snapshot.fileStates?.find((f: FileState) => f.path === filePath);
+			const fileState = snapshot.fileStates?.find(
+				(f: FileState) => f.path === filePath,
+			);
 
 			if (!fileState) {
 				logger.warn("File not found in snapshot", { snapshotId, filePath });
@@ -101,7 +103,7 @@ export class SnapshotContentProvider
 			logger.error(
 				"Failed to provide snapshot content",
 				error instanceof Error ? error : undefined,
-				{ uri: uri ? uri.toString() : 'unknown' },
+				{ uri: uri ? uri.toString() : "unknown" },
 			);
 			return ""; // Graceful degradation - never throw
 		}

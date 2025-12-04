@@ -40,7 +40,6 @@ export interface DetectionEngineResult {
 export class SaveContextBuilder {
 	private repoId: string;
 	private events: FileChangeEvent[] = [];
-	private startTime: number;
 
 	constructor(repoId: string) {
 		this.repoId = repoId;

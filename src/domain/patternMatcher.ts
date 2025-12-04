@@ -53,7 +53,7 @@ export function createPatternMatcher(pattern: string): PatternMatcher {
 					// .env* should match .env, .env.local, .env.production
 					// but NOT .environment (doesn't have dot after prefix) or .env.ts (not at root)
 					const matches =
-						fileName === prefix || fileName.startsWith(prefix + ".");
+						fileName === prefix || fileName.startsWith(`${prefix}.`);
 					return isNegation ? !matches : matches;
 				},
 			};

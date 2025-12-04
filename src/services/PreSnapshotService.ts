@@ -186,10 +186,13 @@ export class PreSnapshotService implements vscode.Disposable {
 			// If manual edit detected, clear tracking
 			if (analysis.likelyManual) {
 				this.quickDiffProvider.clearTracking(event.document.uri);
-				logger.debug("PreSnapshotService: Manual edit detected, cleared tracking", {
-					fileUri: event.document.uri.toString(),
-					changeLength: change.text.length,
-				});
+				logger.debug(
+					"PreSnapshotService: Manual edit detected, cleared tracking",
+					{
+						fileUri: event.document.uri.toString(),
+						changeLength: change.text.length,
+					},
+				);
 				break; // Only need to clear once
 			}
 		}
@@ -262,10 +265,14 @@ export class PreSnapshotService implements vscode.Disposable {
 			// Add to session coordinator
 			if (this.sessionCoordinator) {
 				const stats = {
-					added: content.split('\n').length,
+					added: content.split("\n").length,
 					deleted: 0,
 				};
-				this.sessionCoordinator.addCandidate(uri.toString(), snapshot.id, stats);
+				this.sessionCoordinator.addCandidate(
+					uri.toString(),
+					snapshot.id,
+					stats,
+				);
 			}
 
 			const duration = performance.now() - startTime;
