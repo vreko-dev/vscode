@@ -150,7 +150,12 @@ export const DEFAULT_CONFIG: AutoDecisionConfig = {
 		"*.config.js",
 		"*.config.ts",
 	],
-	neverProtectPatterns: ["node_modules/**", "dist/**", "*.log", "*.lock"],
+	neverProtectPatterns: [
+		"node_modules/**",
+		"dist/**",
+		"*.log",
+		"*.lock",
+	],
 };
 
 // ============================================

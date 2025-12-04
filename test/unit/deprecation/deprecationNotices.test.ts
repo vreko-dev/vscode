@@ -6,7 +6,7 @@ import { describe, it, expect } from "vitest";
  * Tracks migration from old patterns to new AutoDecisionEngine architecture
  * - Old: Manual snapshot triggers
  * - New: Automatic decision-based snapshots
- * 
+ *
  * Old: Direct extension state management
  * - New: Centralized domain state
  */

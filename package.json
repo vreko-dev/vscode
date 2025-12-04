@@ -880,6 +880,59 @@
           "default": "info",
           "description": "Logging level for SnapBack extension",
           "order": 74
+        },
+        "comment25": "═══════════════════════════════════════════════════════════════════════════",
+        "comment26": "AutoDecisionEngine - Intelligent snapshot decision making",
+        "comment27": "═══════════════════════════════════════════════════════════════════════════",
+        "snapback.autoDecision.riskThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 60,
+          "scope": "resource",
+          "markdownDescription": "**Risk Score Threshold for Automatic Snapshots** (0-100)\n\nSnapBack creates automatic snapshots when detected risk score exceeds this threshold.\n\n- **Lower values** (30-50): More aggressive, snapshots triggered more often\n- **Moderate** (60-70): Balanced approach, catches most threats\n- **Higher values** (80+): Only snapshot for critical changes\n\n📊 *Must be ≥ notifyThreshold to avoid conflicting thresholds*\n\n[Learn more about risk scoring](https://docs.snapback.dev/risk-scoring)",
+          "order": 80
+        },
+        "snapback.autoDecision.notifyThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 40,
+          "scope": "resource",
+          "markdownDescription": "**Risk Score Threshold for User Notifications** (0-100)\n\nSnapBack notifies you when detected risk score exceeds this threshold (without creating snapshots).\n\n- **Lower values** (20-40): More notifications, higher awareness\n- **Moderate** (50-60): Balanced, notifies on significant risk\n- **Higher values** (70+): Only critical changes trigger notifications\n\n📊 *Should be ≤ riskThreshold for proper layered protection*\n\n[Learn more about notifications](https://docs.snapback.dev/notifications)",
+          "order": 81
+        },
+        "snapback.autoDecision.minFilesForBurst": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 3,
+          "scope": "window",
+          "markdownDescription": "**Minimum Files for Burst Detection** (1-50)\n\nTriggers elevated protection when more than this many files change simultaneously within the debounce window.\n\n- **Low** (1-2): Any multi-file change triggers burst mode\n- **Moderate** (3-5): Multiple file patterns detected as burst\n- **High** (6+): Only mass changes trigger burst protection\n\n💡 *Common mass-change scenarios: package.json, lock files, auto-formatted code*\n\n[Burst protection explained](https://docs.snapback.dev/burst-detection)",
+          "order": 82
+        },
+        "snapback.autoDecision.maxSnapshotsPerMinute": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 4,
+          "scope": "window",
+          "markdownDescription": "**Rate Limit: Maximum Snapshots Per Minute**\n\nPrevents snapshot spam during rapid save sequences.\n\n- **Low** (1-2): Strict rate limiting, minimum overhead\n- **Moderate** (4-6): Typical snapshot rate, catches most changes\n- **High** (10+): Very permissive, higher storage usage\n\n⚡ *Rate limiting protects storage and performance during intensive editing sessions*\n\n[Storage management guide](https://docs.snapback.dev/storage-limits)",
+          "order": 83
+        },
+        "snapback.snapshot.aiDetectionEnabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "**Enable AI Code Detection**\n\nEnables SnapBack Guardian to detect AI-generated code patterns (GPT, Claude, etc.).\n\n✅ **Enabled** - Identifies AI-generated changes, applies protection accordingly\n❌ **Disabled** - Treats all code changes equally, no AI detection\n\n⚠️ *AI detection helps catch potential issues in AI-assisted code. Disabling removes this safety layer.*\n\n[AI detection threat model](https://docs.snapback.dev/ai-detection)",
+          "order": 84
+        },
+        "snapback.snapshot.autoRestoreOnDetection": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "markdownDescription": "**Auto-Restore on Critical Detection** (Experimental)\n\nAutomatically restore snapshots when critical threats are detected.\n\n⚠️ **Use with caution** - May interrupt your workflow if overly sensitive\n",
+          "order": 85
         }
       }
     },

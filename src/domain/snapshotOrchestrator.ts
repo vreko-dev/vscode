@@ -13,6 +13,7 @@
 
 import type { ProtectionDecision, SnapshotIntent } from "./types";
 import type { FileInfo } from "./signalAggregator";
+import type { IKeyValueStorage } from "@snapback/sdk";
 
 export interface SnapshotMetadata {
 	riskScore: number;
@@ -49,6 +50,7 @@ export class SnapshotOrchestrator {
 	private snapshots: Map<string, PersistedSnapshot> = new Map();
 	private snapshotCounter = 0;
 	private totalStorageUsed = 0;
+	private storage: IKeyValueStorage | null;
 
 	private config: SnapshotConfig = {
 		maxSnapshots: 100,
@@ -56,10 +58,55 @@ export class SnapshotOrchestrator {
 		snapshotRetentionDays: 7,
 	};
 
-	constructor(repoId: string, config?: Partial<SnapshotConfig>) {
+	constructor(
+		repoId: string,
+		config?: Partial<SnapshotConfig>,
+		storage?: IKeyValueStorage,
+	) {
 		this.repoId = repoId;
+		this.storage = storage ?? null;
 		if (config) {
 			this.config = { ...this.config, ...config };
+		}
+		// Load persisted snapshots if storage available (fire and forget)
+		if (this.storage) {
+			// Non-blocking async load
+			Promise.resolve(this.loadFromStorage()).catch((error) =>
+				console.error("Failed to load snapshots:", error),
+			);
+		}
+	}
+
+	/**
+	 * Load snapshots from persistent storage
+	 */
+	private async loadFromStorage(): Promise<void> {
+		if (!this.storage) return;
+		try {
+			const stored = await this.storage.get<PersistedSnapshot[]>(
+				"snapback.snapshots",
+			);
+			if (stored && Array.isArray(stored)) {
+				for (const snapshot of stored) {
+					this.snapshots.set(snapshot.id, snapshot);
+					this.totalStorageUsed += snapshot.totalSize;
+				}
+			}
+		} catch (error) {
+			console.error("Failed to load snapshots from storage", error);
+		}
+	}
+
+	/**
+	 * Persist snapshots to storage
+	 */
+	private async persistSnapshots(): Promise<void> {
+		if (!this.storage) return;
+		try {
+			const snapshots = Array.from(this.snapshots.values());
+			await this.storage.set("snapback.snapshots", snapshots);
+		} catch (error) {
+			console.error("Failed to persist snapshots", error);
 		}
 	}
 
@@ -125,6 +172,9 @@ export class SnapshotOrchestrator {
 		this.snapshots.set(id, persisted);
 		this.totalStorageUsed += totalSize;
 
+		// Persist to storage
+		await this.persistSnapshots();
+
 		return persisted;
 	}
 
@@ -156,22 +206,28 @@ export class SnapshotOrchestrator {
 
 		// Remove oldest until we have space
 		for (const snapshot of sorted) {
-			if (this.snapshots.size < this.config.maxSnapshots) {
+			// Check both count and storage limits
+			if (
+				this.snapshots.size < this.config.maxSnapshots &&
+				this.totalStorageUsed <= this.config.maxStorageBytes
+			) {
 				break;
 			}
 
-			this.deleteSnapshot(snapshot.id);
+			await this.deleteSnapshot(snapshot.id);
 		}
 	}
 
 	/**
 	 * Delete snapshot
 	 */
-	private deleteSnapshot(id: string): void {
+	private async deleteSnapshot(id: string): Promise<void> {
 		const snapshot = this.snapshots.get(id);
 		if (snapshot) {
 			this.totalStorageUsed -= snapshot.totalSize;
 			this.snapshots.delete(id);
+			// Persist after deletion
+			await this.persistSnapshots();
 		}
 	}
 
@@ -236,7 +292,12 @@ export class SnapshotOrchestrator {
 		});
 
 		for (const id of toDelete) {
-			this.deleteSnapshot(id);
+			await this.deleteSnapshot(id);
+		}
+
+		// Persist after cleanup
+		if (toDelete.length > 0) {
+			await this.persistSnapshots();
 		}
 	}
 

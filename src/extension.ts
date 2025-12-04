@@ -47,6 +47,7 @@ import { logger } from "./utils/logger.js";
 import { findProjectRoot } from "./utils/projectRoot.js";
 import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver.js"; // 🆕 Import WorkspaceFolderResolver
 import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry.js";
+import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration.js"; // 🆕 Import AutoDecisionIntegration
 
 // Import the new EventBus and feature flag
 
@@ -62,6 +63,8 @@ let workspaceManager: WorkspaceManager | null = null;
 let authState: AuthState | null = null;
 // 🆕 Global reference to anonymous ID manager
 let anonymousIdManager: AnonymousIdManager | null = null;
+// 🆕 Global reference to AutoDecisionIntegration
+let autoDecisionIntegration: AutoDecisionIntegration | null = null;
 
 export async function activate(context: vscode.ExtensionContext) {
 	const startTime = Date.now();
@@ -310,7 +313,25 @@ export async function activate(context: vscode.ExtensionContext) {
 		);
 		phaseTimings["Phase 5 (Registration)"] = Date.now() - phase5Start;
 
-		// Set offline mode status in the status bar controller
+		// 🆕 Phase 14: Initialize AutoDecisionIntegration (session-level AI protection)
+		const phase14Start = Date.now();
+		autoDecisionIntegration = new AutoDecisionIntegration(
+			phase3Result.snapshotManager,
+			phase3Result.notificationManager,
+			{
+				riskThreshold: config.get<number>("snapback.autoDecision.riskThreshold", 60),
+				notifyThreshold: config.get<number>("snapback.autoDecision.notifyThreshold", 40),
+				minFilesForBurst: config.get<number>("snapback.autoDecision.minFilesForBurst", 3),
+				maxSnapshotsPerMinute: config.get<number>("snapback.autoDecision.maxSnapshotsPerMinute", 4),
+			},
+			context, // Pass context for globalState storage persistence
+		);
+		autoDecisionIntegration.activate();
+		context.subscriptions.push({
+			dispose: () => autoDecisionIntegration?.deactivate(),
+		});
+		phaseTimings["Phase 14 (AutoDecision)"] = Date.now() - phase14Start;
+		logger.info("AutoDecisionIntegration activated");
 		if (offlineModeEnabled) {
 			phase4Result.statusBarController.setOfflineMode(true);
 		}
@@ -785,6 +806,13 @@ export async function deactivate() {
 		if (anonymousIdManager) {
 			anonymousIdManager = null;
 			logger.info("Anonymous ID manager cleared");
+		}
+
+		// 🆕 Deactivate AutoDecisionIntegration
+		if (autoDecisionIntegration) {
+			autoDecisionIntegration.deactivate();
+			autoDecisionIntegration = null;
+			logger.info("AutoDecisionIntegration deactivated");
 		}
 
 		logger.info("Extension deactivated successfully");
