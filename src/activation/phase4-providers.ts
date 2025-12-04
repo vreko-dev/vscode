@@ -1,6 +1,7 @@
 import type * as vscode from "vscode";
 import type { AuthedApiClient } from "../api/authedApiClient.js";
 import type { CredentialsManager } from "../auth/credentials.js";
+import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker.js";
 import { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider.js";
 import { SnapshotDecorations } from "../decorations/snapshotDecorations.js";
 import { DetectionCodeActionProvider } from "../providers/DetectionCodeActionProvider.js";
@@ -18,6 +19,7 @@ import { SessionsTreeProvider } from "../views/SessionsTreeProvider.js";
 import { SnapBackTreeProvider } from "../views/SnapBackTreeProvider.js";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider.js";
 import { WelcomeView } from "../welcomeView.js";
+import { TelemetryProxy } from "../services/telemetry-proxy.js";
 import type { Phase3Result } from "./phase3-managers.js";
 import { PhaseLogger } from "./phaseLogger.js";
 
@@ -46,6 +48,7 @@ export async function initializePhase4Providers(
 	workspaceRoot: string,
 	apiClient?: AuthedApiClient,
 	credentialsManager?: CredentialsManager,
+	telemetryProxy?: any,
 ): Promise<Phase4Result> {
 	const phase4Start = Date.now();
 	console.log("[PERF] Phase 4 starting...");
@@ -90,10 +93,19 @@ export async function initializePhase4Providers(
 			ms: Date.now() - t,
 		});
 
-		// Initialize welcome view
+		// Initialize welcome view with diagnostic tracking
 		t = Date.now();
-		const welcomeView = new WelcomeView(context.extensionUri);
-		console.log("[PERF] WelcomeView", { ms: Date.now() - t });
+		const diagnosticTracker = telemetryProxy
+			? new DiagnosticEventTracker(telemetryProxy)
+			: new DiagnosticEventTracker({ trackEvent: () => {} } as any);
+		const welcomeView = new WelcomeView(
+			context.extensionUri,
+			context.globalState,
+			diagnosticTracker,
+		);
+		console.log("[PERF] WelcomeView with DiagnosticEventTracker", {
+			ms: Date.now() - t,
+		});
 
 		// Initialize snapshot navigator provider
 		t = Date.now();

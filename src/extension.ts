@@ -19,6 +19,8 @@ import { initializePhase5Registration } from "./activation/phase5-registration.j
 import { createAuthedApiClient } from "./api/authedApiClient.js";
 import { createCredentialsManager } from "./auth/credentials.js";
 import { SnapBackOAuthProvider } from "./auth/OAuthProvider.js"; // 🆕 Import OAuth provider
+import { AuthState } from "./auth/AuthState.js";
+import { AnonymousIdManager } from "./auth/AnonymousIdManager.js";
 import { registerAllCommands } from "./commands/index.js";
 import { initializeProtectionNotifications } from "./commands/protectionCommands.js";
 import { ContextManager } from "./contextManager.js";
@@ -56,6 +58,10 @@ let eventBus: InstanceType<typeof SnapBackEventBus> | null = null;
 let featureFlagService: FeatureFlagService | null = null;
 // 🆕 Global reference to workspace manager for multi-root support
 let workspaceManager: WorkspaceManager | null = null;
+// 🆕 Global reference to auth state for user authentication checks
+let authState: AuthState | null = null;
+// 🆕 Global reference to anonymous ID manager
+let anonymousIdManager: AnonymousIdManager | null = null;
 
 export async function activate(context: vscode.ExtensionContext) {
 	const startTime = Date.now();
@@ -275,6 +281,15 @@ export async function activate(context: vscode.ExtensionContext) {
 		const phase4Start = Date.now();
 		const credentialsManager = createCredentialsManager(context.secrets);
 		const apiClient = createAuthedApiClient(context);
+
+		// 🆕 Initialize AuthState (authentication status checker)
+		authState = new AuthState(credentialsManager);
+		logger.info("AuthState initialized");
+
+		// 🆕 Initialize AnonymousIdManager (anonymous user tracking)
+		anonymousIdManager = new AnonymousIdManager(context.globalState);
+		logger.info("AnonymousIdManager initialized");
+
 		const phase4Result = await initializePhase4Providers(
 			context,
 			phase3Result,
@@ -760,6 +775,18 @@ export async function deactivate() {
 			logger.info("Workspace manager disposed");
 		}
 
+		// 🆕 Clear auth state
+		if (authState) {
+			authState = null;
+			logger.info("Auth state cleared");
+		}
+
+		// 🆕 Clear anonymous ID manager
+		if (anonymousIdManager) {
+			anonymousIdManager = null;
+			logger.info("Anonymous ID manager cleared");
+		}
+
 		logger.info("Extension deactivated successfully");
 	} catch (error) {
 		logger.error("Error during deactivation", error as Error);
@@ -774,6 +801,26 @@ export async function deactivate() {
  */
 export function getWorkspaceManager(): WorkspaceManager | null {
 	return workspaceManager;
+}
+
+/**
+ * Get the current AuthState instance
+ * Provides authentication status checking for the current user
+ *
+ * @returns AuthState instance, or null if not yet initialized
+ */
+export function getAuthState(): AuthState | null {
+	return authState;
+}
+
+/**
+ * Get the current AnonymousIdManager instance
+ * Provides anonymous ID management for unauthenticated users
+ *
+ * @returns AnonymousIdManager instance, or null if not yet initialized
+ */
+export function getAnonymousIdManager(): AnonymousIdManager | null {
+	return anonymousIdManager;
 }
 
 /**
