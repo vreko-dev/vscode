@@ -1,11 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import type {
   SaveContext,
   ProtectionDecision,
   AutoDecisionConfig,
   DecisionReason,
-} from "@/domain/types";
-import { DEFAULT_CONFIG } from "@/domain/types";
+} from "../../../src/domain/types.js";
+import { DEFAULT_CONFIG } from "../../../src/domain/types.js";
+import { AutoDecisionEngine } from "../../../src/domain/engine.js";
 
 /**
  * AutoDecisionEngine Tests
@@ -17,26 +18,25 @@ import { DEFAULT_CONFIG } from "@/domain/types";
  * - Session grouping (file context)
  * - Critical file patterns
  *
- * These are table-driven tests that verify exhaustive decision coverage.
+ * These are comprehensive tests that verify exhaustive decision coverage
+ * following test_coverage.md specification.
  */
 
 describe("AutoDecisionEngine", () => {
-  /**
-   * Test case structure:
-   * - description: human-readable test name
-   * - saveContext: input signals
-   * - config: decision thresholds
-   * - expectedDecision: protect, snapshot, notify, or ignore
-   * - expectedReasons: which signals triggered the decision
-   * - expectedConfidence: confidence score (0-1)
-   */
+  let engine: AutoDecisionEngine;
+
+  beforeEach(() => {
+    engine = new AutoDecisionEngine(DEFAULT_CONFIG);
+  });
 
   describe("Protection Decisions - Signal Combination", () => {
-    it("should PROTECT when AI confidence is high (>= 80%)", () => {
+    // Test ID: ENGINE-001-001
+    it("should CREATE SNAPSHOT when AI confidence is high (>= 80%)", () => {
+      // GIVEN: High AI confidence context
       const context: SaveContext = {
         repoId: "repo1",
         timestamp: Date.now(),
-        files: [{ path: "file.ts", hash: "abc123" }],
+        files: [{ path: "file.ts", hash: "abc123" }] as any,
         aiDetected: true,
         aiToolName: "CoPilot",
         aiConfidence: 0.85,
@@ -49,9 +49,14 @@ describe("AutoDecisionEngine", () => {
         criticalFileCount: 0,
       };
 
-      // This test expects AutoDecisionEngine to exist and make a decision
-      expect(context.aiDetected).toBe(true);
-      expect(context.aiConfidence).toBeGreaterThanOrEqual(0.8);
+      // WHEN: Making decision
+      const decision = engine.makeDecision(context);
+
+      // THEN: Should create snapshot due to high AI confidence
+      expect(decision.createSnapshot).toBe(true);
+      expect(decision.showNotification).toBe(true);
+      expect(decision.reasons).toContain("ai_detected");
+      expect(decision.confidence).toBeGreaterThan(0.5);
     });
 
     it("should PROTECT when risk score is critical (>= 70)", () => {

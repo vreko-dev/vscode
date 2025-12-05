@@ -14,76 +14,76 @@ export const DEFAULT_SNAPBACKRC: SnapBackRC = {
 		// Block level protections (sensitive files)
 		{
 			pattern: "**/.env*",
-			level: "Protected",
+			level: "block",
 			reason: "Environment files contain sensitive data",
 		},
 		{
 			pattern: "**/.npmrc",
-			level: "Protected",
+			level: "block",
 			reason: "NPM configuration may contain tokens",
 		},
 		{
 			pattern: "**/yarn.lock",
-			level: "Protected",
+			level: "block",
 			reason: "Lock files should be committed, not modified directly",
 		},
 		{
 			pattern: "**/package-lock.json",
-			level: "Protected",
+			level: "block",
 			reason: "Lock files should be committed, not modified directly",
 		},
 		{
 			pattern: "**/pnpm-lock.yaml",
-			level: "Protected",
+			level: "block",
 			reason: "Lock files should be committed, not modified directly",
 		},
 
 		// Warn level protections (important config files)
 		{
 			pattern: "**/package.json",
-			level: "Warning",
+			level: "warn",
 			reason: "Changes affect dependencies and scripts",
 		},
 		{
 			pattern: "**/tsconfig.json",
-			level: "Warning",
+			level: "warn",
 			reason: "TypeScript configuration affects compilation",
 		},
 		{
 			pattern: "**/webpack.config.js",
-			level: "Warning",
+			level: "warn",
 			reason: "Build configuration affects output",
 		},
 		{
 			pattern: "**/.github/workflows/**",
-			level: "Warning",
+			level: "warn",
 			reason: "CI/CD workflows affect deployment",
 		},
 		{
 			pattern: "**/Dockerfile",
-			level: "Warning",
+			level: "warn",
 			reason: "Container configuration affects deployment",
 		},
 
 		// Watch level protections (auxiliary files)
 		{
 			pattern: "**/*.md",
-			level: "Watched",
+			level: "watch",
 			reason: "Documentation changes tracked passively",
 		},
 		{
 			pattern: "**/*.txt",
-			level: "Watched",
+			level: "watch",
 			reason: "Text files tracked passively",
 		},
 		{
 			pattern: "**/.vscode/**",
-			level: "Watched",
+			level: "watch",
 			reason: "IDE configuration tracked passively",
 		},
 		{
 			pattern: "**/.idea/**",
-			level: "Watched",
+			level: "watch",
 			reason: "IDE configuration tracked passively",
 		},
 	],
@@ -101,6 +101,6 @@ export const DEFAULT_SNAPBACKRC: SnapBackRC = {
 	settings: {
 		maxSnapshots: 100,
 		compressionEnabled: true,
-		defaultProtectionLevel: "Watched",
+		defaultProtectionLevel: "watch",
 	},
 };

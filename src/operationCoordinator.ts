@@ -74,6 +74,8 @@ import ignore from "ignore";
 import * as vscode from "vscode";
 import type { ConflictResolver } from "./conflictResolver.js";
 import type { NotificationManager } from "./notificationManager.js";
+import type { MilestoneService } from "./services/MilestoneService.js";
+import type { TelemetryProxy } from "./services/telemetry-proxy.js";
 import type { StorageManager } from "./storage/StorageManager.js";
 import { logger } from "./utils/logger.js";
 import type { WorkspaceMemoryManager } from "./workspaceMemory.js";
@@ -215,18 +217,6 @@ export class OperationCoordinator {
 	/** Internal operation registry maintaining current and historical operation state */
 	private operations: Map<string, Operation> = new Map();
 
-	/** Workspace memory manager for persistent state coordination */
-	private workspaceMemory: WorkspaceMemoryManager;
-
-	/** Notification manager for user feedback and status updates */
-	private notificationManager: NotificationManager;
-
-	/** File system storage for snapshot operations */
-	private storage: StorageManager;
-
-	/** Conflict resolver for handling file conflicts during restoration */
-	private conflictResolver?: ConflictResolver;
-
 	/**
 	 * Initializes the operation coordinator with required system dependencies.
 	 *
@@ -249,16 +239,13 @@ export class OperationCoordinator {
 	 * ```
 	 */
 	constructor(
-		workspaceMemory: WorkspaceMemoryManager,
-		notificationManager: NotificationManager,
-		storage: StorageManager,
-		conflictResolver?: ConflictResolver,
-	) {
-		this.workspaceMemory = workspaceMemory;
-		this.notificationManager = notificationManager;
-		this.storage = storage;
-		this.conflictResolver = conflictResolver;
-	}
+		private workspaceMemory: WorkspaceMemoryManager,
+		private notificationManager: NotificationManager,
+		private storage: StorageManager,
+		private telemetryProxy: TelemetryProxy,
+		private conflictResolver: ConflictResolver,
+		private milestoneService: MilestoneService,
+	) {}
 
 	/**
 	 * Registers and initiates a new operation in the coordination system.
@@ -996,6 +983,7 @@ export class OperationCoordinator {
 	): Promise<boolean> {
 		const operationId = `restore-${Date.now()}`;
 		this.startOperation(operationId, "Restore from Snapshot", [snapshotId]);
+		let filesRestored = 0;
 
 		try {
 			const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -1124,6 +1112,7 @@ export class OperationCoordinator {
 									fileUri,
 									Buffer.from(content, "utf-8"),
 								);
+								filesRestored++;
 							}
 						}
 					}
@@ -1139,14 +1128,24 @@ export class OperationCoordinator {
 				// No conflict resolution needed, proceed with normal restore below
 			}
 
-			// Phase 3: Actual restore (for non-dry-run or when no conflicts)
+			// Phase 3: Perform actual restore (Atomic-like)
 			this.updateOperationProgress(operationId, 60);
-			if (snapshot && !options?.dryRun) {
-				// Filter files if options specify which ones to restore
-				const filesToRestore =
-					options?.files || Object.keys(snapshot.contents || {});
-				for (const filePath of filesToRestore) {
-					const rawContent = snapshot.contents?.[filePath];
+			if (snapshot?.contents) {
+				// Create backup of current state if requested
+				if (options?.backupCurrent) {
+					// Logic to backup current state before restore would go here
+					// For MVP, we skip complex backup orchestration
+				}
+
+				// Restore files
+				for (const [filePath, rawContent] of Object.entries(
+					snapshot.contents,
+				)) {
+					// Filter if specific files requested
+					if (options?.files && !options.files.includes(filePath)) {
+						continue;
+					}
+
 					if (rawContent) {
 						// Handle both JSON-stringified and plain text formats
 						let content: string;
@@ -1172,15 +1171,41 @@ export class OperationCoordinator {
 							fileUri,
 							Buffer.from(content, "utf-8"),
 						);
+						filesRestored++;
 					}
 				}
 			}
 
 			this.updateOperationProgress(operationId, 90);
 
-			// Phase 4: Complete operation
+			// Phase 4: Complete operation and notify
 			this.updateOperationStatus(operationId, "completed");
 			this.updateOperationProgress(operationId, 100);
+
+			if (!options?.dryRun) {
+				// Track Disaster Averted
+				const recoveredLines = filesRestored * 50; // Estimate: 50 lines per file avg if diff not avail
+				// Improve estimation if possible by diffing before/after, but for now simple proxy
+
+				const isPartial = options?.files && options.files.length > 0;
+				const recoveryType = isPartial ? "single_file" : "full_snapshot";
+				const severity = isPartial ? "medium" : "high";
+
+				this.telemetryProxy.trackEvent("value:disaster_averted", {
+					files_restored: filesRestored,
+					recovery_type: recoveryType,
+					lines_recovered: recoveredLines, // Simple estimation for now
+					severity: severity,
+				});
+
+				// Track Milestone
+				void this.milestoneService.incrementRecoveries();
+
+				vscode.window.setStatusBarMessage(
+					`✅ Workspace restored from snapshot (${filesRestored} files)`,
+					5000,
+				);
+			}
 
 			return true;
 		} catch (error) {

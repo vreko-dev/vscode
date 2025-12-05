@@ -34,12 +34,18 @@ export interface Phase3Result {
 	snapshotNavigatorProvider: SnapshotNavigatorProvider;
 	statusBarController: StatusBarController;
 	protectionService: ProtectionService; // 🟢 TDD GREEN: Protection audit service
+	milestoneService: MilestoneService;
 }
+
+import { MilestoneService } from "../services/MilestoneService.js";
+import type { TelemetryProxy } from "../services/telemetry-proxy.js";
+// ... imports ...
 
 export async function initializePhase3Managers(
 	_context: vscode.ExtensionContext,
 	workspaceRoot: string,
 	storage: StorageManager,
+	telemetryProxy: TelemetryProxy,
 	protectedFileRegistry?: ProtectedFileRegistry,
 	snapbackrcLoader?: import("../protection/SnapBackRCLoader.js").SnapBackRCLoader,
 ): Promise<Phase3Result> {
@@ -68,13 +74,24 @@ export async function initializePhase3Managers(
 		);
 		console.log("[PERF] SmartContextDetector", { ms: Date.now() - t });
 
+		// Initialize Milestone Service
+		t = Date.now();
+		const milestoneService = new MilestoneService(
+			_context,
+			telemetryProxy,
+			notificationManager,
+		);
+		console.log("[PERF] MilestoneService", { ms: Date.now() - t });
+
 		// Initialize operation coordinator
 		t = Date.now();
 		const operationCoordinator = new OperationCoordinator(
 			workspaceMemoryManager,
 			notificationManager,
 			storage,
+			telemetryProxy,
 			conflictResolver,
+			milestoneService,
 		);
 		console.log("[PERF] OperationCoordinator", { ms: Date.now() - t });
 
@@ -199,6 +216,7 @@ export async function initializePhase3Managers(
 			snapshotNavigatorProvider,
 			statusBarController,
 			protectionService, // 🟢 TDD GREEN
+			milestoneService,
 		};
 	} catch (error) {
 		PhaseLogger.logError("3: Business Logic Managers", error as Error);

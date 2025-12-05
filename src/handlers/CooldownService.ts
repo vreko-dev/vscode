@@ -117,7 +117,7 @@ export class CooldownService {
 	): Promise<void> {
 		// Set cooldown duration based on protection level (from SDK centralized thresholds)
 		const cooldownPeriod =
-			protectionLevel === "Protected"
+			protectionLevel === "block"
 				? THRESHOLDS.protection.protectedCooldown
 				: THRESHOLDS.protection.otherCooldown;
 

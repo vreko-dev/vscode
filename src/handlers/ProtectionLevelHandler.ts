@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type { OperationCoordinator } from "../operationCoordinator.js";
+import type { MilestoneService } from "../services/MilestoneService.js";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
 import { SnapshotNamingStrategy } from "../snapshot/SnapshotNamingStrategy.js";
 import { logger } from "../utils/logger.js";
@@ -39,6 +40,7 @@ export class ProtectionLevelHandler {
 		private operationCoordinator: OperationCoordinator,
 		private cooldownService: CooldownService,
 		private auditLogger: AuditLogger,
+		private milestoneService?: MilestoneService,
 	) {}
 
 	/**
@@ -59,7 +61,7 @@ export class ProtectionLevelHandler {
 		document: vscode.TextDocument,
 	): Promise<ProtectionHandlingResult> {
 		const protectionLevel =
-			this.registry.getProtectionLevel(filePath) || "Watched";
+			this.registry.getProtectionLevel(filePath) || "watch";
 
 		logger.debug("Handling protection level", {
 			filePath,
@@ -154,7 +156,7 @@ export class ProtectionLevelHandler {
 
 		// Handle based on protection level
 		switch (protectionLevel) {
-			case "Protected":
+			case "block":
 				return await this.handleBlockLevel(
 					filePath,
 					filename,
@@ -163,7 +165,7 @@ export class ProtectionLevelHandler {
 					protectionLevel,
 				);
 
-			case "Warning":
+			case "warn":
 				return await this.handleWarnLevel(
 					filePath,
 					filename,
@@ -176,7 +178,7 @@ export class ProtectionLevelHandler {
 					filePath,
 					filename,
 					preSaveContent,
-					protectionLevel,
+					protectionLevel, // Should be "watch" effectively
 				);
 		}
 	}
@@ -554,6 +556,12 @@ A snapshot will be created before saving.`,
 		if (snapshotId) {
 			await this.registry.markSnapshot(snapshotId, [filePath]);
 			this.cooldownService.recordSnapshotTime(filePath);
+
+			// Track Milestone (files protected)
+			if (this.milestoneService) {
+				void this.milestoneService.incrementProtectedFiles();
+			}
+
 			logger.info("Snapshot created successfully", {
 				filePath,
 				snapshotId,

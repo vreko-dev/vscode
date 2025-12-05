@@ -1,7 +1,7 @@
-import * as vscode from "vscode";
-import type { CooldownCache } from "../storage/CooldownCache";
-import type { AuditLog } from "../storage/AuditLog";
 import { logger } from "@snapback/infrastructure";
+import * as vscode from "vscode";
+import type { AuditLog } from "../storage/AuditLog";
+import type { CooldownCache } from "../storage/CooldownCache";
 
 /**
  * Notification configuration
@@ -32,10 +32,10 @@ export interface NotificationContext {
  */
 export class NotificationManager {
 	private auditLog: AuditLog;
+	// private _cooldownCache: CooldownCache;
 	private shownNotifications = new Map<string, number>(); // Track shown times locally
 
-	constructor(cooldownCache: CooldownCache, auditLog: AuditLog) {
-		this.cooldownCache = cooldownCache;
+	constructor(_cooldownCache: CooldownCache, auditLog: AuditLog) {
 		this.auditLog = auditLog;
 	}
 
@@ -78,7 +78,6 @@ export class NotificationManager {
 			},
 		});
 
-
 		// Show to user
 		const result = await this.showVsCodeMessage(config);
 
@@ -104,8 +103,10 @@ export class NotificationManager {
 	/**
 	 * Internal: show VS Code notification using vscode.window API
 	 */
-	private async showVsCodeMessage(config: NotificationConfig): Promise<number | undefined> {
-		const actionLabels = config.actions?.map(a => a.label) ?? [];
+	private async showVsCodeMessage(
+		config: NotificationConfig,
+	): Promise<number | undefined> {
+		const actionLabels = config.actions?.map((a) => a.label) ?? [];
 
 		let result: string | undefined;
 
@@ -142,7 +143,10 @@ export class NotificationFactory {
 	/**
 	 * Threat detected notification (error level)
 	 */
-	static threatDetected(filePath: string, riskScore: number): NotificationConfig {
+	static threatDetected(
+		filePath: string,
+		riskScore: number,
+	): NotificationConfig {
 		return {
 			id: `threat:${filePath}:${Date.now()}`,
 			type: "error",
@@ -168,7 +172,10 @@ export class NotificationFactory {
 	/**
 	 * Risk threshold breached notification (warning level)
 	 */
-	static thresholdBreached(riskScore: number, threshold: number): NotificationConfig {
+	static thresholdBreached(
+		riskScore: number,
+		threshold: number,
+	): NotificationConfig {
 		return {
 			id: `threshold:${Date.now()}`,
 			type: "warning",
@@ -188,7 +195,10 @@ export class NotificationFactory {
 	/**
 	 * Burst detection notification (warning level)
 	 */
-	static burstDetected(saveCount: number, windowMs: number): NotificationConfig {
+	static burstDetected(
+		saveCount: number,
+		windowMs: number,
+	): NotificationConfig {
 		return {
 			id: `burst:${Date.now()}`,
 			type: "warning",
@@ -225,7 +235,9 @@ export class NotificationFactory {
 	/**
 	 * Protection enabled notification (info level)
 	 */
-	static protectionEnabled(level: "watch" | "warn" | "block"): NotificationConfig {
+	static protectionEnabled(
+		level: "watch" | "warn" | "block",
+	): NotificationConfig {
 		const levelDescriptions = {
 			watch: "Monitoring changes",
 			warn: "Showing warnings",
@@ -296,13 +308,15 @@ export class NotificationService {
 	/**
 	 * Handle decision from AutoDecisionEngine
 	 */
-	async handleDecision(decision: {
-		riskScore: number;
-		threats: string[];
-		filePath?: string;
-		action: "snapshot" | "notify" | "restore" | "none";
-		reason?: string;
-	} & Record<string, any>): Promise<void> {
+	async handleDecision(
+		decision: {
+			riskScore: number;
+			threats: string[];
+			filePath?: string;
+			action: "snapshot" | "notify" | "restore" | "none";
+			reason?: string;
+		} & Record<string, any>,
+	): Promise<void> {
 		// Dispatch appropriate notification based on decision
 		if (decision.action === "notify" && decision.threats.length > 0) {
 			const isBurst = decision.threats.includes("burst-detection");
@@ -353,8 +367,14 @@ export class NotificationService {
 	/**
 	 * Show threshold breach notification
 	 */
-	async notifyThresholdBreach(riskScore: number, threshold: number): Promise<void> {
-		const notification = NotificationFactory.thresholdBreached(riskScore, threshold);
+	async notifyThresholdBreach(
+		riskScore: number,
+		threshold: number,
+	): Promise<void> {
+		const notification = NotificationFactory.thresholdBreached(
+			riskScore,
+			threshold,
+		);
 		await this.notificationManager.show(notification, {
 			riskScore,
 			timestamp: Date.now(),

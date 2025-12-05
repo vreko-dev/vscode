@@ -308,15 +308,15 @@ export class PolicyManager {
 	): ProtectionLevel | null {
 		switch (level) {
 			case "block":
-				return "Protected";
+				return "block";
 			case "warn":
-				return "Warning";
+				return "warn";
 			case "watch":
-				return "Watched";
+				return "watch";
 			case "unprotected":
 				return null;
 			default:
-				return "Watched";
+				return "watch";
 		}
 	}
 

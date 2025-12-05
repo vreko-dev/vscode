@@ -90,9 +90,9 @@ export function registerDecorationCommands(
 						if (protectionLevel) {
 							// Convert protection level to decoration format
 							const decorationProtectionLevel =
-								protectionLevel === "Watched"
+								protectionLevel === "watch"
 									? "watch"
-									: protectionLevel === "Warning"
+									: protectionLevel === "warn"
 										? "warn"
 										: "block";
 

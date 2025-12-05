@@ -44,7 +44,7 @@ export class ContextualTriggers {
 			);
 
 			if (response === "Yes, protect it") {
-				await this.protectFile(filePath, "Warning");
+				await this.protectFile(filePath, "warn");
 			}
 		}
 	}
@@ -66,7 +66,7 @@ export class ContextualTriggers {
 
 			switch (response) {
 				case "Yes, protect it":
-					await this.protectFile(filePath, "Warning");
+					await this.protectFile(filePath, "warn");
 					break;
 				case "Never ask":
 					// We could store this preference in settings
@@ -98,7 +98,7 @@ export class ContextualTriggers {
 			);
 
 			if (response === "Yes, protect it") {
-				await this.protectFile(filePath, "Protected");
+				await this.protectFile(filePath, "block");
 			}
 		}
 	}
@@ -119,7 +119,7 @@ export class ContextualTriggers {
 			);
 
 			if (response === "Yes, protect it") {
-				await this.protectFile(filePath, "Warning");
+				await this.protectFile(filePath, "warn");
 			}
 		}
 	}
@@ -164,11 +164,11 @@ export class ContextualTriggers {
 
 	private getProtectionIcon(level: ProtectionLevel): string {
 		switch (level) {
-			case "Watched":
+			case "watch":
 				return "\u{1f7e2}";
-			case "Warning":
+			case "warn":
 				return "\u{26a0}";
-			case "Protected":
+			case "block":
 				return "\u{1f6d1}";
 			default:
 				return "\u{1f7e2}";

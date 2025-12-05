@@ -12,7 +12,7 @@ export class SnapBackRCDecorator
 	>();
 	readonly onDidChangeFileDecorations = this.emitter.event;
 
-	private protectionLevel: HatLevel = "Warning";
+	private protectionLevel: HatLevel = "warn";
 
 	provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
 		const fileName = path.basename(uri.fsPath);
@@ -39,9 +39,9 @@ export class SnapBackRCDecorator
 
 	private getColorForLevel(level: HatLevel): vscode.ThemeColor {
 		const colorMap: Record<HatLevel, string> = {
-			Watched: "charts.green",
-			Warning: "charts.orange",
-			Protected: "charts.red",
+			watch: "charts.green",
+			warn: "charts.orange",
+			block: "charts.red",
 		};
 		return new vscode.ThemeColor(colorMap[level]);
 	}

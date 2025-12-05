@@ -26,6 +26,7 @@ import { initializeProtectionNotifications } from "./commands/protectionCommands
 import { ContextManager } from "./contextManager.js";
 import { FileHealthDecorationProvider } from "./decorations/FileHealthDecorationProvider.js"; // 🆕 Import FileHealthDecorationProvider
 import { SaveHandler } from "./handlers/SaveHandler.js";
+import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration.js"; // 🆕 Import AutoDecisionIntegration
 import { FileSystemWatcher } from "./protection/FileSystemWatcher.js";
 import { RulesManager } from "./rules/RulesManager.js";
 import {
@@ -47,7 +48,6 @@ import { logger } from "./utils/logger.js";
 import { findProjectRoot } from "./utils/projectRoot.js";
 import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver.js"; // 🆕 Import WorkspaceFolderResolver
 import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry.js";
-import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration.js"; // 🆕 Import AutoDecisionIntegration
 
 // Import the new EventBus and feature flag
 
@@ -116,6 +116,51 @@ export async function activate(context: vscode.ExtensionContext) {
 			logger.error("Failed to track extension installation", error as Error);
 		}
 	}
+
+	// 🆕 Track authentication events
+	// Listen for session changes to track when user successfully authenticates
+	// This captures the "Stage 2: Authenticate" step of the activation funnel
+	context.subscriptions.push(
+		vscode.authentication.onDidChangeSessions(async (e) => {
+			if (e.provider.id === "snapback") {
+				const hasAuthenticated = context.globalState.get<boolean>(
+					"snapback.hasAuthenticated",
+					false,
+				);
+
+				if (!hasAuthenticated) {
+					// Check if we have a valid session
+					const sessions = await vscode.authentication.getSession(
+						"snapback",
+						[],
+						{ createIfNone: false },
+					);
+
+					if (sessions) {
+						try {
+							logger.info("Tracking first authentication event");
+							const telemetryProxy = new TelemetryProxy(context);
+							await telemetryProxy.trackEvent("extension_authenticated", {
+								source: "oauth",
+								timestamp: Date.now(),
+							});
+
+							// Mark as authenticated so we don't track again
+							await context.globalState.update(
+								"snapback.hasAuthenticated",
+								true,
+							);
+						} catch (error) {
+							logger.error(
+								"Failed to track authentication event",
+								error as Error,
+							);
+						}
+					}
+				}
+			}
+		}),
+	);
 
 	// 🆕 Initialize WorkspaceFolderResolver for early workspace verification
 	// This is lightweight and doesn't require storage
@@ -227,10 +272,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Phase 3: Business logic managers
 		const phase3Start = Date.now();
+		const telemetryProxy = new TelemetryProxy(context); // Ensure telemetryProxy is defined here
 		const phase3Result = await initializePhase3Managers(
 			context,
 			workspaceRoot,
 			phase2Result.storage,
+			telemetryProxy, // Pass telemetryProxy here
 			phase2Result.protectedFileRegistry,
 			phase2Result.snapbackrcLoader, // 🟢 TDD GREEN: Pass for ProtectionService
 		);
@@ -258,6 +305,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			phase3Result.operationCoordinator,
 			fileHealthDecorationProvider,
 			aiRiskService,
+			phase3Result.milestoneService,
 		);
 		saveHandler.register(context);
 
@@ -319,10 +367,22 @@ export async function activate(context: vscode.ExtensionContext) {
 			phase3Result.snapshotManager,
 			phase3Result.notificationManager,
 			{
-				riskThreshold: config.get<number>("snapback.autoDecision.riskThreshold", 60),
-				notifyThreshold: config.get<number>("snapback.autoDecision.notifyThreshold", 40),
-				minFilesForBurst: config.get<number>("snapback.autoDecision.minFilesForBurst", 3),
-				maxSnapshotsPerMinute: config.get<number>("snapback.autoDecision.maxSnapshotsPerMinute", 4),
+				riskThreshold: config.get<number>(
+					"snapback.autoDecision.riskThreshold",
+					60,
+				),
+				notifyThreshold: config.get<number>(
+					"snapback.autoDecision.notifyThreshold",
+					40,
+				),
+				minFilesForBurst: config.get<number>(
+					"snapback.autoDecision.minFilesForBurst",
+					3,
+				),
+				maxSnapshotsPerMinute: config.get<number>(
+					"snapback.autoDecision.maxSnapshotsPerMinute",
+					4,
+				),
 			},
 			context, // Pass context for globalState storage persistence
 		);
@@ -553,13 +613,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		const getProtectionStateSummary = async () => {
 			const protectedFiles = await phase2Result.protectedFileRegistry.list();
 			const watchCount = protectedFiles.filter(
-				(f) => f.protectionLevel === "Watched",
+				(f) => f.protectionLevel === "watch",
 			).length;
 			const warnCount = protectedFiles.filter(
-				(f) => f.protectionLevel === "Warning",
+				(f) => f.protectionLevel === "warn",
 			).length;
 			const blockCount = protectedFiles.filter(
-				(f) => f.protectionLevel === "Protected",
+				(f) => f.protectionLevel === "block",
 			).length;
 
 			return {

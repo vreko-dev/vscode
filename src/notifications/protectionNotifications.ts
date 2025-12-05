@@ -14,9 +14,9 @@ import { NotificationAcknowledgment } from "./acknowledgment.js";
  * Map from extension's protection level names to notification emoji
  */
 const LEVEL_EMOJI: Record<ProtectionLevel, string> = {
-	Watched: "👁️",
-	Warning: "⚠️",
-	Protected: "🛑",
+	watch: "👁️",
+	warn: "⚠️",
+	block: "🛑",
 };
 
 /**
@@ -35,7 +35,7 @@ export class ProtectionNotifications {
 	 * Respects "Don't show again" preferences persisted in globalState.
 	 *
 	 * @param filePath The file that is protected
-	 * @param level The protection level (Watched, Warning, Protected)
+	 * @param level The protection level (watch, warn, block)
 	 * @param isNewProtection Whether this is newly applied (vs. existing)
 	 */
 	async showProtectionLevelNotification(
@@ -108,11 +108,7 @@ export class ProtectionNotifications {
 			await this.ack.reset(notificationId, scope);
 		} else {
 			// Reset for all levels
-			for (const lv of [
-				"Watched",
-				"Warning",
-				"Protected",
-			] as ProtectionLevel[]) {
+			for (const lv of ["watch", "warn", "block"] as ProtectionLevel[]) {
 				const scope = `${filePath}:${lv}`;
 				await this.ack.reset(notificationId, scope);
 			}

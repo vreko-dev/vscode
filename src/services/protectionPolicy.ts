@@ -321,16 +321,16 @@ export class ProtectionManager {
 			// Helper to compare protection levels (higher number = more protection)
 			const getLevelValue = (level: string): number => {
 				const levelMap: Record<string, number> = {
-					Watched: 1,
-					Warning: 2,
-					Protected: 3,
+					watch: 1,
+					warn: 2,
+					block: 3,
 				};
 				return levelMap[level] || 0;
 			};
 
 			// Check each protection rule to see if matching files are properly protected
 			const criticalPatterns = policy.rules.filter(
-				(r) => r.level === "Protected" || r.level === "Warning",
+				(r) => r.level === "block" || r.level === "warn",
 			);
 
 			for (const rule of criticalPatterns) {
@@ -350,8 +350,8 @@ export class ProtectionManager {
 							items.push({
 								type: "unprotected_critical",
 								filePath,
-								message: `${rule.category || "Critical file"}: not protected (should be ${rule.level === "Protected" ? "Block" : "Warn"})`,
-								severity: rule.level === "Protected" ? "error" : "warning",
+								message: `${rule.category || "Critical file"}: not protected (should be ${rule.level === "block" ? "Block" : "Warn"})`,
+								severity: rule.level === "block" ? "error" : "warning",
 								action: "snapback.protectFile",
 							});
 						} else if (
@@ -359,13 +359,12 @@ export class ProtectionManager {
 						) {
 							// File is protected but at INSUFFICIENT level
 							const currentLabel =
-								currentLevel === "Watched"
+								currentLevel === "watch"
 									? "Watch"
-									: currentLevel === "Warning"
+									: currentLevel === "warn"
 										? "Warn"
 										: "Block";
-							const requiredLabel =
-								rule.level === "Protected" ? "Block" : "Warn";
+							const requiredLabel = rule.level === "block" ? "Block" : "Warn";
 
 							items.push({
 								type: "unprotected_critical", // Reuse this type for now

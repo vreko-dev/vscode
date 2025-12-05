@@ -3,9 +3,9 @@ import * as path from "node:path";
 import { minimatch } from "minimatch";
 import * as vscode from "vscode";
 import type { ConfigDetector } from "../config-detector.js";
-import type { ProtectionLevel } from "../types/protection.js";
 import type { SnapBackRC } from "../types/snapbackrc.types";
 import { logger } from "../utils/logger.js";
+import type { ProtectionLevel } from "../views/types.js";
 
 interface FileProtectionStatus {
 	filePath: string;
@@ -169,7 +169,7 @@ export class UpdateConfigurationCommand {
 
 		for (const { pattern, reason } of blockPatterns) {
 			if (minimatch(filePath, pattern, { dot: true })) {
-				return { level: "Protected", reason };
+				return { level: "block", reason };
 			}
 		}
 
@@ -227,7 +227,7 @@ export class UpdateConfigurationCommand {
 
 		for (const { pattern, reason } of warnPatterns) {
 			if (minimatch(filePath, pattern, { dot: true })) {
-				return { level: "Warning", reason };
+				return { level: "warn", reason };
 			}
 		}
 
@@ -246,7 +246,7 @@ export class UpdateConfigurationCommand {
 
 		for (const { pattern, reason } of watchPatterns) {
 			if (minimatch(filePath, pattern, { dot: true })) {
-				return { level: "Watched", reason };
+				return { level: "watch", reason };
 			}
 		}
 
@@ -309,13 +309,13 @@ export class UpdateConfigurationCommand {
 		}
 
 		const blockFiles = differences.filter(
-			(d) => d.suggestedProtection === "Protected",
+			(d) => d.suggestedProtection === "block",
 		);
 		const warnFiles = differences.filter(
-			(d) => d.suggestedProtection === "Warning",
+			(d) => d.suggestedProtection === "warn",
 		);
 		const watchFiles = differences.filter(
-			(d) => d.suggestedProtection === "Watched",
+			(d) => d.suggestedProtection === "watch",
 		);
 
 		let _message = `Found ${differences.length} files with suggested protection levels:\n`;
@@ -397,7 +397,7 @@ export class UpdateConfigurationCommand {
 				notificationDuration: 1000,
 				showStatusBarItem: true,
 				confirmRestore: true,
-				defaultProtectionLevel: "Watched",
+				defaultProtectionLevel: "watch",
 				protectionDebounce: 1000,
 				enableCaching: true,
 			},

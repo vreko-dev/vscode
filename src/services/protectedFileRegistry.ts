@@ -219,7 +219,7 @@ export class ProtectedFileRegistry
 				lastProtectedAt: file.lastProtectedAt,
 				lastSnapshotId: file.lastSnapshotId,
 				// 🆕 Add protection level with default value if not present
-				protectionLevel: file.protectionLevel || "Watched",
+				protectionLevel: file.protectionLevel || "watch",
 			});
 		}
 
@@ -324,14 +324,14 @@ export class ProtectedFileRegistry
 			const level = file.protectionLevel;
 
 			// Map protection levels to UI categories
-			// 'Protected' → block (🔴 red)
-			// 'Warning' → warn (🟡 yellow)
-			// 'Watched' → watch (🟢 green)
-			if (level === "Protected") {
+			// 'block' → block (🔴 red)
+			// 'warn' → warn (🟡 yellow)
+			// 'watch' → watch (🟢 green)
+			if (level === "block") {
 				counts.block++;
-			} else if (level === "Warning") {
+			} else if (level === "warn") {
 				counts.warn++;
-			} else if (level === "Watched") {
+			} else if (level === "watch") {
 				counts.watch++;
 			} else {
 				// Default to watch if no level specified
@@ -373,7 +373,7 @@ export class ProtectedFileRegistry
 			lastProtectedAt: Date.now(),
 			lastSnapshotId: options?.snapshotId,
 			// 🆕 Add protection level with default value
-			protectionLevel: options?.protectionLevel || "Watched",
+			protectionLevel: options?.protectionLevel || "watch",
 		};
 
 		if (existingIndex >= 0) {

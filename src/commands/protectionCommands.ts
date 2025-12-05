@@ -290,7 +290,7 @@ export function registerProtectionCommands(
 						// though addProtectionRule might need a level.
 						// Let's check the registry.add behavior - it defaulted to Watched?
 						// Registry.add defaults to Watched. We should do the same.
-						await snapbackrcLoader.addProtectionRule(fileUri.fsPath, "Watched");
+						await snapbackrcLoader.addProtectionRule(fileUri.fsPath, "watch");
 					} else {
 						await protectedFileRegistry.add(fileUri.fsPath);
 						refreshViews();
@@ -300,7 +300,7 @@ export function registerProtectionCommands(
 					if (protectionNotifications) {
 						await protectionNotifications.showProtectionLevelNotification(
 							fileUri.fsPath,
-							"Watched", // Default protection level for protectCurrentFile
+							"watch", // Default protection level for protectCurrentFile
 							true, // isNewProtection
 						);
 					} else {
@@ -474,7 +474,7 @@ export function registerProtectionCommands(
 			async (uriOrItem?: vscode.Uri | TreeItemLike) => {
 				await setProtectionLevelQuick(
 					getUriFromArg(uriOrItem),
-					"Watched",
+					"watch",
 					protectedFileRegistry,
 					refreshViews,
 					snapbackrcLoader,
@@ -490,7 +490,7 @@ export function registerProtectionCommands(
 			async (uriOrItem?: vscode.Uri | TreeItemLike) => {
 				await setProtectionLevelQuick(
 					getUriFromArg(uriOrItem),
-					"Warning",
+					"warn",
 					protectedFileRegistry,
 					refreshViews,
 					snapbackrcLoader,
@@ -506,7 +506,7 @@ export function registerProtectionCommands(
 			async (uriOrItem?: vscode.Uri | vscode.Uri) => {
 				await setProtectionLevelQuick(
 					getUriFromArg(uriOrItem),
-					"Protected",
+					"block",
 					protectedFileRegistry,
 					refreshViews,
 					snapbackrcLoader,

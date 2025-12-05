@@ -7,9 +7,9 @@ import type { ProtectionLevel } from "./views/types.js";
 import { PROTECTION_LEVELS } from "./views/types.js";
 
 interface ProtectionStats {
-	watched: number;
-	warning: number;
-	protected: number;
+	watch: number;
+	warn: number;
+	block: number;
 	total: number;
 	highestLevel: ProtectionLevel | null;
 }
@@ -80,9 +80,9 @@ export class SnapBackStatusBar {
 	private async calculateStats(): Promise<ProtectionStats> {
 		if (!this.registry) {
 			return {
-				watched: 0,
-				warning: 0,
-				protected: 0,
+				watch: 0,
+				warn: 0,
+				block: 0,
 				total: 0,
 				highestLevel: null,
 			};
@@ -91,31 +91,35 @@ export class SnapBackStatusBar {
 		const files = await this.registry.list();
 
 		const stats: ProtectionStats = {
-			watched: 0,
-			warning: 0,
-			protected: 0,
+			watch: 0,
+			warn: 0,
+			block: 0,
 			total: files.length,
 			highestLevel: null,
 		};
 
 		// Count files by protection level
 		files.forEach((file) => {
-			const level = file.protectionLevel || "Watched";
-			stats[
-				level.toLowerCase() as keyof Omit<
-					ProtectionStats,
-					"total" | "highestLevel"
-				>
-			]++;
+			const level = file.protectionLevel || "watch";
+			// Ensure we are accessing valid keys in stats
+			if (level === "block" || level === "warn" || level === "watch") {
+				stats[level]++;
+			} else {
+				// Fallback or legacy mapping if somehow still present
+				if (level === "Protected") stats.block++;
+				else if (level === "Warning") stats.warn++;
+				else if (level === "Watched") stats.watch++;
+				else stats.watch++; // Default
+			}
 		});
 
 		// Determine highest protection level
-		if (stats.protected > 0) {
-			stats.highestLevel = "Protected";
-		} else if (stats.warning > 0) {
-			stats.highestLevel = "Warning";
-		} else if (stats.watched > 0) {
-			stats.highestLevel = "Watched";
+		if (stats.block > 0) {
+			stats.highestLevel = "block";
+		} else if (stats.warn > 0) {
+			stats.highestLevel = "warn";
+		} else if (stats.watch > 0) {
+			stats.highestLevel = "watch";
 		}
 
 		return stats;
@@ -123,7 +127,7 @@ export class SnapBackStatusBar {
 
 	/**
 	 * Format status bar text with protection level info
-	 * Uses canonical signage for emojis and labels
+	 * Uses canonical signage for items and labels
 	 */
 	private formatText(stats: ProtectionStats): string {
 		if (stats.total === 0) {
@@ -150,13 +154,13 @@ export class SnapBackStatusBar {
 	private getColor(
 		stats: ProtectionStats,
 	): "none" | "warning" | "error" | "default" {
-		if (stats.protected > 0) {
+		if (stats.block > 0) {
 			return "error"; // Red background for protected files
 		}
-		if (stats.warning > 0) {
+		if (stats.warn > 0) {
 			return "warning"; // Orange background for warning files
 		}
-		if (stats.watched > 0) {
+		if (stats.watch > 0) {
 			return "default"; // Default background for watched files
 		}
 		return "none"; // No protection
@@ -213,13 +217,13 @@ export class SnapBackStatusBar {
 
 		tooltip.appendMarkdown("**SnapBack Protection Status**\n\n");
 		tooltip.appendMarkdown(
-			`${watchSignage.emoji} ${watchSignage.label}: ${stats.watched} file(s)\n`,
+			`${watchSignage.emoji} ${watchSignage.label}: ${stats.watch} file(s)\n`,
 		);
 		tooltip.appendMarkdown(
-			`${warnSignage.emoji} ${warnSignage.label}: ${stats.warning} file(s)\n`,
+			`${warnSignage.emoji} ${warnSignage.label}: ${stats.warn} file(s)\n`,
 		);
 		tooltip.appendMarkdown(
-			`${blockSignage.emoji} ${blockSignage.label}: ${stats.protected} file(s)\n\n`,
+			`${blockSignage.emoji} ${blockSignage.label}: ${stats.block} file(s)\n\n`,
 		);
 
 		if (stats.highestLevel) {

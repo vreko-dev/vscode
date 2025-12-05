@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { AIRiskService } from "../services/aiRiskService.js";
 import { ApiClient } from "../services/api-client.js";
+import type { MilestoneService } from "../services/MilestoneService.js";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
 import type { AnalysisResult, BasicAnalysisResult } from "../types/api.js";
 import { logger } from "../utils/logger.js";
@@ -38,6 +39,7 @@ export class AnalysisCoordinator {
 		private registry: ProtectedFileRegistry,
 		private auditLogger: AuditLogger,
 		private aiRiskService: AIRiskService,
+		private milestoneService?: MilestoneService,
 	) {
 		this.diagnosticPublisher = new DiagnosticPublisher();
 	}
@@ -99,7 +101,7 @@ export class AnalysisCoordinator {
 
 		// Check if risk requires blocking
 		const protectionLevel =
-			this.registry.getProtectionLevel(filePath) || "Watched";
+			this.registry.getProtectionLevel(filePath) || "watch";
 		const blockingResult = await this.handleRiskBasedBlocking(
 			filePath,
 			filename,
@@ -174,7 +176,8 @@ export class AnalysisCoordinator {
 		protectionLevel: ProtectionLevel,
 	): Promise<{ shouldBlock: boolean; userOverride: boolean }> {
 		// Block when risk > 0.8 (80% of 0-1 scale) and protectionLevel === 'Protected'
-		if (analysisResult.score > 0.8 && protectionLevel === "Protected") {
+		if (analysisResult.score > 0.8 && protectionLevel === "block") {
+			this.triggerFirstAIDetection();
 			const selection = await vscode.window.showErrorMessage(
 				`Critical security issues detected in ${filename}. Save blocked due to protection level.`,
 				"Save Anyway (Override)",
@@ -212,10 +215,8 @@ export class AnalysisCoordinator {
 		}
 
 		// Show notification if critical issues are detected (for non-blocked cases)
-		if (
-			analysisResult.severity === "critical" &&
-			protectionLevel !== "Protected"
-		) {
+		if (analysisResult.severity === "critical" && protectionLevel !== "block") {
+			this.triggerFirstAIDetection();
 			const selection = await vscode.window.showWarningMessage(
 				`Critical security issues detected in ${filename}: ${analysisResult.factors?.join(", ")}`,
 				"Save Anyway",
@@ -266,6 +267,7 @@ export class AnalysisCoordinator {
 				}
 			}
 		} else if (analysisResult.severity === "high") {
+			this.triggerFirstAIDetection();
 			const selection = await vscode.window.showWarningMessage(
 				`Security issues detected in ${filename}: ${analysisResult.factors?.join(", ")}`,
 				"Save Anyway",
@@ -294,6 +296,20 @@ export class AnalysisCoordinator {
 		}
 
 		return { shouldBlock: false, userOverride: false };
+	}
+
+	/**
+	 * Check if we should trigger "First AI Detection" celebration.
+	 * Called when high or critical issues are found.
+	 */
+	private triggerFirstAIDetection(): void {
+		if (this.milestoneService) {
+			void this.milestoneService.triggerFirstTimeEvent(
+				"first_ai_detection",
+				"First AI Risk Detected! 🛡️",
+				"SnapBack just caught its first potential issue. You're now coding with an AI safety net.",
+			);
+		}
 	}
 
 	/**

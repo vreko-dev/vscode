@@ -36,16 +36,16 @@ export class AutoProtectConfig implements vscode.Disposable {
 
 			if (!existingLevel) {
 				await this.protectedFileRegistry.add(configPath, {
-					protectionLevel: "Warning",
+					protectionLevel: "warn",
 				});
 			}
 
-			this.decorator.updateProtectionLevel(existingLevel ?? "Warning");
+			this.decorator.updateProtectionLevel(existingLevel ?? "warn");
 
 			await this.showProtectionNotification();
 		} catch {
 			// File not present yet, start watcher
-			this.decorator.updateProtectionLevel("Warning");
+			this.decorator.updateProtectionLevel("warn");
 		}
 	}
 
@@ -60,9 +60,9 @@ export class AutoProtectConfig implements vscode.Disposable {
 			await new Promise((resolve) => setTimeout(resolve, 100));
 
 			await this.protectedFileRegistry.add(uri.fsPath, {
-				protectionLevel: "Warning",
+				protectionLevel: "warn",
 			});
-			this.decorator.updateProtectionLevel("Warning");
+			this.decorator.updateProtectionLevel("warn");
 
 			const choice = await vscode.window.showInformationMessage(
 				"\u{1f7e1} .snapbackrc created and auto-protected at Warn level",
@@ -108,7 +108,7 @@ export class AutoProtectConfig implements vscode.Disposable {
 						.then(async (choice) => {
 							if (choice === "Re-protect") {
 								await this.protectedFileRegistry.add(configPath, {
-									protectionLevel: "Warning",
+									protectionLevel: "warn",
 								});
 							}
 						});
@@ -142,10 +142,10 @@ export class AutoProtectConfig implements vscode.Disposable {
   // Documentation: https://docs.snapback.dev/configuration
 
   "protection": [
-    { "pattern": "**/*.env*", "level": "Protected", "reason": "Environment variables" },
-    { "pattern": "**/package.json", "level": "Warning", "reason": "Dependencies" },
-    { "pattern": "**/tsconfig.json", "level": "Warning", "reason": "TypeScript config" },
-    { "pattern": "src/**/*.ts", "level": "Watched" }
+    { "pattern": "**/*.env*", "level": "block", "reason": "Environment variables" },
+    { "pattern": "**/package.json", "level": "warn", "reason": "Dependencies" },
+    { "pattern": "**/tsconfig.json", "level": "warn", "reason": "TypeScript config" },
+    { "pattern": "src/**/*.ts", "level": "watch" }
   ],
 
   "ignore": [
@@ -162,7 +162,7 @@ export class AutoProtectConfig implements vscode.Disposable {
     "maxSnapshots": 100,
     "compressionEnabled": true,
     "notificationDuration": 1000,
-    "defaultProtectionLevel": "Watched"
+    "defaultProtectionLevel": "watch"
   }
 }`;
 

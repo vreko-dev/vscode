@@ -78,14 +78,14 @@ export class ProtectionCodeLensProvider implements vscode.CodeLensProvider {
 	 * Get icon for protection level using canonical signage
 	 */
 	private getProtectionIcon(
-		level: "Watched" | "Warning" | "Protected" | undefined,
+		level: "watch" | "warn" | "block" | undefined,
 	): string {
 		switch (level) {
-			case "Watched":
+			case "watch":
 				return getProtectionLevelSignage("watch").emoji || "🟢";
-			case "Warning":
+			case "warn":
 				return getProtectionLevelSignage("warn").emoji || "🟡";
-			case "Protected":
+			case "block":
 				return getProtectionLevelSignage("block").emoji || "🔴";
 			default:
 				return "🔓";
@@ -96,14 +96,14 @@ export class ProtectionCodeLensProvider implements vscode.CodeLensProvider {
 	 * Get human-readable label for protection level using canonical signage
 	 */
 	private getProtectionLabel(
-		level: "Watched" | "Warning" | "Protected" | undefined,
+		level: "watch" | "warn" | "block" | undefined,
 	): string {
 		switch (level) {
-			case "Watched":
+			case "watch":
 				return `${getProtectionLevelSignage("watch").label} (Silent)`;
-			case "Warning":
+			case "warn":
 				return `${getProtectionLevelSignage("warn").label} (Confirm)`;
-			case "Protected":
+			case "block":
 				return `${getProtectionLevelSignage("block").label} (Required)`;
 			default:
 				return "None";

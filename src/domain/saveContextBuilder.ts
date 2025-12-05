@@ -40,10 +40,10 @@ export interface DetectionEngineResult {
 export class SaveContextBuilder {
 	private repoId: string;
 	private events: FileChangeEvent[] = [];
+	// private _startTime: number = 0;
 
 	constructor(repoId: string) {
 		this.repoId = repoId;
-		this.startTime = Date.now();
 	}
 
 	/**
@@ -61,7 +61,9 @@ export class SaveContextBuilder {
 	 * Add multiple events
 	 */
 	addEvents(events: FileChangeEvent[]): SaveContextBuilder {
-		events.forEach((e) => this.addEvent(e));
+		events.forEach((e) => {
+			this.addEvent(e);
+		});
 		return this;
 	}
 
@@ -186,7 +188,6 @@ export class SaveContextBuilder {
 	 */
 	reset(): void {
 		this.events = [];
-		this.startTime = Date.now();
 	}
 }
 

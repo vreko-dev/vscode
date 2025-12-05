@@ -201,17 +201,12 @@ export type CheckpointSummary = SnapshotSummary;
 export type CheckpointSummaryProvider = SnapshotSummaryProvider;
 
 /**
- * Protection level type - now uses canonical format from contracts
+ * Protection level type - uses canonical format from contracts
  * Canonical: "watch" | "warn" | "block"
- * Legacy: "Watched" | "Warning" | "Protected" (for backward compatibility via mapping functions)
  *
- * Use canonical format for all new code.
- * Import ProtectionLevelEnum from protectionLevel.ts for enum-based code (deprecated).
+ * Use canonical format for all code.
  */
-export type {
-	LegacyProtectionLevel,
-	ProtectionLevel,
-} from "@snapback/contracts";
+export type { ProtectionLevel } from "@snapback/contracts";
 
 import type { ProtectionLevel } from "@snapback/contracts";
 

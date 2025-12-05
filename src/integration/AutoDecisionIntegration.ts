@@ -15,25 +15,25 @@
  * Runs parallel to SaveHandler (no replacement).
  */
 
-import * as vscode from "vscode";
 import * as crypto from "node:crypto";
 import * as path from "node:path";
-import type { SnapshotManager } from "../snapshot/SnapshotManager";
-import type { NotificationManager } from "../notifications/notificationManager";
-import { AutoDecisionEngine } from "../domain/engine";
-import { SaveContextBuilder } from "../domain/saveContextBuilder";
-import { NotificationAdapter } from "../domain/notificationAdapter";
-import { SnapshotOrchestrator } from "../domain/snapshotOrchestrator";
-import { type SignalAggregator, createSignalAggregator } from "../domain/signalAggregator";
-import { GlobalStateStorageAdapter } from "../adapters/GlobalStateStorageAdapter";
+import * as vscode from "vscode";
 import { SettingsLoader } from "../config/settingsLoader";
+import { AutoDecisionEngine } from "../domain/engine";
+import { NotificationAdapter } from "../domain/notificationAdapter";
+import type { FileInfo } from "../domain/signalAggregator";
+import {
+	createSignalAggregator,
+	type SignalAggregator,
+} from "../domain/signalAggregator";
 import type {
 	AutoDecisionConfig,
-	SaveContext,
 	ProtectionDecision,
+	SaveContext,
 } from "../domain/types";
 import { DEFAULT_CONFIG } from "../domain/types";
-import type { FileInfo } from "../domain/signalAggregator";
+import type { NotificationManager } from "../notificationManager";
+import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import { logger } from "../utils/logger";
 
 export interface FileChangeEvent {
@@ -57,7 +57,7 @@ export class AutoDecisionIntegration {
 	private isProcessing = false;
 	private disposables: vscode.Disposable[] = [];
 	private isActive = false;
-	private repoId: string;
+	// private repoId: string;
 
 	private readonly DEBOUNCE_MS = 300;
 	private readonly IGNORE_PATTERNS = [
@@ -84,9 +84,11 @@ export class AutoDecisionIntegration {
 		".bin",
 	];
 
-	constructor(_snapshotManager: SnapshotManager,
-		private notificationManager: NotificationManager,
-		config?: Partial<AutoDecisionConfig>,context?: vscode.ExtensionContext,
+	constructor(
+		_snapshotManager: SnapshotManager,
+		_notificationManager: NotificationManager,
+		config?: Partial<AutoDecisionConfig>,
+		context?: vscode.ExtensionContext,
 	) {
 		// Initialize SettingsLoader if context available
 		if (context) {
@@ -96,24 +98,20 @@ export class AutoDecisionIntegration {
 			this.settingsLoader.onSettingsChange((settings) => {
 				this.engine.updateConfig({
 					riskThreshold: settings.autoDecision.riskThreshold,
-					notifyThreshold:
-						settings.autoDecision.notifyThreshold,
-					minFilesForBurst:
-						settings.autoDecision.minFilesForBurst,
-					maxSnapshotsPerMinute:
-						settings.autoDecision
-							.maxSnapshotsPerMinute,
+					notifyThreshold: settings.autoDecision.notifyThreshold,
+					minFilesForBurst: settings.autoDecision.minFilesForBurst,
+					maxSnapshotsPerMinute: settings.autoDecision.maxSnapshotsPerMinute,
 				});
-				logger.info("AutoDecisionEngine updated with new settings",
-					{ settings: settings.autoDecision });
+				logger.info("AutoDecisionEngine updated with new settings", {
+					settings: settings.autoDecision,
+				});
 			});
 		}
 
 		// Merge settings-based config if available
 		let mergedConfig: AutoDecisionConfig = { ...DEFAULT_CONFIG, ...config };
 		if (this.settingsLoader) {
-			const loadedSettings =
-				this.settingsLoader.loadAutoDecisionSettings();
+			const loadedSettings = this.settingsLoader.loadAutoDecisionSettings();
 			mergedConfig = {
 				...mergedConfig,
 				riskThreshold: loadedSettings.riskThreshold,
@@ -124,22 +122,14 @@ export class AutoDecisionIntegration {
 		}
 
 		this.engine = new AutoDecisionEngine(mergedConfig);
-		this.builder = new SaveContextBuilder("snapback-vscode");
 		this.adapter = new NotificationAdapter();
-		this.repoId = this.getRepoId();
+		// this.repoId = this.getRepoId();
 
-		// Create storage adapter if context available (for persistence)
-		const storage = context
-			? new GlobalStateStorageAdapter(context.globalState)
-			: undefined;
-		this.orchestrator = new SnapshotOrchestrator(
-			this.repoId,
-			undefined,
-			storage,
-		);
 		this.signalAggregator = createSignalAggregator();
 
-		logger.info("AutoDecisionIntegration initialized", { config: mergedConfig });
+		logger.info("AutoDecisionIntegration initialized", {
+			config: mergedConfig,
+		});
 	}
 
 	/**
@@ -365,10 +355,7 @@ export class AutoDecisionIntegration {
 			sizeBytes: Buffer.byteLength(content, "utf-8"),
 			isNew: false, // TODO: Check if file existed before
 			isBinary: this.isBinaryContent(content, path.extname(filePath)),
-			nextHash: crypto
-				.createHash("sha256")
-				.update(content)
-				.digest("hex"),
+			nextHash: crypto.createHash("sha256").update(content).digest("hex"),
 		};
 	}
 
@@ -485,7 +472,7 @@ export class AutoDecisionIntegration {
 	 */
 	private async executeDecision(
 		decision: ProtectionDecision,
-		context: SaveContext,
+		_context: SaveContext,
 	): Promise<void> {
 		try {
 			// Create snapshot if needed
@@ -517,13 +504,11 @@ export class AutoDecisionIntegration {
 					message: notification.message,
 				};
 
-				// Show using NotificationManager with audit trail
-				await this.notificationManager.show(notificationConfig, {
-					filePath: context.files[0]?.path,
-					riskScore: context.riskScore,
-					threats: decision.reasons || [],
-					timestamp: Date.now(),
-				});
+				// Show using VS Code's notification system
+				this.showNotification(
+					notificationConfig.title,
+					notificationConfig.message,
+				);
 			}
 		} catch (error) {
 			logger.error("Error executing decision", error as Error);
@@ -563,5 +548,9 @@ export function createAutoDecisionIntegration(
 	notificationManager: NotificationManager,
 	config?: Partial<AutoDecisionConfig>,
 ): AutoDecisionIntegration {
-	return new AutoDecisionIntegration(snapshotManager, notificationManager, config);
+	return new AutoDecisionIntegration(
+		snapshotManager,
+		notificationManager,
+		config,
+	);
 }

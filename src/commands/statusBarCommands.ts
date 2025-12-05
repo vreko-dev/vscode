@@ -1,11 +1,7 @@
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index.js";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import {
-	BRAND_SIGNAGE,
-	getProtectionLevelSignage,
-	legacyProtectionLevelToCanonical,
-} from "../signage/index.js";
+import { BRAND_SIGNAGE, getProtectionLevelSignage } from "../signage/index.js";
 import type { CommandContext } from "./index.js";
 
 interface EnhancedQuickPickItem extends vscode.QuickPickItem {
@@ -57,12 +53,10 @@ async function showProtectionStatus(
 
 	// Count by protection level
 	const watchCount = files.filter(
-		(f) => f.protectionLevel === "Watched" || !f.protectionLevel,
+		(f) => f.protectionLevel === "watch" || !f.protectionLevel,
 	).length;
-	const warnCount = files.filter((f) => f.protectionLevel === "Warning").length;
-	const blockCount = files.filter(
-		(f) => f.protectionLevel === "Protected",
-	).length;
+	const warnCount = files.filter((f) => f.protectionLevel === "warn").length;
+	const blockCount = files.filter((f) => f.protectionLevel === "block").length;
 
 	const items: EnhancedQuickPickItem[] = [
 		// Header
@@ -100,7 +94,7 @@ async function showProtectionStatus(
 			action:
 				watchCount > 0
 					? async () => {
-							await showFilesByLevel(protectedFileRegistry, "Watched");
+							await showFilesByLevel(protectedFileRegistry, "watch");
 						}
 					: undefined,
 		},
@@ -123,7 +117,7 @@ async function showProtectionStatus(
 			action:
 				warnCount > 0
 					? async () => {
-							await showFilesByLevel(protectedFileRegistry, "Warning");
+							await showFilesByLevel(protectedFileRegistry, "warn");
 						}
 					: undefined,
 		},
@@ -145,7 +139,7 @@ async function showProtectionStatus(
 			action:
 				blockCount > 0
 					? async () => {
-							await showFilesByLevel(protectedFileRegistry, "Protected");
+							await showFilesByLevel(protectedFileRegistry, "block");
 						}
 					: undefined,
 		},
@@ -244,13 +238,14 @@ async function showProtectionStatus(
  */
 async function showFilesByLevel(
 	protectedFileRegistry: ProtectedFileRegistry,
-	level: "Watched" | "Warning" | "Protected",
+	level: "watch" | "warn" | "block",
 ): Promise<void> {
 	const allFiles = await protectedFileRegistry.list();
 	const filteredFiles = allFiles.filter(
 		(f) =>
 			f.protectionLevel === level ||
-			(level === "Watched" && !f.protectionLevel),
+			((level === "watch" || level === (undefined as any)) &&
+				!f.protectionLevel),
 	);
 
 	if (filteredFiles.length === 0) {
@@ -258,9 +253,8 @@ async function showFilesByLevel(
 		return;
 	}
 
-	// Map legacy level to canonical and get signage
-	const canonical = legacyProtectionLevelToCanonical(level);
-	const signage = getProtectionLevelSignage(canonical);
+	// Get signage (level is already canonical)
+	const signage = getProtectionLevelSignage(level);
 	const info = { name: signage.label, emoji: signage.emoji || "" };
 
 	// Create file selection QuickPick

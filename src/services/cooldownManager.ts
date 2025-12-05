@@ -241,7 +241,7 @@ export class CooldownManager {
 		// Return the default duration based on protection level
 		return (
 			this.DEFAULT_COOLDOWN_PERIODS[protectionLevel] ||
-			this.DEFAULT_COOLDOWN_PERIODS.Warning
+			this.DEFAULT_COOLDOWN_PERIODS.warn
 		);
 	}
 

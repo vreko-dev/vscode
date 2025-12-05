@@ -4,6 +4,7 @@ import type { FileHealthDecorationProvider } from "../decorations/FileHealthDeco
 import type { OperationCoordinator } from "../operationCoordinator.js";
 import type { AIRiskService } from "../services/aiRiskService.js";
 import { NoopAIRiskService } from "../services/aiRiskService.js";
+import type { MilestoneService } from "../services/MilestoneService.js";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
 import type { AnalysisResult, BasicAnalysisResult } from "../types/api.js";
 import type { CooldownIndicator } from "../ui/cooldownIndicator.js";
@@ -46,6 +47,7 @@ export class SaveHandler {
 	private auditLogger: AuditLogger;
 	private aiWarningManager: AIWarningManager;
 	private decorationProvider: FileHealthDecorationProvider | null = null;
+	private milestoneService?: MilestoneService;
 
 	// Store iteration tracking data per file
 	private iterationData: Map<string, IterationData> = new Map();
@@ -55,7 +57,9 @@ export class SaveHandler {
 		operationCoordinator: OperationCoordinator,
 		decorationProvider?: FileHealthDecorationProvider,
 		aiRiskService?: AIRiskService,
+		milestoneService?: MilestoneService,
 	) {
+		this.milestoneService = milestoneService;
 		// Initialize services with proper dependency injection
 		this.auditLogger = new AuditLogger(registry);
 		this.cooldownService = new CooldownService(registry);
@@ -67,12 +71,14 @@ export class SaveHandler {
 			registry,
 			this.auditLogger,
 			riskService,
+			milestoneService,
 		);
 		this.protectionLevelHandler = new ProtectionLevelHandler(
 			registry,
 			operationCoordinator,
 			this.cooldownService,
 			this.auditLogger,
+			milestoneService,
 		);
 		this.aiWarningManager = new AIWarningManager();
 		this.decorationProvider = decorationProvider || null;
@@ -104,6 +110,27 @@ export class SaveHandler {
 			}
 
 			logger.info("Protected file being saved", { filePath });
+
+			// 🆕 Track First Protected Save (Activation Funnel)
+			const hasTrackedSave = context.globalState.get<boolean>(
+				"snapback.hasProtectedSave",
+				false,
+			);
+
+			if (!hasTrackedSave && this.milestoneService) {
+				// Fire and forget notification - wrapped in async IIFE
+				void (async () => {
+					if (this.milestoneService) {
+						await this.milestoneService.triggerFirstTimeEvent(
+							"first_protected_save",
+							"SnapBack Active! 🛡️",
+							"Your first protected save is secure. We'll watch your back from here.",
+						);
+						// Mark as tracked locally to avoid repeat calls
+						await context.globalState.update("snapback.hasProtectedSave", true);
+					}
+				})();
+			}
 
 			// Capture PRE-SAVE content from disk, not from the in-memory document
 			// This ensures we capture the actual state that will be overwritten by the save

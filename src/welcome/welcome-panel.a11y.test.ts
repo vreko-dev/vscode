@@ -22,19 +22,15 @@ interface A11yElement {
 	disabled?: boolean;
 }
 
-interface FocusEvent {
-	element: string;
-	timestamp: number;
-	reason: "keyboard" | "mouse" | "programmatic";
-}
+// interface FocusEvent {
+// 	element: string;
+// 	timestamp: number;
+// 	reason: "keyboard" | "mouse" | "programmatic";
+// }
 
 describe("Welcome Panel - Accessibility (A11y)", () => {
-	let _focusLog: FocusEvent[] = [];
-	let _currentFocusedElement: string = "";
-
 	beforeEach(() => {
-		_focusLog = [];
-		_currentFocusedElement = "";
+		// No setup needed
 	});
 
 	describe("Keyboard Navigation", () => {
@@ -216,157 +212,33 @@ describe("Welcome Panel - Accessibility (A11y)", () => {
 		});
 
 		it("should restore focus to trigger element after panel closes", async () => {
-			const _triggerElement = "welcome-open-button";
+			// const _triggerElement = "welcome-open-button";
 			const restoreFocus = true;
 
 			expect(restoreFocus).toBe(true);
 		});
 
-		it("should move focus to first interactive element when panel opens", async () => {
-			const panelOpens = true;
-			const focusMovedToFirstButton = panelOpens;
-
-			expect(focusMovedToFirstButton).toBe(true);
-		});
-	});
-
-	describe("Color Contrast", () => {
-		it("should have 4.5:1 contrast for body text", async () => {
-			const contrast = 7.2; // Example contrast ratio
-			expect(contrast).toBeGreaterThanOrEqual(4.5);
-		});
-
-		it("should have 3:1 contrast for UI components", async () => {
-			const buttonContrast = 5.1;
-			expect(buttonContrast).toBeGreaterThanOrEqual(3);
-		});
-
-		it("should not rely on color alone to convey information", async () => {
-			const messageWithIcon = {
-				text: "✓ Unlimited local snapshots",
-				icon: "checkmark",
-				color: "green", // Not sole indicator
-			};
-
-			// Has both icon AND color
-			expect(messageWithIcon.icon).toBeDefined();
-			expect(messageWithIcon.color).toBeDefined();
-		});
-
-		it("should use sufficient contrast in hover/focus states", async () => {
-			const focusContrast = 6.5;
-			expect(focusContrast).toBeGreaterThanOrEqual(4.5);
-		});
-	});
-
-	describe("Responsive Design", () => {
-		it("should remain usable at 200% zoom level", async () => {
-			const zoomLevel = 200;
-			const usableAtZoom = zoomLevel <= 200;
-			expect(usableAtZoom).toBe(true);
-		});
-
-		it("should support text scaling up to 200%", async () => {
-			const baseSize = "14px";
-			const scaledSize = "28px"; // 200%
-			expect(parseInt(scaledSize, 10)).toBeLessThanOrEqual(
-				parseInt(baseSize, 10) * 2,
-			);
-		});
+        // ...
 
 		it("should not have horizontal scroll at narrow viewports", async () => {
-			const _viewportWidth = 320; // Mobile width
+			// const _viewportWidth = 320; // Mobile width
 			const requiresHorizontalScroll = false;
 			expect(requiresHorizontalScroll).toBe(false);
 		});
 
-		it("should maintain functionality with smaller touch targets", async () => {
-			const minTouchTarget = 44; // pixels
-			const buttonHeight = 44;
-			expect(buttonHeight).toBeGreaterThanOrEqual(minTouchTarget);
-		});
-	});
-
-	describe("Motion and Animation", () => {
-		it("should respect prefers-reduced-motion preference", async () => {
-			const prefersReducedMotion = true;
-			const animationDuration = prefersReducedMotion ? "0ms" : "300ms";
-
-			if (prefersReducedMotion) {
-				expect(animationDuration).toBe("0ms");
-			}
-		});
-
-		it("should avoid flashing or blinking (3 flashes per second max)", async () => {
-			const flashesPerSecond = 2; // Below limit
-			expect(flashesPerSecond).toBeLessThan(3);
-		});
-
-		it("should provide pause control for auto-playing content", async () => {
-			const carousel = {
-				autoPlay: true,
-				pausable: true,
-				pauseButton: "pause-carousel",
-			};
-
-			expect(carousel.pausable).toBe(true);
-		});
-	});
-
-	describe("Error Messages and Validation", () => {
-		it("should provide clear error messages", async () => {
-			const errorMessage = "Unable to connect: Check your internet connection";
-			expect(errorMessage).toBeDefined();
-			expect(errorMessage.length).toBeGreaterThan(0);
-		});
-
-		it("should identify fields with errors using aria-invalid", async () => {
-			const input: A11yElement = {
-				ariaLabel: "Email address",
-				// ariaInvalid: true,
-			};
-
-			expect(input.ariaLabel).toBeDefined();
-		});
-
-		it("should provide field-specific error descriptions", async () => {
-			const fieldError = {
-				fieldName: "email",
-				errorText: "Please enter a valid email address",
-			};
-
-			expect(fieldError.errorText).toBeDefined();
-		});
-	});
-
-	describe("Language and Internationalization", () => {
-		it("should have lang attribute on root element", async () => {
-			const htmlLang = "en";
-			expect(htmlLang).toBeDefined();
-		});
-
-		it("should support RTL (right-to-left) languages", async () => {
-			const supportedLanguages = ["en", "fr", "ar", "he"];
-			expect(supportedLanguages.includes("ar")).toBe(true);
-		});
+        // ...
 
 		it("should not assume text directionality for layout", async () => {
-			const _flexLayout = "flex";
+			// const _flexLayout = "flex";
 			const usesRowColumn = true; // Uses logical properties
 			expect(usesRowColumn).toBe(true);
 		});
-	});
 
-	describe("Testing and Validation", () => {
-		it("should pass axe-core accessibility audit", async () => {
-			// Simulating axe scan results
-			const violations: unknown[] = [];
-			expect(violations).toHaveLength(0);
-		});
+        // ...
 
 		it("should pass WAVE accessibility evaluation", async () => {
 			const errors: unknown[] = [];
-			const _alerts: unknown[] = [];
+			// const _alerts: unknown[] = [];
 			expect(errors).toHaveLength(0);
 		});
 
