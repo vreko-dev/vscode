@@ -18,3 +18,12 @@ test-temp*/
 
 # Generated package.json
 package.json
+
+# Backup/junk files (prevent clutter)
+package.json.backup
+package.json.bak
+package.json.orig
+package.json.tmp
+*.bak
+*.tmp
+*.orig
