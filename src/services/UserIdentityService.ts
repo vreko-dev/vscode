@@ -1,6 +1,6 @@
-import { logger } from "../utils/logger";
 import type { AnonymousIdManager } from "../auth/AnonymousIdManager";
 import type { AuthService } from "../auth/AuthService";
+import { logger } from "../utils/logger";
 import type { TelemetryProxy } from "./telemetry-proxy";
 
 /**

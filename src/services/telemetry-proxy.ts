@@ -52,17 +52,16 @@ export class TelemetryProxy {
 			if (!effectiveUserId && this.identityProvider) {
 				try {
 					effectiveUserId = await this.identityProvider();
-				} catch (err) {
+				} catch (_err) {
 					// Fallback
 				}
 			}
 
 			// Prepare enriched event data
-			const eventData = this.enrichEventData(
-				event,
-				properties,
-				{ ...options, userId: effectiveUserId },
-			);
+			const eventData = this.enrichEventData(event, properties, {
+				...options,
+				userId: effectiveUserId,
+			});
 
 			// Attempt to send immediately
 			const success = await this.sendEvent(eventData);
