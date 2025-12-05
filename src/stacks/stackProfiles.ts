@@ -60,11 +60,11 @@ export const STACK_PROFILES: readonly StackProfile[] = [
 		rules: [
 			{
 				pattern: "next.config.*",
-				level: "Protected",
+				level: "block",
 				category: "Configuration",
 			},
-			{ pattern: ".env.local", level: "Protected", category: "Environment" },
-			{ pattern: ".env.*.local", level: "Protected", category: "Environment" },
+			{ pattern: ".env.local", level: "block", category: "Environment" },
+			{ pattern: ".env.*.local", level: "block", category: "Environment" },
 		],
 	},
 	{
@@ -79,16 +79,16 @@ export const STACK_PROFILES: readonly StackProfile[] = [
 		rules: [
 			{
 				pattern: "package.json",
-				level: "Protected",
+				level: "block",
 				category: "Package Manager",
 			},
 			{
 				pattern: "package-lock.json",
-				level: "Watched",
+				level: "watch",
 				category: "Package Manager",
 			},
-			{ pattern: ".npmrc", level: "Protected", category: "Configuration" },
-			{ pattern: ".yarnrc*", level: "Protected", category: "Configuration" },
+			{ pattern: ".npmrc", level: "block", category: "Configuration" },
+			{ pattern: ".yarnrc*", level: "block", category: "Configuration" },
 		],
 	},
 	{
@@ -104,16 +104,16 @@ export const STACK_PROFILES: readonly StackProfile[] = [
 		rules: [
 			{
 				pattern: "requirements.txt",
-				level: "Protected",
+				level: "block",
 				category: "Dependencies",
 			},
-			{ pattern: "setup.py", level: "Protected", category: "Configuration" },
+			{ pattern: "setup.py", level: "block", category: "Configuration" },
 			{
 				pattern: "pyproject.toml",
-				level: "Protected",
+				level: "block",
 				category: "Configuration",
 			},
-			{ pattern: ".env*", level: "Protected", category: "Environment" },
+			{ pattern: ".env*", level: "block", category: "Environment" },
 		],
 	},
 	{
@@ -129,12 +129,12 @@ export const STACK_PROFILES: readonly StackProfile[] = [
 		rules: [
 			{
 				pattern: "tsconfig.json",
-				level: "Protected",
+				level: "block",
 				category: "Configuration",
 			},
 			{
 				pattern: "tsconfig.*.json",
-				level: "Watched",
+				level: "watch",
 				category: "Configuration",
 			},
 		],
@@ -150,15 +150,15 @@ export const STACK_PROFILES: readonly StackProfile[] = [
 			{ glob: ".dockerignore", confidence: 0.8 },
 		],
 		rules: [
-			{ pattern: "Dockerfile", level: "Warning", category: "Infrastructure" },
+			{ pattern: "Dockerfile", level: "warn", category: "Infrastructure" },
 			{
 				pattern: "docker-compose*.yml",
-				level: "Warning",
+				level: "warn",
 				category: "Infrastructure",
 			},
 			{
 				pattern: ".dockerignore",
-				level: "Watched",
+				level: "watch",
 				category: "Infrastructure",
 			},
 		],
@@ -174,8 +174,8 @@ export const STACK_PROFILES: readonly StackProfile[] = [
 			{ glob: "helm/Chart.yaml", confidence: 0.9 },
 		],
 		rules: [
-			{ pattern: "k8s/**/*", level: "Protected", category: "Infrastructure" },
-			{ pattern: "helm/**/*", level: "Protected", category: "Infrastructure" },
+			{ pattern: "k8s/**/*", level: "block", category: "Infrastructure" },
+			{ pattern: "helm/**/*", level: "block", category: "Infrastructure" },
 		],
 	},
 	{
@@ -188,11 +188,11 @@ export const STACK_PROFILES: readonly StackProfile[] = [
 			{ glob: ".terraform/**/*", confidence: 0.8 },
 		],
 		rules: [
-			{ pattern: "*.tf", level: "Protected", category: "Infrastructure" },
-			{ pattern: "terraform.tfvars", level: "Protected", category: "Secrets" },
+			{ pattern: "*.tf", level: "block", category: "Infrastructure" },
+			{ pattern: "terraform.tfvars", level: "block", category: "Secrets" },
 			{
 				pattern: ".terraform/**",
-				level: "Watched",
+				level: "watch",
 				category: "Infrastructure",
 			},
 		],
@@ -210,15 +210,15 @@ export const STACK_PROFILES: readonly StackProfile[] = [
 		rules: [
 			{
 				pattern: "**/migrations/*.sql",
-				level: "Protected",
+				level: "block",
 				category: "Database",
 			},
 			{
 				pattern: "**/migrations/*.js",
-				level: "Protected",
+				level: "block",
 				category: "Database",
 			},
-			{ pattern: "**/schema*", level: "Protected", category: "Database" },
+			{ pattern: "**/schema*", level: "block", category: "Database" },
 		],
 	},
 	{
@@ -231,10 +231,10 @@ export const STACK_PROFILES: readonly StackProfile[] = [
 			{ glob: ".gitattributes", confidence: 0.7 },
 		],
 		rules: [
-			{ pattern: ".gitignore", level: "Watched", category: "Configuration" },
+			{ pattern: ".gitignore", level: "watch", category: "Configuration" },
 			{
 				pattern: ".gitattributes",
-				level: "Watched",
+				level: "watch",
 				category: "Configuration",
 			},
 		],
@@ -250,7 +250,7 @@ export const STACK_PROFILES: readonly StackProfile[] = [
 		rules: [
 			{
 				pattern: ".github/workflows/**",
-				level: "Protected",
+				level: "block",
 				category: "CI/CD",
 			},
 		],

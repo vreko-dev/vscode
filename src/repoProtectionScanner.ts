@@ -293,7 +293,7 @@ export class RepoProtectionScanner {
 		) {
 			return {
 				filePath,
-				recommendedLevel: "Protected",
+				recommendedLevel: "block",
 				reason: "Contains sensitive credentials",
 				category: "🔐 Sensitive Credentials",
 				fileType: "credentials",
@@ -328,7 +328,7 @@ export class RepoProtectionScanner {
 		) {
 			return {
 				filePath,
-				recommendedLevel: "Warning",
+				recommendedLevel: "warn",
 				reason: "Critical configuration file",
 				category: "⚙️ Configuration Files",
 				fileType: "config",
@@ -347,7 +347,7 @@ export class RepoProtectionScanner {
 			) {
 				return {
 					filePath,
-					recommendedLevel: "Warning",
+					recommendedLevel: "warn",
 					reason: "Database migration file",
 					category: "🗄️ Database Files",
 					fileType: "migration",
@@ -365,7 +365,7 @@ export class RepoProtectionScanner {
 			) {
 				return {
 					filePath,
-					recommendedLevel: "Warning",
+					recommendedLevel: "warn",
 					reason: "CI/CD configuration file",
 					category: "🚀 CI/CD Files",
 					fileType: "ci",
@@ -386,7 +386,7 @@ export class RepoProtectionScanner {
 			) {
 				return {
 					filePath,
-					recommendedLevel: "Warning",
+					recommendedLevel: "warn",
 					reason: "Infrastructure configuration file",
 					category: "🏗️ Infrastructure Files",
 					fileType: "infrastructure",
@@ -419,7 +419,7 @@ export class RepoProtectionScanner {
 		) {
 			return {
 				filePath,
-				recommendedLevel: "Watched",
+				recommendedLevel: "watch",
 				reason: "Source code file",
 				category: "📄 Source Code",
 				fileType: "source",
@@ -440,7 +440,7 @@ export class RepoProtectionScanner {
 		) {
 			return {
 				filePath,
-				recommendedLevel: "Watched",
+				recommendedLevel: "watch",
 				reason: "Documentation file",
 				category: "📚 Documentation",
 				fileType: "docs",
@@ -453,11 +453,11 @@ export class RepoProtectionScanner {
 
 	private getProtectionIcon(level: ProtectionLevel): string {
 		switch (level) {
-			case "Watched":
+			case "watch":
 				return "\u{1f7e2}";
-			case "Warning":
+			case "warn":
 				return "\u{26a0}";
-			case "Protected":
+			case "block":
 				return "\u{1f6d1}";
 			default:
 				return "\u{1f7e2}";
@@ -492,9 +492,9 @@ export class RepoProtectionScanner {
 	 */
 	private getCategoryFromLevel(level: ProtectionLevel): string {
 		switch (level) {
-			case "Protected":
+			case "block":
 				return "🔐 Sensitive Credentials";
-			case "Warning":
+			case "warn":
 				return "⚙️ Configuration Files";
 			default:
 				return "📄 Source Code";

@@ -153,7 +153,8 @@ describe("SnapBackTreeProvider", () => {
 
 	describe("refresh", () => {
 		it("should fire onDidChangeTreeData event", () => {
-			const fireSpy = vi.spyOn(provider._onDidChangeTreeData, "fire");
+			// Cast to any to access private property for testing
+			const fireSpy = vi.spyOn((provider as any)._onDidChangeTreeData, "fire");
 
 			provider.refresh();
 
@@ -417,7 +418,8 @@ describe("SnapBackTreeProvider", () => {
 		});
 
 		it("should fire refresh after changing grouping mode", () => {
-			const fireSpy = vi.spyOn(provider._onDidChangeTreeData, "fire");
+			// Cast to any to access private property for spy
+			const fireSpy = vi.spyOn((provider as any)._onDidChangeTreeData, "fire");
 
 			provider.setGroupingMode("time");
 

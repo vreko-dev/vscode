@@ -1,52 +1,49 @@
+import {
+	PROTECTION_LEVELS as CANONICAL_PROTECTION_LEVELS,
+	type ProtectionLevelMetadata as CanonicalMetadata,
+	canonicalToLegacy,
+	isProtectionLevel,
+	type LegacyProtectionLevel,
+	legacyToCanonical,
+	type ProtectionLevel,
+} from "@snapback/contracts";
+
 /**
- * Protection levels for files
- * - Watched: Silent auto-snapshot on save
- * - Warning: Show notification before save with snapshot option
- * - Protected: Require explicit snapshot or override to save
+ * Re-export canonical protection level type
+ * This is now the standard type used throughout the VSCode extension.
+ *
+ * Migration note: Legacy code using "Watched" | "Warning" | "Protected" strings
+ * should use the conversion functions from @snapback/contracts/types/protection-utils
  */
-export type ProtectionLevel = "Watched" | "Warning" | "Protected";
+export type { LegacyProtectionLevel, ProtectionLevel };
+export { canonicalToLegacy, isProtectionLevel, legacyToCanonical };
 
 /**
  * UI metadata for protection levels
+ * Extends canonical metadata with VSCode-specific theming
  */
-export interface ProtectionLevelMetadata {
-	level: ProtectionLevel;
-	icon: string;
-	label: string;
-	description: string;
-	color: string; // For status bar/decorations
+export interface ProtectionLevelMetadata extends CanonicalMetadata {
 	themeColor: string; // VS Code theme color
 }
 
 /**
- * Protection level configurations
+ * Protection level configurations with VSCode-specific metadata
+ * This maps canonical levels to VSCode UI requirements
  */
 export const PROTECTION_LEVELS: Record<
 	ProtectionLevel,
 	ProtectionLevelMetadata
 > = {
-	Watched: {
-		level: "Watched",
-		icon: "🟢", // Green circle
-		label: "Watch",
-		description: "Silent auto-snapshot on save",
-		color: "#10B981", // Emerald 500
-		themeColor: "charts.green",
+	watch: {
+		...CANONICAL_PROTECTION_LEVELS.watch,
+		themeColor: CANONICAL_PROTECTION_LEVELS.watch.themeColor || "charts.green",
 	},
-	Warning: {
-		level: "Warning",
-		icon: "🟡", // Yellow circle
-		label: "Warn",
-		description: "Notify before save with options",
-		color: "#FF6B35", // Safety orange
-		themeColor: "charts.orange",
+	warn: {
+		...CANONICAL_PROTECTION_LEVELS.warn,
+		themeColor: CANONICAL_PROTECTION_LEVELS.warn.themeColor || "charts.orange",
 	},
-	Protected: {
-		level: "Protected",
-		icon: "🔴", // Red circle
-		label: "Block",
-		description: "Require snapshot or explicit override",
-		color: "#EF4444", // Red 500
-		themeColor: "charts.red",
+	block: {
+		...CANONICAL_PROTECTION_LEVELS.block,
+		themeColor: CANONICAL_PROTECTION_LEVELS.block.themeColor || "charts.red",
 	},
 };

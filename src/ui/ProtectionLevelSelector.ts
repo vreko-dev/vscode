@@ -109,7 +109,7 @@ export async function showBlockConfirmation(
 export async function showWarnPrompt(
 	filename: string,
 ): Promise<"snapshot" | "skip" | "cancel"> {
-	const warnMetadata = PROTECTION_LEVELS.Warning;
+	const warnMetadata = PROTECTION_LEVELS.warn;
 
 	const choice = await vscode.window.showWarningMessage(
 		`${warnMetadata.icon} Save "${filename}" with snapshot?`,

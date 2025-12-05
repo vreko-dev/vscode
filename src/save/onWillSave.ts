@@ -50,10 +50,10 @@ export class OnWillSaveHandler {
 			}
 
 			// Get protection level
-			const protectionLevel = protectedEntry.protectionLevel || "Watched";
+			const protectionLevel = protectedEntry.protectionLevel || "watch";
 
 			// For Watch level, allow save but create snapshot
-			if (protectionLevel === "Watched") {
+			if (protectionLevel === "watch") {
 				// Snapshot will be created by the save handler
 				return;
 			}
@@ -67,9 +67,9 @@ export class OnWillSaveHandler {
 			this.recordBudgetProbe("analysis_kickoff_ms", analysisTime);
 
 			// Handle based on protection level and decision
-			if (protectionLevel === "Warning") {
+			if (protectionLevel === "warn") {
 				await this.handleWarningLevel(document, decision);
-			} else if (protectionLevel === "Protected") {
+			} else if (protectionLevel === "block") {
 				await this.handleBlockLevel(document, decision, event);
 			}
 

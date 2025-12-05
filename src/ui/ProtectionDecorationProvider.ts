@@ -81,7 +81,7 @@ export class ProtectionDecorationProvider
 		if (isProtected) {
 			// Get protection level from registry
 			const protectionLevel =
-				this.registry.getProtectionLevel(uri.fsPath) || "Watched";
+				this.registry.getProtectionLevel(uri.fsPath) || "watch";
 			const levelMetadata: ProtectionLevelMetadata =
 				PROTECTION_LEVELS[protectionLevel];
 

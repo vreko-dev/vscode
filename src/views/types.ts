@@ -1,12 +1,5 @@
 import type { Uri } from "vscode";
 import { PROTECTION_LEVEL_SIGNAGE } from "../signage/index.js";
-// Phase 2: Import canonical enum and mapping layer
-import type { LegacyProtectionLevel } from "../types/protectionLevel.js";
-import {
-	legacyStringToLevel,
-	levelToLegacyString,
-	ProtectionLevel as ProtectionLevelEnum,
-} from "../types/protectionLevel.js";
 
 // ============================================
 // GROUPING MODES (Future-Proof Architecture)
@@ -208,19 +201,19 @@ export type CheckpointSummary = SnapshotSummary;
 export type CheckpointSummaryProvider = SnapshotSummaryProvider;
 
 /**
- * Protection levels for files - now wraps canonical enum
- * For backward compatibility, still use string literals
- * - Watched: Silent auto-snapshot on save
- * - Warning: Show notification before save with snapshot option
- * - Protected: Require explicit snapshot or override to save
+ * Protection level type - now uses canonical format from contracts
+ * Canonical: "watch" | "warn" | "block"
+ * Legacy: "Watched" | "Warning" | "Protected" (for backward compatibility via mapping functions)
  *
- * Phase 2 Note: New code should use ProtectionLevelEnum from protectionLevel.ts
+ * Use canonical format for all new code.
+ * Import ProtectionLevelEnum from protectionLevel.ts for enum-based code (deprecated).
  */
-export type ProtectionLevel = LegacyProtectionLevel;
+export type {
+	LegacyProtectionLevel,
+	ProtectionLevel,
+} from "@snapback/contracts";
 
-// Re-export enum and helpers for new code
-export { ProtectionLevelEnum, legacyStringToLevel, levelToLegacyString };
-export type { LegacyProtectionLevel };
+import type { ProtectionLevel } from "@snapback/contracts";
 
 /**
  * UI metadata for protection levels
@@ -242,8 +235,8 @@ export const PROTECTION_LEVELS: Record<
 	ProtectionLevel,
 	ProtectionLevelMetadata
 > = {
-	Watched: {
-		level: "Watched",
+	watch: {
+		level: "watch",
 		icon: PROTECTION_LEVEL_SIGNAGE.watch.emoji || "🟢",
 		label: PROTECTION_LEVEL_SIGNAGE.watch.label,
 		description:
@@ -252,8 +245,8 @@ export const PROTECTION_LEVELS: Record<
 		color: PROTECTION_LEVEL_SIGNAGE.watch.color || "#10B981",
 		themeColor: PROTECTION_LEVEL_SIGNAGE.watch.themeColor || "charts.green",
 	},
-	Warning: {
-		level: "Warning",
+	warn: {
+		level: "warn",
 		icon: PROTECTION_LEVEL_SIGNAGE.warn.emoji || "🟡",
 		label: PROTECTION_LEVEL_SIGNAGE.warn.label,
 		description:
@@ -262,8 +255,8 @@ export const PROTECTION_LEVELS: Record<
 		color: PROTECTION_LEVEL_SIGNAGE.warn.color || "#FACC15",
 		themeColor: PROTECTION_LEVEL_SIGNAGE.warn.themeColor || "charts.yellow",
 	},
-	Protected: {
-		level: "Protected",
+	block: {
+		level: "block",
 		icon: PROTECTION_LEVEL_SIGNAGE.block.emoji || "🔴",
 		label: PROTECTION_LEVEL_SIGNAGE.block.label,
 		description:

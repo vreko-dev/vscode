@@ -116,15 +116,15 @@ export class CooldownIndicator {
 					// We need to check all protection levels since we don't know which one was used
 					const watchedInCooldown = await cooldownManager.isInCooldown(
 						filePath,
-						"Watched",
+						"watch",
 					);
 					const warningInCooldown = await cooldownManager.isInCooldown(
 						filePath,
-						"Warning",
+						"warn",
 					);
 					const protectedInCooldown = await cooldownManager.isInCooldown(
 						filePath,
-						"Protected",
+						"block",
 					);
 					return watchedInCooldown || warningInCooldown || protectedInCooldown;
 				} catch (error) {
@@ -205,11 +205,11 @@ export class CooldownIndicator {
 	 */
 	private getLevelIcon(level: ProtectionLevel): string {
 		switch (level) {
-			case "Watched":
+			case "watch":
 				return "🟢";
-			case "Warning":
+			case "warn":
 				return "🟡";
-			case "Protected":
+			case "block":
 				return "🔴";
 			default:
 				return "⚪";

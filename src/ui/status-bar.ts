@@ -280,10 +280,10 @@ export class StatusBarController {
 	} {
 		return {
 			watch: files.filter(
-				(f) => f.protectionLevel === "Watched" || !f.protectionLevel,
+				(f) => f.protectionLevel === "watch" || !f.protectionLevel,
 			).length,
-			warn: files.filter((f) => f.protectionLevel === "Warning").length,
-			block: files.filter((f) => f.protectionLevel === "Protected").length,
+			warn: files.filter((f) => f.protectionLevel === "warn").length,
+			block: files.filter((f) => f.protectionLevel === "block").length,
 		};
 	}
 

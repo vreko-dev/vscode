@@ -111,11 +111,11 @@ export class SnapBackStatusBar {
 
 		// Determine highest protection level
 		if (stats.protected > 0) {
-			stats.highestLevel = "Protected";
+			stats.highestLevel = "block";
 		} else if (stats.warning > 0) {
-			stats.highestLevel = "Warning";
+			stats.highestLevel = "warn";
 		} else if (stats.watched > 0) {
-			stats.highestLevel = "Watched";
+			stats.highestLevel = "watch";
 		}
 
 		return stats;

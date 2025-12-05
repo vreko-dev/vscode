@@ -44,7 +44,7 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 				this.protectedFileRegistry.getProtectionLevel(filePath);
 
 			// Only show CodeLenses for BLOCK level protected files
-			if (protectionLevel !== "Protected") {
+			if (protectionLevel !== "block") {
 				return [];
 			}
 

@@ -11,27 +11,30 @@ export class FileDecorationProvider
 
 	static getDecoration(level: ProtectionLevel): vscode.FileDecoration {
 		const decorations = {
-			Watched: {
-				badge: DesignTokens.icons.Watched,
+			watch: {
+				badge: DesignTokens.icons.watch, // or Watched if legacy
 				tooltip: "Watch - Baseline protection",
 				color: new vscode.ThemeColor("charts.green"),
 			},
-			Warning: {
-				badge: DesignTokens.icons.Warning,
+			warn: {
+				badge: DesignTokens.icons.warn, // or Warning
 				tooltip: "Warning - High-risk changes detected",
 				color: new vscode.ThemeColor("charts.orange"),
 			},
-			Protected: {
-				badge: DesignTokens.icons.Protected,
+			block: {
+				badge: DesignTokens.icons.block, // or Protected
 				tooltip: "Protected - Requires approval to modify",
 				color: new vscode.ThemeColor("charts.red"),
 			},
 		};
 
+		// Map legacy tokens if needed or use updated ones
+		// Assuming DesignTokens might still have legacy keys, let's check
+		// For now using safe access or anticipated keys
 		return new vscode.FileDecoration(
-			decorations[level].badge,
-			decorations[level].tooltip,
-			decorations[level].color,
+			decorations[level]?.badge || "🟢",
+			decorations[level]?.tooltip || "",
+			decorations[level]?.color,
 		);
 	}
 

@@ -7,8 +7,10 @@
  */
 
 import * as vscode from "vscode";
-import type { SnapshotOrchestrator } from "../domain/snapshotOrchestrator";
-import type { PersistedSnapshot } from "../domain/snapshotOrchestrator";
+import type {
+	PersistedSnapshot,
+	SnapshotOrchestrator,
+} from "../domain/snapshotOrchestrator";
 import { logger } from "../utils/logger";
 
 /**
@@ -17,8 +19,8 @@ import { logger } from "../utils/logger";
 class SnapshotTreeItem extends vscode.TreeItem {
 	constructor(
 		snapshot: PersistedSnapshot,
-		collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState
-			.None,
+		collapsibleState: vscode.TreeItemCollapsibleState = vscode
+			.TreeItemCollapsibleState.None,
 	) {
 		const timestamp = new Date(snapshot.timestamp).toLocaleString();
 		const label = snapshot.name;
@@ -64,9 +66,7 @@ export class SnapshotListProvider
 	/**
 	 * Get root children (all snapshots)
 	 */
-	getChildren(
-		element?: SnapshotTreeItem,
-	): Thenable<SnapshotTreeItem[]> {
+	getChildren(element?: SnapshotTreeItem): Thenable<SnapshotTreeItem[]> {
 		if (element) {
 			// No children for individual snapshot items
 			return Promise.resolve([]);
@@ -92,7 +92,7 @@ export class SnapshotListProvider
 	 * Refresh tree view
 	 */
 	refresh(): void {
-		this.onDidChangeTreeDataEmitter.fire();
+		this.onDidChangeTreeDataEmitter.fire(undefined);
 		logger.debug("SnapshotListProvider refreshed");
 	}
 
@@ -101,7 +101,7 @@ export class SnapshotListProvider
 	 */
 	refreshSnapshot(_snapshotId: string): void {
 		// Would update single node if found
-		this.onDidChangeTreeDataEmitter.fire();
+		this.onDidChangeTreeDataEmitter.fire(undefined);
 	}
 
 	/**

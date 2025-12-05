@@ -1,6 +1,7 @@
+import type { ProtectionLevel } from "@snapback/contracts";
 import { PROTECTION_LEVEL_SIGNAGE } from "../signage/index.js";
 
-export type ProtectionLevel = "Watched" | "Warning" | "Protected";
+export type { ProtectionLevel };
 
 export interface ColorToken {
 	primary: string;
@@ -12,9 +13,9 @@ export interface ColorToken {
 
 export interface DesignTokensType {
 	colors: {
-		Watched: ColorToken;
-		Warning: ColorToken;
-		Protected: ColorToken;
+		watch: ColorToken;
+		warn: ColorToken;
+		block: ColorToken;
 		neutral: {
 			background: string;
 			surface: string;
@@ -25,9 +26,9 @@ export interface DesignTokensType {
 		};
 	};
 	icons: {
-		Watched: string;
-		Warning: string;
-		Protected: string;
+		watch: string;
+		warn: string;
+		block: string;
 	};
 	typography: {
 		fontSize: {
@@ -61,20 +62,20 @@ export const DesignTokens: DesignTokensType & {
 	getLabel: (level: ProtectionLevel) => string;
 } = {
 	colors: {
-		Watched: {
+		watch: {
 			primary: PROTECTION_LEVEL_SIGNAGE.watch.color || "#10B981", // From signage module
 			background: "rgba(16, 185, 129, 0.1)",
 			border: "rgba(16, 185, 129, 0.3)",
 			text: "#10B981",
 		},
-		Warning: {
+		warn: {
 			primary: PROTECTION_LEVEL_SIGNAGE.warn.color || "#FF6B35", // From signage module
 			background: "rgba(255, 107, 53, 0.1)",
 			border: "rgba(255, 107, 53, 0.3)",
 			text: "#FF6B35",
 			secondary: "#F59E0B", // Amber for accents
 		},
-		Protected: {
+		block: {
 			primary: PROTECTION_LEVEL_SIGNAGE.block.color || "#EF4444", // From signage module
 			background: "rgba(239, 68, 68, 0.1)",
 			border: "rgba(239, 68, 68, 0.3)",
@@ -91,9 +92,9 @@ export const DesignTokens: DesignTokensType & {
 		},
 	},
 	icons: {
-		Watched: PROTECTION_LEVEL_SIGNAGE.watch.emoji || "🟢", // From signage module
-		Warning: PROTECTION_LEVEL_SIGNAGE.warn.emoji || "🟡", // From signage module
-		Protected: PROTECTION_LEVEL_SIGNAGE.block.emoji || "🔴", // From signage module
+		watch: PROTECTION_LEVEL_SIGNAGE.watch.emoji || "🟢", // From signage module
+		warn: PROTECTION_LEVEL_SIGNAGE.warn.emoji || "🟡", // From signage module
+		block: PROTECTION_LEVEL_SIGNAGE.block.emoji || "🔴", // From signage module
 	},
 	typography: {
 		fontSize: {
@@ -131,9 +132,9 @@ export const DesignTokens: DesignTokensType & {
 
 	getLabel(level: ProtectionLevel): string {
 		const labelMap: Record<ProtectionLevel, string> = {
-			Watched: PROTECTION_LEVEL_SIGNAGE.watch.label,
-			Warning: PROTECTION_LEVEL_SIGNAGE.warn.label,
-			Protected: PROTECTION_LEVEL_SIGNAGE.block.label,
+			watch: PROTECTION_LEVEL_SIGNAGE.watch.label,
+			warn: PROTECTION_LEVEL_SIGNAGE.warn.label,
+			block: PROTECTION_LEVEL_SIGNAGE.block.label,
 		};
 		return labelMap[level];
 	},

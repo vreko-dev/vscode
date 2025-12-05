@@ -7,7 +7,7 @@ import {
 } from "../signage/index.js";
 import type { ProtectionLevelCanonical } from "../signage/types.js";
 import { logger } from "../utils/logger.js";
-import type { ProtectedFileEntry, ProtectionLevel } from "./types";
+import type { ProtectedFileEntry } from "./types";
 
 /**
  * Explorer-integrated tree provider for protected files
@@ -82,13 +82,13 @@ export class ProtectedFilesTreeProvider
 
 				// Group files by canonical protection level (block > warn > watch)
 				const blockFiles = validFiles.filter(
-					(f) => f.protectionLevel === "Protected",
+					(f) => f.protectionLevel === "block",
 				);
 				const warnFiles = validFiles.filter(
-					(f) => f.protectionLevel === "Warning",
+					(f) => f.protectionLevel === "warn",
 				);
 				const watchFiles = validFiles.filter(
-					(f) => f.protectionLevel === "Watched" || !f.protectionLevel,
+					(f) => f.protectionLevel === "watch" || !f.protectionLevel,
 				);
 
 				// Create section nodes (collapsed by default to reduce cognitive overload)
@@ -125,22 +125,19 @@ export class ProtectedFilesTreeProvider
 			const canonicalLevel = element.contextValue.split(
 				".",
 			)[1] as ProtectionLevelCanonical;
-			// Map canonical to legacy for filtering
-			const levelMap: Record<ProtectionLevelCanonical, ProtectionLevel> = {
-				block: "Protected",
-				warn: "Warning",
-				watch: "Watched",
-			};
-			const level = levelMap[canonicalLevel];
+
+			// Direct mapping now that we're using canonical types everywhere
+			const level = canonicalLevel;
+
 			try {
 				const files = await this.protectedFiles.list();
 				const validFiles = files.filter((file) => file?.label);
 
 				// Filter files by protection level
 				let levelFiles = validFiles.filter((f) => {
-					if (level === "Watched") {
+					if (level === "watch") {
 						// Watch includes files with no level set
-						return f.protectionLevel === "Watched" || !f.protectionLevel;
+						return f.protectionLevel === "watch" || !f.protectionLevel;
 					}
 					return f.protectionLevel === level;
 				});
@@ -216,13 +213,10 @@ export function createProtectedFileTreeItem(
 	}
 
 	// Map legacy protection level to canonical for signage
-	const levelMap: Record<ProtectionLevel, ProtectionLevelCanonical> = {
-		Protected: "block",
-		Warning: "warn",
-		Watched: "watch",
-	};
-	const level = entry.protectionLevel || "Watched";
-	const canonicalLevel = levelMap[level];
+	// Since we are migrating to canonical types, we can use the level directly
+	// or fallback to "watch"
+	const level = entry.protectionLevel || "watch";
+	const canonicalLevel = level as ProtectionLevelCanonical;
 	const signage = PROTECTION_LEVEL_SIGNAGE[canonicalLevel];
 
 	// Just show the filename - no need to repeat protection level since it's grouped

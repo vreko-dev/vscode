@@ -1,13 +1,12 @@
+import type { ProtectionLevel } from "@snapback/contracts";
 import { minimatch } from "minimatch";
 import type { ProtectionRule, SnapBackRC } from "../types/snapbackrc.types";
 
-type ProtectionLevel = "Watched" | "Warning" | "Protected";
-
 // Protection level hierarchy (higher number = more restrictive)
 const PROTECTION_LEVEL_PRIORITY: Record<ProtectionLevel, number> = {
-	Watched: 1,
-	Warning: 2,
-	Protected: 3,
+	watch: 1,
+	warn: 2,
+	block: 3,
 };
 
 // Cache for compiled minimatch patterns to avoid recompilation
@@ -227,8 +226,8 @@ export function getProtectionLevelForFile(
 	// Since Protected (level 3) is the highest, we can return immediately when found
 	for (const rule of config.protection) {
 		if (matchesPattern(filePath, rule.pattern)) {
-			// Early exit optimization - if we find Protected level, return immediately
-			if (rule.level === "Protected") {
+			// Early exit optimization - if we find block level, return immediately
+			if (rule.level === "block") {
 				return rule.level;
 			}
 			matchingRules.push(rule);
@@ -254,7 +253,7 @@ export function getProtectionLevelForFile(
 
 			// Early exit optimization - if we reach maximum priority, return immediately
 			if (priority === 3) {
-				// Protected level
+				// block level
 				break;
 			}
 		}

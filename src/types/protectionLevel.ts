@@ -1,6 +1,9 @@
 /**
  * Canonical ProtectionLevel enum and legacy mapping layer
  *
+ * DEPRECATED: Use canonical protection levels from @snapback/contracts instead
+ * This module is maintained for backward compatibility only.
+ *
  * Phase 2 Introduction: Explicit protection level model with type-safe mapping
  * to legacy string-based system for backward compatibility.
  *
@@ -10,7 +13,7 @@
  * 3. Type aliases for gradual migration
  *
  * Usage:
- * - New code: Use ProtectionLevel enum directly
+ * - New code: Use canonical ProtectionLevel from @snapback/contracts
  * - Legacy code: Use LegacyProtectionLevel type and mapping functions
  * - Integration points: Accept both, map as needed
  */

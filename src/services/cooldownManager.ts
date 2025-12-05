@@ -56,10 +56,10 @@ export class CooldownManager {
 
 	// Default cooldown periods (from SDK centralized thresholds)
 	private readonly DEFAULT_COOLDOWN_PERIODS = {
-		Warning: THRESHOLDS.protection.otherCooldown,
-		Protected: THRESHOLDS.protection.protectedCooldown,
+		warn: THRESHOLDS.protection.otherCooldown,
+		block: THRESHOLDS.protection.protectedCooldown,
 		userOverride: THRESHOLDS.session.maxSessionDuration,
-		Watched: THRESHOLDS.protection.otherCooldown,
+		watch: THRESHOLDS.protection.otherCooldown,
 	};
 
 	constructor(dbPath: string) {
