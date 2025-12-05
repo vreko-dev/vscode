@@ -1,0 +1,91 @@
+{
+  // SnapBack Configuration
+  // Migrated from legacy .snapbackprotected and .snapbackignore files
+  // Documentation: https://docs.snapback.dev/configuration
+
+  "protection": [
+    {
+      "pattern": "@watch tsconfig.json",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch .env",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch .env.*",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch src/mcpView.ts",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch src/extension.ts",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch package.json",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch install-extension",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch src/config-detector.ts",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch src/conflictResolver.ts",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch src/config-detector.test.ts",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch src/notificationExamples.ts",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch src/operationCoordinator.ts",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch src/checkpointSelector.ts",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch AGENTS.md",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch BUG-004-FIX-REPORT.md",
+      "level": "watch"
+    },
+    {
+      "pattern": "@watch src/editorDecorations.ts",
+      "level": "watch"
+    },
+    {
+      "pattern": "@warn .env.example",
+      "level": "watch"
+    }
+  ],
+
+  "ignore": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "*.vsix",
+    "*.log"
+  ],
+
+  "settings": {
+    "maxCheckpoints": 100,
+    "compressionEnabled": true,
+    "notificationDuration": 1000,
+    "defaultProtectionLevel": "watch"
+  }
+}

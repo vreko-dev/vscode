@@ -1,0 +1,7 @@
+[
+	{
+		"name": "VSCode Extension Bundle",
+		"path": "dist/extension.js",
+		"limit": "2 MB"
+	}
+]

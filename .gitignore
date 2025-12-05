@@ -1,0 +1,20 @@
+# VS Code extension specific ignores
+node_modules/
+dist/
+out/
+*.vsix
+*.tsbuildinfo
+.env
+!.env.example
+
+# Test artifacts (422 MB VSCode installation)
+.vscode-test/
+.vscode-test-workspace/
+test-temp*/
+
+# Development artifacts
+.DS_Store
+*.log
+
+# Generated package.json
+package.json

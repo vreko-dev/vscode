@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <defs>
+    <style>
+      .snapback-wide {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 22px;
+        font-weight: 900;
+        fill: currentColor;
+        letter-spacing: 0px;
+      }
+    </style>
+  </defs>
+
+  <text x="12" y="19" text-anchor="middle" class="snapback-wide">{s}</text>
+</svg>

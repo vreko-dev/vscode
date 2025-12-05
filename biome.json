@@ -1,0 +1,33 @@
+{
+	"root": false,
+	"extends": ["../biome.json"],
+	"formatter": {
+		"enabled": true,
+		"useEditorconfig": true
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true
+		}
+	},
+	"files": {
+		"ignoreUnknown": true,
+		"includes": [
+			"**",
+			"!**/node_modules",
+			"!**/dist",
+			"!**/out",
+			"!**/*.vsix",
+			"!**/*.tsbuildinfo",
+			"!types/diff.d.ts",
+			"!demo-e2e-test.js",
+			"!run-e2e-demo.js",
+			"!scripts",
+			"!spike",
+			"!**/*.test.ts",
+			"!**/*.test.tsx",
+			"!test"
+		]
+	}
+}

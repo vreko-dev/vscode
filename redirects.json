@@ -1,0 +1,14 @@
+{
+	"BUGFIXES.md": "docs/development/bug-fixes-history.md",
+	"docs/protection-levels-guide.md": "docs/user-guide/protection-levels-guide.md",
+	"SNAPBACK_FEATURES.md": "docs/user-guide/snapback-features.md",
+	"ENHANCED_NOTIFICATIONS.md": "docs/features/notifications.md",
+	"NOTIFICATION_INTEGRATION.md": "docs/features/notifications.md",
+	"NOTIFICATION_UPGRADE_SUMMARY.md": "docs/features/notifications.md",
+	"docs/ci-cd-best-practices.md": "docs/development/ci-cd-guide.md",
+	"docs/ci-cd-changes-summary.md": "docs/development/ci-cd-guide.md",
+	"docs/ci-cd-implementation-guide.md": "docs/development/ci-cd-guide.md",
+	"docs/CI-CD-IMPLEMENTATION-REPORT.md": "docs/development/ci-cd-guide.md",
+	"docs/ci-cd-infrastructure.md": "docs/development/ci-cd-guide.md",
+	"docs/ci-cd-quick-reference.md": "docs/development/ci-cd-guide.md"
+}

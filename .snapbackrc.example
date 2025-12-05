@@ -1,0 +1,101 @@
+{
+  // SnapBack Configuration - Unified .snapbackrc format
+  // Documentation: https://docs.snapback.dev/configuration
+  // 
+  // This file replaces legacy .snapbackprotected and .snapbackignore files
+  // JSON5 format: supports comments, trailing commas, and readable syntax
+  //
+  // PROTECTION LEVELS:
+  // • "watch" - Silent auto-snapshotting (recommended for most files)
+  // • "warn"  - Confirmation before save (for important files)
+  // • "block" - Required snapshot note (for critical files)
+  
+  // FILE PROTECTION RULES
+  // Define which files to protect and at what level
+  "protection": [
+    {
+      "pattern": "src/**/*.ts",
+      "level": "watch",
+      "reason": "Default protection for all TypeScript source files"
+    },
+    {
+      "pattern": "src/config/**/*",
+      "level": "warn",
+      "reason": "Configuration changes require confirmation"
+    },
+    {
+      "pattern": "src/security/**/*.ts",
+      "level": "block",
+      "reason": "Security-critical code must snapshot before save"
+    },
+    // Common patterns you might want to add:
+    // { "pattern": "**/*.env*", "level": "block", "reason": "Environment variables" },
+    // { "pattern": "package.json", "level": "warn", "reason": "Dependencies" },
+    // { "pattern": "tsconfig.json", "level": "warn", "reason": "TypeScript config" },
+    // { "pattern": "Dockerfile", "level": "warn", "reason": "Container configuration" }
+  ],
+  
+  // IGNORE PATTERNS
+  // Files and directories to exclude from all SnapBack operations
+  "ignore": [
+    "node_modules/**",      // Dependencies
+    "dist/**",             // Build output
+    "out/**",              // Alternative build output
+    ".git/**",             // Git repository
+    "coverage/**",         // Test coverage reports
+    "*.log",               // Log files
+    "*.tmp",               // Temporary files
+    ".snapback/**"         // SnapBack internal files
+  ],
+  
+  // EXTENSION SETTINGS
+  "settings": {
+    "maxCheckpoints": 100,           // Maximum snapshots to retain
+    "compressionEnabled": true,      // Compress snapshot storage
+    "autoCheckpointInterval": 0,     // Auto-snapshot interval (0 = disabled)
+    "notificationDuration": 1500,    // Notification display time (ms)
+    "showStatusBarItem": true,       // Show SnapBack status bar indicator
+    "confirmRestore": true,          // Confirm before restoring snapshots
+    "defaultProtectionLevel": "watch", // Default level for new protections
+    "protectionDebounce": 1000,      // Delay before applying protections (ms)
+    "checkpointLocation": ".snapback/checkpoints", // Custom storage path
+    "maxStorageSize": 512,           // Maximum storage size (MB)
+    "parallelOperations": 4,         // Concurrent operations limit
+    "enableCaching": true            // Cache file states for performance
+  },
+  
+  // TEAM POLICIES
+  "policies": {
+    "requireCheckpointMessage": false,     // Require message for snapshots
+    "enforceProtectionLevels": false,      // Prevent downgrading protection
+    "allowOverrides": true,                // Allow UI protection changes
+    "minimumProtectionLevel": "watch",     // Workspace minimum protection
+    "preventAccidentalCommit": false,      // Warn before git commits
+    "teamConfigUrl": ""                    // Remote team configuration
+  },
+  
+  // LIFECYCLE HOOKS
+  "hooks": {
+    "beforeCheckpoint": "",      // Command before snapshot creation
+    "afterCheckpoint": "",       // Command after snapshot creation
+    "beforeRestore": "",         // Command before restore
+    "afterRestore": "",          // Command after restore
+    "onProtectedFileChange": ""  // Command when protected files change
+  },
+  
+  // SNAPSHOT TEMPLATES
+  "templates": [
+    {
+      "name": "Feature work",
+      "patterns": ["src/features/**/*", "src/components/**/*"],
+      "message": "Checkpoint before feature commit",
+      "tags": ["feature", "checkpoint"]
+    },
+    {
+      "name": "Config update",
+      "patterns": ["src/config/**/*"],
+      "message": "Snapshot before config change",
+      "tags": ["config", "safety"]
+    }
+  ]
+}

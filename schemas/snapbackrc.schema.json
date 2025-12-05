@@ -1,0 +1,143 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "SnapBack Configuration",
+	"type": "object",
+	"properties": {
+		"protection": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"required": ["pattern", "level"],
+				"properties": {
+					"pattern": {
+						"type": "string",
+						"description": "Glob pattern that identifies files to protect"
+					},
+					"level": {
+						"type": "string",
+						"enum": ["watch", "warn", "block"],
+						"description": "Protection level applied to matching files"
+					},
+					"reason": {
+						"type": "string",
+						"description": "Optional rationale displayed to the team"
+					},
+					"excludeFrom": {
+						"type": "array",
+						"items": { "type": "string" }
+					},
+					"autoCheckpoint": {
+						"type": "boolean"
+					},
+					"debounce": {
+						"type": "number",
+						"minimum": 0
+					}
+				},
+				"additionalProperties": false
+			}
+		},
+		"ignore": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"settings": {
+			"type": "object",
+			"properties": {
+				"maxSnapshots": {
+					"type": "number",
+					"minimum": 1
+				},
+				"compressionEnabled": {
+					"type": "boolean"
+				},
+				"autoCheckpointInterval": {
+					"type": "number",
+					"minimum": 0
+				},
+				"notificationDuration": {
+					"type": "number",
+					"minimum": 0
+				},
+				"showStatusBarItem": {
+					"type": "boolean"
+				},
+				"confirmRestore": {
+					"type": "boolean"
+				},
+				"defaultProtectionLevel": {
+					"type": "string",
+					"enum": ["watch", "warn", "block"]
+				},
+				"protectionDebounce": {
+					"type": "number",
+					"minimum": 0
+				},
+				"snapshotLocation": {
+					"type": "string"
+				},
+				"maxStorageSize": {
+					"type": "number",
+					"minimum": 0
+				},
+				"parallelOperations": {
+					"type": "number",
+					"minimum": 1
+				},
+				"enableCaching": {
+					"type": "boolean"
+				}
+			},
+			"additionalProperties": false
+		},
+		"policies": {
+			"type": "object",
+			"properties": {
+				"requireCheckpointMessage": { "type": "boolean" },
+				"enforceProtectionLevels": { "type": "boolean" },
+				"allowOverrides": { "type": "boolean" },
+				"minimumProtectionLevel": {
+					"type": "string",
+					"enum": ["watch", "warn", "block"]
+				},
+				"preventAccidentalCommit": { "type": "boolean" },
+				"teamConfigUrl": { "type": "string" }
+			},
+			"additionalProperties": false
+		},
+		"hooks": {
+			"type": "object",
+			"properties": {
+				"beforeSnapshot": { "type": "string" },
+				"afterSnapshot": { "type": "string" },
+				"beforeRestore": { "type": "string" },
+				"afterRestore": { "type": "string" },
+				"onProtectedFileChange": { "type": "string" }
+			},
+			"additionalProperties": false
+		},
+		"templates": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"required": ["name", "patterns"],
+				"properties": {
+					"name": { "type": "string" },
+					"patterns": {
+						"type": "array",
+						"items": { "type": "string" }
+					},
+					"message": { "type": "string" },
+					"tags": {
+						"type": "array",
+						"items": { "type": "string" }
+					}
+				},
+				"additionalProperties": false
+			}
+		}
+	},
+	"additionalProperties": false
+}
