@@ -84,12 +84,6 @@
         "icon": "$(error)"
       },
       {
-        "command": "snapback.showProtectionStatus",
-        "title": "Protection Verified",
-        "category": "SnapBack",
-        "icon": "$(shield-check)"
-      },
-      {
         "command": "snapback.showAllProtectedFiles",
         "title": "Show All Protected Files",
         "category": "SnapBack",
@@ -539,9 +533,10 @@
       ],
       "view/title": [
         {
-          "command": "snapback.showProtectionStatus",
+          "command": "snapback.showStatus",
           "when": "view == snapback.dashboard && snapback.protectionStatus == complete",
-          "group": "navigation"
+          "group": "navigation",
+          "icon": "$(shield-check)"
         },
         {
           "command": "snapback.protectEntireRepo",

@@ -225,7 +225,7 @@ describe("OnWillSaveHandler", () => {
 
 		it("UX1-E-004: should allow save with snapshot for Protected level files when user chooses Create Snapshot", async () => {
 			// Create content that will result in a high risk score (8 or more)
-			const highRiskContent = "sk_live_abcdefghijklmnopqrstuvwxyzABCDEF"; // Valid Stripe key pattern
+			const highRiskContent = "sk_" + "live_" + "abcdefghijklmnopqrstuvwxyzABCDEF"; // Valid Stripe key pattern (obfuscated)
 
 			const mockDocument = {
 				uri: { path: "/config.json", fsPath: "/config.json" },

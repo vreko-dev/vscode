@@ -8,21 +8,30 @@ export function registerUtilityCommands(
 	_context: vscode.ExtensionContext,
 	ctx: CommandContext,
 ): vscode.Disposable[] {
-	return [
-		vscode.commands.registerCommand("snapback.helloWorld", () => {
-			vscode.window.showInformationMessage("Hello from SnapBack! 🎩");
-		}),
+	const disposables: vscode.Disposable[] = [];
 
-		// Note: snapback.showStatus command moved to statusBarCommands.ts for enhanced UX
-		// Note: snapback.testMCPFederation moved to mcpCommands.ts
+	// Debug command - only register in development mode
+	// P2 Recommendation: Removed from production to prevent clutter
+	// Uncomment for local testing if needed:
+	// disposables.push(
+	// 	vscode.commands.registerCommand("snapback.helloWorld", () => {
+	// 		vscode.window.showInformationMessage("Hello from SnapBack! 🎩");
+	// 	})
+	// );
 
+	// Note: snapback.showStatus command moved to statusBarCommands.ts for enhanced UX
+	// Note: snapback.testMCPFederation moved to mcpCommands.ts
+
+	disposables.push(
 		vscode.commands.registerCommand(COMMANDS.UTILITY.INITIALIZE, async () => {
 			const { message } = await ctx.getProtectionStateSummary();
 			vscode.window.showInformationMessage(
 				`SnapBack protection initialized: ${message}`,
 			);
 		}),
+	);
 
+	disposables.push(
 		vscode.commands.registerCommand(
 			"snapback.updateConfiguration",
 			async () => {
@@ -34,7 +43,9 @@ export function registerUtilityCommands(
 				await updateCommand.execute();
 			},
 		),
+	);
 
-		// Add other utility commands here
-	];
+	// Add other utility commands here
+
+	return disposables;
 }

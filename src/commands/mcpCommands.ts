@@ -5,13 +5,16 @@
  * and AI monitoring features.
  *
  * Commands:
- * - snapback.testMCPFederation: Test basic MCP federation
- * - snapback.testMCPFederationComprehensive: Comprehensive MCP federation test
- * - snapback.analyzeRisk: Analyze risk using AI
+ * - snapback.testMCPFederation: [DEBUG] Test basic MCP federation
+ * - snapback.testMCPFederationComprehensive: [DEBUG] Comprehensive MCP federation test
+ * - snapback.analyzeRisk: [DEBUG] Analyze risk using AI
  * - snapback.toggleAIMonitoring: Toggle AI monitoring
  * - snapback.showAIMonitoringStatus: Show AI monitoring status
  * - snapback.applyWorkflowSuggestion: Apply a workflow suggestion
  * - snapback.autoApplySuggestions: Auto-apply suggestions
+ *
+ * NOTE: Commands marked [DEBUG] are disabled in production builds.
+ * See P2 recommendations in COMMAND_LIFECYCLE_AUDIT.md
  *
  * @module commands/mcpCommands
  */
@@ -34,123 +37,61 @@ import type { WorkflowIntegration } from "../workflowIntegration.js";
  */
 export function registerMcpCommands(
 	_context: vscode.ExtensionContext,
-	federation: InstanceType<typeof ServiceFederation>,
-	operationCoordinator: OperationCoordinator,
+	_federation: InstanceType<typeof ServiceFederation>,
+	_operationCoordinator: OperationCoordinator,
 	_workflowIntegration: WorkflowIntegration,
 	statusBar: StatusBarController,
 ): vscode.Disposable[] {
 	const disposables: vscode.Disposable[] = [];
 
+	// DEBUG COMMANDS - Disabled in production (P2 Recommendation)
+	// Uncomment for local MCP testing if needed:
+	// disposables.push(
+	// 	vscode.commands.registerCommand("snapback.testMCPFederation", async () => {
+	// 		try {
+	// 			// Simulate MCP service call with fallback strategy
+	// 			const docsResult = await federation.executeWithFallback(
+	// 				"docs",
+	// 				() => Promise.resolve("Successful Context7 result"),
+	// 				() => "Fallback result",
+	// 			);
+	// 			vscode.window.showInformationMessage(
+	// 				`MCP Federation Test: ${docsResult}`,
+	// 			);
+	// 		} catch (error) {
+	// 			vscode.window.showErrorMessage(`MCP Federation Test failed: ${error}`);
+	// 		}
+	// 	})
+	// );
+
+	// disposables.push(
+	// 	vscode.commands.registerCommand(
+	// 		"snapback.testMCPFederationComprehensive",
+	// 		async () => {
+	// 			// [Comprehensive test code commented out for production]
+	// 			// See git history for full implementation
+	// 		},
+	// 	)
+	// );
+
+	// disposables.push(
+	// 	vscode.commands.registerCommand("snapback.analyzeRisk", async () => {
+	// 		vscode.window.setStatusBarMessage("Analyzing risk...", 3000);
+	// 		try {
+	// 			const editor = vscode.window.activeTextEditor;
+	// 			if (editor) {
+	// 				await operationCoordinator.coordinateRiskAnalysis(
+	// 					editor.document.fileName,
+	// 				);
+	// 				vscode.window.setStatusBarMessage("Risk analysis completed", 3000);
+	// 			}
+	// 		} catch (error) {
+	// 			vscode.window.showErrorMessage(`Risk analysis failed: ${error}`);
+	// 		}
+	// 	})
+	// );
+
 	// Command: Test MCP Federation
-	disposables.push(
-		vscode.commands.registerCommand("snapback.testMCPFederation", async () => {
-			try {
-				// Simulate MCP service call with fallback strategy
-				// In production: actual Context7 MCP service integration
-				const docsResult = await federation.executeWithFallback(
-					"docs",
-					() => Promise.resolve("Successful Context7 result"),
-					() => "Fallback result", // Simplified fallback
-				);
-
-				vscode.window.showInformationMessage(
-					`MCP Federation Test: ${docsResult}`,
-				);
-			} catch (error) {
-				vscode.window.showErrorMessage(`MCP Federation Test failed: ${error}`);
-			}
-		}),
-	);
-
-	// Command: Comprehensive MCP Federation Test
-	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.testMCPFederationComprehensive",
-			async () => {
-				try {
-					// Circuit Breaker Pattern Testing
-					let _failures = 0;
-					for (let i = 0; i < 3; i++) {
-						try {
-							await federation.executeWithFallback(
-								"docs",
-								() => Promise.reject(new Error("Simulated MCP failure")),
-								() => `Fallback result ${i + 1}`,
-							);
-						} catch (_error) {
-							_failures++;
-						}
-					}
-
-					// Verify circuit breaker activation after failure threshold
-					const circuitBreakerResult = await federation.executeWithFallback(
-						"docs",
-						() => Promise.resolve("This should not be called"),
-						() => "Circuit breaker is open, using fallback",
-					);
-
-					// Caching Mechanism Testing
-					const cacheKey = "test-cache-key";
-					const cachedResult1 = await federation.executeWithCache(
-						"docs",
-						cacheKey,
-						() => Promise.resolve("Cached result"),
-						() => "Fallback result",
-					);
-
-					// Verify cache hit on subsequent call
-					const cachedResult2 = await federation.executeWithCache(
-						"docs",
-						cacheKey,
-						() => Promise.resolve("This should not be called due to cache"),
-						() => "Fallback result",
-					);
-
-					// Timeout Management Testing
-					const timeoutResult = await federation.executeWithTimeout(
-						"docs",
-						() =>
-							new Promise((resolve) =>
-								setTimeout(() => resolve("Slow result"), 1000),
-							),
-						() => "Timeout fallback result",
-						100, // 100ms timeout threshold
-					);
-
-					// Present comprehensive test results
-					vscode.window.showInformationMessage(
-						`Comprehensive MCP Federation Test Results:
-        - Circuit breaker: ${circuitBreakerResult}
-        - Cache test 1: ${cachedResult1}
-        - Cache test 2: ${cachedResult2}
-        - Timeout test: ${timeoutResult}`,
-					);
-				} catch (error) {
-					vscode.window.showErrorMessage(
-						`Comprehensive MCP Federation Test failed: ${error}`,
-					);
-				}
-			},
-		),
-	);
-
-	// Command: Analyze Risk
-	disposables.push(
-		vscode.commands.registerCommand("snapback.analyzeRisk", async () => {
-			vscode.window.setStatusBarMessage("Analyzing risk...", 3000);
-			try {
-				const editor = vscode.window.activeTextEditor;
-				if (editor) {
-					await operationCoordinator.coordinateRiskAnalysis(
-						editor.document.fileName,
-					);
-					vscode.window.setStatusBarMessage("Risk analysis completed", 3000);
-				}
-			} catch (error) {
-				vscode.window.showErrorMessage(`Risk analysis failed: ${error}`);
-			}
-		}),
-	);
 
 	// Command: Toggle AI Monitoring
 	disposables.push(

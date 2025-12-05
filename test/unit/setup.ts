@@ -212,6 +212,11 @@ const mockVscode = {
 		tooltip,
 		color,
 	})),
+	ConfigurationTarget: {
+		Global: 1,
+		Workspace: 2,
+		WorkspaceFolder: 3,
+	},
 	TreeItem: class {
 		constructor(label: string, collapsibleState?: any) {
 			this.label = label;

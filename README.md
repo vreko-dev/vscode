@@ -1,130 +1,263 @@
-# SnapBack - Code Safety Net 🧢
+# SnapBack for VS Code
 
-[![Version](https://img.shields.io/visual-studio-marketplace/v/MarcelleLabs.snapback-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/MarcelleLabs.snapback-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
-[![Rating](https://img.shields.io/visual-studio-marketplace/r/MarcelleLabs.snapback-vscode.svg)](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
-[![License](https://img.shields.io/github/license/Marcelle-Labs/SnapBack)](LICENSE)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/snapback.snapback)](https://marketplace.visualstudio.com/items?itemName=snapback.snapback)
+[![Downloads](https://img.shields.io/visual-studio-marketplace/d/snapback.snapback)](https://marketplace.visualstudio.com/items?itemName=snapback.snapback)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-**Smart snapshot manager with Watch/Warn/Block protection levels. Code Breaks. SnapBack.**
+> Automated file protection and snapshot management for VS Code
 
-Protect your code with intelligent snapshots that automatically capture file states based on configurable protection levels. Never lose important work again with SnapBack's three-tier protection system.
+Never lose critical work again. SnapBack automatically protects your important files and creates snapshots before risky changes.
 
 ## Features
 
-### 🧢 Three Protection Levels
+### 🆓 Always Free
 
-Choose the right level of protection for each file:
+- ✅ **Auto-Protection**: Automatically protect config files, credentials, schemas
+- ✅ **Local Snapshots**: Create unlimited snapshots stored locally
+- ✅ **Secret Detection**: Prevent committing API keys and passwords
+- ✅ **Risk Analysis**: Detect dangerous code patterns
+- ✅ **File History**: Track changes to protected files
+- ✅ **Works Offline**: No account or internet required
 
--   **Watch (Silent)**: Automatic snapshots with no interruptions
--   **Warn (Notify)**: Confirmation dialog before saving
--   **Block (Required)**: Required snapshot note before saving
+### ☁️ Cloud Features (Optional - Free API Key)
 
-### 📸 Smart Snapshots
+Get a free API key from [snapback.dev](https://snapback.dev) to unlock:
 
--   Automatic snapshot creation based on protection levels
--   Manual snapshot creation at any time
--   Snapshot deduplication to save disk space
--   Git-integrated snapshot naming
--   Snapshot comparison and restoration
-
-### 📋 Timeline Integration
-
-View your SnapBack snapshots directly in VS Code's built-in Timeline view for easy access to file history.
-
-### 🔧 Team Configuration
-
-Share protection policies across your team with `.snapbackrc` configuration files.
+- 🔐 **Cross-Device Sync**: Access snapshots on any computer
+- 🔐 **Team Sharing**: Share protection rules with your team
+- 🔐 **Advanced Analytics**: ML-powered risk detection
+- 🔐 **Cloud Backup**: Never lose snapshots
 
 ## Installation
 
-1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
-2. Reload VS Code
-3. Open a workspace folder
-4. Run `SnapBack: Initialize` from the Command Palette
+1. Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=snapback.snapback)
+
+   **OR** via command line:
+   ```bash
+   code --install-extension snapback.snapback
+   ```
+
+2. **That's it!** Extension works immediately - no setup needed.
 
 ## Quick Start
 
-1. **Protect a file**:
+### Protect Your First File
 
-    - Right-click any file in the Explorer
-    - Select "SnapBack: Set Protection Level"
-    - Choose your protection level
+1. Open any file (e.g., `.env`, `database.ts`)
+2. Right-click → **SnapBack: Protect This File**
+3. Choose protection level:
+   - **Watched**: Monitor for changes
+   - **Caution**: Warn before risky edits
+   - **Protected**: Require confirmation to edit
 
-2. **Create a snapshot**:
+### Create Your First Snapshot
 
-    - Use `Ctrl+Alt+S` (or `Cmd+Alt+S` on Mac)
-    - Or right-click a file and select "SnapBack: Create Snapshot"
+1. Press `Cmd+Shift+S` (or `Ctrl+Shift+S` on Windows/Linux)
+2. Enter a description (e.g., "Before refactor")
+3. Done! Snapshot saved locally
 
-3. **Restore from a snapshot**:
-    - Use `Ctrl+Alt+Z` (or `Cmd+Alt+Z` on Mac)
-    - Or right-click a file and select "SnapBack: Snap Back (Restore Snapshot)"
-    - Or use the Timeline view to see file history
+### Restore from Snapshot
 
-## Documentation
+1. Open Command Palette (`Cmd+Shift+P`)
+2. Type "SnapBack: Restore Snapshot"
+3. Select snapshot from list
+4. Files restored to that point in time
 
-For detailed information, see our documentation:
+## How It Works
 
--   [Getting Started](docs/user-guide/getting-started.md) - Complete guide to using SnapBack
--   [Protection Levels](docs/user-guide/protection-levels.md) - In-depth guide to protection levels
--   [Settings](docs/user-guide/settings.md) - Configuration options and settings
--   [Team Configuration](docs/user-guide/team-configuration.md) - Sharing protection policies with your team
--   [Advanced Features](docs/user-guide/advanced-features.md) - Timeline integration, snapshot comparison, and more
+```
+┌─────────────────────────────────────┐
+│  Your Workspace                     │
+│  ┌────────────────────────────────┐ │
+│  │ .env          [PROTECTED] 🔒   │ │
+│  │ auth.ts       [CAUTION]    ⚠️  │ │
+│  │ database.ts   [WATCHED]    👁️  │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  SnapBack monitors edits            │
+│  ├─ Detects secrets                 │
+│  ├─ Warns on risky changes          │
+│  └─ Auto-creates snapshots          │
+└─────────────────────────────────────┘
+```
 
 ## Commands
 
-| Command                                  | Description                                  |
-| ---------------------------------------- | -------------------------------------------- |
-| `SnapBack: Initialize`                   | Initialize SnapBack in the current workspace |
-| `SnapBack: Show Protection Status`       | Show current protection status               |
-| `SnapBack: Create Snapshot`              | Create a manual snapshot of the current file |
-| `SnapBack: Snap Back (Restore Snapshot)` | Restore from a snapshot                      |
-| `SnapBack: Protect File`                 | Protect the current file                     |
-| `SnapBack: Change Protection Level`      | Change the protection level of a file        |
-| `SnapBack: Show All Snapshots`           | Show all snapshots in the workspace          |
-| `SnapBack: Show Protected Files`         | Show all protected files                     |
+| Command | Shortcut | Description |
+|---------|----------|-------------|
+| Create Snapshot | `Cmd+Shift+S` | Create snapshot of current state |
+| Restore Snapshot | - | View and restore from snapshots |
+| Protect File | - | Add file to protection list |
+| View Protected Files | - | See all protected files |
+| Snapshot Settings | - | Configure auto-snapshot rules |
+
+## Protection Levels
+
+### 🔵 Watched
+- Monitors file for changes
+- Shows badge in file explorer
+- Non-intrusive
+
+**Good for**: Config files, package.json
+
+### 🟡 Caution
+- Shows warning banner when editing
+- Suggests creating snapshot first
+- Can still edit freely
+
+**Good for**: Auth logic, database schemas
+
+### 🔴 Protected
+- Requires explicit confirmation to edit
+- Auto-creates snapshot before changes
+- Maximum safety
+
+**Good for**: .env files, private keys, production configs
 
 ## Configuration
 
-Configure SnapBack through VS Code settings or `.snapbackrc` files:
+### Extension Settings
 
 ```json
 {
-	"snapback.protectionLevels.defaultLevel": "watch",
-	"snapback.notifications.showSnapshotCreated": true,
-	"snapback.snapshot.deduplication.enabled": true
+  // Auto-protect common files
+  "snapback.autoProtect": true,
+
+  // Protection patterns (glob)
+  "snapback.protectionPatterns": [
+    "*.env*",
+    "**/*.key",
+    "**/secrets/**"
+  ],
+
+  // Auto-snapshot before risky changes
+  "snapback.autoSnapshot": true,
+
+  // Optional: API key for cloud features
+  "snapback.apiKey": ""
 }
 ```
 
-## Timeline Integration
+### Enable Cloud Sync (Optional)
 
-SnapBack integrates with VS Code's Timeline view to show your snapshots. Simply open the Timeline view (View → Open View… → Timeline) to see your SnapBack snapshots alongside other timeline events.
+1. Get free API key: [snapback.dev](https://snapback.dev)
+2. Open Settings (`Cmd+,`)
+3. Search "SnapBack API Key"
+4. Paste your key
+5. Cloud features enabled!
 
-## Team Configuration
+## Feature Comparison
 
-Create a `.snapbackrc` file in your repository root to share protection policies:
+| Feature | Free (Local) | With API Key |
+|---------|-------------|--------------|
+| File Protection | ✅ Unlimited | ✅ Unlimited |
+| Local Snapshots | ✅ Unlimited | ✅ Unlimited |
+| Secret Detection | ✅ Basic | ✅ ML-Powered |
+| Works Offline | ✅ Yes | ✅ Yes |
+| Cloud Sync | ❌ | ✅ Yes |
+| Team Sharing | ❌ | ✅ Yes |
+| Cross-Device | ❌ | ✅ Yes |
+| Advanced Analytics | ❌ | ✅ Yes |
 
-```json
+## Privacy & Security
+
+- **No telemetry** without your consent
+- **Local-first**: All data stored in your workspace by default
+- **Open source**: Audit the code yourself
+- **No tracking**: We don't know what files you protect
+- **API key optional**: Full features work offline
+
+## Examples
+
+### Protect Critical Files
+
+```javascript
+// .snapbackrc in your workspace root
 {
-	"patterns": {
-		"**/*.env": "Protected",
-		"**/package.json": "Warning",
-		"**/*.config.js": "Warning"
-	}
+  "protection": {
+    "patterns": {
+      "*.env*": "protected",
+      "src/auth/**": "caution",
+      "database/**": "watched"
+    }
+  }
 }
 ```
 
-## Contributing
+### Auto-Snapshot Rules
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+```javascript
+{
+  "snapshots": {
+    "autoCreate": {
+      "beforeGitCommit": true,
+      "beforeRefactor": true,
+      "beforeDeploy": true
+    }
+  }
+}
+```
+
+## Troubleshooting
+
+### Extension not activating
+
+1. Check VS Code version (requires 1.80+)
+2. Reload window: `Cmd+Shift+P` → "Reload Window"
+3. Check extension is enabled: Extensions panel
+
+### Snapshots not appearing
+
+1. Check storage location: `.snapback/` in workspace
+2. Verify disk space available
+3. Check file permissions
+
+### Cloud sync not working
+
+1. Verify API key in settings
+2. Check internet connection
+3. Look for error notifications
+
+## Development
+
+### Building from Source
+
+```bash
+git clone https://github.com/snapback-dev/vscode.git
+cd vscode
+
+pnpm install
+pnpm build
+
+# Package
+pnpm vsce package
+
+# Install locally
+code --install-extension snapback-1.0.0.vsix
+```
+
+### Testing
+
+```bash
+# Run tests
+pnpm test
+
+# Launch extension development host
+pnpm dev
+```
+
+## Links
+
+- **Documentation**: [docs.snapback.dev](https://docs.snapback.dev)
+- **Get API Key**: [snapback.dev](https://snapback.dev)
+- **Report Issues**: [github.com/snapback-dev/vscode/issues](https://github.com/snapback-dev/vscode/issues)
+- **Main Repository**: [Marcelle-Labs/snapback.dev](https://github.com/Marcelle-Labs/snapback.dev)
+
+## Related
+
+- [`@snapback/mcp-server`](https://github.com/snapback-dev/mcp-server) - MCP server for AI tools
+- [`@snapback-oss/sdk`](https://github.com/snapback-dev/sdk) - TypeScript SDK
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-If you encounter any issues or have feature requests, please [file an issue](https://github.com/Marcelle-Labs/SnapBack/issues) on GitHub.
+Apache-2.0 © SnapBack
