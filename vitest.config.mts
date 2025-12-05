@@ -5,6 +5,11 @@ export default defineConfig({
 	test: {
 		globals: true,
 		environment: "node",
+		server: {
+			deps: {
+				noExternal: [/@sentry/],
+			},
+		},
 		include: [
 			"test/unit/**/*.test.ts",
 			"test/unit/**/*.unit.test.ts",

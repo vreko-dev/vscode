@@ -4,6 +4,43 @@ import {
 	createTestWorkspace,
 } from "../__mocks__/factories";
 
+// Mock Sentry modules to prevent native module loading errors
+// These must be mocked BEFORE any imports that use them
+vi.mock("@sentry/profiling-node", () => ({
+	default: {},
+	nodeProfilingIntegration: vi.fn(() => ({})),
+	ProfilingIntegration: vi.fn(),
+}));
+
+vi.mock("@sentry/node", () => ({
+	default: {
+		init: vi.fn(),
+		captureException: vi.fn(),
+		captureMessage: vi.fn(),
+		setUser: vi.fn(),
+		setContext: vi.fn(),
+	},
+	init: vi.fn(),
+	captureException: vi.fn(),
+	captureMessage: vi.fn(),
+	setUser: vi.fn(),
+	setContext: vi.fn(),
+}));
+
+// Mock @snapback/infrastructure completely to avoid Sentry import
+vi.mock("@snapback/infrastructure", () => ({
+	logger: {
+		info: vi.fn(),
+		debug: vi.fn(),
+		warn: vi.fn(),
+		error: vi.fn(),
+		fatal: vi.fn(),
+		trace: vi.fn(),
+	},
+	initializeSentry: vi.fn(),
+	captureSentryException: vi.fn(),
+}));
+
 // Create a proper EventEmitter mock that actually works
 class MockEventEmitter<T> {
 	private listeners: Array<(e: T) => any> = [];
@@ -158,6 +195,16 @@ const mockVscode = {
 	},
 	languages: {
 		registerHoverProvider: vi.fn(() => ({ dispose: vi.fn() })),
+		createDiagnosticCollection: vi.fn((name?: string) => ({
+			name: name || "default",
+			set: vi.fn(),
+			delete: vi.fn(),
+			clear: vi.fn(),
+			forEach: vi.fn(),
+			get: vi.fn(),
+			has: vi.fn(),
+			dispose: vi.fn(),
+		})),
 	},
 	Uri: {
 		file: vi.fn((path: string) => ({

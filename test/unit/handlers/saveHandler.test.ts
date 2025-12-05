@@ -3,14 +3,54 @@ import * as vscode from "vscode";
 import { SaveHandler } from "../../../src/handlers/SaveHandler.js";
 import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry.js";
 
-describe.skip("SaveHandler Behavior Tests", () => {
+// Mock all SaveHandler dependencies at module level (hoisted)
+vi.mock("../../../src/handlers/AnalysisCoordinator.js", () => ({
+	AnalysisCoordinator: vi.fn().mockImplementation(() => ({
+		analyzeAndPublish: vi.fn(async () => undefined),
+		dispose: vi.fn(),
+		lastAnalysisResult: null,
+	})),
+}));
+
+vi.mock("../../../src/handlers/ProtectionLevelHandler.js", () => ({
+	ProtectionLevelHandler: vi.fn().mockImplementation(() => ({
+		handleProtectionLevel: vi.fn(async () => ({
+			shouldSnapshot: false,
+			reason: "test",
+			snapshotId: undefined,
+		})),
+	})),
+}));
+
+vi.mock("../../../src/services/CooldownService.js", () => ({
+	CooldownService: vi.fn().mockImplementation(() => ({
+		setCooldownIndicator: vi.fn(),
+		clearAll: vi.fn(),
+	})),
+}));
+
+vi.mock("../../../src/services/AuditLogger.js", () => ({
+	AuditLogger: vi.fn().mockImplementation(() => ({})),
+}));
+
+vi.mock("../../../src/ui/AIWarningManager.js", () => ({
+	AIWarningManager: vi.fn().mockImplementation(() => ({
+		showWarning: vi.fn(async () => ({ success: false, error: new Error("test") })),
+	})),
+	shouldWarn: vi.fn(() => false),
+}));
+
+vi.mock("../../../src/ai/AIRiskService.js", () => ({
+	NoopAIRiskService: vi.fn().mockImplementation(() => ({})),
+}));
+
+describe("SaveHandler Behavior Tests", () => {
 	let saveHandler: SaveHandler;
 	let registry: ProtectedFileRegistry;
 	let mockOperationCoordinator: any;
 	let mockStorage: Map<string, any>;
 	let context: vscode.ExtensionContext;
 	let onWillSaveHandlers: Array<(event: any) => void>;
-	let _readFileMock: ReturnType<typeof vi.spyOn>;
 
 	beforeEach(() => {
 		onWillSaveHandlers = [];
@@ -51,12 +91,19 @@ describe.skip("SaveHandler Behavior Tests", () => {
 			},
 		);
 		vi.spyOn(vscode.workspace, "applyEdit").mockResolvedValue(true);
-		_readFileMock = vi
-			.spyOn(vscode.workspace.fs, "readFile")
-			.mockResolvedValue(Buffer.from("/* disk snapshot */", "utf8"));
+		vi.spyOn(vscode.workspace.fs, "readFile").mockResolvedValue(
+			Buffer.from("/* disk snapshot */", "utf8"),
+		);
 
-		// Create context
-		context = { subscriptions: [] } as any;
+		// Create context with globalState
+		context = {
+			subscriptions: [],
+			globalState: {
+				get: vi.fn((key: string, defaultValue?: any) => defaultValue),
+				update: vi.fn(async () => undefined),
+				setKeysForSync: vi.fn(),
+			},
+		} as any;
 
 		// Initialize save handler
 		saveHandler = new SaveHandler(registry, mockOperationCoordinator);
@@ -77,6 +124,16 @@ describe.skip("SaveHandler Behavior Tests", () => {
 		return saveEvent.waitUntil.mock.calls[0][0];
 	};
 
+	// Helper to create properly mocked save events
+	const createSaveEvent = (filePath: string, content: string = "const test = 1;") => ({
+		document: {
+			uri: vscode.Uri.file(filePath),
+			fileName: filePath,
+			getText: vi.fn().mockReturnValue(content),
+		},
+		waitUntil: vi.fn(),
+	});
+
 	/**
 	 * CRITICAL TEST: Verifies correct file path is passed to coordinateCheckpointCreation
 	 * REGRESSION BUG #1: Entire workspace checkpointed instead of single saved file
@@ -87,14 +144,8 @@ describe.skip("SaveHandler Behavior Tests", () => {
 		// Protect the file
 		await registry.add(testFilePath);
 
-		// Create save event
-		const saveEvent = {
-			document: {
-				uri: vscode.Uri.file(testFilePath),
-				getText: vi.fn().mockReturnValue("const test = 1;"),
-			},
-			waitUntil: vi.fn(),
-		};
+		// Create save event using helper
+		const saveEvent = createSaveEvent(testFilePath);
 
 		const promise = await triggerSave(saveEvent);
 		await promise;
@@ -128,13 +179,7 @@ describe.skip("SaveHandler Behavior Tests", () => {
 		const testFilePath = "/test/workspace/protected.ts";
 		await registry.add(testFilePath);
 
-		const saveEvent = {
-			document: {
-				uri: vscode.Uri.file(testFilePath),
-				getText: () => "const protected = true;",
-			},
-			waitUntil: vi.fn(),
-		};
+		const saveEvent = createSaveEvent(testFilePath, "const protected = true;");
 
 		const promise = await triggerSave(saveEvent);
 		await promise;
@@ -171,13 +216,7 @@ describe.skip("SaveHandler Behavior Tests", () => {
 				.spyOn(vscode.window, "showErrorMessage")
 				.mockResolvedValue(undefined); // undefined = cancelled/no choice
 
-			const saveEvent = {
-				document: {
-					uri: vscode.Uri.file(testFilePath),
-					getText: () => "const critical = true;",
-				},
-				waitUntil: vi.fn(),
-			};
+			const saveEvent = createSaveEvent(testFilePath, "const critical = true;");
 
 			// Trigger save handler
 			for (const handler of onWillSaveHandlers) {

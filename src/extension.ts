@@ -38,6 +38,7 @@ import { FeatureFlagService } from "./services/feature-flag-service.js"; // 🆕
 import { ProtectionManager } from "./services/protectionPolicy.js";
 import { ProtectionService } from "./services/protectionService.js";
 import { TelemetryProxy } from "./services/telemetry-proxy.js";
+import { UserIdentityService } from "./services/UserIdentityService.js";
 import { WorkspaceManager } from "./services/WorkspaceManager.js"; // 🆕 Import WorkspaceManager
 import type { StorageManager } from "./storage/StorageManager.js";
 import type { ProtectionChangedPayload } from "./types/api.js";
@@ -65,6 +66,8 @@ let authState: AuthState | null = null;
 let anonymousIdManager: AnonymousIdManager | null = null;
 // 🆕 Global reference to AutoDecisionIntegration
 let autoDecisionIntegration: AutoDecisionIntegration | null = null;
+// 🆕 Global reference to UserIdentityService
+let userIdentityService: UserIdentityService | null = null;
 
 export async function activate(context: vscode.ExtensionContext) {
 	const startTime = Date.now();
@@ -119,44 +122,22 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// 🆕 Track authentication events
 	// Listen for session changes to track when user successfully authenticates
-	// This captures the "Stage 2: Authenticate" step of the activation funnel
 	context.subscriptions.push(
 		vscode.authentication.onDidChangeSessions(async (e) => {
 			if (e.provider.id === "snapback") {
-				const hasAuthenticated = context.globalState.get<boolean>(
-					"snapback.hasAuthenticated",
-					false,
+				// Check if we have a valid session
+				const sessions = await vscode.authentication.getSession(
+					"snapback",
+					[],
+					{ createIfNone: false },
 				);
 
-				if (!hasAuthenticated) {
-					// Check if we have a valid session
-					const sessions = await vscode.authentication.getSession(
-						"snapback",
-						[],
-						{ createIfNone: false },
-					);
+				if (sessions && userIdentityService) {
+					// Use unified identity service to handle login
+					await userIdentityService.handleLogin(sessions.account.id);
 
-					if (sessions) {
-						try {
-							logger.info("Tracking first authentication event");
-							const telemetryProxy = new TelemetryProxy(context);
-							await telemetryProxy.trackEvent("extension_authenticated", {
-								source: "oauth",
-								timestamp: Date.now(),
-							});
-
-							// Mark as authenticated so we don't track again
-							await context.globalState.update(
-								"snapback.hasAuthenticated",
-								true,
-							);
-						} catch (error) {
-							logger.error(
-								"Failed to track authentication event",
-								error as Error,
-							);
-						}
-					}
+					// Update global state
+					await context.globalState.update("snapback.hasAuthenticated", true);
 				}
 			}
 		}),
@@ -340,6 +321,26 @@ export async function activate(context: vscode.ExtensionContext) {
 		// 🆕 Initialize AnonymousIdManager (anonymous user tracking)
 		anonymousIdManager = new AnonymousIdManager(context.globalState);
 		logger.info("AnonymousIdManager initialized");
+
+		// 🆕 Initialize UserIdentityService
+		// Requires AuthService (from apiClient? No, create separate AuthService if needed or reuse apiClient's internal one?)
+		// Wait, `apiClient` manages auth internally or uses `AuthService`?
+		// `createAuthedApiClient` uses `AuthService` internally but doesn't expose it.
+		// We need to construct `AuthService` here to pass to `UserIdentityService`.
+		// `AuthService` needs `CredentialsManager`.
+		const authService = new (await import("./auth/AuthService.js")).AuthService(
+			credentialsManager,
+			config.get<string>("apiBaseUrl", "https://api.snapback.dev"),
+		);
+
+		userIdentityService = new UserIdentityService(
+			anonymousIdManager,
+			authService,
+			telemetryProxy,
+		);
+		// Configure TelemetryProxy to use UserIdentityService
+		telemetryProxy.setIdentityProvider(() => userIdentityService!.getCurrentId());
+		logger.info("UserIdentityService initialized");
 
 		const phase4Result = await initializePhase4Providers(
 			context,

@@ -290,7 +290,7 @@ describe("Authentication Flow Integration", () => {
     it("should complete full authentication flow", async () => {
       // GIVEN: User initiates auth
       // WHEN: Going through complete flow
-      
+
       // 1. Initiate OAuth
       const authData = await mockAuthService.initiateOAuth();
       expect(authData.authUrl).toBeDefined();

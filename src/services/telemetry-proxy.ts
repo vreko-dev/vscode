@@ -18,6 +18,11 @@ export class TelemetryProxy {
 	private offlineQueue: OfflineEventQueue;
 	private isProcessingQueue = false;
 	private retryTimer: NodeJS.Timeout | undefined;
+	private identityProvider: (() => Promise<string>) | null = null;
+
+	public setIdentityProvider(provider: () => Promise<string>) {
+		this.identityProvider = provider;
+	}
 
 	constructor(context: vscode.ExtensionContext) {
 		// Use the API base URL from configuration or default to production
@@ -42,8 +47,22 @@ export class TelemetryProxy {
 		options: { userId?: string; orgId?: string } = {},
 	): Promise<void> {
 		try {
+			// Resolve User ID if not provided
+			let effectiveUserId = options.userId;
+			if (!effectiveUserId && this.identityProvider) {
+				try {
+					effectiveUserId = await this.identityProvider();
+				} catch (err) {
+					// Fallback
+				}
+			}
+
 			// Prepare enriched event data
-			const eventData = this.enrichEventData(event, properties, options);
+			const eventData = this.enrichEventData(
+				event,
+				properties,
+				{ ...options, userId: effectiveUserId },
+			);
 
 			// Attempt to send immediately
 			const success = await this.sendEvent(eventData);
@@ -84,7 +103,7 @@ export class TelemetryProxy {
 				ideVersion: vscodeVersion,
 				platform: process.platform,
 			},
-			userId: options.userId,
+			userId: options.userId, // Provider logic moved to trackEvent for async support
 			orgId: options.orgId,
 			version: extensionVersion,
 		};
@@ -165,12 +184,31 @@ export class TelemetryProxy {
 
 	/**
 	 * Identify a user
+	 * Links the authenticated ID with any previous anonymous ID
 	 */
 	async identify(
-		userId: string,
-		traits: Record<string, unknown> = {},
+		distinctId: string,
+		anonymousId?: string,
+		properties: Record<string, unknown> = {},
 	): Promise<void> {
-		await this.trackEvent("user_identified", traits, { userId });
+		const payload = {
+			distinctId,
+			anonymousId,
+			properties,
+		};
+
+		try {
+			await fetch(`${this.apiBaseUrl}/api/rpc/telemetry.identify`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(payload),
+			});
+			logger.debug(`User identified: ${distinctId} (alias: ${anonymousId})`);
+		} catch (error) {
+			logger.warn("Failed to identify user", error as Error);
+		}
 	}
 
 	/**
