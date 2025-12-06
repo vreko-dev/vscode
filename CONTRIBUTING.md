@@ -37,7 +37,7 @@ Be respectful, inclusive, and professional. We're building a welcoming community
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/Marcelle-Labs/SnapBack.git
+git clone https://github.com/snapback-dev/snapback.dev.git
 cd snapback
 pnpm install
 ```
