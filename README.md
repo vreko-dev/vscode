@@ -1,7 +1,7 @@
 # SnapBack for VS Code
 
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/snapback.snapback)](https://marketplace.visualstudio.com/items?itemName=snapback.snapback)
-[![Downloads](https://img.shields.io/visual-studio-marketplace/d/snapback.snapback)](https://marketplace.visualstudio.com/items?itemName=snapback.snapback)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/MarcelleLabs.snapback-vscode)](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
+[![Downloads](https://img.shields.io/visual-studio-marketplace/d/MarcelleLabs.snapback-vscode)](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 > Your AI safety net. SnapBack watches what breaks, remembers the patterns, and catches the next disaster before it ships.
@@ -29,12 +29,17 @@ Upgrade at [snapback.dev](https://snapback.dev) to unlock:
 
 ## Installation
 
-1. Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=snapback.snapback)
+1. **VS Code Marketplace** (Recommended):
+   - [Install from Marketplace](vscode:extension/MarcelleLabs.snapback-vscode)
+   - Or [view on web](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
 
-   **OR** via command line:
+2. **Command Line:**
    ```bash
-   code --install-extension snapback.snapback
+   code --install-extension MarcelleLabs.snapback-vscode
    ```
+
+3. **Open VSX** (Alternative marketplace):
+   - [Install from Open VSX](https://open-vsx.org/extension/MarcelleLabs/snapback-vscode)
 
 2. **That's it!** Extension works immediately - no setup needed.
 

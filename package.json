@@ -7,7 +7,7 @@
     "onCommand:snapback.*",
     "workspaceContains:.snapbackrc"
   ],
-  "bugs": "https://github.com/Marcelle-Labs/SnapBack/issues",
+  "bugs": "https://github.com/snapback-dev/vscode/issues",
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
@@ -1123,7 +1123,7 @@
   "main": "./dist/extension.js",
   "pricing": "Free",
   "publisher": "MarcelleLabs",
-  "repository": "Marcelle-Labs/snapback.dev.git",
+  "repository": "snapback-dev/vscode.git",
   "scripts": {
     "audit-deps": "node scripts/audit-dependencies.js",
     "check-types": "tsc --noEmit",
