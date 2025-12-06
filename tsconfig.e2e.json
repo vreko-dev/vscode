@@ -4,10 +4,12 @@
 		"outDir": "out",
 		"rootDir": "src",
 		"module": "commonjs",
+		"moduleResolution": "node",
 		"target": "ES2022",
 		"lib": ["ES2022"],
 		"sourceMap": true,
-		"types": ["vscode", "mocha", "node"]
+		"types": ["vscode", "mocha", "node"],
+		"verbatimModuleSyntax": false
 	},
 	"include": ["src/test/**/*.ts"],
 	"exclude": ["node_modules", "dist"]

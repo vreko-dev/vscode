@@ -49,6 +49,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2025-12-06
+
+### 🚀 Features
+
+**Pattern Memory Messaging & Device-Aware Protection**
+
+- Extension now learns your per-device protection patterns
+- Messages use Pattern Memory language: "SnapBack remembers Copilot broke your auth flow twice"
+- Tier-aware feature gates (Free vs Pro vs Team vs Enterprise)
+- Device fingerprinting support for consistent protection across devices
+
+### 📝 Changed
+
+- All user-facing messages aligned with developer-native language
+- Terminology: "Pattern Memory" (not "pattern library")
+- Accuracy messaging: "Day 1: 94% accurate. Day 30: It knows YOUR codebase."
+- Improved error messages showing what actually happened
+
+### 🎯 What You See
+
+- Extension settings now show which tier you're on
+- Trial users see limited features; Pro users see full protection
+- Snapshot restoration shows which device it was created on
+- Alert messages are specific: "Copilot changed your tsconfig" not "risky change detected"
+
 ## [1.2.9] - 2025-12-05
 
 ### 📝 Changed
@@ -120,7 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/snapback-dev/vscode/compare/v1.2.9...HEAD
+[Unreleased]: https://github.com/snapback-dev/vscode/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/snapback-dev/vscode/compare/v1.2.9...v1.4.1
 [1.2.9]: https://github.com/snapback-dev/vscode/compare/v1.2.0...v1.2.9
 [1.2.0]: https://github.com/snapback-dev/vscode/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/snapback-dev/vscode/compare/v1.0.0...v1.1.0
