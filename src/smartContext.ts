@@ -53,12 +53,7 @@ export class SmartContextDetector {
 	/**
 	 * Detect project type based on workspace files
 	 */
-	private detectProjectType():
-		| "javascript"
-		| "typescript"
-		| "python"
-		| "java"
-		| "unknown" {
+	private detectProjectType(): "javascript" | "typescript" | "python" | "java" | "unknown" {
 		// In a real implementation, we would scan the workspace for specific files
 		// For now, we'll return a default value
 		return "typescript";
@@ -82,18 +77,14 @@ export class SmartContextDetector {
 
 		// Check for rapid file changes
 		const recentActions = context.recentActions.slice(0, 10);
-		const fileChangeActions = recentActions.filter(
-			(a) => a.action === "file_opened",
-		);
+		const fileChangeActions = recentActions.filter((a) => a.action === "file_opened");
 
 		if (fileChangeActions.length > 5) {
 			patterns.push("rapid_file_changes");
 		}
 
 		// Check for branch changes
-		const branchChangeActions = recentActions.filter(
-			(a) => a.action === "branch_changed",
-		);
+		const branchChangeActions = recentActions.filter((a) => a.action === "branch_changed");
 
 		if (branchChangeActions.length > 2) {
 			patterns.push("frequent_branch_switching");

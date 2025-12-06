@@ -27,9 +27,7 @@ export class MigrationService {
 	async checkAndMigrate(): Promise<void> {
 		try {
 			// Skip if already completed
-			const migrationCompleted = this.context.globalState.get<boolean>(
-				this.MIGRATION_COMPLETED_KEY,
-			);
+			const migrationCompleted = this.context.globalState.get<boolean>(this.MIGRATION_COMPLETED_KEY);
 			if (migrationCompleted) {
 				logger.debug("Migration already completed, skipping");
 				return;
@@ -44,9 +42,7 @@ export class MigrationService {
 
 			// Get protected file count
 			const protectedFiles = await this.protectedFileRegistry.list();
-			logger.info(
-				`Detected ${protectedFiles.length} protected files - showing migration UI`,
-			);
+			logger.info(`Detected ${protectedFiles.length} protected files - showing migration UI`);
 
 			// ⚡ PERF: Show migration dialog asynchronously
 			// Don't await - let user interact with UI while dialog is open
@@ -86,12 +82,7 @@ Your existing protections remain active. You can:
 • Review: Manually remove files you no longer want protected
 • Start Fresh: Clear all protections and protect only critical files`;
 
-		const choice = await vscode.window.showInformationMessage(
-			message,
-			"Keep All",
-			"Review",
-			"Start Fresh",
-		);
+		const choice = await vscode.window.showInformationMessage(message, "Keep All", "Review", "Start Fresh");
 
 		if (!choice) {
 			// User dismissed the dialog
@@ -120,10 +111,7 @@ Your existing protections remain active. You can:
 	private async handleKeepAll(): Promise<void> {
 		// Mark migration as completed
 		await this.context.globalState.update(this.MIGRATION_COMPLETED_KEY, true);
-		await this.context.globalState.update(
-			this.MIGRATION_ACTION_KEY,
-			"keep_all",
-		);
+		await this.context.globalState.update(this.MIGRATION_ACTION_KEY, "keep_all");
 
 		logger.info("User chose to keep all protected files");
 
@@ -156,7 +144,7 @@ Your existing protections remain active. You can:
 	 */
 	private async handleStartFresh(): Promise<void> {
 		const confirm = await vscode.window.showWarningMessage(
-			`This will clear all protected files. Continue?`,
+			"This will clear all protected files. Continue?",
 			"Clear All",
 			"Cancel",
 		);
@@ -173,25 +161,18 @@ Your existing protections remain active. You can:
 				await this.protectedFileRegistry.remove(file.path);
 			}
 
-			logger.info(
-				`Cleared ${protectedFiles.length} protected files for fresh start`,
-			);
+			logger.info(`Cleared ${protectedFiles.length} protected files for fresh start`);
 
 			// Mark migration as completed
 			await this.context.globalState.update(this.MIGRATION_COMPLETED_KEY, true);
-			await this.context.globalState.update(
-				this.MIGRATION_ACTION_KEY,
-				"start_fresh",
-			);
+			await this.context.globalState.update(this.MIGRATION_ACTION_KEY, "start_fresh");
 
 			vscode.window.showInformationMessage(
 				`${SNAPBACK_ICONS.SUCCESS} All ${protectedFiles.length} protected files cleared! You can now use "Protect This Repo" to protect only the files you need.`,
 			);
 		} catch (error) {
 			logger.error("Failed to clear protected files", error as Error);
-			vscode.window.showErrorMessage(
-				`Failed to clear protected files: ${(error as Error).message}`,
-			);
+			vscode.window.showErrorMessage(`Failed to clear protected files: ${(error as Error).message}`);
 		}
 	}
 }

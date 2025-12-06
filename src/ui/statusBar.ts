@@ -21,15 +21,12 @@ export interface ProtectionState {
 export class StatusBarController {
 	private statusBarItem: vscode.StatusBarItem;
 	private _registry?: ProtectedFileRegistry;
-	private offlineMode: boolean = false;
+	private offlineMode = false;
 	private disposables: vscode.Disposable[] = [];
 
 	constructor(registry?: ProtectedFileRegistry) {
 		// Left alignment, high priority to appear near file info
-		this.statusBarItem = vscode.window.createStatusBarItem(
-			vscode.StatusBarAlignment.Left,
-			100,
-		);
+		this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 		this.statusBarItem.command = "snapback.showStatus";
 		this.statusBarItem.name = "SnapBack Protection Status";
 		this._registry = registry;
@@ -116,14 +113,10 @@ export class StatusBarController {
 		// Brand green accent for critical state (Block level files) or offline mode
 		if (this.offlineMode) {
 			// Offline mode - warning background
-			this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-				"statusBarItem.warningBackground",
-			);
+			this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 		} else if (levels.block > 0) {
 			// Subtle warning state - files need attention
-			this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-				"statusBarItem.warningBackground",
-			);
+			this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 		} else {
 			// All good - clear background
 			this.statusBarItem.backgroundColor = undefined;
@@ -153,25 +146,17 @@ export class StatusBarController {
 			tooltip.appendMarkdown("---\n\n");
 		}
 
-		tooltip.appendMarkdown(
-			`**Total Protected:** \`${count}\` ${count === 1 ? "file" : "files"}\n\n`,
-		);
+		tooltip.appendMarkdown(`**Total Protected:** \`${count}\` ${count === 1 ? "file" : "files"}\n\n`);
 
 		// Level breakdown with descriptions
 		tooltip.appendMarkdown("### Protection Levels\n\n");
-		tooltip.appendMarkdown(
-			`$(pass) **Watch** (Silent): \`${levels.watch}\` files\n`,
-		);
+		tooltip.appendMarkdown(`$(pass) **Watch** (Silent): \`${levels.watch}\` files\n`);
 		tooltip.appendMarkdown("> *Auto-snapshot on save, no interruptions*\n\n");
 
-		tooltip.appendMarkdown(
-			`$(warning) **Warn** (Notify): \`${levels.warn}\` files\n`,
-		);
+		tooltip.appendMarkdown(`$(warning) **Warn** (Notify): \`${levels.warn}\` files\n`);
 		tooltip.appendMarkdown("> *Confirmation prompt before saving*\n\n");
 
-		tooltip.appendMarkdown(
-			`$(error) **Block** (Required): \`${levels.block}\` files\n`,
-		);
+		tooltip.appendMarkdown(`$(error) **Block** (Required): \`${levels.block}\` files\n`);
 		tooltip.appendMarkdown("> *Snapshot required before any changes*\n\n");
 
 		tooltip.appendMarkdown("---\n\n");
@@ -189,9 +174,7 @@ export class StatusBarController {
 		block: number;
 	} {
 		return {
-			watch: files.filter(
-				(f) => f.protectionLevel === "watch" || !f.protectionLevel,
-			).length,
+			watch: files.filter((f) => f.protectionLevel === "watch" || !f.protectionLevel).length,
 			warn: files.filter((f) => f.protectionLevel === "warn").length,
 			block: files.filter((f) => f.protectionLevel === "block").length,
 		};
@@ -200,9 +183,7 @@ export class StatusBarController {
 	/**
 	 * Backward compatibility: Set protection status (old API)
 	 */
-	public setProtectionStatus(
-		status: "protected" | "atRisk" | "analyzing",
-	): void {
+	public setProtectionStatus(status: "protected" | "atRisk" | "analyzing"): void {
 		// Map old status to new design
 		if (status === "protected" && this._registry) {
 			// Update from registry to show accurate counts
@@ -221,9 +202,7 @@ export class StatusBarController {
 		// Use the same format as in extension.ts getProtectionStateSummary
 		return `SnapBack: ${
 			state.watched + state.warnings + state.protected
-		} protected files (${state.watched} 🟢, ${state.warnings} 🟡, ${
-			state.protected
-		} 🔴)`;
+		} protected files (${state.watched} 🟢, ${state.warnings} 🟡, ${state.protected} 🔴)`;
 	}
 
 	/**
@@ -251,11 +230,7 @@ export class StatusBarController {
 	 * Legacy method for backward compatibility
 	 */
 	private getDetailedTooltipLegacy(state: ProtectionState): string {
-		const lines = [
-			"🧢 SnapBack Protection",
-			"",
-			`🟢 ${state.watched} files watched`,
-		];
+		const lines = ["🧢 SnapBack Protection", "", `🟢 ${state.watched} files watched`];
 
 		if (state.warnings > 0) {
 			lines.push(`🟡 ${state.warnings} warnings (high-risk changes)`);
@@ -271,9 +246,7 @@ export class StatusBarController {
 	/**
 	 * Legacy method for backward compatibility
 	 */
-	private getStatusColor(
-		state: ProtectionState,
-	): vscode.ThemeColor | undefined {
+	private getStatusColor(state: ProtectionState): vscode.ThemeColor | undefined {
 		if (state.protected > 0) {
 			return new vscode.ThemeColor("statusBarItem.warningBackground");
 		}

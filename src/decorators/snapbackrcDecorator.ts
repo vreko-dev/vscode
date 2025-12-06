@@ -4,12 +4,8 @@ import type { ProtectionLevel } from "../types/protection";
 
 type HatLevel = ProtectionLevel;
 
-export class SnapBackRCDecorator
-	implements vscode.FileDecorationProvider, vscode.Disposable
-{
-	private readonly emitter = new vscode.EventEmitter<
-		vscode.Uri | vscode.Uri[] | undefined
-	>();
+export class SnapBackRCDecorator implements vscode.FileDecorationProvider, vscode.Disposable {
+	private readonly emitter = new vscode.EventEmitter<vscode.Uri | vscode.Uri[] | undefined>();
 	readonly onDidChangeFileDecorations = this.emitter.event;
 
 	private protectionLevel: HatLevel = "warn";

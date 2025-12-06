@@ -35,11 +35,7 @@ export interface ProtectionRule {
  * Repo-level protection status
  * Used to communicate overall repo protection state to UI/commands
  */
-export type RepoProtectionStatus =
-	| "unprotected"
-	| "partial"
-	| "complete"
-	| "error";
+export type RepoProtectionStatus = "unprotected" | "partial" | "complete" | "error";
 
 /**
  * Item that needs attention in the protection audit
@@ -115,7 +111,7 @@ export interface ProtectionPolicy {
 export class ProtectionManager {
 	private effectivePolicy: ProtectionPolicy | null = null;
 	private cachedAudit: RepoProtectionAudit | null = null;
-	private lastAuditTime: number = 0;
+	private lastAuditTime = 0;
 	private readonly AUDIT_CACHE_TTL = 5000; // 5 seconds
 
 	constructor(
@@ -138,10 +134,7 @@ export class ProtectionManager {
 		}
 
 		// Rebuild policy if config changed or cache expired
-		if (
-			!this.effectivePolicy ||
-			this.effectivePolicy.audit.loadedAt < Date.now() - 60000
-		) {
+		if (!this.effectivePolicy || this.effectivePolicy.audit.loadedAt < Date.now() - 60000) {
 			this.effectivePolicy = await this.buildPolicy(mergedConfig);
 		}
 
@@ -161,11 +154,7 @@ export class ProtectionManager {
 		try {
 			// Check cache
 			const now = Date.now();
-			if (
-				!forceRefresh &&
-				this.cachedAudit &&
-				now - this.lastAuditTime < this.AUDIT_CACHE_TTL
-			) {
+			if (!forceRefresh && this.cachedAudit && now - this.lastAuditTime < this.AUDIT_CACHE_TTL) {
 				logger.debug("Returning cached protection audit");
 				return this.cachedAudit;
 			}
@@ -173,9 +162,7 @@ export class ProtectionManager {
 			const policy = await this.getEffectivePolicy();
 
 			if (!policy) {
-				logger.warn(
-					"No protection policy available for repo status computation",
-				);
+				logger.warn("No protection policy available for repo status computation");
 				return this.createErrorAudit();
 			}
 
@@ -184,15 +171,10 @@ export class ProtectionManager {
 			const protectedCount = allProtected.length;
 
 			// Build attention items (expensive operation)
-			const attentionItems = await this.computeAttentionItems(
-				policy,
-				allProtected,
-			);
+			const attentionItems = await this.computeAttentionItems(policy, allProtected);
 
 			// Count critical unprotected files
-			const criticalUnprotectedCount = attentionItems.filter(
-				(i) => i.type === "unprotected_critical",
-			).length;
+			const criticalUnprotectedCount = attentionItems.filter((i) => i.type === "unprotected_critical").length;
 
 			// Determine overall status
 			let status: RepoProtectionStatus = "unprotected";
@@ -243,9 +225,7 @@ export class ProtectionManager {
 	/**
 	 * Build a ProtectionPolicy from merged config + stack detection
 	 */
-	private async buildPolicy(
-		mergedConfig: SnapBackRC,
-	): Promise<ProtectionPolicy> {
+	private async buildPolicy(mergedConfig: SnapBackRC): Promise<ProtectionPolicy> {
 		const protection = mergedConfig.protection || [];
 		const now = Date.now();
 
@@ -304,9 +284,7 @@ export class ProtectionManager {
 			const vscode = await import("vscode");
 
 			// Get workspace root
-			const workspaceRoot =
-				this.workspaceRoot ||
-				vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const workspaceRoot = this.workspaceRoot || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
 			if (!workspaceRoot) {
 				logger.warn("No workspace root for attention item computation");
@@ -314,9 +292,7 @@ export class ProtectionManager {
 			}
 
 			// Create map of protected file paths to their protection levels for quick lookup
-			const protectedMap = new Map(
-				protectedFiles.map((p) => [p.path, p.protectionLevel || "Watched"]),
-			);
+			const protectedMap = new Map(protectedFiles.map((p) => [p.path, p.protectionLevel || "Watched"]));
 
 			// Helper to compare protection levels (higher number = more protection)
 			const getLevelValue = (level: string): number => {
@@ -329,9 +305,7 @@ export class ProtectionManager {
 			};
 
 			// Check each protection rule to see if matching files are properly protected
-			const criticalPatterns = policy.rules.filter(
-				(r) => r.level === "block" || r.level === "warn",
-			);
+			const criticalPatterns = policy.rules.filter((r) => r.level === "block" || r.level === "warn");
 
 			for (const rule of criticalPatterns) {
 				try {
@@ -354,16 +328,10 @@ export class ProtectionManager {
 								severity: rule.level === "block" ? "error" : "warning",
 								action: "snapback.protectFile",
 							});
-						} else if (
-							getLevelValue(currentLevel) < getLevelValue(rule.level)
-						) {
+						} else if (getLevelValue(currentLevel) < getLevelValue(rule.level)) {
 							// File is protected but at INSUFFICIENT level
 							const currentLabel =
-								currentLevel === "watch"
-									? "Watch"
-									: currentLevel === "warn"
-										? "Warn"
-										: "Block";
+								currentLevel === "watch" ? "Watch" : currentLevel === "warn" ? "Warn" : "Block";
 							const requiredLabel = rule.level === "block" ? "Block" : "Warn";
 
 							items.push({
@@ -376,10 +344,7 @@ export class ProtectionManager {
 						}
 					}
 				} catch (error) {
-					logger.debug(
-						`Failed to check pattern: ${rule.pattern}`,
-						error as Error,
-					);
+					logger.debug(`Failed to check pattern: ${rule.pattern}`, error as Error);
 				}
 			}
 
@@ -392,9 +357,7 @@ export class ProtectionManager {
 			// Limit attention items to prevent overwhelming the user
 			const MAX_ATTENTION_ITEMS = 20;
 			if (items.length > MAX_ATTENTION_ITEMS) {
-				logger.info(
-					`Limiting attention items from ${items.length} to ${MAX_ATTENTION_ITEMS}`,
-				);
+				logger.info(`Limiting attention items from ${items.length} to ${MAX_ATTENTION_ITEMS}`);
 				return items.slice(0, MAX_ATTENTION_ITEMS).concat([
 					{
 						type: "unprotected_critical",

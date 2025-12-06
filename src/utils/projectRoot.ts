@@ -41,9 +41,7 @@ export async function directoryExists(dirPath: string): Promise<boolean> {
  * @param startPath - The directory to start searching from
  * @returns Promise<string | null> - The project root path, or null if not found
  */
-export async function findProjectRoot(
-	startPath: string,
-): Promise<string | null> {
+export async function findProjectRoot(startPath: string): Promise<string | null> {
 	let currentPath = startPath;
 
 	// Go up at most MAX_DEPTH levels to find the project root

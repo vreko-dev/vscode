@@ -29,10 +29,7 @@ import { SaveHandler } from "./handlers/SaveHandler";
 import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration"; // 🆕 Import AutoDecisionIntegration
 import { FileSystemWatcher } from "./protection/FileSystemWatcher";
 import { RulesManager } from "./rules/RulesManager";
-import {
-	NoopAIRiskService,
-	RemoteAIRiskService,
-} from "./services/aiRiskService";
+import { NoopAIRiskService, RemoteAIRiskService } from "./services/aiRiskService";
 import { ApiClient } from "./services/api-client";
 import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService
 import { ProtectionManager } from "./services/protectionPolicy";
@@ -94,10 +91,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	featureFlagService = new FeatureFlagService();
 
 	// 🆕 Check if this is the first time the extension is installed
-	const hasBeenInstalled = context.globalState.get<boolean>(
-		"snapback.installed",
-		false,
-	);
+	const hasBeenInstalled = context.globalState.get<boolean>("snapback.installed", false);
 	if (!hasBeenInstalled) {
 		// Mark as installed
 		await context.globalState.update("snapback.installed", true);
@@ -126,11 +120,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.authentication.onDidChangeSessions(async (e) => {
 			if (e.provider.id === "snapback") {
 				// Check if we have a valid session
-				const sessions = await vscode.authentication.getSession(
-					"snapback",
-					[],
-					{ createIfNone: false },
-				);
+				const sessions = await vscode.authentication.getSession("snapback", [], { createIfNone: false });
 
 				if (sessions && userIdentityService) {
 					// Use unified identity service to handle login
@@ -145,9 +135,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// 🆕 Initialize WorkspaceFolderResolver for early workspace verification
 	// This is lightweight and doesn't require storage
-	const workspaceFolderResolver = new WorkspaceFolderResolver(
-		vscode.workspace.workspaceFolders || [],
-	);
+	const workspaceFolderResolver = new WorkspaceFolderResolver(vscode.workspace.workspaceFolders || []);
 	context.subscriptions.push(workspaceFolderResolver);
 
 	// Verify at least one workspace exists
@@ -176,18 +164,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Log workspace information
 	if (workspaceFolderResolver.hasMultipleWorkspaces()) {
-		logger.info(
-			`Multi-root workspace detected: ${workspaceFolderResolver.getWorkspaceCount()} folders`,
-		);
+		logger.info(`Multi-root workspace detected: ${workspaceFolderResolver.getWorkspaceCount()} folders`);
 		logger.info(`Primary workspace: ${workspaceRoot}`);
 	}
 
 	// Check workspace trust
 	const isWorkspaceTrusted = vscode.workspace.isTrusted;
 	if (!isWorkspaceTrusted) {
-		logger.warn(
-			"Workspace is not trusted - SnapBack is running in limited mode",
-		);
+		logger.warn("Workspace is not trusted - SnapBack is running in limited mode");
 		// Show warning asynchronously after activation completes (non-blocking)
 		// This prevents extension startup from waiting for user interaction
 		void showDeferredWorkspaceTrustWarning(context);
@@ -204,13 +188,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// If offline mode is enabled, show a notification asynchronously
 	if (offlineModeEnabled) {
-		setTimeout(
-			() =>
-				vscode.window.showInformationMessage(
-					"SnapBack is running in offline mode",
-				),
-			100,
-		);
+		setTimeout(() => vscode.window.showInformationMessage("SnapBack is running in offline mode"), 100);
 	}
 
 	try {
@@ -220,10 +198,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			await eventBus.initialize();
 			logger.info("EventEmitter2 event bus initialized");
 		} catch (err) {
-			logger.error(
-				"Failed to initialize EventEmitter2 event bus",
-				err as Error,
-			);
+			logger.error("Failed to initialize EventEmitter2 event bus", err as Error);
 		}
 
 		// Phase 1: Core services
@@ -239,16 +214,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// 🆕 Initialize WorkspaceManager now that context is available
 		// This provides workspace-aware operations for commands and services
-		workspaceManager = new WorkspaceManager(
-			vscode.workspace.workspaceFolders || [],
-			context,
-		);
+		workspaceManager = new WorkspaceManager(vscode.workspace.workspaceFolders || [], context);
 		logger.info("WorkspaceManager initialized");
 
 		// 🆕 Create cooldown indicator
-		const cooldownIndicator = new CooldownIndicator(
-			phase2Result.protectedFileRegistry,
-		);
+		const cooldownIndicator = new CooldownIndicator(phase2Result.protectedFileRegistry);
 		context.subscriptions.push(cooldownIndicator);
 
 		// Phase 3: Business logic managers
@@ -268,10 +238,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		const fileHealthDecorationProvider = new FileHealthDecorationProvider();
 
 		// Phase 2 Slice 4: Initialize AIRiskService
-		const guardianEnabled = config.get<boolean>(
-			"snapback.guardian.enabled",
-			true,
-		);
+		const guardianEnabled = config.get<boolean>("snapback.guardian.enabled", true);
 		const aiRiskService = guardianEnabled
 			? new RemoteAIRiskService(new ApiClient(), config)
 			: new NoopAIRiskService();
@@ -291,22 +258,15 @@ export async function activate(context: vscode.ExtensionContext) {
 		saveHandler.register(context);
 
 		// 🆕 Check if file health decorations are enabled
-		const showFileHealthDecorations = config.get<boolean>(
-			"showFileHealthDecorations",
-			true,
-		);
+		const showFileHealthDecorations = config.get<boolean>("showFileHealthDecorations", true);
 		if (showFileHealthDecorations) {
 			// 🆕 Register file health decoration provider only if enabled
 			context.subscriptions.push(fileHealthDecorationProvider);
-			vscode.window.registerFileDecorationProvider(
-				fileHealthDecorationProvider,
-			);
+			vscode.window.registerFileDecorationProvider(fileHealthDecorationProvider);
 		}
 
 		// Create file watcher
-		const fileWatcher = new FileSystemWatcher(
-			phase2Result.protectedFileRegistry,
-		);
+		const fileWatcher = new FileSystemWatcher(phase2Result.protectedFileRegistry);
 		context.subscriptions.push(fileWatcher);
 
 		// Phase 4: UI providers
@@ -333,15 +293,9 @@ export async function activate(context: vscode.ExtensionContext) {
 			config.get<string>("apiBaseUrl", "https://api.snapback.dev"),
 		);
 
-		userIdentityService = new UserIdentityService(
-			anonymousIdManager,
-			authService,
-			telemetryProxy,
-		);
+		userIdentityService = new UserIdentityService(anonymousIdManager, authService, telemetryProxy);
 		// Configure TelemetryProxy to use UserIdentityService
-		telemetryProxy.setIdentityProvider(() =>
-			userIdentityService?.getCurrentId(),
-		);
+		telemetryProxy.setIdentityProvider(() => userIdentityService?.getCurrentId());
 		logger.info("UserIdentityService initialized");
 
 		const phase4Result = await initializePhase4Providers(
@@ -357,11 +311,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Phase 5: Registration
 		const phase5Start = Date.now();
-		await initializePhase5Registration(
-			context,
-			phase4Result,
-			phase3Result.sessionCoordinator,
-		);
+		await initializePhase5Registration(context, phase4Result, phase3Result.sessionCoordinator);
 		phaseTimings["Phase 5 (Registration)"] = Date.now() - phase5Start;
 
 		// 🆕 Phase 14: Initialize AutoDecisionIntegration (session-level AI protection)
@@ -370,22 +320,10 @@ export async function activate(context: vscode.ExtensionContext) {
 			phase3Result.snapshotManager,
 			phase3Result.notificationManager,
 			{
-				riskThreshold: config.get<number>(
-					"snapback.autoDecision.riskThreshold",
-					60,
-				),
-				notifyThreshold: config.get<number>(
-					"snapback.autoDecision.notifyThreshold",
-					40,
-				),
-				minFilesForBurst: config.get<number>(
-					"snapback.autoDecision.minFilesForBurst",
-					3,
-				),
-				maxSnapshotsPerMinute: config.get<number>(
-					"snapback.autoDecision.maxSnapshotsPerMinute",
-					4,
-				),
+				riskThreshold: config.get<number>("snapback.autoDecision.riskThreshold", 60),
+				notifyThreshold: config.get<number>("snapback.autoDecision.notifyThreshold", 40),
+				minFilesForBurst: config.get<number>("snapback.autoDecision.minFilesForBurst", 3),
+				maxSnapshotsPerMinute: config.get<number>("snapback.autoDecision.maxSnapshotsPerMinute", 4),
 			},
 			context, // Pass context for globalState storage persistence
 		);
@@ -414,13 +352,10 @@ export async function activate(context: vscode.ExtensionContext) {
 		codeLensProvider.register(context);
 
 		// Create ContextManager
-		const contextManager = new ContextManager(
-			phase2Result.protectedFileRegistry,
-		);
+		const contextManager = new ContextManager(phase2Result.protectedFileRegistry);
 
 		// Phase 2 Slice 5: Initialize ProtectionService for repo audit
-		const existingProtectionManager =
-			phase2Result.snapbackrcLoader?.getProtectionManager();
+		const existingProtectionManager = phase2Result.snapbackrcLoader?.getProtectionManager();
 		const protectionManagerInstance =
 			existingProtectionManager ||
 			new ProtectionManager(
@@ -465,79 +400,63 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Register RPC handlers for MCP requests
 		if (eventBus) {
 			// Handler: Get protection level for file
-			eventBus.onRequest(
-				"get_protection_level",
-				async (data: { filePath: string }) => {
-					const isProtected = phase2Result.protectedFileRegistry.isProtected(
-						data.filePath,
-					);
-					const protectionLevel =
-						phase2Result.protectedFileRegistry.getProtectionLevel(
-							data.filePath,
-						);
-					return {
-						filePath: data.filePath,
-						isProtected,
-						level: protectionLevel || null,
-					};
-				},
-			);
+			eventBus.onRequest("get_protection_level", async (data: { filePath: string }) => {
+				const isProtected = phase2Result.protectedFileRegistry.isProtected(data.filePath);
+				const protectionLevel = phase2Result.protectedFileRegistry.getProtectionLevel(data.filePath);
+				return {
+					filePath: data.filePath,
+					isProtected,
+					level: protectionLevel || null,
+				};
+			});
 			// Note: onRequest doesn't return a Disposable; cleanup handled in deactivate()
 
 			// Handler: Get iteration statistics
-			eventBus.onRequest(
-				"get_iteration_stats",
-				async (data: { filePath: string }) => {
-					// Use the real implementation from SaveHandler
-					const stats = saveHandler.getIterationStats(data.filePath);
+			eventBus.onRequest("get_iteration_stats", async (data: { filePath: string }) => {
+				// Use the real implementation from SaveHandler
+				const stats = saveHandler.getIterationStats(data.filePath);
 
-					// Generate recommendation based on stats
-					let recommendation = "Continue coding normally";
-					if (stats.riskLevel === "high") {
-						recommendation = "Consider taking a break or reviewing changes";
-					} else if (stats.riskLevel === "medium") {
-						recommendation = "Monitor your changes carefully";
-					}
+				// Generate recommendation based on stats
+				let recommendation = "Continue coding normally";
+				if (stats.riskLevel === "high") {
+					recommendation = "Consider taking a break or reviewing changes";
+				} else if (stats.riskLevel === "medium") {
+					recommendation = "Monitor your changes carefully";
+				}
 
-					return {
-						filePath: data.filePath,
-						consecutiveAIEdits: stats.consecutiveAIEdits,
-						riskLevel: stats.riskLevel,
-						velocity: Math.round(stats.velocity * 100) / 100, // Round to 2 decimal places
-						recommendation,
-					};
-				},
-			);
+				return {
+					filePath: data.filePath,
+					consecutiveAIEdits: stats.consecutiveAIEdits,
+					riskLevel: stats.riskLevel,
+					velocity: Math.round(stats.velocity * 100) / 100, // Round to 2 decimal places
+					recommendation,
+				};
+			});
 			// Note: onRequest doesn't return a Disposable; cleanup handled in deactivate()
 
 			// Handler: Create snapshot
-			eventBus.onRequest(
-				"create_snapshot",
-				async (data: { filePath: string; reason?: string }) => {
-					const fileContent = await vscode.workspace.fs.readFile(
-						vscode.Uri.file(data.filePath),
-					);
-					const snapshot = await phase3Result.snapshotManager.createSnapshot(
-						[
-							{
-								path: data.filePath,
-								content: fileContent.toString(),
-								action: "modify",
-							},
-						],
+			eventBus.onRequest("create_snapshot", async (data: { filePath: string; reason?: string }) => {
+				const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.file(data.filePath));
+				const snapshot = await phase3Result.snapshotManager.createSnapshot(
+					[
 						{
-							description: data.reason || "MCP snapshot",
-							protected: false,
+							path: data.filePath,
+							content: fileContent.toString(),
+							action: "modify",
 						},
-					);
+					],
+					{
+						description: data.reason || "MCP snapshot",
+						protected: false,
+					},
+				);
 
-					return {
-						id: snapshot.id,
-						timestamp: snapshot.timestamp,
-						meta: { source: "mcp", reason: data.reason },
-					};
-				},
-			);
+				return {
+					id: snapshot.id,
+					timestamp: snapshot.timestamp,
+					meta: { source: "mcp", reason: data.reason },
+				};
+			});
 			// Note: onRequest doesn't return a Disposable; cleanup handled in deactivate()
 		}
 
@@ -553,14 +472,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
 				// Show notification
 				const data = payload as { id: string };
-				vscode.window.showInformationMessage(
-					`🧢 Snapshot created by AI: ${data.id}`,
-				);
+				vscode.window.showInformationMessage(`🧢 Snapshot created by AI: ${data.id}`);
 			};
 			bus.on(SnapBackEvent.SNAPSHOT_CREATED, snapshotCreatedHandler);
 			context.subscriptions.push({
-				dispose: () =>
-					bus.off(SnapBackEvent.SNAPSHOT_CREATED, snapshotCreatedHandler),
+				dispose: () => bus.off(SnapBackEvent.SNAPSHOT_CREATED, snapshotCreatedHandler),
 			});
 
 			const protectionChangedHandler = (payload: unknown) => {
@@ -573,8 +489,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			};
 			bus.on(SnapBackEvent.PROTECTION_CHANGED, protectionChangedHandler);
 			context.subscriptions.push({
-				dispose: () =>
-					bus.off(SnapBackEvent.PROTECTION_CHANGED, protectionChangedHandler),
+				dispose: () => bus.off(SnapBackEvent.PROTECTION_CHANGED, protectionChangedHandler),
 			});
 
 			const analysisCompletedHandler = (payload: unknown) => {
@@ -583,21 +498,14 @@ export async function activate(context: vscode.ExtensionContext) {
 			};
 			bus.on(SnapBackEvent.ANALYSIS_COMPLETED, analysisCompletedHandler);
 			context.subscriptions.push({
-				dispose: () =>
-					bus.off(SnapBackEvent.ANALYSIS_COMPLETED, analysisCompletedHandler),
+				dispose: () => bus.off(SnapBackEvent.ANALYSIS_COMPLETED, analysisCompletedHandler),
 			});
 		}
 
 		// Create updateFileProtectionContext function
 		const updateFileProtectionContext = async (uri: vscode.Uri) => {
-			const isProtected = phase2Result.protectedFileRegistry.isProtected(
-				uri.fsPath,
-			);
-			await vscode.commands.executeCommand(
-				"setContext",
-				"snapback.fileProtected",
-				isProtected,
-			);
+			const isProtected = phase2Result.protectedFileRegistry.isProtected(uri.fsPath);
+			await vscode.commands.executeCommand("setContext", "snapback.fileProtected", isProtected);
 			// Also update the context manager
 			await contextManager.updateContextForFile(uri.fsPath);
 		};
@@ -605,25 +513,15 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Create updateHasProtectedFilesContext function
 		const updateHasProtectedFilesContext = async () => {
 			const protectedFiles = await phase2Result.protectedFileRegistry.list();
-			await vscode.commands.executeCommand(
-				"setContext",
-				"snapback.hasProtectedFiles",
-				protectedFiles.length > 0,
-			);
+			await vscode.commands.executeCommand("setContext", "snapback.hasProtectedFiles", protectedFiles.length > 0);
 		};
 
 		// Create getProtectionStateSummary function
 		const getProtectionStateSummary = async () => {
 			const protectedFiles = await phase2Result.protectedFileRegistry.list();
-			const watchCount = protectedFiles.filter(
-				(f) => f.protectionLevel === "watch",
-			).length;
-			const warnCount = protectedFiles.filter(
-				(f) => f.protectionLevel === "warn",
-			).length;
-			const blockCount = protectedFiles.filter(
-				(f) => f.protectionLevel === "block",
-			).length;
+			const watchCount = protectedFiles.filter((f) => f.protectionLevel === "watch").length;
+			const warnCount = protectedFiles.filter((f) => f.protectionLevel === "warn").length;
+			const blockCount = protectedFiles.filter((f) => f.protectionLevel === "block").length;
 
 			return {
 				state: {
@@ -704,11 +602,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(...commandDisposables);
 
 		// Set the extension as active
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.isActive",
-			true,
-		);
+		await vscode.commands.executeCommand("setContext", "snapback.isActive", true);
 		logger.info("SnapBack context set to active");
 
 		// ⚡ PERF: Defer context updates to background (after UI responsive)
@@ -737,54 +631,52 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Listen for protection changes to update file protection context
 		//  TDD: Wire cache invalidation + dashboard refresh on protection changes
 		let auditDebounceTimer: NodeJS.Timeout | undefined;
-		const protectionChangeListener =
-			phase2Result.protectedFileRegistry.onProtectionChanged(async (uris) => {
-				// Update the file protection context for the active editor
-				const activeEditor = vscode.window.activeTextEditor;
-				if (activeEditor) {
-					await updateFileProtectionContext(activeEditor.document.uri);
-				}
-				// Update hasProtectedFiles context
-				await updateHasProtectedFilesContext();
-				// Refresh all tree views when protection changes
-				refreshViews();
+		const protectionChangeListener = phase2Result.protectedFileRegistry.onProtectionChanged(async (uris) => {
+			// Update the file protection context for the active editor
+			const activeEditor = vscode.window.activeTextEditor;
+			if (activeEditor) {
+				await updateFileProtectionContext(activeEditor.document.uri);
+			}
+			// Update hasProtectedFiles context
+			await updateHasProtectedFilesContext();
+			// Refresh all tree views when protection changes
+			refreshViews();
 
-				// 🟢 TDD GREEN: Invalidate audit cache and refresh with debouncing
-				// Debounce to prevent excessive audits during bulk protection operations
-				if (auditDebounceTimer) {
-					clearTimeout(auditDebounceTimer);
-				}
-				auditDebounceTimer = setTimeout(async () => {
-					logger.info("Protection changed, refreshing audit...");
-					// Invalidate cache to ensure fresh scan
-					phase3Result.protectionService.invalidateAuditCache();
-					// Run audit with force=true to bypass cache
-					await phase3Result.protectionService.auditRepo(true);
-					// 🟢 Phase 2: Refresh SnapBack TreeView to show updated status
-					phase4Result.snapBackTreeProvider.refresh();
-				}, 300); // 300ms debounce for responsive feel
+			// 🟢 TDD GREEN: Invalidate audit cache and refresh with debouncing
+			// Debounce to prevent excessive audits during bulk protection operations
+			if (auditDebounceTimer) {
+				clearTimeout(auditDebounceTimer);
+			}
+			auditDebounceTimer = setTimeout(async () => {
+				logger.info("Protection changed, refreshing audit...");
+				// Invalidate cache to ensure fresh scan
+				phase3Result.protectionService.invalidateAuditCache();
+				// Run audit with force=true to bypass cache
+				await phase3Result.protectionService.auditRepo(true);
+				// 🟢 Phase 2: Refresh SnapBack TreeView to show updated status
+				phase4Result.snapBackTreeProvider.refresh();
+			}, 300); // 300ms debounce for responsive feel
 
-				// Publish event when protection changes
-				if (eventBus && uris.length > 0) {
-					const filePath = uris[0].fsPath;
-					// Simplified approach since we can't easily access getProtectionInfo
-					const payload: ProtectionChangedPayload = {
-						filePath,
-						level: "Watched", // Default level
-						timestamp: Date.now(),
-					};
-					eventBus.publish(SnapBackEvent.PROTECTION_CHANGED, payload);
-				}
-			});
+			// Publish event when protection changes
+			if (eventBus && uris.length > 0) {
+				const filePath = uris[0].fsPath;
+				// Simplified approach since we can't easily access getProtectionInfo
+				const payload: ProtectionChangedPayload = {
+					filePath,
+					level: "Watched", // Default level
+					timestamp: Date.now(),
+				};
+				eventBus.publish(SnapBackEvent.PROTECTION_CHANGED, payload);
+			}
+		});
 		context.subscriptions.push(protectionChangeListener);
 
 		// Listen for active editor changes to update file protection context
-		const activeEditorChangeListener =
-			vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-				if (editor) {
-					await updateFileProtectionContext(editor.document.uri);
-				}
-			});
+		const activeEditorChangeListener = vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+			if (editor) {
+				await updateFileProtectionContext(editor.document.uri);
+			}
+		});
 		context.subscriptions.push(activeEditorChangeListener);
 
 		// Activation complete
@@ -813,16 +705,12 @@ export async function activate(context: vscode.ExtensionContext) {
 				budget: 500,
 			});
 		} else {
-			outputChannel.appendLine(
-				`\n✅ Activation time within budget (${elapsedTime}ms < 500ms)`,
-			);
+			outputChannel.appendLine(`\n✅ Activation time within budget (${elapsedTime}ms < 500ms)`);
 		}
 	} catch (error) {
 		logger.error("Activation failed", error as Error);
 		vscode.window.showErrorMessage(
-			`SnapBack activation failed: ${
-				error instanceof Error ? error.message : String(error)
-			}`,
+			`SnapBack activation failed: ${error instanceof Error ? error.message : String(error)}`,
 		);
 		// 🛡️ Show error in views so user knows what happened
 		showErrorInViews(context, error as Error);
@@ -918,9 +806,7 @@ export function getAnonymousIdManager(): AnonymousIdManager | null {
  * Show workspace trust warning asynchronously (non-blocking).
  * Called after activation completes to avoid blocking extension startup.
  */
-async function showDeferredWorkspaceTrustWarning(
-	context: vscode.ExtensionContext,
-): Promise<void> {
+async function showDeferredWorkspaceTrustWarning(context: vscode.ExtensionContext): Promise<void> {
 	const ACK_KEY = "snapback.workspace-trust-warning-acknowledged";
 
 	// Check if already acknowledged

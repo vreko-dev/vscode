@@ -54,8 +54,8 @@ export class RemoteMCPClient implements vscode.Disposable {
 	private serverUrl: string;
 	private authToken?: string;
 	private maxRetries: number;
-	private isReady: boolean = false;
-	private reconnectAttempts: number = 0;
+	private isReady = false;
+	private reconnectAttempts = 0;
 	private heartbeatInterval?: NodeJS.Timeout;
 	private status: MCPStatus = { ready: false };
 	private authType: "bearer" | "apikey";
@@ -95,9 +95,7 @@ export class RemoteMCPClient implements vscode.Disposable {
 				this.reconnectAttempts++;
 				const delay = 2 ** this.reconnectAttempts * 1000; // Exponential backoff
 
-				logger.info(
-					`Retrying connection in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxRetries})`,
-				);
+				logger.info(`Retrying connection in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxRetries})`);
 
 				await new Promise((resolve) => setTimeout(resolve, delay));
 				return this.connect();
@@ -126,15 +124,10 @@ export class RemoteMCPClient implements vscode.Disposable {
 
 		// Use queued network adapter for health checks
 		const networkAdapter = new QueuedNetworkAdapter();
-		const response = await networkAdapter.get(
-			`${this.serverUrl}/health`,
-			headers,
-		);
+		const response = await networkAdapter.get(`${this.serverUrl}/health`, headers);
 
 		if (!response.ok) {
-			throw new Error(
-				`Health check failed with status ${response.status}: ${response.statusText}`,
-			);
+			throw new Error(`Health check failed with status ${response.status}: ${response.statusText}`);
 		}
 
 		const data: unknown = response.data;
@@ -163,10 +156,7 @@ export class RemoteMCPClient implements vscode.Disposable {
 			try {
 				await this.healthCheck();
 			} catch (error) {
-				logger.warn(
-					"Heartbeat failed, MCP server may be unreachable",
-					error as Error,
-				);
+				logger.warn("Heartbeat failed, MCP server may be unreachable", error as Error);
 				this.isReady = false;
 				this.status.ready = false;
 
@@ -174,10 +164,7 @@ export class RemoteMCPClient implements vscode.Disposable {
 				try {
 					await this.connect();
 				} catch (reconnectError) {
-					logger.error(
-						"Failed to reconnect to MCP server",
-						reconnectError as Error,
-					);
+					logger.error("Failed to reconnect to MCP server", reconnectError as Error);
 				}
 			}
 		}, 30000); // Check every 30 seconds
@@ -204,16 +191,10 @@ export class RemoteMCPClient implements vscode.Disposable {
 
 		// Use queued network adapter for requests
 		const networkAdapter = new QueuedNetworkAdapter();
-		const response = await networkAdapter.post(
-			`${this.serverUrl}${endpoint}`,
-			data,
-			headers,
-		);
+		const response = await networkAdapter.post(`${this.serverUrl}${endpoint}`, data, headers);
 
 		if (!response.ok) {
-			throw new Error(
-				`Request failed with status ${response.status}: ${response.statusText}`,
-			);
+			throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
 		}
 
 		return response.data;

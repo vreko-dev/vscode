@@ -24,12 +24,7 @@ export interface AuthResult {
 	tier: "free" | "pro" | "enterprise";
 }
 
-export type FlowState =
-	| "idle"
-	| "waiting_for_approval"
-	| "approved"
-	| "cancelled"
-	| "error";
+export type FlowState = "idle" | "waiting_for_approval" | "approved" | "cancelled" | "error";
 
 export class DeviceAuthFlow {
 	private state: FlowState = "idle";
@@ -46,7 +41,7 @@ export class DeviceAuthFlow {
 
 	constructor(
 		private context: ExtensionContext,
-		private apiBaseUrl: string = "http://localhost:3000/api",
+		private apiBaseUrl = "http://localhost:3000/api",
 	) {
 		// Initialize diagnostic event tracker
 		const telemetryProxy = new TelemetryProxy(context);
@@ -71,22 +66,16 @@ export class DeviceAuthFlow {
 
 		try {
 			// Track: User selected device flow as auth provider
-			this.diagnosticTracker.trackAuthProviderSelected(
-				"device_flow",
-				"user_selected",
-			);
+			this.diagnosticTracker.trackAuthProviderSelected("device_flow", "user_selected");
 
 			// Step 1: Request device code
 			const deviceCodeResponse = await this.requestDeviceCode();
 
 			if (!deviceCodeResponse.device_code) {
-				throw new Error(
-					`Failed to get device code: Device code response missing required field`,
-				);
+				throw new Error("Failed to get device code: Device code response missing required field");
 			}
 
-			const { device_code, expires_in, interval, verification_uri, user_code } =
-				deviceCodeResponse;
+			const { device_code, expires_in, interval, verification_uri, user_code } = deviceCodeResponse;
 
 			// Step 2: Set up polling
 			this.currentInterval = interval * 1000; // Convert to milliseconds
@@ -110,8 +99,7 @@ export class DeviceAuthFlow {
 			if (this.state !== "cancelled") {
 				this.state = "error";
 			}
-			this.lastError =
-				error instanceof Error ? error : new Error(String(error));
+			this.lastError = error instanceof Error ? error : new Error(String(error));
 			logger.error("Device auth failed", {
 				error: this.lastError.message,
 				state: this.state,
@@ -134,19 +122,16 @@ export class DeviceAuthFlow {
 		interval: number;
 	}> {
 		try {
-			const response = await fetch(
-				`${this.apiBaseUrl}/deviceAuth/requestCode`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						client_id: "vscode-extension",
-					}),
-					signal: this.abortController?.signal,
+			const response = await fetch(`${this.apiBaseUrl}/deviceAuth/requestCode`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
 				},
-			);
+				body: JSON.stringify({
+					client_id: "vscode-extension",
+				}),
+				signal: this.abortController?.signal,
+			});
 
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -163,10 +148,7 @@ export class DeviceAuthFlow {
 			};
 			return data;
 		} catch (error) {
-			const message =
-				error instanceof Error
-					? error.message
-					: "Failed to request device code";
+			const message = error instanceof Error ? error.message : "Failed to request device code";
 			throw new Error(`Device code request failed: ${message}`);
 		}
 	}
@@ -174,10 +156,7 @@ export class DeviceAuthFlow {
 	/**
 	 * Poll for token with exponential backoff and slow_down handling
 	 */
-	private async pollForToken(
-		deviceCode: string,
-		expiresInSeconds: number,
-	): Promise<AuthResult> {
+	private async pollForToken(deviceCode: string, expiresInSeconds: number): Promise<AuthResult> {
 		const timeoutMs = expiresInSeconds * 1000;
 		const maxWaitTime = this.pollStartTime + timeoutMs;
 
@@ -197,20 +176,17 @@ export class DeviceAuthFlow {
 
 			try {
 				// Poll for token
-				const response = await fetch(
-					`${this.apiBaseUrl}/deviceAuth/pollToken`,
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({
-							device_code: deviceCode,
-							grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-						}),
-						signal: this.abortController?.signal,
+				const response = await fetch(`${this.apiBaseUrl}/deviceAuth/pollToken`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
 					},
-				);
+					body: JSON.stringify({
+						device_code: deviceCode,
+						grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+					}),
+					signal: this.abortController?.signal,
+				});
 
 				if (!response.ok) {
 					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -225,11 +201,7 @@ export class DeviceAuthFlow {
 							scope?: string;
 					  }
 					| {
-							error:
-								| "authorization_pending"
-								| "slow_down"
-								| "expired_token"
-								| "invalid_request";
+							error: "authorization_pending" | "slow_down" | "expired_token" | "invalid_request";
 							error_description?: string;
 					  };
 
@@ -298,10 +270,7 @@ export class DeviceAuthFlow {
 							throw error; // Re-throw cancellation
 						}
 						// Re-throw RFC 8628 errors (expired_token, invalid_request)
-						if (
-							error.message.includes("expired") ||
-							error.message.includes("Invalid device code")
-						) {
+						if (error.message.includes("expired") || error.message.includes("Invalid device code")) {
 							throw error;
 						}
 						logger.warn("Poll request failed, retrying", {
@@ -359,16 +328,9 @@ export class DeviceAuthFlow {
 	 * Show verification prompt to user and attempt to open browser
 	 * Tracks browser opening attempt with diagnostic event
 	 */
-	private async showVerificationPrompt(
-		verificationUri: string,
-		userCode: string,
-	): Promise<void> {
+	private async showVerificationPrompt(verificationUri: string, userCode: string): Promise<void> {
 		const message = `SnapBack: Visit the link below and enter code: **${userCode}**`;
-		const action = await vscode.window.showInformationMessage(
-			message,
-			"Open Browser",
-			"Copy Code",
-		);
+		const action = await vscode.window.showInformationMessage(message, "Open Browser", "Copy Code");
 
 		if (action === "Open Browser") {
 			try {

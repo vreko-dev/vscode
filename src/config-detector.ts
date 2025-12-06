@@ -58,12 +58,7 @@ export class ConfigDetector {
 
 	constructor(workspaceRoot: string, options?: { exclude?: string[] }) {
 		this.workspaceRoot = workspaceRoot;
-		this.excludePatterns = options?.exclude || [
-			"node_modules/**",
-			".git/**",
-			"dist/**",
-			"build/**",
-		];
+		this.excludePatterns = options?.exclude || ["node_modules/**", ".git/**", "dist/**", "build/**"];
 	}
 
 	async detectConfigFiles(): Promise<ConfigFile[]> {
@@ -107,10 +102,7 @@ export class ConfigDetector {
 
 			return configFiles;
 		} catch (error) {
-			logger.error(
-				"Error detecting config files:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error detecting config files:", error instanceof Error ? error : undefined);
 			return [];
 		}
 	}
@@ -134,11 +126,7 @@ export class ConfigDetector {
 			const content = await fs.readFile(filePath, "utf-8");
 
 			// Try to parse as JSON first
-			if (
-				filePath.endsWith(".json") ||
-				filePath.includes("package.json") ||
-				filePath.includes("tsconfig")
-			) {
+			if (filePath.endsWith(".json") || filePath.includes("package.json") || filePath.includes("tsconfig")) {
 				try {
 					const parsed = JSON.parse(content);
 					return {
@@ -169,10 +157,7 @@ export class ConfigDetector {
 		}
 	}
 
-	private extractMetadata(
-		content: ConfigContent,
-		filePath: string,
-	): Record<string, unknown> | undefined {
+	private extractMetadata(content: ConfigContent, filePath: string): Record<string, unknown> | undefined {
 		if (!content || typeof content !== "object") {
 			return undefined;
 		}
@@ -226,10 +211,7 @@ export class ConfigDetector {
 		}
 	}
 
-	private validatePackageJson(
-		content: ConfigContent,
-		result: ConfigValidationResult,
-	): void {
+	private validatePackageJson(content: ConfigContent, result: ConfigValidationResult): void {
 		const pkg = content as PackageJson;
 		if (!pkg.name) {
 			result.errors.push("Missing required field: name");
@@ -242,24 +224,15 @@ export class ConfigDetector {
 		}
 	}
 
-	private validateTsConfig(
-		content: ConfigContent,
-		result: ConfigValidationResult,
-	): void {
+	private validateTsConfig(content: ConfigContent, result: ConfigValidationResult): void {
 		const tsconfig = content as TsConfig;
 		if (tsconfig && typeof tsconfig === "object" && tsconfig.compilerOptions) {
 			// Basic validation for tsconfig
-			if (
-				tsconfig.compilerOptions.target &&
-				typeof tsconfig.compilerOptions.target !== "string"
-			) {
+			if (tsconfig.compilerOptions.target && typeof tsconfig.compilerOptions.target !== "string") {
 				result.warnings.push("compilerOptions.target should be a string");
 			}
 
-			if (
-				tsconfig.compilerOptions.module &&
-				typeof tsconfig.compilerOptions.module !== "string"
-			) {
+			if (tsconfig.compilerOptions.module && typeof tsconfig.compilerOptions.module !== "string") {
 				result.warnings.push("compilerOptions.module should be a string");
 			}
 		}

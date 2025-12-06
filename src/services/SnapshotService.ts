@@ -18,32 +18,20 @@ export class SnapshotService extends EventEmitter {
 
 	constructor(workspaceRoot: string) {
 		super();
-		this.snapshotsDir = vscode.Uri.joinPath(
-			vscode.Uri.file(workspaceRoot),
-			".snapback",
-			"snapshots",
-		).fsPath;
+		this.snapshotsDir = vscode.Uri.joinPath(vscode.Uri.file(workspaceRoot), ".snapback", "snapshots").fsPath;
 	}
 
 	async initialize(): Promise<void> {
 		// Ensure snapshots directory exists
 		try {
-			await vscode.workspace.fs.createDirectory(
-				vscode.Uri.file(this.snapshotsDir),
-			);
+			await vscode.workspace.fs.createDirectory(vscode.Uri.file(this.snapshotsDir));
 		} catch (error) {
 			// Directory might already exist
-			logger.debug(
-				"Snapshots directory already exists or could not be created:",
-				error,
-			);
+			logger.debug("Snapshots directory already exists or could not be created:", error);
 		}
 	}
 
-	async createSnapshot(
-		files: string[],
-		description?: string,
-	): Promise<Snapshot> {
+	async createSnapshot(files: string[], description?: string): Promise<Snapshot> {
 		const id = this.generateId();
 		const timestamp = Date.now();
 
@@ -91,19 +79,14 @@ export class SnapshotService extends EventEmitter {
 			for (const [file, fileType] of files) {
 				if (fileType === vscode.FileType.File && file.endsWith(".json")) {
 					try {
-						const content = await vscode.workspace.fs.readFile(
-							vscode.Uri.joinPath(snapshotsUri, file),
-						);
+						const content = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(snapshotsUri, file));
 						const snapshot = JSON.parse(content.toString()) as Snapshot;
 
 						if (!filePath || snapshot.files?.includes(filePath)) {
 							snapshots.push(snapshot);
 						}
 					} catch (error) {
-						logger.error(
-							`Error reading snapshot file ${file}:`,
-							toError(error),
-						);
+						logger.error(`Error reading snapshot file ${file}:`, toError(error));
 					}
 				}
 			}
@@ -118,10 +101,7 @@ export class SnapshotService extends EventEmitter {
 	async deleteSnapshot(snapshotId: string): Promise<void> {
 		try {
 			// Delete metadata file
-			const metaPath = vscode.Uri.joinPath(
-				vscode.Uri.file(this.snapshotsDir),
-				`${snapshotId}.json`,
-			);
+			const metaPath = vscode.Uri.joinPath(vscode.Uri.file(this.snapshotsDir), `${snapshotId}.json`);
 			await vscode.workspace.fs.delete(metaPath, { useTrash: false });
 
 			// Delete associated file data
@@ -143,10 +123,7 @@ export class SnapshotService extends EventEmitter {
 
 	private async getSnapshot(id: string): Promise<Snapshot | null> {
 		try {
-			const metaPath = vscode.Uri.joinPath(
-				vscode.Uri.file(this.snapshotsDir),
-				`${id}.json`,
-			);
+			const metaPath = vscode.Uri.joinPath(vscode.Uri.file(this.snapshotsDir), `${id}.json`);
 			const content = await vscode.workspace.fs.readFile(metaPath);
 			return JSON.parse(content.toString());
 		} catch {
@@ -154,10 +131,7 @@ export class SnapshotService extends EventEmitter {
 		}
 	}
 
-	private async saveSnapshotData(
-		snapshot: Snapshot,
-		files: string[],
-	): Promise<void> {
+	private async saveSnapshotData(snapshot: Snapshot, files: string[]): Promise<void> {
 		// Save actual file contents for restoration
 		for (const file of files) {
 			try {
@@ -172,30 +146,18 @@ export class SnapshotService extends EventEmitter {
 				);
 				await vscode.workspace.fs.writeFile(snapshotPath, content);
 			} catch (error) {
-				logger.error(
-					`Error saving snapshot data for file ${file}:`,
-					toError(error),
-				);
+				logger.error(`Error saving snapshot data for file ${file}:`, toError(error));
 			}
 		}
 	}
 
 	private async saveSnapshotMetadata(snapshot: Snapshot): Promise<void> {
-		const metaPath = vscode.Uri.joinPath(
-			vscode.Uri.file(this.snapshotsDir),
-			`${snapshot.id}.json`,
-		);
+		const metaPath = vscode.Uri.joinPath(vscode.Uri.file(this.snapshotsDir), `${snapshot.id}.json`);
 		const content = JSON.stringify(snapshot, null, 2);
-		await vscode.workspace.fs.writeFile(
-			metaPath,
-			Buffer.from(content, "utf-8"),
-		);
+		await vscode.workspace.fs.writeFile(metaPath, Buffer.from(content, "utf-8"));
 	}
 
-	private async restoreFile(
-		snapshotId: string,
-		filePath: string,
-	): Promise<void> {
+	private async restoreFile(snapshotId: string, filePath: string): Promise<void> {
 		try {
 			const snapshotPath = vscode.Uri.joinPath(
 				vscode.Uri.file(this.snapshotsDir),
@@ -205,10 +167,7 @@ export class SnapshotService extends EventEmitter {
 			const fileUri = vscode.Uri.file(filePath);
 			await vscode.workspace.fs.writeFile(fileUri, content);
 		} catch (error) {
-			logger.error(
-				`Error restoring file ${filePath} from snapshot ${snapshotId}:`,
-				toError(error),
-			);
+			logger.error(`Error restoring file ${filePath} from snapshot ${snapshotId}:`, toError(error));
 			throw error;
 		}
 	}

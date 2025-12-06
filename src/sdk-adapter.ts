@@ -1,11 +1,5 @@
 import * as vscode from "vscode";
-import {
-	analyze,
-	type Envelope,
-	evaluatePolicy,
-	ingestTelemetry,
-	SnapbackClient,
-} from "./sdk-types";
+import { analyze, type Envelope, evaluatePolicy, ingestTelemetry, SnapbackClient } from "./sdk-types";
 
 /**
  * SDK Adapter for VS Code Extension
@@ -86,11 +80,7 @@ export class VSCodeSDKAdapter {
 	/**
 	 * Analyze code content
 	 */
-	async analyzeContent(
-		content: string,
-		filePath: string,
-		language?: string,
-	): Promise<unknown> {
+	async analyzeContent(content: string, filePath: string, language?: string): Promise<unknown> {
 		const envelope = this.createEnvelope();
 
 		return await analyze(this._client, envelope, {
@@ -114,10 +104,7 @@ export class VSCodeSDKAdapter {
 	/**
 	 * Ingest telemetry data
 	 */
-	async ingestTelemetry(
-		eventType: string,
-		payload: Record<string, unknown>,
-	): Promise<unknown> {
+	async ingestTelemetry(eventType: string, payload: Record<string, unknown>): Promise<unknown> {
 		const envelope = this.createEnvelope();
 
 		return await ingestTelemetry(this._client, envelope, {

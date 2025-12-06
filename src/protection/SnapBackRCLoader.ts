@@ -5,10 +5,7 @@ import * as vscode from "vscode";
 import { DEFAULT_SNAPBACK_CONFIG } from "../config/defaultConfig";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 // Phase 2: Import protection policy infrastructure
-import {
-	ProtectionManager,
-	type ProtectionPolicy,
-} from "../services/protectionPolicy";
+import { ProtectionManager, type ProtectionPolicy } from "../services/protectionPolicy";
 import type { ProtectionLevel } from "../types/protection";
 import type { SnapBackRC } from "../types/snapbackrc.types";
 import { logger } from "../utils/logger";
@@ -35,10 +32,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 		private readonly workspaceRoot: string,
 	) {
 		// Initialize ProtectionManager with lazy-loading config getter
-		this.protectionManager = new ProtectionManager(
-			protectedFileRegistry,
-			() => this.mergedConfig,
-		);
+		this.protectionManager = new ProtectionManager(protectedFileRegistry, () => this.mergedConfig);
 	}
 
 	/**
@@ -60,25 +54,16 @@ export class SnapBackRCLoader implements vscode.Disposable {
 		try {
 			const userConfig = await this.readConfig(configPath);
 			// Merge: defaults first, user config overrides
-			const mergedConfig = this.mergeConfigs(
-				DEFAULT_SNAPBACK_CONFIG,
-				userConfig,
-			);
+			const mergedConfig = this.mergeConfigs(DEFAULT_SNAPBACK_CONFIG, userConfig);
 			// Store merged config for external access
 			this.mergedConfig = mergedConfig;
 
-			if (
-				!mergedConfig ||
-				!mergedConfig.protection ||
-				mergedConfig.protection.length === 0
-			) {
+			if (!mergedConfig || !mergedConfig.protection || mergedConfig.protection.length === 0) {
 				logger.debug("No protection rules found (no defaults or .snapbackrc)");
 				return;
 			}
 
-			logger.info(
-				`Loaded ${mergedConfig.protection.length} protection rules (defaults + .snapbackrc)`,
-			);
+			logger.info(`Loaded ${mergedConfig.protection.length} protection rules (defaults + .snapbackrc)`);
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
 				logger.debug(".snapbackrc not found, using defaults only");
@@ -110,9 +95,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 			// Apply protection rules to matching files
 			let protectedCount = 0;
 			for (const rule of this.mergedConfig.protection) {
-				const matchingFiles = workspaceFiles.filter((file) =>
-					this.matchesPattern(file, rule.pattern),
-				);
+				const matchingFiles = workspaceFiles.filter((file) => this.matchesPattern(file, rule.pattern));
 
 				for (const filePath of matchingFiles) {
 					await this.protectedFileRegistry.add(filePath, {
@@ -121,9 +104,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 					protectedCount++;
 				}
 
-				logger.debug(
-					`Pattern "${rule.pattern}" matched ${matchingFiles.length} files (level: ${rule.level})`,
-				);
+				logger.debug(`Pattern "${rule.pattern}" matched ${matchingFiles.length} files (level: ${rule.level})`);
 			}
 
 			logger.info(`Applied protection to ${protectedCount} files`);
@@ -131,10 +112,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 			// Only show notification if user has opted in via settings
 			if (!silent && this.shouldShowNotifications()) {
 				vscode.window
-					.showInformationMessage(
-						`🧢 SnapBack: Protected ${protectedCount} files`,
-						"View Protected Files",
-					)
+					.showInformationMessage(`🧢 SnapBack: Protected ${protectedCount} files`, "View Protected Files")
 					.then((choice) => {
 						if (choice === "View Protected Files") {
 							vscode.commands.executeCommand("snapback.showAllProtectedFiles");
@@ -145,16 +123,10 @@ export class SnapBackRCLoader implements vscode.Disposable {
 			// Always show errors (even in silent mode) because they need user attention
 			logger.error("Failed to apply protections", error as Error);
 			vscode.window
-				.showWarningMessage(
-					`⚠️ SnapBack: Failed to apply protections: ${(error as Error).message}`,
-					"View Logs",
-				)
+				.showWarningMessage(`⚠️ SnapBack: Failed to apply protections: ${(error as Error).message}`, "View Logs")
 				.then((choice) => {
 					if (choice === "View Logs") {
-						vscode.commands.executeCommand(
-							"workbench.action.output.toggleOutput",
-							"SnapBack",
-						);
+						vscode.commands.executeCommand("workbench.action.output.toggleOutput", "SnapBack");
 					}
 				});
 		}
@@ -187,10 +159,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 	 * For protection rules: user rules override defaults with same pattern
 	 * For other config: user settings extend/override defaults
 	 */
-	private mergeConfigs(
-		defaults: SnapBackRC,
-		userConfig: SnapBackRC | null,
-	): SnapBackRC {
+	private mergeConfigs(defaults: SnapBackRC, userConfig: SnapBackRC | null): SnapBackRC {
 		if (!userConfig) {
 			return defaults;
 		}
@@ -201,9 +170,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 		if (userConfig.protection && userConfig.protection.length > 0) {
 			for (const userRule of userConfig.protection) {
 				// Find if this pattern already exists in defaults
-				const existingIndex = mergedProtection.findIndex(
-					(rule) => rule.pattern === userRule.pattern,
-				);
+				const existingIndex = mergedProtection.findIndex((rule) => rule.pattern === userRule.pattern);
 
 				if (existingIndex >= 0) {
 					// Override existing default rule with user's version
@@ -300,9 +267,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 	/**
 	 * Get all files in workspace, excluding ignore patterns
 	 */
-	private async getAllWorkspaceFiles(
-		ignorePatterns: string[],
-	): Promise<string[]> {
+	private async getAllWorkspaceFiles(ignorePatterns: string[]): Promise<string[]> {
 		const defaultIgnores = [
 			"**/node_modules/**",
 			"**/.git/**",
@@ -315,10 +280,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 		const allIgnores = [...defaultIgnores, ...ignorePatterns];
 
 		// Use VSCode's file search API
-		const files = await vscode.workspace.findFiles(
-			"**/*",
-			`{${allIgnores.join(",")}}`,
-		);
+		const files = await vscode.workspace.findFiles("**/*", `{${allIgnores.join(",")}}`);
 
 		return files.map((uri) => uri.fsPath);
 	}
@@ -335,10 +297,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 				windowsPathsNoEscape: true,
 			});
 		} catch (error) {
-			logger.warn(
-				`Failed to match pattern "${pattern}"`,
-				error instanceof Error ? error.message : error,
-			);
+			logger.warn(`Failed to match pattern "${pattern}"`, error instanceof Error ? error.message : error);
 			return false;
 		}
 	}
@@ -346,11 +305,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 	/**
 	 * Add a protection rule to .snapbackrc
 	 */
-	async addProtectionRule(
-		filePath: string,
-		level: string,
-		reason?: string,
-	): Promise<void> {
+	async addProtectionRule(filePath: string, level: string, reason?: string): Promise<void> {
 		const configPath = path.join(this.workspaceRoot, this.configFileName);
 		const relativePath = path.relative(this.workspaceRoot, filePath);
 
@@ -361,13 +316,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 			if (!config) {
 				config = {
 					protection: [...(DEFAULT_SNAPBACK_CONFIG.protection || [])],
-					ignore: [
-						"**/node_modules/**",
-						"**/.git/**",
-						"**/.snapback/**",
-						"**/dist/**",
-						"**/build/**",
-					],
+					ignore: ["**/node_modules/**", "**/.git/**", "**/.snapback/**", "**/dist/**", "**/build/**"],
 				};
 			}
 
@@ -377,9 +326,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 			}
 
 			// Check if rule already exists for this file
-			const existingIndex = config.protection.findIndex(
-				(rule) => rule.pattern === relativePath,
-			);
+			const existingIndex = config.protection.findIndex((rule) => rule.pattern === relativePath);
 
 			const newRule = {
 				pattern: relativePath,
@@ -397,14 +344,9 @@ export class SnapBackRCLoader implements vscode.Disposable {
 
 			// Write back to file
 			await this.writeConfig(configPath, config);
-			logger.info(
-				`Added protection rule to .snapbackrc: ${relativePath} (${level})`,
-			);
+			logger.info(`Added protection rule to .snapbackrc: ${relativePath} (${level})`);
 		} catch (error) {
-			logger.error(
-				"Failed to add protection rule to .snapbackrc",
-				error as Error,
-			);
+			logger.error("Failed to add protection rule to .snapbackrc", error as Error);
 			throw error;
 		}
 	}
@@ -436,10 +378,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 			await this.writeConfig(configPath, config);
 			logger.info("Initialized .snapbackrc with default protection rules");
 		} catch (error) {
-			logger.error(
-				"Failed to initialize .snapbackrc with defaults",
-				error as Error,
-			);
+			logger.error("Failed to initialize .snapbackrc with defaults", error as Error);
 			throw error;
 		}
 	}
@@ -459,18 +398,13 @@ export class SnapBackRCLoader implements vscode.Disposable {
 			}
 
 			// Remove rule matching the file path
-			config.protection = config.protection.filter(
-				(rule) => rule.pattern !== relativePath,
-			);
+			config.protection = config.protection.filter((rule) => rule.pattern !== relativePath);
 
 			// Write back to file
 			await this.writeConfig(configPath, config);
 			logger.info(`Removed protection rule from .snapbackrc: ${relativePath}`);
 		} catch (error) {
-			logger.error(
-				"Failed to remove protection rule from .snapbackrc",
-				error as Error,
-			);
+			logger.error("Failed to remove protection rule from .snapbackrc", error as Error);
 			throw error;
 		}
 	}
@@ -478,10 +412,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 	/**
 	 * Write config back to file
 	 */
-	private async writeConfig(
-		configPath: string,
-		config: SnapBackRC,
-	): Promise<void> {
+	private async writeConfig(configPath: string, config: SnapBackRC): Promise<void> {
 		const content = JSON.stringify(config, null, 2);
 		await fs.writeFile(configPath, content, "utf-8");
 	}
@@ -491,10 +422,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 	 * Public method so it can be called separately from loadConfig()
 	 */
 	watchConfigFile(): void {
-		const pattern = new vscode.RelativePattern(
-			this.workspaceRoot,
-			this.configFileName,
-		);
+		const pattern = new vscode.RelativePattern(this.workspaceRoot, this.configFileName);
 		this.watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
 		// Reload on config file changes (silent)

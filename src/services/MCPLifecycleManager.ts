@@ -62,12 +62,9 @@ export class MCPLifecycleManager implements vscode.Disposable {
 		// Use remote MCP if server URL is configured
 		if (serverUrl && serverUrl.trim() !== "") {
 			return this.startRemote(serverUrl, authToken, authType, apiKey);
-		} else {
-			logger.info(
-				"No remote MCP server configured, skipping MCP initialization",
-			);
-			return;
 		}
+		logger.info("No remote MCP server configured, skipping MCP initialization");
+		return;
 	}
 
 	/**
@@ -142,8 +139,7 @@ export class MCPLifecycleManager implements vscode.Disposable {
 	async sendRequest(endpoint: string, data?: unknown): Promise<unknown> {
 		if (this.remoteClient) {
 			return this.remoteClient.sendRequest(endpoint, data);
-		} else {
-			throw new Error("Remote MCP client not initialized");
 		}
+		throw new Error("Remote MCP client not initialized");
 	}
 }

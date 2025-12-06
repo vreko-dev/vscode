@@ -31,8 +31,7 @@ export class AutoProtectConfig implements vscode.Disposable {
 		try {
 			await vscode.workspace.fs.stat(uri);
 
-			const existingLevel =
-				this.protectedFileRegistry.getProtectionLevel(configPath);
+			const existingLevel = this.protectedFileRegistry.getProtectionLevel(configPath);
 
 			if (!existingLevel) {
 				await this.protectedFileRegistry.add(configPath, {
@@ -50,10 +49,7 @@ export class AutoProtectConfig implements vscode.Disposable {
 	}
 
 	private watchForCreation(): void {
-		const pattern = new vscode.RelativePattern(
-			this.workspaceRoot,
-			this.configFileName,
-		);
+		const pattern = new vscode.RelativePattern(this.workspaceRoot, this.configFileName);
 		this.watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
 		this.watcher.onDidCreate(async (uri) => {
@@ -77,9 +73,7 @@ export class AutoProtectConfig implements vscode.Disposable {
 					await this.insertConfigTemplate(editor.document);
 				}
 			} else if (choice === "Learn More") {
-				await vscode.env.openExternal(
-					vscode.Uri.parse("https://docs.snapback.dev/configuration"),
-				);
+				await vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/configuration"));
 			}
 		});
 	}
@@ -134,9 +128,7 @@ export class AutoProtectConfig implements vscode.Disposable {
 		}
 	}
 
-	private async insertConfigTemplate(
-		document: vscode.TextDocument,
-	): Promise<void> {
+	private async insertConfigTemplate(document: vscode.TextDocument): Promise<void> {
 		const template = `{
   // SnapBack Configuration
   // Documentation: https://docs.snapback.dev/configuration

@@ -15,9 +15,7 @@ import { PROTECTION_LEVELS } from "../types/protection";
  * @param currentLevel - Currently selected level (will be pre-selected in UI)
  * @returns Selected level or undefined if cancelled
  */
-export async function selectLevel(
-	currentLevel?: ProtectionLevel,
-): Promise<ProtectionLevel | undefined> {
+export async function selectLevel(currentLevel?: ProtectionLevel): Promise<ProtectionLevel | undefined> {
 	// Build quick pick items from protection level metadata
 	const items = Object.values(PROTECTION_LEVELS).map((metadata) => ({
 		label: `${metadata.icon} ${metadata.label}`,
@@ -89,9 +87,7 @@ export async function showBlockConfirmation(
 */
 
 // MVP implementation uses inline CodeLens + status-bar toast instead of modals
-export async function showBlockConfirmation(
-	_filename: string,
-): Promise<"snapshot" | "override" | "cancel"> {
+export async function showBlockConfirmation(_filename: string): Promise<"snapshot" | "override" | "cancel"> {
 	// In MVP, block confirmation is handled via inline UI elements
 	// This function is a placeholder that will be replaced with inline implementation
 	throw new Error("Block confirmation modal replaced with inline UI in MVP");
@@ -106,17 +102,14 @@ export async function showBlockConfirmation(
  * @param filename - Name of the file being saved
  * @returns User choice: 'snapshot' (create snapshot), 'skip' (save without snapshot), or 'cancel'
  */
-export async function showWarnPrompt(
-	filename: string,
-): Promise<"snapshot" | "skip" | "cancel"> {
+export async function showWarnPrompt(filename: string): Promise<"snapshot" | "skip" | "cancel"> {
 	const warnMetadata = PROTECTION_LEVELS.warn;
 
 	const choice = await vscode.window.showWarningMessage(
 		`${warnMetadata.icon} Save "${filename}" with snapshot?`,
 		{
 			modal: false, // Non-modal for less intrusive experience
-			detail:
-				"This file has WARN protection. Creating a snapshot is recommended before saving.",
+			detail: "This file has WARN protection. Creating a snapshot is recommended before saving.",
 		},
 		"Create Snapshot",
 		"Skip Snapshot",
@@ -139,14 +132,9 @@ export async function showWarnPrompt(
  * @param filename - Name of the protected file
  * @param level - Protection level that was set
  */
-export function showLevelSetNotification(
-	filename: string,
-	level: ProtectionLevel,
-): void {
+export function showLevelSetNotification(filename: string, level: ProtectionLevel): void {
 	const metadata = PROTECTION_LEVELS[level];
-	vscode.window.showInformationMessage(
-		`${metadata.icon} Protection set to ${metadata.label} for "${filename}"`,
-	);
+	vscode.window.showInformationMessage(`${metadata.icon} Protection set to ${metadata.label} for "${filename}"`);
 }
 
 /**

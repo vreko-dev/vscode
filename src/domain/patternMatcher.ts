@@ -52,8 +52,7 @@ export function createPatternMatcher(pattern: string): PatternMatcher {
 					const fileName = filePath.split("/").pop() || "";
 					// .env* should match .env, .env.local, .env.production
 					// but NOT .environment (doesn't have dot after prefix) or .env.ts (not at root)
-					const matches =
-						fileName === prefix || fileName.startsWith(`${prefix}.`);
+					const matches = fileName === prefix || fileName.startsWith(`${prefix}.`);
 					return isNegation ? !matches : matches;
 				},
 			};
@@ -76,8 +75,7 @@ export function createPatternMatcher(pattern: string): PatternMatcher {
 	return {
 		matches: (filePath: string): boolean => {
 			const fileName = filePath.split("/").pop() || "";
-			const matches =
-				fileName === normalizedPattern || filePath === normalizedPattern;
+			const matches = fileName === normalizedPattern || filePath === normalizedPattern;
 			return isNegation ? !matches : matches;
 		},
 	};
@@ -90,10 +88,7 @@ export function createPatternMatcher(pattern: string): PatternMatcher {
  * @param patterns - Array of glob patterns
  * @returns true if filePath matches any pattern in the array
  */
-export function matchesAnyPattern(
-	filePath: string,
-	patterns: string[],
-): boolean {
+export function matchesAnyPattern(filePath: string, patterns: string[]): boolean {
 	if (!filePath || !patterns || patterns.length === 0) {
 		return false;
 	}
@@ -122,11 +117,7 @@ export function matchesAnyPattern(
  * @param neverProtect - Patterns that always prevent protection
  * @returns true if file should be protected
  */
-export function shouldProtectFile(
-	filePath: string,
-	alwaysProtect: string[],
-	neverProtect: string[],
-): boolean {
+export function shouldProtectFile(filePath: string, alwaysProtect: string[], neverProtect: string[]): boolean {
 	// Never-protect takes precedence
 	if (matchesAnyPattern(filePath, neverProtect)) {
 		return false;
@@ -149,14 +140,8 @@ export function shouldProtectFile(
  * @param neverProtect - Patterns that always prevent protection
  * @returns Filtered list of files that should be protected
  */
-export function filterProtectedFiles(
-	filePaths: string[],
-	alwaysProtect: string[],
-	neverProtect: string[],
-): string[] {
-	return filePaths.filter((filePath) =>
-		shouldProtectFile(filePath, alwaysProtect, neverProtect),
-	);
+export function filterProtectedFiles(filePaths: string[], alwaysProtect: string[], neverProtect: string[]): string[] {
+	return filePaths.filter((filePath) => shouldProtectFile(filePath, alwaysProtect, neverProtect));
 }
 
 /**

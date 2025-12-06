@@ -22,14 +22,7 @@ export interface FileBaseline {
 /**
  * Configuration file types
  */
-export type ConfigFileType =
-	| "package"
-	| "typescript"
-	| "linting"
-	| "build"
-	| "environment"
-	| "testing"
-	| "framework";
+export type ConfigFileType = "package" | "typescript" | "linting" | "build" | "environment" | "testing" | "framework";
 
 /**
  * Supported programming languages

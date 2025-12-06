@@ -17,11 +17,7 @@ import { EncryptionService } from "./EncryptionService";
 import type { SessionCoordinator } from "./SessionCoordinator";
 import type { FileState, SnapshotState } from "./SnapshotDeduplicator";
 import { SnapshotDeduplicator } from "./SnapshotDeduplicator";
-import type {
-	AutoCleanupConfig,
-	DeletionOptions,
-	DeletionResult,
-} from "./SnapshotDeletionService";
+import type { AutoCleanupConfig, DeletionOptions, DeletionResult } from "./SnapshotDeletionService";
 import { SnapshotDeletionService } from "./SnapshotDeletionService";
 import { SnapshotIconStrategy } from "./SnapshotIconStrategy";
 import { SnapshotNamingStrategy } from "./SnapshotNamingStrategy";
@@ -152,10 +148,7 @@ export class SnapshotManager {
 	 * });
 	 * ```
 	 */
-	async createSnapshot(
-		files: FileInput[],
-		options: CreateSnapshotOptions = {},
-	): Promise<Snapshot> {
+	async createSnapshot(files: FileInput[], options: CreateSnapshotOptions = {}): Promise<Snapshot> {
 		// Validation
 		if (files.length === 0) {
 			throw new Error("Cannot create snapshot with empty file list");
@@ -212,14 +205,8 @@ export class SnapshotManager {
 			// Convert FileInput to FileChange for naming strategy
 			const fileChanges: FileChange[] = files.map((file) => ({
 				path: file.path,
-				status:
-					file.action === "add"
-						? "added"
-						: file.action === "delete"
-							? "deleted"
-							: "modified",
-				linesAdded:
-					file.action !== "delete" ? file.content.split("\n").length : 0,
+				status: file.action === "add" ? "added" : file.action === "delete" ? "deleted" : "modified",
+				linesAdded: file.action !== "delete" ? file.content.split("\n").length : 0,
 				linesDeleted: file.action === "delete" ? 1 : 0,
 			}));
 
@@ -265,29 +252,21 @@ export class SnapshotManager {
 					// Add each file to the session with basic stats
 					for (const file of files) {
 						const stats = {
-							added:
-								file.action === "add" ? file.content.split("\n").length : 0,
+							added: file.action === "add" ? file.content.split("\n").length : 0,
 							deleted: file.action === "delete" ? 1 : 0,
 						};
 						this.sessionCoordinator.addCandidate(file.path, snapshot.id, stats);
 					}
 				} catch (sessionError) {
 					// Log but don't fail snapshot creation
-					console.error(
-						"[SnapshotManager] Failed to add session candidate:",
-						sessionError,
-					);
+					console.error("[SnapshotManager] Failed to add session candidate:", sessionError);
 				}
 			}
 
 			return snapshot;
 		} catch (error) {
 			// Re-throw storage errors
-			throw new Error(
-				`Failed to save snapshot: ${
-					error instanceof Error ? error.message : "Unknown error"
-				}`,
-			);
+			throw new Error(`Failed to save snapshot: ${error instanceof Error ? error.message : "Unknown error"}`);
 		}
 	}
 
@@ -353,10 +332,7 @@ export class SnapshotManager {
 	 * await manager.deleteSnapshot('snapshot-123', { unprotectFirst: true });
 	 * ```
 	 */
-	async deleteSnapshot(
-		id: string,
-		options?: DeletionOptions,
-	): Promise<DeletionResult> {
+	async deleteSnapshot(id: string, options?: DeletionOptions): Promise<DeletionResult> {
 		const result = await this.deletionService.deleteSnapshot(id, options);
 		if (result.success) {
 			this.eventEmitter?.emit("snapshot-deleted", { id });
@@ -381,10 +357,7 @@ export class SnapshotManager {
 	 * logger.info(`Deleted ${result.deletedCount} snapshots`);
 	 * ```
 	 */
-	async deleteOlderThan(
-		timestamp: number,
-		keepProtected = true,
-	): Promise<DeletionResult> {
+	async deleteOlderThan(timestamp: number, keepProtected = true): Promise<DeletionResult> {
 		return this.deletionService.deleteOlderThan(timestamp, keepProtected);
 	}
 
@@ -530,16 +503,12 @@ export class SnapshotManager {
 		for (const filePath of paths) {
 			// Check if path is absolute and within workspace
 			if (!filePath.startsWith(this.workspaceRoot)) {
-				throw new Error(
-					`Invalid file path: ${filePath} is outside workspace root ${this.workspaceRoot}`,
-				);
+				throw new Error(`Invalid file path: ${filePath} is outside workspace root ${this.workspaceRoot}`);
 			}
 
 			// Basic path traversal prevention
 			if (filePath.includes("..")) {
-				throw new Error(
-					`Invalid file path: ${filePath} contains path traversal sequence`,
-				);
+				throw new Error(`Invalid file path: ${filePath} contains path traversal sequence`);
 			}
 
 			// Null byte injection prevention

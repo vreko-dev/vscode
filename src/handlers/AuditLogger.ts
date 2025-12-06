@@ -37,13 +37,7 @@ export class AuditLogger {
 		snapshotId?: string,
 	): Promise<void> {
 		try {
-			await this.registry.recordAudit(
-				filePath,
-				protectionLevel,
-				action,
-				metadata,
-				snapshotId,
-			);
+			await this.registry.recordAudit(filePath, protectionLevel, action, metadata, snapshotId);
 
 			logger.debug("Audit entry recorded", {
 				filePath,
@@ -70,11 +64,7 @@ export class AuditLogger {
 	 * @param protectionLevel - Protection level at time of event
 	 * @param reason - Reason save was allowed (e.g., "cooldown_bypass", "temporary_allowance")
 	 */
-	async recordSaveAllowed(
-		filePath: string,
-		protectionLevel: ProtectionLevel,
-		reason: string,
-	): Promise<void> {
+	async recordSaveAllowed(filePath: string, protectionLevel: ProtectionLevel, reason: string): Promise<void> {
 		await this.recordAudit(filePath, protectionLevel, "save_allowed", {
 			reason,
 		});
@@ -116,13 +106,7 @@ export class AuditLogger {
 		snapshotId: string,
 		reason: string,
 	): Promise<void> {
-		await this.recordAudit(
-			filePath,
-			protectionLevel,
-			"snapshot_created",
-			{ reason },
-			snapshotId,
-		);
+		await this.recordAudit(filePath, protectionLevel, "snapshot_created", { reason }, snapshotId);
 	}
 
 	/**

@@ -93,9 +93,7 @@ export class ConflictResolver {
 	 * @param conflicts Array of file conflicts to resolve
 	 * @returns Promise resolving to array of conflict resolutions or null if cancelled
 	 */
-	async resolveConflicts(
-		conflicts: FileConflict[],
-	): Promise<ConflictResolution[] | null> {
+	async resolveConflicts(conflicts: FileConflict[]): Promise<ConflictResolution[] | null> {
 		const resolutions: ConflictResolution[] = [];
 
 		// Show conflicts one by one for user resolution
@@ -116,9 +114,7 @@ export class ConflictResolver {
 	 * @param conflict The conflict to resolve
 	 * @returns Promise resolving to conflict resolution or null if cancelled
 	 */
-	private async showSingleConflictResolution(
-		conflict: FileConflict,
-	): Promise<ConflictResolution | null> {
+	private async showSingleConflictResolution(conflict: FileConflict): Promise<ConflictResolution | null> {
 		const options = [
 			{
 				label: "Use Snapshot Version",
@@ -205,15 +201,10 @@ export class ConflictResolver {
 				// This avoids creating temporary files on disk
 
 				// Register snapshot content with provider
-				this.snapshotDocumentProvider.setSnapshotContent(
-					conflict.file,
-					conflict.snapshotContent,
-				);
+				this.snapshotDocumentProvider.setSnapshotContent(conflict.file, conflict.snapshotContent);
 
 				// Create virtual URI with snapback-snapshot: scheme
-				const snapshotUri = vscode.Uri.parse(
-					`snapback-snapshot:${conflict.file}`,
-				);
+				const snapshotUri = vscode.Uri.parse(`snapback-snapshot:${conflict.file}`);
 
 				// Open diff editor with proper URIs
 				await vscode.commands.executeCommand(
@@ -225,26 +216,14 @@ export class ConflictResolver {
 			} else {
 				// FALLBACK: Use untitled documents if provider not available
 				// This is the legacy behavior, kept for backward compatibility
-				logger.warn(
-					"[ConflictResolver] SnapshotDocumentProvider not set, using legacy untitled: scheme",
-				);
+				logger.warn("[ConflictResolver] SnapshotDocumentProvider not set, using legacy untitled: scheme");
 
-				const currentUntitled = vscode.Uri.parse(
-					`untitled:${conflict.file.replace(/\//g, "-")}.current`,
-				);
-				const snapshotUntitled = vscode.Uri.parse(
-					`untitled:${conflict.file.replace(/\//g, "-")}.snapshot`,
-				);
+				const currentUntitled = vscode.Uri.parse(`untitled:${conflict.file.replace(/\//g, "-")}.current`);
+				const snapshotUntitled = vscode.Uri.parse(`untitled:${conflict.file.replace(/\//g, "-")}.snapshot`);
 
 				// Write content to untitled documents
-				await vscode.workspace.fs.writeFile(
-					currentUntitled,
-					Buffer.from(conflict.currentContent),
-				);
-				await vscode.workspace.fs.writeFile(
-					snapshotUntitled,
-					Buffer.from(conflict.snapshotContent),
-				);
+				await vscode.workspace.fs.writeFile(currentUntitled, Buffer.from(conflict.currentContent));
+				await vscode.workspace.fs.writeFile(snapshotUntitled, Buffer.from(conflict.snapshotContent));
 
 				await vscode.commands.executeCommand(
 					"vscode.diff",
@@ -254,18 +233,13 @@ export class ConflictResolver {
 				);
 			}
 		} catch (error) {
-			vscode.window.showErrorMessage(
-				`Failed to open diff editor for ${conflict.file}: ${error}`,
-			);
+			vscode.window.showErrorMessage(`Failed to open diff editor for ${conflict.file}: ${error}`);
 		}
 	}
 }
 
 // Keep existing functions for backward compatibility
-export async function detectConflicts(
-	snapshot: Snapshot,
-	filesToRestore: string[],
-): Promise<FileConflict[]> {
+export async function detectConflicts(snapshot: Snapshot, filesToRestore: string[]): Promise<FileConflict[]> {
 	const conflicts: FileConflict[] = [];
 
 	// For each file to restore, check if it has been modified since the snapshot
@@ -311,10 +285,7 @@ export async function detectConflicts(
 				});
 			}
 		} catch (error) {
-			logger.error(
-				`Error checking conflict for file ${filePath}:`,
-				error instanceof Error ? error : undefined,
-			);
+			logger.error(`Error checking conflict for file ${filePath}:`, error instanceof Error ? error : undefined);
 		}
 	}
 
@@ -342,9 +313,7 @@ async function getFileContent(filePath: string): Promise<string | null> {
  * @param conflicts Array of detected conflicts
  * @returns Promise resolving to array of conflict resolutions
  */
-export async function showConflictResolutionUI(
-	conflicts: FileConflict[],
-): Promise<ConflictResolution[]> {
+export async function showConflictResolutionUI(conflicts: FileConflict[]): Promise<ConflictResolution[]> {
 	const resolutions: ConflictResolution[] = [];
 
 	// Show conflicts one by one for user resolution
@@ -363,9 +332,7 @@ export async function showConflictResolutionUI(
  * @param conflict The conflict to resolve
  * @returns Promise resolving to conflict resolution or undefined if cancelled
  */
-async function showSingleConflictResolution(
-	conflict: FileConflict,
-): Promise<ConflictResolution | undefined> {
+async function showSingleConflictResolution(conflict: FileConflict): Promise<ConflictResolution | undefined> {
 	const options = [
 		{
 			label: "Use Snapshot Version",
@@ -447,15 +414,10 @@ async function openDiffEditor(conflict: FileConflict): Promise<void> {
 
 		// For standalone function, use untitled with slash replacement as fallback
 		// This is not ideal but maintains backward compatibility
-		const snapshotUri = vscode.Uri.parse(
-			`untitled:${conflict.file.replace(/\//g, "-")}.snapshot`,
-		);
+		const snapshotUri = vscode.Uri.parse(`untitled:${conflict.file.replace(/\//g, "-")}.snapshot`);
 
 		// Write snapshot content to untitled document
-		await vscode.workspace.fs.writeFile(
-			snapshotUri,
-			Buffer.from(conflict.snapshotContent),
-		);
+		await vscode.workspace.fs.writeFile(snapshotUri, Buffer.from(conflict.snapshotContent));
 
 		// Open diff editor
 		await vscode.commands.executeCommand(
@@ -465,9 +427,7 @@ async function openDiffEditor(conflict: FileConflict): Promise<void> {
 			`${conflict.file} (Snapshot ↔ Current)`,
 		);
 	} catch (error) {
-		vscode.window.showErrorMessage(
-			`Failed to open diff editor for ${conflict.file}: ${error}`,
-		);
+		vscode.window.showErrorMessage(`Failed to open diff editor for ${conflict.file}: ${error}`);
 	}
 }
 
@@ -491,10 +451,7 @@ export async function applyConflictResolutions(
 					// Restore file to snapshot version
 					if (snapshot.fileContents?.[filePath]) {
 						const uri = vscode.Uri.file(filePath);
-						await vscode.workspace.fs.writeFile(
-							uri,
-							Buffer.from(snapshot.fileContents[filePath]),
-						);
+						await vscode.workspace.fs.writeFile(uri, Buffer.from(snapshot.fileContents[filePath]));
 					} else {
 						// File was deleted in snapshot, so delete it
 						const uri = vscode.Uri.file(filePath);
@@ -518,10 +475,7 @@ export async function applyConflictResolutions(
 					// For now, we'll use snapshot version
 					if (snapshot.fileContents?.[filePath]) {
 						const uri = vscode.Uri.file(filePath);
-						await vscode.workspace.fs.writeFile(
-							uri,
-							Buffer.from(snapshot.fileContents[filePath]),
-						);
+						await vscode.workspace.fs.writeFile(uri, Buffer.from(snapshot.fileContents[filePath]));
 					}
 					break;
 			}
@@ -529,13 +483,8 @@ export async function applyConflictResolutions(
 
 		return true;
 	} catch (error) {
-		logger.error(
-			"Error applying conflict resolutions:",
-			error instanceof Error ? error : undefined,
-		);
-		vscode.window.showErrorMessage(
-			`Failed to apply conflict resolutions: ${error}`,
-		);
+		logger.error("Error applying conflict resolutions:", error instanceof Error ? error : undefined);
+		vscode.window.showErrorMessage(`Failed to apply conflict resolutions: ${error}`);
 		return false;
 	}
 }

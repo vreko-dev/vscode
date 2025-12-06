@@ -7,9 +7,7 @@ import { EncryptionService } from "../EncryptionService";
  * One-time migration: Encrypt existing plaintext snapshots
  * Run automatically on first launch after update
  */
-export async function migrateExistingSnapshots(
-	snapshotsDir: string,
-): Promise<void> {
+export async function migrateExistingSnapshots(snapshotsDir: string): Promise<void> {
 	const migrationFlag = path.join(snapshotsDir, ".migration-v1-encrypted");
 
 	// Check if migration already completed
@@ -25,9 +23,7 @@ export async function migrateExistingSnapshots(
 	try {
 		const stats = await fs.stat(snapshotsDir);
 		if (!stats.isDirectory()) {
-			logger.info(
-				"Snapshots path exists but is not a directory, skipping encryption migration",
-			);
+			logger.info("Snapshots path exists but is not a directory, skipping encryption migration");
 			return;
 		}
 	} catch (_error) {
@@ -79,11 +75,7 @@ export async function migrateExistingSnapshots(
 				}
 
 				// Save encrypted version
-				await fs.writeFile(
-					snapshotPath,
-					JSON.stringify(snapshot, null, 2),
-					"utf8",
-				);
+				await fs.writeFile(snapshotPath, JSON.stringify(snapshot, null, 2), "utf8");
 				migrated++;
 			} catch (error) {
 				logger.error(`Failed to migrate snapshot ${file}`, error as Error);

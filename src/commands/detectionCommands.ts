@@ -167,17 +167,12 @@ export function registerDetectionCommands(
 	 * @todo Implement automatic secret removal for supported patterns
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.removeSecret",
-			async (_uri: vscode.Uri, factor: string) => {
-				// This would ideally find and remove the secret from the file
-				await vscode.window.showInformationMessage(
-					"To remove the secret related to: " +
-						factor +
-						"\\n\\nPlease manually remove the secret from the file.",
-				);
-			},
-		),
+		vscode.commands.registerCommand("snapback.removeSecret", async (_uri: vscode.Uri, factor: string) => {
+			// This would ideally find and remove the secret from the file
+			await vscode.window.showInformationMessage(
+				"To remove the secret related to: " + factor + "\\n\\nPlease manually remove the secret from the file.",
+			);
+		}),
 	);
 
 	/**
@@ -209,17 +204,12 @@ export function registerDetectionCommands(
 	 * @todo Implement automatic mock removal for common frameworks
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.removeMock",
-			async (_uri: vscode.Uri, factor: string) => {
-				// This would ideally find and remove the mock from the file
-				await vscode.window.showInformationMessage(
-					"To remove the mock related to: " +
-						factor +
-						"\\n\\nPlease manually remove the mock from the file.",
-				);
-			},
-		),
+		vscode.commands.registerCommand("snapback.removeMock", async (_uri: vscode.Uri, factor: string) => {
+			// This would ideally find and remove the mock from the file
+			await vscode.window.showInformationMessage(
+				"To remove the mock related to: " + factor + "\\n\\nPlease manually remove the mock from the file.",
+			);
+		}),
 	);
 
 	/**
@@ -251,17 +241,14 @@ export function registerDetectionCommands(
 	 * @todo Implement automatic dependency addition via npm/yarn/pnpm
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.addDependency",
-			async (_uri: vscode.Uri, factor: string) => {
-				// This would ideally add the missing dependency to package.json
-				await vscode.window.showInformationMessage(
-					"To add the missing dependency related to: " +
-						factor +
-						"\\n\\nPlease add the dependency to your package.json file.",
-				);
-			},
-		),
+		vscode.commands.registerCommand("snapback.addDependency", async (_uri: vscode.Uri, factor: string) => {
+			// This would ideally add the missing dependency to package.json
+			await vscode.window.showInformationMessage(
+				"To add the missing dependency related to: " +
+					factor +
+					"\\n\\nPlease add the dependency to your package.json file.",
+			);
+		}),
 	);
 
 	return disposables;

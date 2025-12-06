@@ -36,9 +36,7 @@ let protectionNotifications: ProtectionNotifications | null = null;
  * Initialize ProtectionNotifications for this module
  * Called from extension.ts during activation
  */
-export function initializeProtectionNotifications(
-	globalState: vscode.Memento,
-): void {
+export function initializeProtectionNotifications(globalState: vscode.Memento): void {
 	protectionNotifications = new ProtectionNotifications(globalState);
 }
 
@@ -107,9 +105,7 @@ export function registerProtectionCommands(
 		resourceUri?: vscode.Uri;
 	}
 
-	function getUriFromArg(
-		arg?: vscode.Uri | TreeItemLike,
-	): vscode.Uri | undefined {
+	function getUriFromArg(arg?: vscode.Uri | TreeItemLike): vscode.Uri | undefined {
 		if (!arg) {
 			return vscode.window.activeTextEditor?.document.uri;
 		}
@@ -157,94 +153,84 @@ export function registerProtectionCommands(
 	 * @see {@link ProtectedFileRegistry.add} for implementation
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.protectFile",
-			async (uriOrItem?: vscode.Uri | TreeItemLike) => {
-				const fileUri = getUriFromArg(uriOrItem);
-				if (!fileUri) {
-					vscode.window.showWarningMessage("No file selected");
-					return;
-				}
+		vscode.commands.registerCommand("snapback.protectFile", async (uriOrItem?: vscode.Uri | TreeItemLike) => {
+			const fileUri = getUriFromArg(uriOrItem);
+			if (!fileUri) {
+				vscode.window.showWarningMessage("No file selected");
+				return;
+			}
 
-				// Check if file is already protected
-				const isProtected = protectedFileRegistry.isProtected(fileUri.fsPath);
-				if (!isProtected) {
-					// Show quick pick for protection level selection
-					const items: {
-						label: string;
-						description: string;
-						level: ProtectionLevel;
-					}[] = Object.entries(PROTECTION_LEVELS).map(([level, metadata]) => ({
-						label: `${metadata.icon} ${metadata.label}`,
-						description: metadata.description,
-						level: level as ProtectionLevel,
-					}));
+			// Check if file is already protected
+			const isProtected = protectedFileRegistry.isProtected(fileUri.fsPath);
+			if (!isProtected) {
+				// Show quick pick for protection level selection
+				const items: {
+					label: string;
+					description: string;
+					level: ProtectionLevel;
+				}[] = Object.entries(PROTECTION_LEVELS).map(([level, metadata]) => ({
+					label: `${metadata.icon} ${metadata.label}`,
+					description: metadata.description,
+					level: level as ProtectionLevel,
+				}));
 
-					const selected = await vscode.window.showQuickPick(items, {
-						placeHolder: "Select protection level",
-					});
+				const selected = await vscode.window.showQuickPick(items, {
+					placeHolder: "Select protection level",
+				});
 
-					if (selected) {
-						try {
-							if (snapbackrcLoader) {
-								// Add rule to .snapbackrc (source of truth)
-								await snapbackrcLoader.addProtectionRule(
-									fileUri.fsPath,
-									selected.level,
-								);
-								// Note: SnapBackRCLoader watcher will trigger registry update and view refresh
-							} else {
-								// Fallback to local registry if loader not available (shouldn't happen in normal operation)
-								await protectedFileRegistry.add(fileUri.fsPath, {
-									protectionLevel: selected.level,
-								});
-								refreshViews();
-							}
-
-							const levelMetadata = PROTECTION_LEVELS[selected.level];
-							if (protectionNotifications) {
-								await protectionNotifications.showProtectionLevelNotification(
-									fileUri.fsPath,
-									selected.level,
-									true, // isNewProtection
-								);
-							} else {
-								// Fallback if not initialized
-								vscode.window.showInformationMessage(
-									`Protection level set to ${levelMetadata.label} ${
-										levelMetadata.icon
-									} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
-								);
-							}
-						} catch (error) {
-							vscode.window.showErrorMessage(
-								`Failed to protect file: ${(error as Error).message}`,
-							);
+				if (selected) {
+					try {
+						if (snapbackrcLoader) {
+							// Add rule to .snapbackrc (source of truth)
+							await snapbackrcLoader.addProtectionRule(fileUri.fsPath, selected.level);
+							// Note: SnapBackRCLoader watcher will trigger registry update and view refresh
+						} else {
+							// Fallback to local registry if loader not available (shouldn't happen in normal operation)
+							await protectedFileRegistry.add(fileUri.fsPath, {
+								protectionLevel: selected.level,
+							});
+							refreshViews();
 						}
-					}
-				} else {
-					// File is already protected, show message
-					const currentLevel = protectedFileRegistry.getProtectionLevel(
-						fileUri.fsPath,
-					);
-					if (currentLevel) {
-						const levelMetadata = PROTECTION_LEVELS[currentLevel];
+
+						const levelMetadata = PROTECTION_LEVELS[selected.level];
 						if (protectionNotifications) {
 							await protectionNotifications.showProtectionLevelNotification(
 								fileUri.fsPath,
-								currentLevel,
-								false, // isExistingProtection
+								selected.level,
+								true, // isNewProtection
 							);
 						} else {
 							// Fallback if not initialized
 							vscode.window.showInformationMessage(
-								`File is already protected at ${levelMetadata.label} ${levelMetadata.icon} level`,
+								`Protection level set to ${levelMetadata.label} ${
+									levelMetadata.icon
+								} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
 							);
 						}
+					} catch (error) {
+						vscode.window.showErrorMessage(`Failed to protect file: ${(error as Error).message}`);
 					}
 				}
-			},
-		),
+			} else {
+				// File is already protected, show message
+				const currentLevel = protectedFileRegistry.getProtectionLevel(fileUri.fsPath);
+				if (currentLevel) {
+					const levelMetadata = PROTECTION_LEVELS[currentLevel];
+					if (protectionNotifications) {
+						await protectionNotifications.showProtectionLevelNotification(
+							fileUri.fsPath,
+							currentLevel,
+							false, // isExistingProtection
+						);
+					} else {
+						// Fallback if not initialized
+						vscode.window.showInformationMessage(
+							`File is already protected at ${levelMetadata.label} ${levelMetadata.icon} level`,
+						);
+					}
+				}
+			}
+		}),
 	);
 
 	/**
@@ -316,9 +302,7 @@ export function registerProtectionCommands(
 						await ctx.protectionService.auditRepo(true);
 					}
 				} catch (error) {
-					vscode.window.showErrorMessage(
-						`Failed to protect file: ${(error as Error).message}`,
-					);
+					vscode.window.showErrorMessage(`Failed to protect file: ${(error as Error).message}`);
 				}
 			},
 		),
@@ -351,33 +335,26 @@ export function registerProtectionCommands(
 	 * @see {@link ProtectedFileRegistry.remove} for implementation
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.unprotectFile",
-			async (uriOrItem?: vscode.Uri | TreeItemLike) => {
-				const fileUri = getUriFromArg(uriOrItem);
-				if (!fileUri) {
-					vscode.window.showWarningMessage("No file selected");
-					return;
+		vscode.commands.registerCommand("snapback.unprotectFile", async (uriOrItem?: vscode.Uri | TreeItemLike) => {
+			const fileUri = getUriFromArg(uriOrItem);
+			if (!fileUri) {
+				vscode.window.showWarningMessage("No file selected");
+				return;
+			}
+
+			try {
+				if (snapbackrcLoader) {
+					await snapbackrcLoader.removeProtectionRule(fileUri.fsPath);
+				} else {
+					await protectedFileRegistry.remove(fileUri.fsPath);
+					refreshViews();
 				}
 
-				try {
-					if (snapbackrcLoader) {
-						await snapbackrcLoader.removeProtectionRule(fileUri.fsPath);
-					} else {
-						await protectedFileRegistry.remove(fileUri.fsPath);
-						refreshViews();
-					}
-
-					vscode.window.showInformationMessage(
-						`Unprotected: ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
-					);
-				} catch (error) {
-					vscode.window.showErrorMessage(
-						`Failed to unprotect file: ${(error as Error).message}`,
-					);
-				}
-			},
-		),
+				vscode.window.showInformationMessage(`Unprotected: ${vscode.workspace.asRelativePath(fileUri.fsPath)}`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to unprotect file: ${(error as Error).message}`);
+			}
+		}),
 	);
 
 	// Command: Set Protection Level
@@ -424,20 +401,14 @@ export function registerProtectionCommands(
 					try {
 						if (snapbackrcLoader) {
 							// Update rule in .snapbackrc
-							await snapbackrcLoader.addProtectionRule(
-								fileUri.fsPath,
-								selected.level,
-							);
+							await snapbackrcLoader.addProtectionRule(fileUri.fsPath, selected.level);
 						} else {
 							if (!isProtected) {
 								await protectedFileRegistry.add(fileUri.fsPath, {
 									protectionLevel: selected.level,
 								});
 							} else {
-								await protectedFileRegistry.updateProtectionLevel(
-									fileUri.fsPath,
-									selected.level,
-								);
+								await protectedFileRegistry.updateProtectionLevel(fileUri.fsPath, selected.level);
 							}
 							refreshViews();
 						}
@@ -458,9 +429,7 @@ export function registerProtectionCommands(
 							);
 						}
 					} catch (error) {
-						vscode.window.showErrorMessage(
-							`Failed to set protection level: ${(error as Error).message}`,
-						);
+						vscode.window.showErrorMessage(`Failed to set protection level: ${(error as Error).message}`);
 					}
 				}
 			},
@@ -469,50 +438,41 @@ export function registerProtectionCommands(
 
 	// Command: Set Watch Level (Quick)
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.setWatchLevel",
-			async (uriOrItem?: vscode.Uri | TreeItemLike) => {
-				await setProtectionLevelQuick(
-					getUriFromArg(uriOrItem),
-					"watch",
-					protectedFileRegistry,
-					refreshViews,
-					snapbackrcLoader,
-				);
-			},
-		),
+		vscode.commands.registerCommand("snapback.setWatchLevel", async (uriOrItem?: vscode.Uri | TreeItemLike) => {
+			await setProtectionLevelQuick(
+				getUriFromArg(uriOrItem),
+				"watch",
+				protectedFileRegistry,
+				refreshViews,
+				snapbackrcLoader,
+			);
+		}),
 	);
 
 	// Command: Set Warn Level (Quick)
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.setWarnLevel",
-			async (uriOrItem?: vscode.Uri | TreeItemLike) => {
-				await setProtectionLevelQuick(
-					getUriFromArg(uriOrItem),
-					"warn",
-					protectedFileRegistry,
-					refreshViews,
-					snapbackrcLoader,
-				);
-			},
-		),
+		vscode.commands.registerCommand("snapback.setWarnLevel", async (uriOrItem?: vscode.Uri | TreeItemLike) => {
+			await setProtectionLevelQuick(
+				getUriFromArg(uriOrItem),
+				"warn",
+				protectedFileRegistry,
+				refreshViews,
+				snapbackrcLoader,
+			);
+		}),
 	);
 
 	// Command: Set Block Level (Quick)
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.setBlockLevel",
-			async (uriOrItem?: vscode.Uri | vscode.Uri) => {
-				await setProtectionLevelQuick(
-					getUriFromArg(uriOrItem),
-					"block",
-					protectedFileRegistry,
-					refreshViews,
-					snapbackrcLoader,
-				);
-			},
-		),
+		vscode.commands.registerCommand("snapback.setBlockLevel", async (uriOrItem?: vscode.Uri | vscode.Uri) => {
+			await setProtectionLevelQuick(
+				getUriFromArg(uriOrItem),
+				"block",
+				protectedFileRegistry,
+				refreshViews,
+				snapbackrcLoader,
+			);
+		}),
 	);
 
 	// Command: Change Protection Level (shows protection level selection)
@@ -552,16 +512,10 @@ export function registerProtectionCommands(
 					try {
 						if (snapbackrcLoader) {
 							// Update rule in .snapbackrc
-							await snapbackrcLoader.addProtectionRule(
-								fileUri.fsPath,
-								selected.level,
-							);
+							await snapbackrcLoader.addProtectionRule(fileUri.fsPath, selected.level);
 						} else {
 							// Update existing file's protection level
-							await protectedFileRegistry.updateProtectionLevel(
-								fileUri.fsPath,
-								selected.level,
-							);
+							await protectedFileRegistry.updateProtectionLevel(fileUri.fsPath, selected.level);
 							refreshViews();
 						}
 
@@ -592,36 +546,30 @@ export function registerProtectionCommands(
 
 	// Command: Show All Protected Files
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.showAllProtectedFiles",
-			async () => {
-				const entries = await protectedFileRegistry.list();
-				if (entries.length === 0) {
-					vscode.window.setStatusBarMessage("No protected files yet", 3000);
-					return;
-				}
+		vscode.commands.registerCommand("snapback.showAllProtectedFiles", async () => {
+			const entries = await protectedFileRegistry.list();
+			if (entries.length === 0) {
+				vscode.window.setStatusBarMessage("No protected files yet", 3000);
+				return;
+			}
 
-				const pick = await vscode.window.showQuickPick<{
-					label: string;
-					description?: string;
-					entry: { path: string; label: string };
-				}>(
-					entries.map((entry) => ({
-						label: entry.label,
-						description: vscode.workspace.asRelativePath(entry.path, false),
-						entry,
-					})),
-					{ placeHolder: "Select a protected file to open" },
-				);
+			const pick = await vscode.window.showQuickPick<{
+				label: string;
+				description?: string;
+				entry: { path: string; label: string };
+			}>(
+				entries.map((entry) => ({
+					label: entry.label,
+					description: vscode.workspace.asRelativePath(entry.path, false),
+					entry,
+				})),
+				{ placeHolder: "Select a protected file to open" },
+			);
 
-				if (pick?.entry) {
-					await vscode.commands.executeCommand(
-						"vscode.open",
-						vscode.Uri.file(pick.entry.path),
-					);
-				}
-			},
-		),
+			if (pick?.entry) {
+				await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(pick.entry.path));
+			}
+		}),
 	);
 
 	// Command: Protect Entire Repository
@@ -629,9 +577,7 @@ export function registerProtectionCommands(
 		vscode.commands.registerCommand("snapback.protectEntireRepo", async () => {
 			try {
 				if (!snapbackrcLoader) {
-					vscode.window.showErrorMessage(
-						"SnapBack configuration loader not available.",
-					);
+					vscode.window.showErrorMessage("SnapBack configuration loader not available.");
 					return;
 				}
 
@@ -679,11 +625,7 @@ export function registerProtectionCommands(
 				await snapbackrcLoader.applyProtections(true);
 
 				// Update context
-				await vscode.commands.executeCommand(
-					"setContext",
-					"snapback.protectionStatus",
-					"protected",
-				);
+				await vscode.commands.executeCommand("setContext", "snapback.protectionStatus", "protected");
 
 				refreshViews();
 
@@ -715,30 +657,23 @@ export function registerProtectionCommands(
 	 * @command snapback.resetNotificationPreferences
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.resetNotificationPreferences",
-			async () => {
-				if (!protectionNotifications) {
-					vscode.window.showWarningMessage(
-						"SnapBack: Notification system not initialized",
-					);
-					return;
-				}
+		vscode.commands.registerCommand("snapback.resetNotificationPreferences", async () => {
+			if (!protectionNotifications) {
+				vscode.window.showWarningMessage("SnapBack: Notification system not initialized");
+				return;
+			}
 
-				try {
-					// Reset all acknowledgments
-					await protectionNotifications.resetAcknowledgment("", undefined);
+			try {
+				// Reset all acknowledgments
+				await protectionNotifications.resetAcknowledgment("", undefined);
 
-					vscode.window.showInformationMessage(
-						"✅ SnapBack notification preferences have been reset. All protection level notifications will appear again.",
-					);
-				} catch (error) {
-					vscode.window.showErrorMessage(
-						`Failed to reset notification preferences: ${(error as Error).message}`,
-					);
-				}
-			},
-		),
+				vscode.window.showInformationMessage(
+					"✅ SnapBack notification preferences have been reset. All protection level notifications will appear again.",
+				);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to reset notification preferences: ${(error as Error).message}`);
+			}
+		}),
 	);
 
 	return disposables;
@@ -801,10 +736,7 @@ async function setProtectionLevelQuick(
 				});
 			} else {
 				// Update existing file's protection level
-				await protectedFileRegistry.updateProtectionLevel(
-					fileUri.fsPath,
-					level,
-				);
+				await protectedFileRegistry.updateProtectionLevel(fileUri.fsPath, level);
 			}
 			refreshViews();
 		}
@@ -823,8 +755,6 @@ async function setProtectionLevelQuick(
 			);
 		}
 	} catch (error) {
-		vscode.window.showErrorMessage(
-			`Failed to set protection level: ${(error as Error).message}`,
-		);
+		vscode.window.showErrorMessage(`Failed to set protection level: ${(error as Error).message}`);
 	}
 }

@@ -26,9 +26,7 @@ interface SandboxMessage {
  * @param filePath Path to the JavaScript/TypeScript file to execute
  * @returns Promise resolving to the sandbox result
  */
-export async function executeSandboxedScript(
-	filePath: string,
-): Promise<unknown> {
+export async function executeSandboxedScript(filePath: string): Promise<unknown> {
 	return new Promise((resolve, reject) => {
 		const scriptPath = path.resolve(filePath);
 		const sandboxScriptPath = path.join(__dirname, "sandboxScript.js");
@@ -94,11 +92,7 @@ export async function executeSandboxedScript(
 			if (signal === "SIGABRT" || signal === "SIGKILL") {
 				// If we get SIGABRT, it's likely due to memory limit being exceeded
 				// If we get SIGKILL, it's likely due to timeout
-				reject(
-					new Error(
-						"Script killed due to memory limit or timeout (ERR_SB_MEMORY or ERR_SB_TIMEOUT)",
-					),
-				);
+				reject(new Error("Script killed due to memory limit or timeout (ERR_SB_MEMORY or ERR_SB_TIMEOUT)"));
 			} else if (code !== 0) {
 				// If we get here and haven't received an error message, it's likely a script error
 				reject(new Error(`Script exited with code ${code}`));

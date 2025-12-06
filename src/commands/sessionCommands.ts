@@ -90,112 +90,90 @@ export function registerSessionCommands(
 	 * @see {@link registerSessionCommands} for command registration context
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.previewRestoreSession",
-			async (item?: SessionTreeItem) => {
-				try {
-					if (!item || !item.session) {
-						vscode.window.showErrorMessage("No session selected");
-						return;
+		vscode.commands.registerCommand("snapback.previewRestoreSession", async (item?: SessionTreeItem) => {
+			try {
+				if (!item || !item.session) {
+					vscode.window.showErrorMessage("No session selected");
+					return;
+				}
+
+				const session = item.session;
+
+				// Register all snapshot content with the document provider
+				for (const fileEntry of session.files) {
+					try {
+						// Retrieve the snapshot to get its content
+						const snapshot = await snapshotManager.get(fileEntry.snapshotId);
+						if (snapshot?.fileContents) {
+							// Register each file's content with the snapshot document provider
+							for (const [filePath, content] of Object.entries(snapshot.fileContents)) {
+								snapshotDocumentProvider.setSnapshotContent(filePath, content);
+							}
+						}
+					} catch (error) {
+						logger.warn(`Failed to load snapshot ${fileEntry.snapshotId}`, undefined, { error });
 					}
+				}
 
-					const session = item.session;
+				// Open diff views for each file in the session
+				const openedTabs: vscode.Tab[] = [];
+				for (const fileEntry of session.files) {
+					try {
+						// Create URIs for diff editor
+						const snapshotUri = vscode.Uri.parse(
+							`snapback-snapshot:${fileEntry.snapshotId}/${fileEntry.uri}`,
+						);
 
-					// Register all snapshot content with the document provider
-					for (const fileEntry of session.files) {
-						try {
-							// Retrieve the snapshot to get its content
-							const snapshot = await snapshotManager.get(fileEntry.snapshotId);
-							if (snapshot?.fileContents) {
-								// Register each file's content with the snapshot document provider
-								for (const [filePath, content] of Object.entries(
-									snapshot.fileContents,
-								)) {
-									snapshotDocumentProvider.setSnapshotContent(
-										filePath,
-										content,
+						const currentUri = vscode.Uri.file(fileEntry.uri);
+
+						// Open side-by-side diff
+						await vscode.commands.executeCommand(
+							"vscode.diff",
+							snapshotUri,
+							currentUri,
+							`Session Restore: ${fileEntry.uri}`,
+						);
+
+						// Track the opened tab
+						await new Promise((resolve) => setTimeout(resolve, 100));
+
+						const tabs = vscode.window.tabGroups.all
+							.flatMap((group) => group.tabs)
+							.filter((tab) => {
+								if (tab.input instanceof vscode.TabInputTextDiff) {
+									return (
+										tab.input.original.toString() === snapshotUri.toString() &&
+										tab.input.modified.toString() === currentUri.toString()
 									);
 								}
-							}
-						} catch (error) {
-							logger.warn(
-								`Failed to load snapshot ${fileEntry.snapshotId}`,
-								undefined,
-								{ error },
-							);
+								return false;
+							});
+
+						if (tabs.length > 0) {
+							openedTabs.push(...tabs);
 						}
+					} catch (error) {
+						logger.warn(`Failed to open diff for ${fileEntry.uri}`, undefined, { error });
 					}
-
-					// Open diff views for each file in the session
-					const openedTabs: vscode.Tab[] = [];
-					for (const fileEntry of session.files) {
-						try {
-							// Create URIs for diff editor
-							const snapshotUri = vscode.Uri.parse(
-								`snapback-snapshot:${fileEntry.snapshotId}/${fileEntry.uri}`,
-							);
-
-							const currentUri = vscode.Uri.file(fileEntry.uri);
-
-							// Open side-by-side diff
-							await vscode.commands.executeCommand(
-								"vscode.diff",
-								snapshotUri,
-								currentUri,
-								`Session Restore: ${fileEntry.uri}`,
-							);
-
-							// Track the opened tab
-							await new Promise((resolve) => setTimeout(resolve, 100));
-
-							const tabs = vscode.window.tabGroups.all
-								.flatMap((group) => group.tabs)
-								.filter((tab) => {
-									if (tab.input instanceof vscode.TabInputTextDiff) {
-										return (
-											tab.input.original.toString() ===
-												snapshotUri.toString() &&
-											tab.input.modified.toString() === currentUri.toString()
-										);
-									}
-									return false;
-								});
-
-							if (tabs.length > 0) {
-								openedTabs.push(...tabs);
-							}
-						} catch (error) {
-							logger.warn(
-								`Failed to open diff for ${fileEntry.uri}`,
-								undefined,
-								{ error },
-							);
-						}
-					}
-
-					// Show confirmation dialog
-					const confirm = await vscode.window.showInformationMessage(
-						`Previewing restore of ${session.files.length} files from session. Apply changes?`,
-						{ modal: true },
-						"Restore Session",
-					);
-
-					if (confirm === "Restore Session") {
-						// Execute the actual restore
-						await restoreSessionFiles(session, commandContext);
-						vscode.window.showInformationMessage(
-							`Restored ${session.files.length} files from session`,
-						);
-					}
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
-					vscode.window.showErrorMessage(
-						`Failed to preview session restore: ${message}`,
-					);
 				}
-			},
-		),
+
+				// Show confirmation dialog
+				const confirm = await vscode.window.showInformationMessage(
+					`Previewing restore of ${session.files.length} files from session. Apply changes?`,
+					{ modal: true },
+					"Restore Session",
+				);
+
+				if (confirm === "Restore Session") {
+					// Execute the actual restore
+					await restoreSessionFiles(session, commandContext);
+					vscode.window.showInformationMessage(`Restored ${session.files.length} files from session`);
+				}
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				vscode.window.showErrorMessage(`Failed to preview session restore: ${message}`);
+			}
+		}),
 	);
 
 	/**
@@ -233,43 +211,37 @@ export function registerSessionCommands(
 	 * @see {@link SnapshotManager.get} for snapshot retrieval
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.restoreSession",
-			async (item?: SessionTreeItem) => {
-				try {
-					if (!item || !item.session) {
-						vscode.window.showErrorMessage("No session selected");
-						return;
-					}
-
-					const session = item.session;
-
-					// Confirm with user before restoring
-					const confirm = await vscode.window.showWarningMessage(
-						`Restore ${session.files.length} files from session "${session.id}"?`,
-						{ modal: true },
-						"Restore Session",
-					);
-
-					if (confirm !== "Restore Session") {
-						return; // User cancelled
-					}
-
-					// Execute the actual restore
-					await restoreSessionFiles(session, commandContext);
-
-					vscode.window.showInformationMessage(
-						`Restored ${session.files.length} files from session ${session.id}`,
-					);
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
-					vscode.window.showErrorMessage(
-						`Failed to restore session: ${message}`,
-					);
+		vscode.commands.registerCommand("snapback.restoreSession", async (item?: SessionTreeItem) => {
+			try {
+				if (!item || !item.session) {
+					vscode.window.showErrorMessage("No session selected");
+					return;
 				}
-			},
-		),
+
+				const session = item.session;
+
+				// Confirm with user before restoring
+				const confirm = await vscode.window.showWarningMessage(
+					`Restore ${session.files.length} files from session "${session.id}"?`,
+					{ modal: true },
+					"Restore Session",
+				);
+
+				if (confirm !== "Restore Session") {
+					return; // User cancelled
+				}
+
+				// Execute the actual restore
+				await restoreSessionFiles(session, commandContext);
+
+				vscode.window.showInformationMessage(
+					`Restored ${session.files.length} files from session ${session.id}`,
+				);
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				vscode.window.showErrorMessage(`Failed to restore session: ${message}`);
+			}
+		}),
 	);
 
 	return disposables;
@@ -308,10 +280,7 @@ export function registerSessionCommands(
  *
  * @since 1.2.0
  */
-async function restoreSessionFiles(
-	session: SessionManifest,
-	commandContext: CommandContext,
-): Promise<void> {
+async function restoreSessionFiles(session: SessionManifest, commandContext: CommandContext): Promise<void> {
 	const { snapshotManager, storage } = commandContext;
 
 	try {
@@ -336,31 +305,22 @@ async function restoreSessionFiles(
 				// Retrieve the snapshot
 				const snapshot = await snapshotManager.get(fileEntry.snapshotId);
 				if (!snapshot) {
-					errors.push(
-						`Snapshot not found: ${fileEntry.snapshotId} for file ${fileEntry.uri}`,
-					);
-					logger.warn(
-						`Snapshot not found for file ${fileEntry.uri} in session ${session.id}`,
-					);
+					errors.push(`Snapshot not found: ${fileEntry.snapshotId} for file ${fileEntry.uri}`);
+					logger.warn(`Snapshot not found for file ${fileEntry.uri} in session ${session.id}`);
 					continue;
 				}
 
 				// Restore the file using storage
-				const workspaceRoot =
-					vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+				const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 				if (!workspaceRoot) {
 					errors.push("No workspace folder found");
-					logger.error(
-						`No workspace folder found during session restore for session ${session.id}`,
-					);
+					logger.error(`No workspace folder found during session restore for session ${session.id}`);
 					break;
 				}
 
 				try {
 					// Get the full snapshot with content
-					const snapshotWithContent = await storage.getSnapshot(
-						fileEntry.snapshotId,
-					);
+					const snapshotWithContent = await storage.getSnapshot(fileEntry.snapshotId);
 					if (!snapshotWithContent) {
 						errors.push(`Snapshot content not found: ${fileEntry.snapshotId}`);
 						continue;
@@ -376,10 +336,7 @@ async function restoreSessionFiles(
 
 					// Write file to workspace
 					const fileUri = vscode.Uri.file(path.join(workspaceRoot, filePath));
-					await vscode.workspace.fs.writeFile(
-						fileUri,
-						Buffer.from(fileContent, "utf-8"),
-					);
+					await vscode.workspace.fs.writeFile(fileUri, Buffer.from(fileContent, "utf-8"));
 
 					restoredFiles.push(fileEntry.uri);
 					logger.debug("Successfully restored file", {
@@ -387,20 +344,14 @@ async function restoreSessionFiles(
 						filePath: fileEntry.uri,
 					});
 				} catch (error) {
-					const errorMessage =
-						error instanceof Error ? error.message : String(error);
+					const errorMessage = error instanceof Error ? error.message : String(error);
 					errors.push(`Failed to restore ${fileEntry.uri}: ${errorMessage}`);
-					logger.warn(
-						`Failed to restore file ${fileEntry.uri} in session ${session.id}`,
-						undefined,
-						{
-							error: errorMessage,
-						},
-					);
+					logger.warn(`Failed to restore file ${fileEntry.uri} in session ${session.id}`, undefined, {
+						error: errorMessage,
+					});
 				}
 			} catch (error) {
-				const errorMessage =
-					error instanceof Error ? error.message : String(error);
+				const errorMessage = error instanceof Error ? error.message : String(error);
 				errors.push(`Failed to restore ${fileEntry.uri}: ${errorMessage}`);
 				logger.error(
 					`Error restoring file ${fileEntry.uri} in session ${session.id}`,
@@ -421,22 +372,13 @@ async function restoreSessionFiles(
 
 		// If there were errors, throw an error with details
 		if (errors.length > 0) {
-			throw new Error(
-				`Session restore completed with errors:\n${errors.join("\n")}`,
-			);
+			throw new Error(`Session restore completed with errors:\n${errors.join("\n")}`);
 		}
 	} catch (error) {
-		const errorMessage =
-			error instanceof Error
-				? error.message
-				: "Unknown error during session restore";
-		logger.error(
-			`Session restore failed for session ${session.id}`,
-			error instanceof Error ? error : undefined,
-			{
-				error: errorMessage,
-			},
-		);
+		const errorMessage = error instanceof Error ? error.message : "Unknown error during session restore";
+		logger.error(`Session restore failed for session ${session.id}`, error instanceof Error ? error : undefined, {
+			error: errorMessage,
+		});
 		throw error;
 	}
 }

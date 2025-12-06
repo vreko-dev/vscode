@@ -54,8 +54,7 @@ export class VSCodeTelemetry {
 
 			// Get configuration from VS Code settings
 			const config = vscode.workspace.getConfiguration("snapback");
-			const posthogKey =
-				config.get<string>("posthogKey") || process.env.POSTHOG_PROJECT_KEY;
+			const posthogKey = config.get<string>("posthogKey") || process.env.POSTHOG_PROJECT_KEY;
 			// const _posthogHost =
 			//	config.get<string>("posthogHost") ||
 			//	process.env.POSTHOG_API_HOST ||
@@ -73,19 +72,12 @@ export class VSCodeTelemetry {
 				await this.eventBus.initialize();
 				console.log("EventEmitter2 event bus initialized for telemetry");
 			} catch (err) {
-				console.warn(
-					"Failed to initialize EventEmitter2 event bus for telemetry:",
-					err,
-				);
+				console.warn("Failed to initialize EventEmitter2 event bus for telemetry:", err);
 			}
 
 			// Only initialize if we have a PostHog key
 			if (posthogKey) {
-				this.telemetryClient = new TelemetryClient(
-					posthogKey,
-					proxyUrl,
-					"vscode",
-				);
+				this.telemetryClient = new TelemetryClient(posthogKey, proxyUrl, "vscode");
 				await this.telemetryClient.initialize();
 
 				// Track extension activation with typed event
@@ -132,26 +124,18 @@ export class VSCodeTelemetry {
 		if (this.featureFlagService) {
 			try {
 				// Get user ID from context or generate anonymous ID
-				const userId =
-					this.context.globalState.get<string>("userId") || "anonymous";
-				isDetailedTelemetryEnabled =
-					await this.featureFlagService.isFeatureEnabled(
-						userId,
-						"telemetry.detailed_events",
-					);
-			} catch (error) {
-				console.warn(
-					"Failed to check feature flag for detailed telemetry, defaulting to enabled",
-					error,
+				const userId = this.context.globalState.get<string>("userId") || "anonymous";
+				isDetailedTelemetryEnabled = await this.featureFlagService.isFeatureEnabled(
+					userId,
+					"telemetry.detailed_events",
 				);
+			} catch (error) {
+				console.warn("Failed to check feature flag for detailed telemetry, defaulting to enabled", error);
 			}
 		}
 
 		// 🆕 Only send detailed events if feature flag is enabled
-		if (
-			!isDetailedTelemetryEnabled &&
-			!["snapshot.created", "risk.high", "error"].includes(event.event)
-		) {
+		if (!isDetailedTelemetryEnabled && !["snapshot.created", "risk.high", "error"].includes(event.event)) {
 			return;
 		}
 
@@ -180,12 +164,7 @@ export class VSCodeTelemetry {
 	/**
 	 * Track command execution
 	 */
-	trackCommandExecution(
-		command: string,
-		duration: number,
-		success: boolean,
-		properties?: Record<string, unknown>,
-	) {
+	trackCommandExecution(command: string, duration: number, success: boolean, properties?: Record<string, unknown>) {
 		const event: LegacyCommandExecutionEvent = {
 			event: LEGACY_TELEMETRY_EVENTS.COMMAND_EXECUTION,
 			properties: {
@@ -202,11 +181,7 @@ export class VSCodeTelemetry {
 	/**
 	 * Track snapshot creation
 	 */
-	trackSnapshotCreated(
-		method: string,
-		filesCount: number,
-		properties?: Record<string, unknown>,
-	) {
+	trackSnapshotCreated(method: string, filesCount: number, properties?: Record<string, unknown>) {
 		const event: LegacySnapshotCreatedEvent = {
 			event: LEGACY_TELEMETRY_EVENTS.SNAPSHOT_CREATED,
 			properties: {
@@ -222,12 +197,7 @@ export class VSCodeTelemetry {
 	/**
 	 * Track SnapBack usage
 	 */
-	trackSnapBackUsed(
-		filesRestored: number,
-		duration: number,
-		success: boolean,
-		properties?: Record<string, unknown>,
-	) {
+	trackSnapBackUsed(filesRestored: number, duration: number, success: boolean, properties?: Record<string, unknown>) {
 		const event: LegacySnapBackUsedEvent = {
 			event: LEGACY_TELEMETRY_EVENTS.SNAPBACK_USED,
 			properties: {
@@ -244,12 +214,7 @@ export class VSCodeTelemetry {
 	/**
 	 * Track risk detection
 	 */
-	trackRiskDetected(
-		riskLevel: string,
-		patterns: string[],
-		confidence: number,
-		properties?: Record<string, unknown>,
-	) {
+	trackRiskDetected(riskLevel: string, patterns: string[], confidence: number, properties?: Record<string, unknown>) {
 		const event: LegacyRiskDetectedEvent = {
 			event: LEGACY_TELEMETRY_EVENTS.RISK_DETECTED,
 			properties: {
@@ -281,11 +246,7 @@ export class VSCodeTelemetry {
 	/**
 	 * Track notification shown
 	 */
-	trackNotificationShown(
-		notificationType: string,
-		actionTaken: string | null,
-		properties?: Record<string, unknown>,
-	) {
+	trackNotificationShown(notificationType: string, actionTaken: string | null, properties?: Record<string, unknown>) {
 		const event: LegacyNotificationShownEvent = {
 			event: LEGACY_TELEMETRY_EVENTS.NOTIFICATION_SHOWN,
 			properties: {
@@ -316,11 +277,7 @@ export class VSCodeTelemetry {
 	/**
 	 * Track error
 	 */
-	trackError(
-		errorType: string,
-		errorMessage: string,
-		properties?: Record<string, unknown>,
-	) {
+	trackError(errorType: string, errorMessage: string, properties?: Record<string, unknown>) {
 		const event: LegacyErrorEvent = {
 			event: LEGACY_TELEMETRY_EVENTS.ERROR,
 			properties: {
@@ -336,11 +293,7 @@ export class VSCodeTelemetry {
 	/**
 	 * Track walkthrough step completion
 	 */
-	trackWalkthroughStepCompleted(
-		stepId: string,
-		stepTitle: string,
-		properties?: Record<string, unknown>,
-	) {
+	trackWalkthroughStepCompleted(stepId: string, stepTitle: string, properties?: Record<string, unknown>) {
 		const event: LegacyWalkthroughStepCompletedEvent = {
 			event: LEGACY_TELEMETRY_EVENTS.WALKTHROUGH_STEP_COMPLETED,
 			properties: {
@@ -402,11 +355,7 @@ export class VSCodeTelemetry {
 	/**
 	 * Track contextual prompt shown
 	 */
-	trackContextualPromptShown(
-		promptType: string,
-		actionTaken: string | null,
-		properties?: Record<string, unknown>,
-	) {
+	trackContextualPromptShown(promptType: string, actionTaken: string | null, properties?: Record<string, unknown>) {
 		const event: LegacyOnboardingContextualPromptShownEvent = {
 			event: LEGACY_TELEMETRY_EVENTS.ONBOARDING_CONTEXTUAL_PROMPT_SHOWN,
 			properties: {

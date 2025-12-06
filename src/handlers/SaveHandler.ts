@@ -67,12 +67,7 @@ export class SaveHandler {
 		// Use provided AIRiskService or create NoopAIRiskService
 		const riskService = aiRiskService || new NoopAIRiskService();
 
-		this.analysisCoordinator = new AnalysisCoordinator(
-			registry,
-			this.auditLogger,
-			riskService,
-			milestoneService,
-		);
+		this.analysisCoordinator = new AnalysisCoordinator(registry, this.auditLogger, riskService, milestoneService);
 		this.protectionLevelHandler = new ProtectionLevelHandler(
 			registry,
 			operationCoordinator,
@@ -112,10 +107,7 @@ export class SaveHandler {
 			logger.info("Protected file being saved", { filePath });
 
 			// 🆕 Track First Protected Save (Activation Funnel)
-			const hasTrackedSave = context.globalState.get<boolean>(
-				"snapback.hasProtectedSave",
-				false,
-			);
+			const hasTrackedSave = context.globalState.get<boolean>("snapback.hasProtectedSave", false);
 
 			if (!hasTrackedSave && this.milestoneService) {
 				// Fire and forget notification - wrapped in async IIFE
@@ -153,11 +145,7 @@ export class SaveHandler {
 			// We pass a Thenable (Promise) but call waitUntil immediately
 			event.waitUntil(
 				getPreSaveContent().then((preSaveContent) =>
-					this.handleProtectedFileSave(
-						filePath,
-						preSaveContent,
-						event.document,
-					),
+					this.handleProtectedFileSave(filePath, preSaveContent, event.document),
 				),
 			);
 		});
@@ -214,12 +202,7 @@ export class SaveHandler {
 			filePath,
 			step: "analysis_started",
 		});
-		await this.analysisCoordinator.analyzeAndPublish(
-			filePath,
-			filename,
-			preSaveContent,
-			document,
-		);
+		await this.analysisCoordinator.analyzeAndPublish(filePath, filename, preSaveContent, document);
 		logger.debug("Risk analysis completed", {
 			correlationId,
 			filePath,
@@ -232,10 +215,7 @@ export class SaveHandler {
 
 		// Step 1.5: Check for AI detection and show warning if needed
 		const iterationStats = this.getIterationStats(filePath);
-		if (
-			iterationStats.riskLevel === "high" &&
-			AIWarningManager.shouldWarn(0.7)
-		) {
+		if (iterationStats.riskLevel === "high" && AIWarningManager.shouldWarn(0.7)) {
 			const aiDetection: AIDetection = {
 				tool: "BURST_PATTERN",
 				confidence: Math.min(1, iterationStats.velocity / 15),
@@ -249,8 +229,7 @@ export class SaveHandler {
 				step: "ai_warning_dialog",
 			});
 
-			const warningResult =
-				await this.aiWarningManager.showWarning(aiDetection);
+			const warningResult = await this.aiWarningManager.showWarning(aiDetection);
 
 			// Handle the Result type - check if warning dialog succeeded
 			if (warningResult.success === false) {
@@ -273,7 +252,8 @@ export class SaveHandler {
 						step: "ai_warning_restore",
 					});
 					throw new vscode.CancellationError();
-				} else if (choice === "review") {
+				}
+				if (choice === "review") {
 					logger.info("User chose to review changes after AI warning", {
 						correlationId,
 						filePath,
@@ -293,13 +273,12 @@ export class SaveHandler {
 			filePath,
 			step: "protection_started",
 		});
-		const protectionResult =
-			await this.protectionLevelHandler.handleProtectionLevel(
-				filePath,
-				filename,
-				preSaveContent,
-				document,
-			);
+		const protectionResult = await this.protectionLevelHandler.handleProtectionLevel(
+			filePath,
+			filename,
+			preSaveContent,
+			document,
+		);
 		logger.debug("Protection level handling completed", {
 			correlationId,
 			filePath,
@@ -333,13 +312,9 @@ export class SaveHandler {
 		// Update file decoration if provider is available
 		if (this.decorationProvider) {
 			try {
-				const protectionLevel =
-					this.registry.getProtectionLevel(filePath) || "Watched";
+				const protectionLevel = this.registry.getProtectionLevel(filePath) || "Watched";
 				const analysisResult = this.analysisCoordinator.lastAnalysisResult;
-				const healthLevel = this.determineHealthLevel(
-					protectionLevel,
-					analysisResult,
-				);
+				const healthLevel = this.determineHealthLevel(protectionLevel, analysisResult);
 				// Convert protection level to lowercase for the decoration provider
 				// Make case-insensitive to handle different registry return values
 				const normalizedProtectionLevel = protectionLevel.toLowerCase();
@@ -380,11 +355,7 @@ export class SaveHandler {
 	 * @param preSaveContent - Content before save
 	 * @param postSaveContent - Content after save
 	 */
-	private updateIterationData(
-		filePath: string,
-		preSaveContent: string,
-		postSaveContent: string,
-	): void {
+	private updateIterationData(filePath: string, preSaveContent: string, postSaveContent: string): void {
 		const now = Date.now();
 		const editSize = Math.abs(postSaveContent.length - preSaveContent.length);
 
@@ -396,8 +367,7 @@ export class SaveHandler {
 
 		if (existingData) {
 			// Calculate time difference in minutes
-			const timeDiffMinutes =
-				(now - existingData.lastEditTimestamp) / (1000 * 60);
+			const timeDiffMinutes = (now - existingData.lastEditTimestamp) / (1000 * 60);
 
 			// If last edit was within 10 minutes, increment consecutive count
 			if (timeDiffMinutes <= 10) {
@@ -466,18 +436,12 @@ export class SaveHandler {
 
 		// Warn level OR moderate risk → yellow badge
 		// Note: risk.score is normalized to 0-1 scale by AnalysisCoordinator
-		if (
-			normalizedProtectionLevel === "warning" ||
-			(risk && risk.score >= 0.3)
-		) {
+		if (normalizedProtectionLevel === "warning" || (risk && risk.score >= 0.3)) {
 			return "warning";
 		}
 
 		// Protected with no/low risk → green badge
-		if (
-			normalizedProtectionLevel === "protected" ||
-			normalizedProtectionLevel === "watched"
-		) {
+		if (normalizedProtectionLevel === "protected" || normalizedProtectionLevel === "watched") {
 			return "protected";
 		}
 

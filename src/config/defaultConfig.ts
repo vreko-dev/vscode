@@ -1,110 +1,105 @@
 import type { ProtectionLevel } from "../types/protection";
-import type {
-	ProtectionRule,
-	SnapBackRC,
-	SnapBackSettings,
-} from "../types/snapbackrc.types";
+import type { ProtectionRule, SnapBackRC, SnapBackSettings } from "../types/snapbackrc.types";
 
 /**
  * CRITICAL PATTERNS - Files where accidental changes cause IMMEDIATE PRODUCTION IMPACT
  * These are the patterns that should be protected by default on extension activation
  * Total: ~15-20 patterns matching ~27 files in typical project
  */
-export const DEFAULT_CRITICAL_PATTERNS: readonly ProtectionRule[] =
-	Object.freeze([
-		// Dependency locks - wrong versions break builds
-		{
-			pattern: "**/package-lock.json",
-			level: "Protected" as ProtectionLevel,
-			reason: "Lock file - wrong version breaks reproducible Node.js builds",
-		},
-		{
-			pattern: "**/yarn.lock",
-			level: "Protected" as ProtectionLevel,
-			reason: "Lock file - ensures reproducible Yarn installs",
-		},
-		{
-			pattern: "**/pnpm-lock.yaml",
-			level: "Protected" as ProtectionLevel,
-			reason: "Lock file - critical for pnpm monorepos",
-		},
-		{
-			pattern: "**/poetry.lock",
-			level: "Protected" as ProtectionLevel,
-			reason: "Lock file - Python dependency lock",
-		},
-		{
-			pattern: "**/Cargo.lock",
-			level: "Protected" as ProtectionLevel,
-			reason: "Lock file - Rust dependency lock",
-		},
-		{
-			pattern: "**/go.sum",
-			level: "Protected" as ProtectionLevel,
-			reason: "Lock file - Go module checksums",
-		},
-		{
-			pattern: "**/Gemfile.lock",
-			level: "Protected" as ProtectionLevel,
-			reason: "Lock file - Ruby gem dependencies",
-		},
-		{
-			pattern: "**/composer.lock",
-			level: "Protected" as ProtectionLevel,
-			reason: "Lock file - PHP composer dependencies",
-		},
+export const DEFAULT_CRITICAL_PATTERNS: readonly ProtectionRule[] = Object.freeze([
+	// Dependency locks - wrong versions break builds
+	{
+		pattern: "**/package-lock.json",
+		level: "Protected" as ProtectionLevel,
+		reason: "Lock file - wrong version breaks reproducible Node.js builds",
+	},
+	{
+		pattern: "**/yarn.lock",
+		level: "Protected" as ProtectionLevel,
+		reason: "Lock file - ensures reproducible Yarn installs",
+	},
+	{
+		pattern: "**/pnpm-lock.yaml",
+		level: "Protected" as ProtectionLevel,
+		reason: "Lock file - critical for pnpm monorepos",
+	},
+	{
+		pattern: "**/poetry.lock",
+		level: "Protected" as ProtectionLevel,
+		reason: "Lock file - Python dependency lock",
+	},
+	{
+		pattern: "**/Cargo.lock",
+		level: "Protected" as ProtectionLevel,
+		reason: "Lock file - Rust dependency lock",
+	},
+	{
+		pattern: "**/go.sum",
+		level: "Protected" as ProtectionLevel,
+		reason: "Lock file - Go module checksums",
+	},
+	{
+		pattern: "**/Gemfile.lock",
+		level: "Protected" as ProtectionLevel,
+		reason: "Lock file - Ruby gem dependencies",
+	},
+	{
+		pattern: "**/composer.lock",
+		level: "Protected" as ProtectionLevel,
+		reason: "Lock file - PHP composer dependencies",
+	},
 
-		// Environment & Secrets - exposing causes immediate security breaches
-		{
-			pattern: "**/.env*",
-			level: "Protected" as ProtectionLevel,
-			reason: "Sensitive environment variables and secrets",
-		},
+	// Environment & Secrets - exposing causes immediate security breaches
+	{
+		pattern: "**/.env*",
+		level: "Protected" as ProtectionLevel,
+		reason: "Sensitive environment variables and secrets",
+	},
 
-		// Core configuration files - wrong changes break builds
-		{
-			pattern: "package.json",
-			level: "Warning" as ProtectionLevel,
-			reason: "Core Node.js configuration - dependencies and scripts",
-		},
-		{
-			pattern: "tsconfig.json",
-			level: "Warning" as ProtectionLevel,
-			reason: "TypeScript compiler configuration",
-		},
+	// Core configuration files - wrong changes break builds
+	{
+		pattern: "package.json",
+		level: "Warning" as ProtectionLevel,
+		reason: "Core Node.js configuration - dependencies and scripts",
+	},
+	{
+		pattern: "tsconfig.json",
+		level: "Warning" as ProtectionLevel,
+		reason: "TypeScript compiler configuration",
+	},
 
-		// Infrastructure - controls deployment and infrastructure
-		{
-			pattern: "Dockerfile",
-			level: "Warning" as ProtectionLevel,
-			reason: "Container image definition",
-		},
-		{
-			pattern: "docker-compose.yml",
-			level: "Warning" as ProtectionLevel,
-			reason: "Multi-container orchestration",
-		},
-		{
-			pattern: "**/docker-compose.yaml",
-			level: "Warning" as ProtectionLevel,
-			reason: "Multi-container orchestration (yaml variant)",
-		},
-		{
-			pattern: "**/*.tf",
-			level: "Warning" as ProtectionLevel,
-			reason: "Terraform infrastructure definitions",
-		},
-		{
-			pattern: ".github/workflows/*.yml",
-			level: "Warning" as ProtectionLevel,
-			reason: "GitHub Actions CI/CD workflows",
-		},
-		{
-			pattern: ".github/workflows/*.yaml",
-			level: "Warning" as ProtectionLevel,
-			reason: "GitHub Actions CI/CD workflows (yaml variant)",
-		},
-	]);
+	// Infrastructure - controls deployment and infrastructure
+	{
+		pattern: "Dockerfile",
+		level: "Warning" as ProtectionLevel,
+		reason: "Container image definition",
+	},
+	{
+		pattern: "docker-compose.yml",
+		level: "Warning" as ProtectionLevel,
+		reason: "Multi-container orchestration",
+	},
+	{
+		pattern: "**/docker-compose.yaml",
+		level: "Warning" as ProtectionLevel,
+		reason: "Multi-container orchestration (yaml variant)",
+	},
+	{
+		pattern: "**/*.tf",
+		level: "Warning" as ProtectionLevel,
+		reason: "Terraform infrastructure definitions",
+	},
+	{
+		pattern: ".github/workflows/*.yml",
+		level: "Warning" as ProtectionLevel,
+		reason: "GitHub Actions CI/CD workflows",
+	},
+	{
+		pattern: ".github/workflows/*.yaml",
+		level: "Warning" as ProtectionLevel,
+		reason: "GitHub Actions CI/CD workflows (yaml variant)",
+	},
+]);
 
 /**
  * EXTENDED PATTERNS - Optional patterns for enhanced protection

@@ -43,10 +43,7 @@ export class WorkspaceMemoryManager {
 		this.context.lastActiveFile = filePath;
 
 		// Add to recent files, keeping only the last 10
-		this.context.recentFiles = [
-			filePath,
-			...this.context.recentFiles.filter((f) => f !== filePath),
-		].slice(0, 10);
+		this.context.recentFiles = [filePath, ...this.context.recentFiles.filter((f) => f !== filePath)].slice(0, 10);
 
 		this.addAction("file_opened");
 	}
@@ -70,9 +67,7 @@ export class WorkspaceMemoryManager {
 	/**
 	 * Update protection status
 	 */
-	updateProtectionStatus(
-		status: "protected" | "atRisk" | "unprotected" | "analyzing",
-	): void {
+	updateProtectionStatus(status: "protected" | "atRisk" | "unprotected" | "analyzing"): void {
 		this.context.protectionStatus = status;
 		this.addAction("status_changed");
 	}

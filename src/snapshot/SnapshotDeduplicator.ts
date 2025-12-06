@@ -206,14 +206,10 @@ export class SnapshotDeduplicator {
 	 */
 	private generateStateHash(state: SnapshotState): string {
 		// Sort files by path for order-independent hashing
-		const sortedFiles = [...state.files].sort((a, b) =>
-			a.path.localeCompare(b.path),
-		);
+		const sortedFiles = [...state.files].sort((a, b) => a.path.localeCompare(b.path));
 
 		// Combine all file path:hash pairs
-		const combinedData = sortedFiles
-			.map((file) => `${file.path}:${file.hash}`)
-			.join("|");
+		const combinedData = sortedFiles.map((file) => `${file.path}:${file.hash}`).join("|");
 
 		// Generate SHA-256 hash
 		return createHash("sha256").update(combinedData).digest("hex");
@@ -232,10 +228,7 @@ export class SnapshotDeduplicator {
 	 */
 	private addToCache(stateHash: string, snapshotId: string): void {
 		// Enforce cache size limit
-		if (
-			this.stateHashCache.size >= this.maxCacheSize &&
-			this.maxCacheSize > 0
-		) {
+		if (this.stateHashCache.size >= this.maxCacheSize && this.maxCacheSize > 0) {
 			this.evictOldest();
 		}
 

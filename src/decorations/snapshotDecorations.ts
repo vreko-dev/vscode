@@ -18,10 +18,7 @@ export class SnapshotDecorations {
 	// Throttling and caching mechanisms
 	private updateTimeout: NodeJS.Timeout | null = null;
 	private lastUpdateTimestamp = 0;
-	private updateCache: Map<
-		string,
-		{ ranges: vscode.Range[]; timestamp: number }
-	> = new Map();
+	private updateCache: Map<string, { ranges: vscode.Range[]; timestamp: number }> = new Map();
 	private readonly CACHE_DURATION = 30000; // 30 seconds cache
 	private readonly MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
 
@@ -180,10 +177,7 @@ export class SnapshotDecorations {
 			// Get all snapshots for this file
 			const snapshots = await this.storage.listSnapshots();
 			const fileSnapshots = snapshots
-				.filter(
-					(snapshot) =>
-						snapshot.files && snapshot.files[relativePath] !== undefined,
-				)
+				.filter((snapshot) => snapshot.files && snapshot.files[relativePath] !== undefined)
 				.sort((a, b) => b.timestamp - a.timestamp);
 
 			if (fileSnapshots.length === 0) {
@@ -197,11 +191,7 @@ export class SnapshotDecorations {
 			const latestSnapshot = fileSnapshots[0];
 			const snapshotData = await this.storage.getSnapshot(latestSnapshot.id);
 
-			if (
-				!snapshotData ||
-				!snapshotData.contents ||
-				snapshotData.contents[relativePath] === undefined
-			) {
+			if (!snapshotData || !snapshotData.contents || snapshotData.contents[relativePath] === undefined) {
 				this.clearDecorations(editor);
 				// Cache the empty result
 				this.updateCache.set(cacheKey, { ranges: [], timestamp: now });
@@ -235,10 +225,7 @@ export class SnapshotDecorations {
 				timestamp: now,
 			});
 		} catch (error) {
-			logger.error(
-				"Error updating snapshot decorations:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error updating snapshot decorations:", error instanceof Error ? error : undefined);
 			this.clearDecorations(editor);
 		}
 	}
@@ -258,10 +245,7 @@ export class SnapshotDecorations {
 	/**
 	 * Parse diff output to extract changed line ranges
 	 */
-	private parseDiff(
-		diffText: string,
-		_document: vscode.TextDocument,
-	): vscode.Range[] {
+	private parseDiff(diffText: string, _document: vscode.TextDocument): vscode.Range[] {
 		const ranges: vscode.Range[] = [];
 
 		try {
@@ -293,10 +277,7 @@ export class SnapshotDecorations {
 				}
 			}
 		} catch (error) {
-			logger.error(
-				"Error parsing diff:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error parsing diff:", error instanceof Error ? error : undefined);
 		}
 
 		return ranges;
@@ -325,10 +306,7 @@ export class SnapshotDecorations {
 			// Get all snapshots for this file
 			const snapshots = await this.storage.listSnapshots();
 			const fileSnapshots = snapshots
-				.filter(
-					(snapshot) =>
-						snapshot.files && snapshot.files[relativePath] !== undefined,
-				)
+				.filter((snapshot) => snapshot.files && snapshot.files[relativePath] !== undefined)
 				.sort((a, b) => b.timestamp - a.timestamp);
 
 			if (fileSnapshots.length === 0) {
@@ -339,11 +317,7 @@ export class SnapshotDecorations {
 			const latestSnapshot = fileSnapshots[0];
 			const snapshotData = await this.storage.getSnapshot(latestSnapshot.id);
 
-			if (
-				!snapshotData ||
-				!snapshotData.contents ||
-				snapshotData.contents[relativePath] === undefined
-			) {
+			if (!snapshotData || !snapshotData.contents || snapshotData.contents[relativePath] === undefined) {
 				return undefined;
 			}
 
@@ -358,10 +332,7 @@ export class SnapshotDecorations {
 
 			return new vscode.Hover(hoverText);
 		} catch (error) {
-			logger.error(
-				"Error providing snapshot hover:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error providing snapshot hover:", error instanceof Error ? error : undefined);
 			return undefined;
 		}
 	}

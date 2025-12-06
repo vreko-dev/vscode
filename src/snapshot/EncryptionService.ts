@@ -1,10 +1,4 @@
-import {
-	createCipheriv,
-	createDecipheriv,
-	createHash,
-	pbkdf2Sync,
-	randomBytes,
-} from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, pbkdf2Sync, randomBytes } from "node:crypto";
 import { machineIdSync } from "node-machine-id";
 import type { VSCodeTelemetry } from "../telemetry";
 import { logger } from "../utils/logger";
@@ -37,13 +31,7 @@ export class EncryptionService {
 			const machineId = machineIdSync(true);
 
 			// PBKDF2 with 100,000 iterations for key stretching
-			this.deviceKey = pbkdf2Sync(
-				machineId,
-				this.SALT,
-				this.PBKDF2_ITERATIONS,
-				this.KEY_LENGTH,
-				"sha256",
-			);
+			this.deviceKey = pbkdf2Sync(machineId, this.SALT, this.PBKDF2_ITERATIONS, this.KEY_LENGTH, "sha256");
 
 			logger.info("Encryption service initialized", {
 				algorithm: this.ALGORITHM,
@@ -71,10 +59,7 @@ export class EncryptionService {
 			const cipher = createCipheriv(this.ALGORITHM, this.deviceKey, iv);
 
 			// Encrypt data
-			const encrypted = Buffer.concat([
-				cipher.update(plaintext, "utf8"),
-				cipher.final(),
-			]);
+			const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
 
 			// Get authentication tag (GCM mode provides authenticity)
 			const authTag = cipher.getAuthTag();
@@ -87,10 +72,7 @@ export class EncryptionService {
 			};
 		} catch (error) {
 			logger.error("Encryption failed", error as Error);
-			this.telemetry?.trackError(
-				"snapshot.encryption.failed",
-				"Failed to encrypt snapshot data",
-			);
+			this.telemetry?.trackError("snapshot.encryption.failed", "Failed to encrypt snapshot data");
 			throw new Error("Failed to encrypt snapshot data");
 		}
 	}
@@ -110,11 +92,7 @@ export class EncryptionService {
 			}
 
 			// Create decipher with device key and stored IV
-			const decipher = createDecipheriv(
-				this.ALGORITHM,
-				this.deviceKey,
-				Buffer.from(encrypted.iv, "base64"),
-			);
+			const decipher = createDecipheriv(this.ALGORITHM, this.deviceKey, Buffer.from(encrypted.iv, "base64"));
 
 			// Set authentication tag for GCM verification
 			decipher.setAuthTag(Buffer.from(encrypted.authTag, "base64"));
@@ -127,28 +105,17 @@ export class EncryptionService {
 
 			return decrypted.toString("utf8");
 		} catch (error) {
-			if (
-				(error as Error).message.includes(
-					"Unsupported state or unable to authenticate",
-				)
-			) {
-				logger.error(
-					"Decryption failed: authentication error (tampered data?)",
-				);
+			if ((error as Error).message.includes("Unsupported state or unable to authenticate")) {
+				logger.error("Decryption failed: authentication error (tampered data?)");
 				this.telemetry?.trackError(
 					"snapshot.decryption.failed",
 					"Snapshot authentication failed - data may be tampered",
 				);
-				throw new Error(
-					"Snapshot authentication failed - data may be tampered",
-				);
+				throw new Error("Snapshot authentication failed - data may be tampered");
 			}
 
 			logger.error("Decryption failed", error as Error);
-			this.telemetry?.trackError(
-				"snapshot.decryption.failed",
-				"Failed to decrypt snapshot data",
-			);
+			this.telemetry?.trackError("snapshot.decryption.failed", "Failed to decrypt snapshot data");
 			throw new Error("Failed to decrypt snapshot data");
 		}
 	}

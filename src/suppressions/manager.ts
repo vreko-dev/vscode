@@ -25,10 +25,7 @@ export class SuppressionManager {
 	}
 
 	private loadSuppressions(): void {
-		const stored = this.context.globalState.get<Suppression[]>(
-			"snapback.suppressions",
-			[],
-		);
+		const stored = this.context.globalState.get<Suppression[]>("snapback.suppressions", []);
 		// Ensure stored is an array before iterating
 		if (Array.isArray(stored)) {
 			stored.forEach((suppression) => {
@@ -39,10 +36,7 @@ export class SuppressionManager {
 
 	private saveSuppressions(): Thenable<void> {
 		const suppressionsArray = Array.from(this.suppressions.values());
-		return this.context.globalState.update(
-			"snapback.suppressions",
-			suppressionsArray,
-		);
+		return this.context.globalState.update("snapback.suppressions", suppressionsArray);
 	}
 
 	private getExpiryTime(type: SuppressionType): number {
@@ -62,17 +56,10 @@ export class SuppressionManager {
 		}
 
 		const uri = obj as vscode.Uri;
-		return (
-			typeof uri.toString === "function" &&
-			(uri.fsPath !== undefined || uri.path !== undefined)
-		);
+		return typeof uri.toString === "function" && (uri.fsPath !== undefined || uri.path !== undefined);
 	}
 
-	private getSuppressionId(
-		type: SuppressionType,
-		uriOrPattern?: vscode.Uri | string,
-		line?: number,
-	): string {
+	private getSuppressionId(type: SuppressionType, uriOrPattern?: vscode.Uri | string, line?: number): string {
 		switch (type) {
 			case "line":
 				if (this.isUriObject(uriOrPattern)) {
@@ -114,11 +101,7 @@ export class SuppressionManager {
 			actualReason = lineOrReason as string;
 		}
 
-		const id = this.getSuppressionId(
-			type,
-			uriOrPattern,
-			lineOrReason as number,
-		);
+		const id = this.getSuppressionId(type, uriOrPattern, lineOrReason as number);
 
 		const suppression: Suppression = {
 			id,

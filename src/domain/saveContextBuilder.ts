@@ -79,9 +79,7 @@ export class SaveContextBuilder {
 	 */
 	private extractFileMetadata(events: FileChangeEvent[]): FileInfo[] {
 		return events.map((event) => {
-			const extension = event.path.includes(".")
-				? `.${event.path.split(".").pop() || ""}`
-				: "";
+			const extension = event.path.includes(".") ? `.${event.path.split(".").pop() || ""}` : "";
 
 			return {
 				path: event.path,
@@ -98,18 +96,7 @@ export class SaveContextBuilder {
 	 * Check if file is binary
 	 */
 	private isBinaryFile(path: string): boolean {
-		const binaryExtensions = [
-			".png",
-			".jpg",
-			".jpeg",
-			".gif",
-			".pdf",
-			".zip",
-			".tar",
-			".exe",
-			".dll",
-			".so",
-		];
+		const binaryExtensions = [".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".tar", ".exe", ".dll", ".so"];
 
 		const ext = path.slice(path.lastIndexOf(".")).toLowerCase();
 

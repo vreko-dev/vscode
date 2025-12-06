@@ -22,15 +22,8 @@ import { SettingsLoader } from "../config/settingsLoader";
 import { AutoDecisionEngine } from "../domain/engine";
 import { NotificationAdapter } from "../domain/notificationAdapter";
 import type { FileInfo } from "../domain/signalAggregator";
-import {
-	createSignalAggregator,
-	type SignalAggregator,
-} from "../domain/signalAggregator";
-import type {
-	AutoDecisionConfig,
-	ProtectionDecision,
-	SaveContext,
-} from "../domain/types";
+import { createSignalAggregator, type SignalAggregator } from "../domain/signalAggregator";
+import type { AutoDecisionConfig, ProtectionDecision, SaveContext } from "../domain/types";
 import { DEFAULT_CONFIG } from "../domain/types";
 import type { NotificationManager } from "../notificationManager";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
@@ -60,14 +53,7 @@ export class AutoDecisionIntegration {
 	// private repoId: string;
 
 	private readonly DEBOUNCE_MS = 300;
-	private readonly IGNORE_PATTERNS = [
-		"node_modules/**",
-		"dist/**",
-		".git/**",
-		".vscode/**",
-		"*.lock",
-		"*.log",
-	];
+	private readonly IGNORE_PATTERNS = ["node_modules/**", "dist/**", ".git/**", ".vscode/**", "*.lock", "*.log"];
 
 	private readonly BINARY_EXTENSIONS = [
 		".png",
@@ -245,10 +231,7 @@ export class AutoDecisionIntegration {
 
 		// Ignore patterns
 		for (const pattern of this.IGNORE_PATTERNS) {
-			const regexPattern = pattern
-				.replace(/\*\*/g, "(.*/)?")
-				.replace(/\*/g, "[^/]*")
-				.replace(/\./g, "\\.");
+			const regexPattern = pattern.replace(/\*\*/g, "(.*/)?").replace(/\*/g, "[^/]*").replace(/\./g, "\\.");
 			const regex = new RegExp(regexPattern);
 
 			if (regex.test(filePath)) {
@@ -274,10 +257,7 @@ export class AutoDecisionIntegration {
 			clearTimeout(this.bufferTimeout);
 		}
 
-		this.bufferTimeout = setTimeout(
-			() => this.processBatch(),
-			this.DEBOUNCE_MS,
-		);
+		this.bufferTimeout = setTimeout(() => this.processBatch(), this.DEBOUNCE_MS);
 	}
 
 	/**
@@ -303,9 +283,7 @@ export class AutoDecisionIntegration {
 		try {
 			// Step 1: Extract file info from buffered events
 			const fileInfos = await Promise.all(
-				this.fileBuffer.map((event) =>
-					this.extractFileInfo(event.filePath, event.content || ""),
-				),
+				this.fileBuffer.map((event) => this.extractFileInfo(event.filePath, event.content || "")),
 			);
 
 			// Step 2: Build SaveContext
@@ -341,13 +319,9 @@ export class AutoDecisionIntegration {
 	/**
 	 * Extract file metadata for SaveContext
 	 */
-	private async extractFileInfo(
-		filePath: string,
-		content: string,
-	): Promise<FileInfo> {
+	private async extractFileInfo(filePath: string, content: string): Promise<FileInfo> {
 		const relativePathResult = vscode.workspace.asRelativePath(filePath);
-		const relativePath =
-			relativePathResult === filePath ? filePath : relativePathResult;
+		const relativePath = relativePathResult === filePath ? filePath : relativePathResult;
 
 		return {
 			path: relativePath,
@@ -424,9 +398,7 @@ export class AutoDecisionIntegration {
 		let score = 0;
 
 		// Critical files add risk
-		const criticalCount = fileInfos.filter((f) =>
-			this.isCriticalFile(f.path),
-		).length;
+		const criticalCount = fileInfos.filter((f) => this.isCriticalFile(f.path)).length;
 		score += criticalCount * 20;
 
 		// Burst of files adds risk
@@ -447,14 +419,7 @@ export class AutoDecisionIntegration {
 	 * Check if file is critical (config, env, etc.)
 	 */
 	private isCriticalFile(filePath: string): boolean {
-		const criticalPatterns = [
-			"package.json",
-			".env",
-			".snapbackrc",
-			"tsconfig.json",
-			".config.ts",
-			".config.js",
-		];
+		const criticalPatterns = ["package.json", ".env", ".snapbackrc", "tsconfig.json", ".config.ts", ".config.js"];
 
 		return criticalPatterns.some((pattern) => filePath.includes(pattern));
 	}
@@ -470,10 +435,7 @@ export class AutoDecisionIntegration {
 	/**
 	 * Execute decision: create snapshot and/or show notification
 	 */
-	private async executeDecision(
-		decision: ProtectionDecision,
-		_context: SaveContext,
-	): Promise<void> {
+	private async executeDecision(decision: ProtectionDecision, _context: SaveContext): Promise<void> {
 		try {
 			// Create snapshot if needed
 			if (decision.createSnapshot) {
@@ -505,10 +467,7 @@ export class AutoDecisionIntegration {
 				};
 
 				// Show using VS Code's notification system
-				this.showNotification(
-					notificationConfig.title,
-					notificationConfig.message,
-				);
+				this.showNotification(notificationConfig.title, notificationConfig.message);
 			}
 		} catch (error) {
 			logger.error("Error executing decision", error as Error);
@@ -548,9 +507,5 @@ export function createAutoDecisionIntegration(
 	notificationManager: NotificationManager,
 	config?: Partial<AutoDecisionConfig>,
 ): AutoDecisionIntegration {
-	return new AutoDecisionIntegration(
-		snapshotManager,
-		notificationManager,
-		config,
-	);
+	return new AutoDecisionIntegration(snapshotManager, notificationManager, config);
 }

@@ -2,9 +2,7 @@ import * as vscode from "vscode";
 import type { DiagnosticEventTracker } from "./telemetry/diagnostic-event-tracker";
 import { SkipReasonTracker } from "./welcome/SkipReasonTracker";
 
-export class WelcomeView
-	implements vscode.WebviewViewProvider, vscode.Disposable
-{
+export class WelcomeView implements vscode.WebviewViewProvider, vscode.Disposable {
 	public static readonly viewType = "snapback.welcome";
 	private readonly _disposables: vscode.Disposable[] = [];
 	private skipReasonTracker: SkipReasonTracker | null = null;
@@ -28,48 +26,43 @@ export class WelcomeView
 		webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
 		// Initialize skip reason tracking
-		this.skipReasonTracker = new SkipReasonTracker(
-			this.globalState,
-			this.diagnosticTracker,
-		);
+		this.skipReasonTracker = new SkipReasonTracker(this.globalState, this.diagnosticTracker);
 		this.skipReasonTracker.onPanelShown();
 
-		const messageDisposable = webviewView.webview.onDidReceiveMessage(
-			(data) => {
-				switch (data.type) {
-					case "initialize": {
-						vscode.commands.executeCommand("snapback.initialize");
-						break;
-					}
-					case "protectRepo": {
-						vscode.commands.executeCommand("snapback.protectEntireRepo");
-						break;
-					}
-					case "learnMore": {
-						vscode.env.openExternal(vscode.Uri.parse("https://github.com"));
-						break;
-					}
-					case "quickSkip": {
-						this.skipReasonTracker?.onQuickSkip();
-						this.dispose();
-						break;
-					}
-					case "informedSkip": {
-						this.skipReasonTracker?.onInformedSkip();
-						this.dispose();
-						break;
-					}
-					case "detailsExpanded": {
-						this.skipReasonTracker?.onDetailsExpanded();
-						break;
-					}
-					case "panelClosed": {
-						this.skipReasonTracker?.onPanelClosed();
-						break;
-					}
+		const messageDisposable = webviewView.webview.onDidReceiveMessage((data) => {
+			switch (data.type) {
+				case "initialize": {
+					vscode.commands.executeCommand("snapback.initialize");
+					break;
 				}
-			},
-		);
+				case "protectRepo": {
+					vscode.commands.executeCommand("snapback.protectEntireRepo");
+					break;
+				}
+				case "learnMore": {
+					vscode.env.openExternal(vscode.Uri.parse("https://github.com"));
+					break;
+				}
+				case "quickSkip": {
+					this.skipReasonTracker?.onQuickSkip();
+					this.dispose();
+					break;
+				}
+				case "informedSkip": {
+					this.skipReasonTracker?.onInformedSkip();
+					this.dispose();
+					break;
+				}
+				case "detailsExpanded": {
+					this.skipReasonTracker?.onDetailsExpanded();
+					break;
+				}
+				case "panelClosed": {
+					this.skipReasonTracker?.onPanelClosed();
+					break;
+				}
+			}
+		});
 		this._disposables.push(messageDisposable);
 	}
 
@@ -87,15 +80,9 @@ export class WelcomeView
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
-		const styleResetUri = webview.asWebviewUri(
-			vscode.Uri.joinPath(this._extensionUri, "media", "reset.css"),
-		);
-		const styleVSCodeUri = webview.asWebviewUri(
-			vscode.Uri.joinPath(this._extensionUri, "media", "vscode.css"),
-		);
-		const styleMainUri = webview.asWebviewUri(
-			vscode.Uri.joinPath(this._extensionUri, "media", "welcome.css"),
-		);
+		const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "reset.css"));
+		const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "vscode.css"));
+		const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "welcome.css"));
 
 		const nonce = getNonce();
 
@@ -336,8 +323,7 @@ export class WelcomeView
 
 function getNonce() {
 	let text = "";
-	const possible =
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 	for (let i = 0; i < 32; i++) {
 		text += possible.charAt(Math.floor(Math.random() * possible.length));
 	}

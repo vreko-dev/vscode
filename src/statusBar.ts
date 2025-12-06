@@ -101,12 +101,7 @@ export class SnapBackStatusBar {
 		// Count files by protection level
 		files.forEach((file) => {
 			const level = file.protectionLevel || "Watched";
-			stats[
-				level.toLowerCase() as keyof Omit<
-					ProtectionStats,
-					"total" | "highestLevel"
-				>
-			]++;
+			stats[level.toLowerCase() as keyof Omit<ProtectionStats, "total" | "highestLevel">]++;
 		});
 
 		// Determine highest protection level
@@ -133,9 +128,7 @@ export class SnapBackStatusBar {
 		// Get highest level info from canonical signage
 		const highestLevel = stats.highestLevel;
 		if (!highestLevel) {
-			return `${BRAND_SIGNAGE.logoEmoji} ${stats.total} ${
-				stats.total === 1 ? "file" : "files"
-			} | Protected`;
+			return `${BRAND_SIGNAGE.logoEmoji} ${stats.total} ${stats.total === 1 ? "file" : "files"} | Protected`;
 		}
 
 		const levelMetadata = PROTECTION_LEVELS[highestLevel];
@@ -147,9 +140,7 @@ export class SnapBackStatusBar {
 	/**
 	 * Get status bar color based on highest protection level
 	 */
-	private getColor(
-		stats: ProtectionStats,
-	): "none" | "warning" | "error" | "default" {
+	private getColor(stats: ProtectionStats): "none" | "warning" | "error" | "default" {
 		if (stats.protected > 0) {
 			return "error"; // Red background for protected files
 		}
@@ -165,33 +156,22 @@ export class SnapBackStatusBar {
 	/**
 	 * Update status bar appearance
 	 */
-	private updateStatusBar(
-		text: string,
-		colorType: "none" | "warning" | "error" | "default",
-	): void {
+	private updateStatusBar(text: string, colorType: "none" | "warning" | "error" | "default"): void {
 		this.statusBarItem.text = text;
 
 		// Set background color based on protection level
 		switch (colorType) {
 			case "error":
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-					"statusBarItem.errorBackground",
-				);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
 				break;
 			case "warning":
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-					"statusBarItem.warningBackground",
-				);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 				break;
 			case "default":
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-					"statusBarItem.background",
-				);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.background");
 				break;
 			default:
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-					"statusBarItem.background",
-				);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.background");
 				break;
 		}
 
@@ -212,15 +192,9 @@ export class SnapBackStatusBar {
 		const blockSignage = getProtectionLevelSignage("block");
 
 		tooltip.appendMarkdown("**SnapBack Protection Status**\n\n");
-		tooltip.appendMarkdown(
-			`${watchSignage.emoji} ${watchSignage.label}: ${stats.watched} file(s)\n`,
-		);
-		tooltip.appendMarkdown(
-			`${warnSignage.emoji} ${warnSignage.label}: ${stats.warning} file(s)\n`,
-		);
-		tooltip.appendMarkdown(
-			`${blockSignage.emoji} ${blockSignage.label}: ${stats.protected} file(s)\n\n`,
-		);
+		tooltip.appendMarkdown(`${watchSignage.emoji} ${watchSignage.label}: ${stats.watched} file(s)\n`);
+		tooltip.appendMarkdown(`${warnSignage.emoji} ${warnSignage.label}: ${stats.warning} file(s)\n`);
+		tooltip.appendMarkdown(`${blockSignage.emoji} ${blockSignage.label}: ${stats.protected} file(s)\n\n`);
 
 		if (stats.highestLevel) {
 			tooltip.appendMarkdown(`Highest level: **${stats.highestLevel}**\n`);
@@ -239,9 +213,7 @@ export class SnapBackStatusBar {
 	public setProtectionStatus(_status: "protected" | "atRisk"): void {
 		// This method is kept for backward compatibility but is deprecated
 		// The new implementation uses update() which automatically calculates the status
-		logger.warn(
-			"[SnapBack] setProtectionStatus is deprecated. Use update() instead.",
-		);
+		logger.warn("[SnapBack] setProtectionStatus is deprecated. Use update() instead.");
 		this.update();
 	}
 

@@ -2,10 +2,7 @@ import * as fs from "node:fs/promises";
 import JSON5 from "json5";
 import * as vscode from "vscode";
 import type { SnapBackRC } from "../types/snapbackrc.types";
-import {
-	executeSandboxedScriptWrapper,
-	SandboxError,
-} from "./secureChildProcess";
+import { executeSandboxedScriptWrapper, SandboxError } from "./secureChildProcess";
 
 // Try to import yaml, but handle if it's not available
 let yaml: { parse: (content: string) => unknown } | null;
@@ -37,9 +34,7 @@ export async function loadJson5Config(filePath: string): Promise<SnapBackRC> {
  */
 export async function loadYamlConfig(filePath: string): Promise<SnapBackRC> {
 	if (!yaml) {
-		throw new Error(
-			"YAML support not available. Please install the yaml package.",
-		);
+		throw new Error("YAML support not available. Please install the yaml package.");
 	}
 
 	const content = await fs.readFile(filePath, "utf8");
@@ -49,9 +44,7 @@ export async function loadYamlConfig(filePath: string): Promise<SnapBackRC> {
 /**
  * Load configuration from package.json
  */
-export async function loadPackageJsonConfig(
-	filePath: string,
-): Promise<SnapBackRC> {
+export async function loadPackageJsonConfig(filePath: string): Promise<SnapBackRC> {
 	const content = await fs.readFile(filePath, "utf8");
 	const packageJson = JSON.parse(content);
 	return packageJson.snapback || {};
@@ -70,12 +63,7 @@ function isExecutableConfigsEnabled(): boolean {
 	if (env.remoteName) {
 		// In remote environments, executable configs should be OFF by default
 		// unless explicitly overridden
-		return (
-			config.get<boolean>(
-				"config.enableExecutableConfigs.remoteOverride",
-				false,
-			) && enabled
-		);
+		return config.get<boolean>("config.enableExecutableConfigs.remoteOverride", false) && enabled;
 	}
 
 	return enabled;

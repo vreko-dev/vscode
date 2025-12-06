@@ -31,9 +31,7 @@ export class RepoProtectionScanner {
 	/**
 	 * Scan the entire repository and recommend protection levels for files
 	 */
-	async scanRepository(
-		useDeepAnalysis: boolean = false,
-	): Promise<FileProtectionRecommendation[]> {
+	async scanRepository(useDeepAnalysis = false): Promise<FileProtectionRecommendation[]> {
 		const recommendations: FileProtectionRecommendation[] = [];
 
 		// Get all files in the workspace
@@ -41,10 +39,7 @@ export class RepoProtectionScanner {
 
 		// Categorize files and recommend protection levels
 		for (const file of files) {
-			const recommendation = this.getProtectionRecommendation(
-				file,
-				useDeepAnalysis,
-			);
+			const recommendation = this.getProtectionRecommendation(file, useDeepAnalysis);
 			if (recommendation) {
 				recommendations.push(recommendation);
 			}
@@ -56,16 +51,12 @@ export class RepoProtectionScanner {
 	/**
 	 * Apply recommended protection levels to files
 	 */
-	async applyRecommendations(
-		recommendations: FileProtectionRecommendation[],
-	): Promise<void> {
+	async applyRecommendations(recommendations: FileProtectionRecommendation[]): Promise<void> {
 		let protectedCount = 0;
 		for (const recommendation of recommendations) {
 			try {
 				// Check if file is already protected
-				const isProtected = this.protectedFileRegistry.isProtected(
-					recommendation.filePath,
-				);
+				const isProtected = this.protectedFileRegistry.isProtected(recommendation.filePath);
 				if (!isProtected) {
 					// Protect the file with the recommended level
 					await this.protectedFileRegistry.add(recommendation.filePath, {
@@ -74,9 +65,7 @@ export class RepoProtectionScanner {
 					protectedCount++;
 				} else {
 					// Update protection level if different
-					const currentLevel = this.protectedFileRegistry.getProtectionLevel(
-						recommendation.filePath,
-					);
+					const currentLevel = this.protectedFileRegistry.getProtectionLevel(recommendation.filePath);
 					if (currentLevel !== recommendation.recommendedLevel) {
 						await this.protectedFileRegistry.updateProtectionLevel(
 							recommendation.filePath,
@@ -86,24 +75,17 @@ export class RepoProtectionScanner {
 					}
 				}
 			} catch (error) {
-				logger.error(
-					`Failed to protect file ${recommendation.filePath}:`,
-					toError(error),
-				);
+				logger.error(`Failed to protect file ${recommendation.filePath}:`, toError(error));
 			}
 		}
 
-		vscode.window.showInformationMessage(
-			`Applied protection to ${protectedCount} files`,
-		);
+		vscode.window.showInformationMessage(`Applied protection to ${protectedCount} files`);
 	}
 
 	/**
 	 * Show a quick pick interface for users to review and apply recommendations
 	 */
-	async showRecommendationsQuickPick(
-		recommendations: FileProtectionRecommendation[],
-	): Promise<void> {
+	async showRecommendationsQuickPick(recommendations: FileProtectionRecommendation[]): Promise<void> {
 		// Group recommendations by category
 		const categories: Record<string, FileProtectionRecommendation[]> = {};
 		for (const rec of recommendations) {
@@ -138,9 +120,7 @@ export class RepoProtectionScanner {
 			// Add items in this category
 			for (const rec of recs) {
 				items.push({
-					label: `${this.getProtectionIcon(
-						rec.recommendedLevel,
-					)} ${path.basename(rec.filePath)}`,
+					label: `${this.getProtectionIcon(rec.recommendedLevel)} ${path.basename(rec.filePath)}`,
 					description: this.getRelativePath(rec.filePath),
 					detail: `${rec.reason} - ${rec.recommendedLevel}`,
 					recommendation: rec,
@@ -159,9 +139,7 @@ export class RepoProtectionScanner {
 
 		if (selectedItems && selectedItems.length > 0) {
 			// Check if "Select All" was chosen
-			const selectAllItem = selectedItems.find(
-				(item) => item.category === "selectAll",
-			);
+			const selectAllItem = selectedItems.find((item) => item.category === "selectAll");
 
 			if (selectAllItem) {
 				// Apply all recommendations
@@ -175,9 +153,7 @@ export class RepoProtectionScanner {
 				if (selectedRecommendations.length > 0) {
 					await this.applyRecommendations(selectedRecommendations);
 				} else {
-					vscode.window.showInformationMessage(
-						"No files selected for protection",
-					);
+					vscode.window.showInformationMessage("No files selected for protection");
 				}
 			}
 		} else {
@@ -255,7 +231,7 @@ export class RepoProtectionScanner {
 
 	private getProtectionRecommendation(
 		filePath: string,
-		useDeepAnalysis: boolean = false,
+		useDeepAnalysis = false,
 	): FileProtectionRecommendation | null {
 		const fileName = path.basename(filePath).toLowerCase();
 		const relativePath = this.getRelativePath(filePath).toLowerCase();
@@ -479,10 +455,7 @@ export class RepoProtectionScanner {
 				windowsPathsNoEscape: true,
 			});
 		} catch (error) {
-			logger.warn(
-				`Failed to match pattern "${pattern}"`,
-				error instanceof Error ? error.message : error,
-			);
+			logger.warn(`Failed to match pattern "${pattern}"`, error instanceof Error ? error.message : error);
 			return false;
 		}
 	}

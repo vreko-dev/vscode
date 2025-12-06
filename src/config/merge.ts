@@ -27,8 +27,7 @@ function getCachedPattern(pattern: string): (filePath: string) => boolean {
 		return cached;
 	}
 
-	const matcher = (filePath: string) =>
-		minimatch(filePath, pattern, { dot: true });
+	const matcher = (filePath: string) => minimatch(filePath, pattern, { dot: true });
 
 	// Maintain cache size limit
 	if (patternCache.size >= MAX_PATTERN_CACHE_SIZE) {
@@ -127,10 +126,7 @@ export function mergeConfigs(...configs: SnapBackRC[]): SnapBackRC {
 /**
  * Merge settings with more restrictive wins
  */
-function mergeSettings(
-	base: Record<string, unknown>,
-	override: Record<string, unknown>,
-): Record<string, unknown> {
+function mergeSettings(base: Record<string, unknown>, override: Record<string, unknown>): Record<string, unknown> {
 	const result = { ...base };
 
 	for (const [key, value] of Object.entries(override)) {
@@ -144,11 +140,7 @@ function mergeSettings(
 			if (overridePriority > basePriority) {
 				result[key] = value;
 			}
-		} else if (
-			key === "maxSnapshots" &&
-			typeof base[key] === "number" &&
-			typeof value === "number"
-		) {
+		} else if (key === "maxSnapshots" && typeof base[key] === "number" && typeof value === "number") {
 			// For numbers, lower values are more restrictive
 			result[key] = Math.min(base[key] as number, value);
 		} else if (typeof value === "boolean" && typeof base[key] === "boolean") {
@@ -166,10 +158,7 @@ function mergeSettings(
 /**
  * Merge policies with more restrictive wins
  */
-function mergePolicies(
-	base: Record<string, unknown>,
-	override: Record<string, unknown>,
-): Record<string, unknown> {
+function mergePolicies(base: Record<string, unknown>, override: Record<string, unknown>): Record<string, unknown> {
 	const result = { ...base };
 
 	for (const [key, value] of Object.entries(override)) {
@@ -206,10 +195,7 @@ function mergePolicies(
  * @param filePath File path to check
  * @returns The highest protection level that matches the file, or null if ignored
  */
-export function getProtectionLevelForFile(
-	config: SnapBackRC,
-	filePath: string,
-): string | null {
+export function getProtectionLevelForFile(config: SnapBackRC, filePath: string): string | null {
 	if (!config.protection || config.protection.length === 0) {
 		return null;
 	}

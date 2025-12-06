@@ -7,11 +7,7 @@
  * Now uses SDK's ExperienceClassifier for consistent experience classification.
  */
 
-import {
-	ExperienceClassifier,
-	type ExperienceTier,
-	type IKeyValueStorage,
-} from "@snapback/sdk";
+import { ExperienceClassifier, type ExperienceTier, type IKeyValueStorage } from "@snapback/sdk";
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";
 
@@ -130,11 +126,7 @@ export class UserExperienceService {
 	 * Check if a feature should be shown based on experience level
 	 */
 	async shouldShowFeature(requiredLevel: ExperienceLevel): Promise<boolean> {
-		const levelOrder = [
-			ExperienceLevel.BEGINNER,
-			ExperienceLevel.INTERMEDIATE,
-			ExperienceLevel.ADVANCED,
-		];
+		const levelOrder = [ExperienceLevel.BEGINNER, ExperienceLevel.INTERMEDIATE, ExperienceLevel.ADVANCED];
 
 		const currentLevel = await this.getExperienceLevel();
 		const currentIndex = levelOrder.indexOf(currentLevel);
@@ -147,12 +139,7 @@ export class UserExperienceService {
 	 * Track user action and update experience level
 	 */
 	async trackAction(
-		action:
-			| "snapshotCreated"
-			| "snapshotRestored"
-			| "protectionChanged"
-			| "sessionFinalized"
-			| "commandExecuted",
+		action: "snapshotCreated" | "snapshotRestored" | "protectionChanged" | "sessionFinalized" | "commandExecuted",
 	): Promise<void> {
 		const previousLevel = await this.getExperienceLevel();
 
@@ -207,11 +194,7 @@ export class UserExperienceService {
 		await this.classifier.setExperienceTier(tier);
 
 		// Update context for when clauses
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.experienceLevel",
-			level,
-		);
+		await vscode.commands.executeCommand("setContext", "snapback.experienceLevel", level);
 
 		if (previousLevel !== level) {
 			await this.onLevelChanged(previousLevel, level);
@@ -227,18 +210,13 @@ export class UserExperienceService {
 		}
 
 		const hints: Record<string, string> = {
-			firstSnapshot:
-				"💡 Tip: SnapBack automatically creates snapshots when you save protected files",
+			firstSnapshot: "💡 Tip: SnapBack automatically creates snapshots when you save protected files",
 			firstProtection:
 				"💡 Tip: Use 🟢 Watch for silent snapshots, 🟡 Warn for confirmations, 🔴 Block for required notes",
-			firstRestore:
-				"💡 Tip: You can compare snapshots side-by-side before restoring",
-			firstSession:
-				"💡 Tip: Sessions group related changes together for atomic rollback",
-			commandPalette:
-				"💡 Tip: Press Ctrl+Shift+P (Cmd+Shift+P on Mac) to see all SnapBack commands",
-			treeView:
-				"💡 Tip: Click the SnapBack icon in the activity bar to see all your snapshots",
+			firstRestore: "💡 Tip: You can compare snapshots side-by-side before restoring",
+			firstSession: "💡 Tip: Sessions group related changes together for atomic rollback",
+			commandPalette: "💡 Tip: Press Ctrl+Shift+P (Cmd+Shift+P on Mac) to see all SnapBack commands",
+			treeView: "💡 Tip: Click the SnapBack icon in the activity bar to see all your snapshots",
 		};
 
 		return hints[context];
@@ -274,37 +252,27 @@ export class UserExperienceService {
 	/**
 	 * Handle experience level change
 	 */
-	private async onLevelChanged(
-		previousLevel: ExperienceLevel,
-		newLevel: ExperienceLevel,
-	): Promise<void> {
+	private async onLevelChanged(previousLevel: ExperienceLevel, newLevel: ExperienceLevel): Promise<void> {
 		logger.info("User experience level changed", { previousLevel, newLevel });
 
 		// Update VSCode context for when clauses
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.experienceLevel",
-			newLevel,
-		);
+		await vscode.commands.executeCommand("setContext", "snapback.experienceLevel", newLevel);
 
 		// Show congratulations message
 		const messages: Record<ExperienceLevel, string> = {
 			[ExperienceLevel.BEGINNER]: "", // No message for beginner
 			[ExperienceLevel.INTERMEDIATE]:
 				"🎉 You're now an intermediate SnapBack user! More features are now available.",
-			[ExperienceLevel.ADVANCED]:
-				"🚀 You're now a SnapBack power user! All advanced features are unlocked.",
+			[ExperienceLevel.ADVANCED]: "🚀 You're now a SnapBack power user! All advanced features are unlocked.",
 		};
 
 		const message = messages[newLevel];
 		if (message) {
-			vscode.window
-				.showInformationMessage(message, "Learn More")
-				.then((choice) => {
-					if (choice === "Learn More") {
-						vscode.commands.executeCommand("snapback.openWalkthrough");
-					}
-				});
+			vscode.window.showInformationMessage(message, "Learn More").then((choice) => {
+				if (choice === "Learn More") {
+					vscode.commands.executeCommand("snapback.openWalkthrough");
+				}
+			});
 		}
 	}
 
@@ -332,11 +300,7 @@ export class UserExperienceService {
 		await storage.set("firstUseTimestamp", Date.now());
 
 		// Update VSCode context
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.experienceLevel",
-			ExperienceLevel.BEGINNER,
-		);
+		await vscode.commands.executeCommand("setContext", "snapback.experienceLevel", ExperienceLevel.BEGINNER);
 
 		logger.info("User experience reset to beginner");
 	}

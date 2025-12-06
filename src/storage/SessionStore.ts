@@ -1,17 +1,8 @@
 // apps/vscode/src/storage/SessionStore.ts
 
 import * as vscode from "vscode";
-import type {
-	SessionFileEntry,
-	SessionFilters,
-	SessionManifest,
-} from "./types";
-import {
-	ensureDirectory,
-	fileExists,
-	readJsonFile,
-	writeJsonFile,
-} from "./utils/atomicWrite";
+import type { SessionFileEntry, SessionFilters, SessionManifest } from "./types";
+import { ensureDirectory, fileExists, readJsonFile, writeJsonFile } from "./utils/atomicWrite";
 import { generateSessionId, parseTimestampFromId } from "./utils/fileId";
 
 /**
@@ -47,10 +38,7 @@ export class SessionStore {
 		});
 		if (this.activeSessionId) {
 			// Return existing active session
-			console.log(
-				"[SessionStore] Returning existing active session:",
-				this.activeSessionId,
-			);
+			console.log("[SessionStore] Returning existing active session:", this.activeSessionId);
 			return this.activeSessionId;
 		}
 
@@ -114,10 +102,7 @@ export class SessionStore {
 		};
 
 		// Write manifest
-		const manifestUri = vscode.Uri.joinPath(
-			this.sessionsUri,
-			`${this.activeSessionId}.json`,
-		);
+		const manifestUri = vscode.Uri.joinPath(this.sessionsUri, `${this.activeSessionId}.json`);
 		console.log("[SessionStore] Writing manifest to:", manifestUri.fsPath);
 		await writeJsonFile(manifestUri, manifest);
 
@@ -164,10 +149,7 @@ export class SessionStore {
 
 		// Sort by timestamp from ID
 		const jsonFiles = entries
-			.filter(
-				([name, type]) =>
-					type === vscode.FileType.File && name.endsWith(".json"),
-			)
+			.filter(([name, type]) => type === vscode.FileType.File && name.endsWith(".json"))
 			.map(([name]) => name.replace(".json", ""))
 			.sort((a, b) => {
 				const tsA = parseTimestampFromId(a) ?? 0;
@@ -222,10 +204,7 @@ export class SessionStore {
 	async count(): Promise<number> {
 		try {
 			const entries = await vscode.workspace.fs.readDirectory(this.sessionsUri);
-			return entries.filter(
-				([name, type]) =>
-					type === vscode.FileType.File && name.endsWith(".json"),
-			).length;
+			return entries.filter(([name, type]) => type === vscode.FileType.File && name.endsWith(".json")).length;
 		} catch {
 			return 0;
 		}

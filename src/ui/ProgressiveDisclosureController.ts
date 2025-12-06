@@ -6,10 +6,7 @@
  */
 
 import * as vscode from "vscode";
-import {
-	ExperienceLevel,
-	type UserExperienceService,
-} from "../services/UserExperienceService";
+import { ExperienceLevel, type UserExperienceService } from "../services/UserExperienceService";
 import { logger } from "../utils/logger";
 
 /**
@@ -46,11 +43,7 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 	private async initializeController(): Promise<void> {
 		// Set initial context for when clauses
 		const level = this.userExperienceService.getExperienceLevel();
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.experienceLevel",
-			level,
-		);
+		await vscode.commands.executeCommand("setContext", "snapback.experienceLevel", level);
 		await vscode.commands.executeCommand(
 			"setContext",
 			"snapback.showAdvancedFeatures",
@@ -67,12 +60,9 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 
 		// Register command to toggle advanced mode
 		this.disposables.push(
-			vscode.commands.registerCommand(
-				"snapback.toggleAdvancedMode",
-				async () => {
-					await this.toggleAdvancedMode();
-				},
-			),
+			vscode.commands.registerCommand("snapback.toggleAdvancedMode", async () => {
+				await this.toggleAdvancedMode();
+			}),
 		);
 
 		// Register command to show all features
@@ -84,12 +74,9 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 
 		// Register command to reset experience level
 		this.disposables.push(
-			vscode.commands.registerCommand(
-				"snapback.resetExperienceLevel",
-				async () => {
-					await this.resetExperienceLevel();
-				},
-			),
+			vscode.commands.registerCommand("snapback.resetExperienceLevel", async () => {
+				await this.resetExperienceLevel();
+			}),
 		);
 
 		logger.info("Progressive disclosure controller initialized", { level });
@@ -105,8 +92,7 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 			return;
 		}
 
-		const hintValue =
-			await this.userExperienceService.getContextualHint(context);
+		const hintValue = await this.userExperienceService.getContextualHint(context);
 		if (!hintValue) {
 			return;
 		}
@@ -121,20 +107,12 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 		this.lastHintTime = now;
 
 		// Show hint as information message with action
-		const action = await vscode.window.showInformationMessage(
-			hintValue,
-			"Got it",
-			"Don't show hints",
-		);
+		const action = await vscode.window.showInformationMessage(hintValue, "Got it", "Don't show hints");
 
 		if (action === "Don't show hints") {
 			// Upgrade user to intermediate level to disable hints
-			await this.userExperienceService.setExperienceLevel(
-				ExperienceLevel.INTERMEDIATE,
-			);
-			vscode.window.showInformationMessage(
-				"Hints disabled. You can re-enable them in settings.",
-			);
+			await this.userExperienceService.setExperienceLevel(ExperienceLevel.INTERMEDIATE);
+			vscode.window.showInformationMessage("Hints disabled. You can re-enable them in settings.");
 		}
 
 		logger.debug("Contextual hint shown", { context, hint: hintValue });
@@ -144,17 +122,12 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 	 * Show recommended next action
 	 */
 	async showRecommendedAction(): Promise<void> {
-		const recommendationValue =
-			await this.userExperienceService.getRecommendedAction();
+		const recommendationValue = await this.userExperienceService.getRecommendedAction();
 		if (!recommendationValue) {
 			return;
 		}
 
-		const action = await vscode.window.showInformationMessage(
-			recommendationValue,
-			"Show me how",
-			"Dismiss",
-		);
+		const action = await vscode.window.showInformationMessage(recommendationValue, "Show me how", "Dismiss");
 
 		if (action === "Show me how") {
 			// Open walkthrough
@@ -316,10 +289,7 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 	 * Create status bar item for beginners
 	 */
 	private createStatusBarItem(): void {
-		this.statusBarItem = vscode.window.createStatusBarItem(
-			vscode.StatusBarAlignment.Right,
-			100,
-		);
+		this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 
 		this.statusBarItem.text = "$(lightbulb) SnapBack Tips";
 		this.statusBarItem.tooltip = "Click for helpful SnapBack tips";
@@ -344,10 +314,7 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 	}
 
 	private async hasShownWelcome(): Promise<boolean> {
-		return this.context.globalState.get<boolean>(
-			"snapback.progressiveDisclosure.welcomeShown",
-			false,
-		);
+		return this.context.globalState.get<boolean>("snapback.progressiveDisclosure.welcomeShown", false);
 	}
 
 	private async showWelcomeMessage(): Promise<void> {
@@ -361,9 +328,7 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 			vscode.commands.executeCommand("snapback.openWalkthrough");
 		} else if (choice === "I'm Experienced") {
 			// Upgrade to intermediate
-			await this.userExperienceService.setExperienceLevel(
-				ExperienceLevel.INTERMEDIATE,
-			);
+			await this.userExperienceService.setExperienceLevel(ExperienceLevel.INTERMEDIATE);
 			vscode.window.showInformationMessage(
 				"Great! All intermediate features are now available. You can always access advanced features from settings.",
 			);
@@ -373,10 +338,7 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 	}
 
 	private async setHasShownWelcome(value: boolean): Promise<void> {
-		await this.context.globalState.update(
-			"snapback.progressiveDisclosure.welcomeShown",
-			value,
-		);
+		await this.context.globalState.update("snapback.progressiveDisclosure.welcomeShown", value);
 	}
 
 	/**
@@ -386,20 +348,12 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 		const currentLevel = await this.userExperienceService.getExperienceLevel();
 		if (currentLevel === ExperienceLevel.ADVANCED) {
 			// Downgrade to intermediate
-			await this.userExperienceService.setExperienceLevel(
-				ExperienceLevel.INTERMEDIATE,
-			);
-			vscode.window.showInformationMessage(
-				"Switched to standard mode. Some advanced features are now hidden.",
-			);
+			await this.userExperienceService.setExperienceLevel(ExperienceLevel.INTERMEDIATE);
+			vscode.window.showInformationMessage("Switched to standard mode. Some advanced features are now hidden.");
 		} else {
 			// Upgrade to advanced
-			await this.userExperienceService.setExperienceLevel(
-				ExperienceLevel.ADVANCED,
-			);
-			vscode.window.showInformationMessage(
-				"Switched to advanced mode. All features are now available.",
-			);
+			await this.userExperienceService.setExperienceLevel(ExperienceLevel.ADVANCED);
+			vscode.window.showInformationMessage("Switched to advanced mode. All features are now available.");
 		}
 
 		// Update context
@@ -418,14 +372,8 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 	 * Show all features (upgrade to advanced)
 	 */
 	private async showAllFeatures(): Promise<void> {
-		await this.userExperienceService.setExperienceLevel(
-			ExperienceLevel.ADVANCED,
-		);
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.showAdvancedFeatures",
-			true,
-		);
+		await this.userExperienceService.setExperienceLevel(ExperienceLevel.ADVANCED);
+		await vscode.commands.executeCommand("setContext", "snapback.showAdvancedFeatures", true);
 		vscode.window.showInformationMessage(
 			"All features are now visible. You can hide advanced features from settings.",
 		);
@@ -445,9 +393,7 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 
 		if (confirmed === "Reset") {
 			await this.userExperienceService.resetExperience();
-			vscode.window.showInformationMessage(
-				"Experience level reset. Restart VSCode to see changes.",
-			);
+			vscode.window.showInformationMessage("Experience level reset. Restart VSCode to see changes.");
 
 			logger.info("Experience level reset by user");
 		}

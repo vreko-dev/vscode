@@ -30,10 +30,7 @@ export interface ProtectionLevelMetadata extends CanonicalMetadata {
  * Protection level configurations with VSCode-specific metadata
  * This maps canonical levels to VSCode UI requirements
  */
-export const PROTECTION_LEVELS: Record<
-	ProtectionLevel,
-	ProtectionLevelMetadata
-> = {
+export const PROTECTION_LEVELS: Record<ProtectionLevel, ProtectionLevelMetadata> = {
 	watch: {
 		...CANONICAL_PROTECTION_LEVELS.watch,
 		themeColor: CANONICAL_PROTECTION_LEVELS.watch.themeColor || "charts.green",

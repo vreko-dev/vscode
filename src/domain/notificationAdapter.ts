@@ -94,10 +94,7 @@ export class NotificationAdapter {
 	/**
 	 * Map action to severity
 	 */
-	private actionToSeverity(
-		action: ProtectionAction,
-		confidence: number,
-	): NotificationSeverity {
+	private actionToSeverity(action: ProtectionAction, confidence: number): NotificationSeverity {
 		switch (action) {
 			case "BLOCK":
 				return "critical";
@@ -125,10 +122,7 @@ export class NotificationAdapter {
 	/**
 	 * Format notification message
 	 */
-	private formatMessage(
-		action: ProtectionAction,
-		decision: ProtectionDecision,
-	): string {
+	private formatMessage(action: ProtectionAction, decision: ProtectionDecision): string {
 		const confidence = `${Math.round(decision.confidence * 100)}%`;
 
 		switch (action) {
@@ -173,10 +167,7 @@ export class NotificationAdapter {
 	/**
 	 * Determine if notification should auto-dismiss
 	 */
-	private shouldAutoDismiss(
-		action: ProtectionAction,
-		confidence: number,
-	): boolean {
+	private shouldAutoDismiss(action: ProtectionAction, confidence: number): boolean {
 		return action === "ALLOW" && confidence > 0.9;
 	}
 
@@ -230,9 +221,7 @@ export class NotificationAdapter {
 
 		return Array.from(this.notifications.values())
 			.filter((n) => n.state === "pending")
-			.sort(
-				(a, b) => severityPriority[a.severity] - severityPriority[b.severity],
-			);
+			.sort((a, b) => severityPriority[a.severity] - severityPriority[b.severity]);
 	}
 
 	/**

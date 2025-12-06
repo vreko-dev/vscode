@@ -15,14 +15,7 @@ import { COMMANDS } from "../constants/commands";
 import { SNAPBACK_ICONS } from "../constants/icons";
 import type { IStorageManager, SnapshotManifest } from "../storage/types";
 import { TimeGroupingStrategy } from "./grouping/TimeGroupingStrategy";
-import type {
-	GroupingMode,
-	ProblemItem,
-	QuickAction,
-	SnapshotDisplayItem,
-	TimeGroup,
-	TreeViewConfig,
-} from "./types";
+import type { GroupingMode, ProblemItem, QuickAction, SnapshotDisplayItem, TimeGroup, TreeViewConfig } from "./types";
 import { DEFAULT_TREE_CONFIG } from "./types";
 
 // ============================================
@@ -76,12 +69,8 @@ class SnapBackTreeItem extends vscode.TreeItem {
 // PROVIDER
 // ============================================
 
-export class SnapBackTreeProvider
-	implements vscode.TreeDataProvider<SnapBackTreeItem>
-{
-	private _onDidChangeTreeData = new vscode.EventEmitter<
-		SnapBackTreeItem | undefined
-	>();
+export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTreeItem> {
+	private _onDidChangeTreeData = new vscode.EventEmitter<SnapBackTreeItem | undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
 	private problems: ProblemItem[] = [];
@@ -125,9 +114,7 @@ export class SnapBackTreeProvider
 	 */
 	setGroupingMode(mode: GroupingMode): void {
 		if (mode !== "time") {
-			vscode.window.showInformationMessage(
-				`${mode} grouping coming soon! Using time grouping for now.`,
-			);
+			vscode.window.showInformationMessage(`${mode} grouping coming soon! Using time grouping for now.`);
 			return;
 		}
 		this.config.groupBy = mode;
@@ -159,9 +146,7 @@ export class SnapBackTreeProvider
 			case "header":
 				return this.getProtectionBreakdown();
 			case "time-group":
-				return this.getSnapshotsForTimeGroup(
-					element.data.groupKey as TimeGroup,
-				);
+				return this.getSnapshotsForTimeGroup(element.data.groupKey as TimeGroup);
 			case "actions-header":
 				return this.getActionItems();
 			case "problems-header":
@@ -227,19 +212,13 @@ export class SnapBackTreeProvider
 
 			// Only show non-zero counts (hide empty states)
 			if (counts.block > 0) {
-				items.push(
-					this.createDetailItem("Block", counts.block, SNAPBACK_ICONS.BLOCK),
-				);
+				items.push(this.createDetailItem("Block", counts.block, SNAPBACK_ICONS.BLOCK));
 			}
 			if (counts.warn > 0) {
-				items.push(
-					this.createDetailItem("Warn", counts.warn, SNAPBACK_ICONS.WARN),
-				);
+				items.push(this.createDetailItem("Warn", counts.warn, SNAPBACK_ICONS.WARN));
 			}
 			if (counts.watch > 0) {
-				items.push(
-					this.createDetailItem("Watch", counts.watch, SNAPBACK_ICONS.WATCH),
-				);
+				items.push(this.createDetailItem("Watch", counts.watch, SNAPBACK_ICONS.WATCH));
 			}
 
 			return items;
@@ -249,11 +228,7 @@ export class SnapBackTreeProvider
 		}
 	}
 
-	private createDetailItem(
-		level: string,
-		count: number,
-		icon: string,
-	): SnapBackTreeItem {
+	private createDetailItem(level: string, count: number, icon: string): SnapBackTreeItem {
 		const item = new SnapBackTreeItem(
 			`${icon} ${level}: ${count}`,
 			{ type: "header-detail", count },
@@ -346,9 +321,7 @@ export class SnapBackTreeProvider
 		return items;
 	}
 
-	private async getSnapshotsForTimeGroup(
-		groupKey: TimeGroup,
-	): Promise<SnapBackTreeItem[]> {
+	private async getSnapshotsForTimeGroup(groupKey: TimeGroup): Promise<SnapBackTreeItem[]> {
 		const strategy = new TimeGroupingStrategy();
 		const grouped = strategy.group(this.cachedSnapshots);
 
@@ -360,13 +333,9 @@ export class SnapBackTreeProvider
 	// SNAPSHOT ITEMS
 	// ============================================
 
-	private createSnapshotItems(
-		snapshots: SnapshotDisplayItem[],
-	): SnapBackTreeItem[] {
+	private createSnapshotItems(snapshots: SnapshotDisplayItem[]): SnapBackTreeItem[] {
 		const maxVisible = this.config.maxPerGroup;
-		const items = snapshots
-			.slice(0, maxVisible)
-			.map((snap) => this.createSnapshotItem(snap));
+		const items = snapshots.slice(0, maxVisible).map((snap) => this.createSnapshotItem(snap));
 
 		if (snapshots.length > maxVisible) {
 			items.push(this.createMoreItem(snapshots.length - maxVisible));
@@ -415,11 +384,7 @@ export class SnapBackTreeProvider
 	}
 
 	private getSnapshotTooltip(snapshot: SnapshotDisplayItem): string {
-		const lines = [
-			snapshot.name,
-			`Files: ${snapshot.fileCount}`,
-			`Trigger: ${snapshot.trigger}`,
-		];
+		const lines = [snapshot.name, `Files: ${snapshot.fileCount}`, `Trigger: ${snapshot.trigger}`];
 		if (snapshot.aiTool) {
 			lines.push(`AI Tool: ${snapshot.aiTool}`);
 		}
@@ -514,10 +479,7 @@ export class SnapBackTreeProvider
 
 	private getProblemItems(): SnapBackTreeItem[] {
 		return this.problems.map((problem) => {
-			const icon =
-				problem.severity === "error"
-					? SNAPBACK_ICONS.ERROR
-					: SNAPBACK_ICONS.WARNING;
+			const icon = problem.severity === "error" ? SNAPBACK_ICONS.ERROR : SNAPBACK_ICONS.WARNING;
 			const item = new SnapBackTreeItem(
 				`${icon} ${problem.title}`,
 				{ type: "problem", id: problem.id },

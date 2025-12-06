@@ -1,17 +1,11 @@
-import type {
-	SnapshotDisplayItem,
-	TimeGroup,
-	TimeGroupedSnapshots,
-} from "../types";
+import type { SnapshotDisplayItem, TimeGroup, TimeGroupedSnapshots } from "../types";
 import type { GroupingStrategy } from "./types";
 
 /**
  * Groups snapshots by time (Today, Yesterday, This Week, Older)
  * This is the DEFAULT and ONLY implemented strategy for now.
  */
-export class TimeGroupingStrategy
-	implements GroupingStrategy<TimeGroupedSnapshots>
-{
+export class TimeGroupingStrategy implements GroupingStrategy<TimeGroupedSnapshots> {
 	readonly mode = "time" as const;
 
 	group(snapshots: SnapshotDisplayItem[]): TimeGroupedSnapshots {

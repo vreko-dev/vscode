@@ -171,11 +171,8 @@ export class SignalAggregator {
 		const aiRisk = signals.ai.detected && signals.ai.confidence >= 0.7;
 		const scoreRisk = signals.risk.score >= 60;
 		const burstRisk =
-			signals.burst.detected &&
-			signals.burst.fileCount !== undefined &&
-			signals.burst.fileCount >= 3;
-		const criticalRisk =
-			signals.critical.detected && signals.critical.count > 0;
+			signals.burst.detected && signals.burst.fileCount !== undefined && signals.burst.fileCount >= 3;
+		const criticalRisk = signals.critical.detected && signals.critical.count > 0;
 
 		return aiRisk || scoreRisk || (burstRisk && criticalRisk);
 	}
@@ -194,11 +191,7 @@ export class SignalAggregator {
 		if (signals.risk.score >= 60) {
 			strength += 1;
 		}
-		if (
-			signals.burst.detected &&
-			signals.burst.fileCount !== undefined &&
-			signals.burst.fileCount >= 3
-		) {
+		if (signals.burst.detected && signals.burst.fileCount !== undefined && signals.burst.fileCount >= 3) {
 			strength += 1;
 		}
 		if (signals.critical.detected && signals.critical.count > 0) {

@@ -41,9 +41,7 @@ export function detectAIPresence(): AIPresenceInfo {
  * @param assistantName Name of the AI assistant to check
  * @returns True if the assistant is installed
  */
-export function isAIAssistantInstalled(
-	assistantName: AIAssistantName,
-): boolean {
+export function isAIAssistantInstalled(assistantName: AIAssistantName): boolean {
 	return vscodeDetector.isAIAssistantInstalled(assistantName);
 }
 

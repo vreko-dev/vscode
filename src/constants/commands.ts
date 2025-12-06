@@ -86,9 +86,7 @@ export const COMMANDS = {
 } as const;
 
 // Flat list for registration and iteration
-export const ALL_COMMANDS = Object.values(COMMANDS).flatMap((category) =>
-	Object.values(category),
-);
+export const ALL_COMMANDS = Object.values(COMMANDS).flatMap((category) => Object.values(category));
 
 // Type helper for type-safe command IDs
 export type CommandId = (typeof ALL_COMMANDS)[number];

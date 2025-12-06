@@ -64,9 +64,7 @@ class VscodeStorageAdapter implements ISessionStorage {
 		// in SessionStore when SDK is ready to finalize its session.
 		const activeSessionId = this.storage.getActiveSessionId();
 		if (!activeSessionId) {
-			console.log(
-				"[VscodeStorageAdapter] No active SessionStore session, starting one",
-			);
+			console.log("[VscodeStorageAdapter] No active SessionStore session, starting one");
 			await this.storage.createSession(manifest.startedAt);
 		}
 
@@ -75,28 +73,19 @@ class VscodeStorageAdapter implements ISessionStorage {
 			reason,
 			filesCount: files.length,
 		});
-		await this.storage.finalizeSession(
-			manifest.id,
-			manifest.endedAt,
-			reason,
-			files,
-		);
+		await this.storage.finalizeSession(manifest.id, manifest.endedAt, reason, files);
 		console.log("[VscodeStorageAdapter] storage.finalizeSession() completed");
 	}
 
 	async listSessionManifests(): Promise<SessionManifest[]> {
 		// Map to new StorageManager API
 		const result = await this.storage.listSessions();
-		return (Array.isArray(result)
-			? result
-			: []) as unknown as SessionManifest[];
+		return (Array.isArray(result) ? result : []) as unknown as SessionManifest[];
 	}
 
 	async getSessionManifest(sessionId: string): Promise<SessionManifest | null> {
 		// Map to new StorageManager API
-		return (await this.storage.getSession(
-			sessionId,
-		)) as unknown as SessionManifest | null;
+		return (await this.storage.getSession(sessionId)) as unknown as SessionManifest | null;
 	}
 }
 
@@ -144,20 +133,14 @@ export class SessionCoordinator {
 	 * @param snapshotId - ID of the snapshot for this file
 	 * @param stats - Optional change statistics
 	 */
-	addCandidate(
-		uri: string,
-		snapshotId: string,
-		stats?: { added: number; deleted: number },
-	): void {
+	addCandidate(uri: string, snapshotId: string, stats?: { added: number; deleted: number }): void {
 		console.log("[SessionCoordinator] addCandidate() called", {
 			uri,
 			snapshotId,
 			stats,
 		});
 		const perfMonitor = getSessionPerfMonitor();
-		const operationId = perfMonitor?.startOperation(
-			"sessionCoordinator.addCandidate",
-		);
+		const operationId = perfMonitor?.startOperation("sessionCoordinator.addCandidate");
 
 		try {
 			this.sdkCoordinator.addCandidate(uri, snapshotId, stats);
@@ -175,14 +158,10 @@ export class SessionCoordinator {
 	 * @param reason - Reason for finalizing the session
 	 * @returns Session ID if finalized, null if skipped
 	 */
-	async finalizeSession(
-		reason: SessionFinalizeReason,
-	): Promise<SessionId | null> {
+	async finalizeSession(reason: SessionFinalizeReason): Promise<SessionId | null> {
 		console.log("[SessionCoordinator] finalizeSession() called", { reason });
 		const perfMonitor = getSessionPerfMonitor();
-		const operationId = perfMonitor?.startOperation(
-			"sessionCoordinator.finalizeSession",
-		);
+		const operationId = perfMonitor?.startOperation("sessionCoordinator.finalizeSession");
 
 		try {
 			const result = await this.sdkCoordinator.finalizeSession(reason);

@@ -30,11 +30,7 @@ export class AuthUriHandler implements vscode.UriHandler {
 	private readonly apiBaseUrl: string;
 	private readonly outputChannel: vscode.OutputChannel;
 
-	constructor(
-		credentialsManager: CredentialsManager,
-		apiBaseUrl: string,
-		outputChannel: vscode.OutputChannel,
-	) {
+	constructor(credentialsManager: CredentialsManager, apiBaseUrl: string, outputChannel: vscode.OutputChannel) {
 		this.credentialsManager = credentialsManager;
 		this.apiBaseUrl = apiBaseUrl;
 		this.outputChannel = outputChannel;
@@ -57,9 +53,7 @@ export class AuthUriHandler implements vscode.UriHandler {
 		const linkToken = query.get("token");
 
 		if (!linkToken) {
-			vscode.window.showErrorMessage(
-				"SnapBack: Invalid authentication link (missing token)",
-			);
+			vscode.window.showErrorMessage("SnapBack: Invalid authentication link (missing token)");
 			return;
 		}
 
@@ -83,23 +77,20 @@ export class AuthUriHandler implements vscode.UriHandler {
 			const extensionVersion = extension?.packageJSON.version || "unknown";
 
 			// Call exchange endpoint
-			const response = await fetch(
-				`${this.apiBaseUrl}/api/auth/extension/exchange`,
-				{
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						linkToken,
-						client: "vscode",
-						deviceInfo: {
-							extensionVersion,
-							vscodeVersion: vscode.version,
-							platform: process.platform,
-							hostname: os.hostname(),
-						},
-					}),
-				},
-			);
+			const response = await fetch(`${this.apiBaseUrl}/api/auth/extension/exchange`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					linkToken,
+					client: "vscode",
+					deviceInfo: {
+						extensionVersion,
+						vscodeVersion: vscode.version,
+						platform: process.platform,
+						hostname: os.hostname(),
+					},
+				}),
+			});
 
 			if (!response.ok) {
 				const error = (await response.json()) as { message?: string };
@@ -129,25 +120,17 @@ export class AuthUriHandler implements vscode.UriHandler {
 
 			await this.credentialsManager.setCredentials(credentials);
 
-			this.outputChannel.appendLine(
-				`[Auth] Successfully linked to ${data.user.email}`,
-			);
+			this.outputChannel.appendLine(`[Auth] Successfully linked to ${data.user.email}`);
 
 			// Show success message
-			vscode.window.showInformationMessage(
-				`SnapBack: VS Code is now linked to ${data.user.email}`,
-			);
+			vscode.window.showInformationMessage(`SnapBack: VS Code is now linked to ${data.user.email}`);
 
 			// Refresh tree view
 			await vscode.commands.executeCommand("snapback.refreshTree");
 		} catch (error) {
-			this.outputChannel.appendLine(
-				`[Auth] Token exchange failed: ${(error as Error).message}`,
-			);
+			this.outputChannel.appendLine(`[Auth] Token exchange failed: ${(error as Error).message}`);
 
-			vscode.window.showErrorMessage(
-				`SnapBack: Failed to link account - ${(error as Error).message}`,
-			);
+			vscode.window.showErrorMessage(`SnapBack: Failed to link account - ${(error as Error).message}`);
 		}
 	}
 }

@@ -44,66 +44,31 @@ export interface AllSettings {
  * Loads and validates settings from VS Code workspace configuration
  */
 export class SettingsLoader {
-	private onSettingsChangeEmitter =
-		new vscode.EventEmitter<AllSettings>();
-	readonly onSettingsChange =
-		this.onSettingsChangeEmitter.event;
+	private onSettingsChangeEmitter = new vscode.EventEmitter<AllSettings>();
+	readonly onSettingsChange = this.onSettingsChangeEmitter.event;
 
 	constructor(context: vscode.ExtensionContext) {
 		// Listen for configuration changes
-		context.subscriptions.push(
-			vscode.workspace.onDidChangeConfiguration(
-				(e) => this.onConfigurationChanged(e),
-			),
-		);
+		context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((e) => this.onConfigurationChanged(e)));
 	}
 
 	/**
 	 * Load AutoDecisionEngine settings with defaults and validation
 	 */
 	loadAutoDecisionSettings(): AutoDecisionSettings {
-		const config =
-			vscode.workspace.getConfiguration("snapback");
+		const config = vscode.workspace.getConfiguration("snapback");
 
-		const riskThreshold = this.clamp(
-			config.get<number>(
-				"autoDecision.riskThreshold",
-				60,
-			),
-			0,
-			100,
-		);
+		const riskThreshold = this.clamp(config.get<number>("autoDecision.riskThreshold", 60), 0, 100);
 
-		const notifyThreshold = this.clamp(
-			config.get<number>(
-				"autoDecision.notifyThreshold",
-				40,
-			),
-			0,
-			100,
-		);
+		const notifyThreshold = this.clamp(config.get<number>("autoDecision.notifyThreshold", 40), 0, 100);
 
-		const minFilesForBurst = Math.max(
-			1,
-			config.get<number>(
-				"autoDecision.minFilesForBurst",
-				3,
-			),
-		);
+		const minFilesForBurst = Math.max(1, config.get<number>("autoDecision.minFilesForBurst", 3));
 
-		const maxSnapshotsPerMinute = Math.max(
-			1,
-			config.get<number>(
-				"autoDecision.maxSnapshotsPerMinute",
-				4,
-			),
-		);
+		const maxSnapshotsPerMinute = Math.max(1, config.get<number>("autoDecision.maxSnapshotsPerMinute", 4));
 
 		// Validate threshold relationships
 		if (notifyThreshold > riskThreshold) {
-			console.warn(
-				"SnapBack: notifyThreshold > riskThreshold. Using defaults.",
-			);
+			console.warn("SnapBack: notifyThreshold > riskThreshold. Using defaults.");
 			return {
 				riskThreshold: 60,
 				notifyThreshold: 40,
@@ -124,18 +89,11 @@ export class SettingsLoader {
 	 * Load snapshot settings with defaults
 	 */
 	loadSnapshotSettings(): SnapshotSettings {
-		const config =
-			vscode.workspace.getConfiguration("snapback");
+		const config = vscode.workspace.getConfiguration("snapback");
 
 		return {
-			aiDetectionEnabled: config.get<boolean>(
-				"snapshot.aiDetectionEnabled",
-				true,
-			),
-			autoRestoreOnDetection: config.get<boolean>(
-				"snapshot.autoRestoreOnDetection",
-				false,
-			),
+			aiDetectionEnabled: config.get<boolean>("snapshot.aiDetectionEnabled", true),
+			autoRestoreOnDetection: config.get<boolean>("snapshot.autoRestoreOnDetection", false),
 		};
 	}
 
@@ -160,40 +118,35 @@ export class SettingsLoader {
 	 * Get current notifyThreshold value
 	 */
 	getNotifyThreshold(): number {
-		return this.loadAutoDecisionSettings()
-			.notifyThreshold;
+		return this.loadAutoDecisionSettings().notifyThreshold;
 	}
 
 	/**
 	 * Get current minFilesForBurst value
 	 */
 	getMinFilesForBurst(): number {
-		return this.loadAutoDecisionSettings()
-			.minFilesForBurst;
+		return this.loadAutoDecisionSettings().minFilesForBurst;
 	}
 
 	/**
 	 * Get current maxSnapshotsPerMinute value
 	 */
 	getMaxSnapshotsPerMinute(): number {
-		return this.loadAutoDecisionSettings()
-			.maxSnapshotsPerMinute;
+		return this.loadAutoDecisionSettings().maxSnapshotsPerMinute;
 	}
 
 	/**
 	 * Get current aiDetectionEnabled value
 	 */
 	isAiDetectionEnabled(): boolean {
-		return this.loadSnapshotSettings()
-			.aiDetectionEnabled;
+		return this.loadSnapshotSettings().aiDetectionEnabled;
 	}
 
 	/**
 	 * Get current autoRestoreOnDetection value
 	 */
 	isAutoRestoreEnabled(): boolean {
-		return this.loadSnapshotSettings()
-			.autoRestoreOnDetection;
+		return this.loadSnapshotSettings().autoRestoreOnDetection;
 	}
 
 	/**
@@ -202,20 +155,16 @@ export class SettingsLoader {
 	async updateSetting<T>(
 		section: string,
 		value: T,
-		target: vscode.ConfigurationTarget = vscode.ConfigurationTarget
-			.Workspace,
+		target: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Workspace,
 	): Promise<void> {
-		const config =
-			vscode.workspace.getConfiguration("snapback");
+		const config = vscode.workspace.getConfiguration("snapback");
 		await config.update(section, value, target);
 	}
 
 	/**
 	 * Handle configuration change events
 	 */
-	private onConfigurationChanged(
-		e: vscode.ConfigurationChangeEvent,
-	): void {
+	private onConfigurationChanged(e: vscode.ConfigurationChangeEvent): void {
 		// Check if any SnapBack settings changed
 		if (!e.affectsConfiguration("snapback")) {
 			return;
@@ -229,11 +178,7 @@ export class SettingsLoader {
 	/**
 	 * Clamp value between min and max
 	 */
-	private clamp(
-		value: number,
-		min: number,
-		max: number,
-	): number {
+	private clamp(value: number, min: number, max: number): number {
 		return Math.min(Math.max(value, min), max);
 	}
 

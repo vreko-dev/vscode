@@ -113,10 +113,7 @@ export class NoopAIRiskService implements AIRiskService {
  */
 export class RemoteAIRiskService implements AIRiskService {
 	/** Cache with TTL (5 minutes) */
-	private cache = new Map<
-		string,
-		{ assessment: AIRiskAssessment; expiresAt: number }
-	>();
+	private cache = new Map<string, { assessment: AIRiskAssessment; expiresAt: number }>();
 	private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 	constructor(
@@ -236,10 +233,7 @@ export class RemoteAIRiskService implements AIRiskService {
 		return {
 			level,
 			score: typeof riskScore === "number" ? riskScore : 0,
-			confidence:
-				typeof confidence === "number"
-					? Math.min(1, Math.max(0, confidence))
-					: 0.8,
+			confidence: typeof confidence === "number" ? Math.min(1, Math.max(0, confidence)) : 0.8,
 			factors,
 			timestamp: Date.now(),
 		};

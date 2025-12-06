@@ -67,9 +67,7 @@ import { logger } from "../utils/logger";
  *
  * @implements {vscode.TextDocumentContentProvider}
  */
-export class SnapshotDocumentProvider
-	implements vscode.TextDocumentContentProvider
-{
+export class SnapshotDocumentProvider implements vscode.TextDocumentContentProvider {
 	/**
 	 * Event emitter for document change notifications
 	 *
@@ -165,9 +163,7 @@ export class SnapshotDocumentProvider
 
 		if (content === undefined) {
 			// Content not found - log for debugging but don't fail
-			logger.warn(
-				`[SnapshotDocumentProvider] No content found for: ${lookupKey}`,
-			);
+			logger.warn(`[SnapshotDocumentProvider] No content found for: ${lookupKey}`);
 			return ""; // Return empty content for graceful degradation
 		}
 
@@ -208,11 +204,7 @@ export class SnapshotDocumentProvider
 	 * const currentUri = vscode.Uri.file('src/auth.ts');
 	 * await vscode.commands.executeCommand('vscode.diff', snapshotUri, currentUri, 'Diff Title');
 	 */
-	public setSnapshotContent(
-		filePathOrSnapshotId: string,
-		contentOrFilePath: string,
-		optionalContent?: string,
-	): void {
+	public setSnapshotContent(filePathOrSnapshotId: string, contentOrFilePath: string, optionalContent?: string): void {
 		// Determine if this is a 2-param or 3-param call
 		const isMultiSnapshot = optionalContent !== undefined;
 

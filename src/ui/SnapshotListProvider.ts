@@ -7,10 +7,7 @@
  */
 
 import * as vscode from "vscode";
-import type {
-	PersistedSnapshot,
-	SnapshotOrchestrator,
-} from "../domain/snapshotOrchestrator";
+import type { PersistedSnapshot, SnapshotOrchestrator } from "../domain/snapshotOrchestrator";
 import { logger } from "../utils/logger";
 
 /**
@@ -19,8 +16,7 @@ import { logger } from "../utils/logger";
 class SnapshotTreeItem extends vscode.TreeItem {
 	constructor(
 		snapshot: PersistedSnapshot,
-		collapsibleState: vscode.TreeItemCollapsibleState = vscode
-			.TreeItemCollapsibleState.None,
+		collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
 	) {
 		const timestamp = new Date(snapshot.timestamp).toLocaleString();
 		const label = snapshot.name;
@@ -53,12 +49,8 @@ class SnapshotTreeItem extends vscode.TreeItem {
 /**
  * TreeDataProvider for snapshots
  */
-export class SnapshotListProvider
-	implements vscode.TreeDataProvider<SnapshotTreeItem>
-{
-	private onDidChangeTreeDataEmitter = new vscode.EventEmitter<
-		SnapshotTreeItem | undefined | null | undefined
-	>();
+export class SnapshotListProvider implements vscode.TreeDataProvider<SnapshotTreeItem> {
+	private onDidChangeTreeDataEmitter = new vscode.EventEmitter<SnapshotTreeItem | undefined | null | undefined>();
 	readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
 	constructor(private orchestrator: SnapshotOrchestrator) {}
@@ -73,9 +65,7 @@ export class SnapshotListProvider
 		}
 
 		// Return all recoverable snapshots, sorted by timestamp (newest first)
-		const snapshots = this.orchestrator
-			.getRecoverableSnapshots()
-			.sort((a, b) => b.timestamp - a.timestamp);
+		const snapshots = this.orchestrator.getRecoverableSnapshots().sort((a, b) => b.timestamp - a.timestamp);
 
 		const items = snapshots.map((s) => new SnapshotTreeItem(s));
 		return Promise.resolve(items);

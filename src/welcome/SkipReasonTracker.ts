@@ -14,13 +14,12 @@ import type { DiagnosticEventTracker } from "../telemetry/diagnostic-event-track
  * - Should we improve onboarding messaging?
  */
 export class SkipReasonTracker {
-	private sessionStartTime: number = 0;
-	private panelViewId: string = "";
-	private detailsExpanded: boolean = false;
+	private sessionStartTime = 0;
+	private panelViewId = "";
+	private detailsExpanded = false;
 	private timeoutHandle: NodeJS.Timeout | null = null;
 
-	private readonly STORAGE_KEY_DETAILS_EXPANDED =
-		"snapback.welcomePanel.detailsExpanded";
+	private readonly STORAGE_KEY_DETAILS_EXPANDED = "snapback.welcomePanel.detailsExpanded";
 	private readonly PANEL_TIMEOUT_MS = 60_000; // 60 seconds
 
 	constructor(
@@ -230,10 +229,6 @@ export class SkipReasonTracker {
 /**
  * Semantic skip reasons
  */
-type SkipReason =
-	| "user_clicked_skip"
-	| "informed_skip"
-	| "panel_closed"
-	| "timeout";
+type SkipReason = "user_clicked_skip" | "informed_skip" | "panel_closed" | "timeout";
 
 export type { SkipReason };

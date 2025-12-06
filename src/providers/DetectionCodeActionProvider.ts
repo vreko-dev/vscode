@@ -60,10 +60,7 @@ export class DetectionCodeActionProvider implements vscode.CodeActionProvider {
 				actions.push(reviewAction);
 
 				// Add specific actions based on the severity
-				if (
-					analysisResult.severity === "critical" ||
-					analysisResult.severity === "high"
-				) {
+				if (analysisResult.severity === "critical" || analysisResult.severity === "high") {
 					const blockAction = new vscode.CodeAction(
 						"_snapback: Block Save (Critical Security Issue)",
 						vscode.CodeActionKind.QuickFix,
@@ -78,11 +75,7 @@ export class DetectionCodeActionProvider implements vscode.CodeActionProvider {
 
 				// Add quick fix actions for specific issues
 				for (const factor of analysisResult.factors) {
-					if (
-						factor.includes("secret") ||
-						factor.includes("password") ||
-						factor.includes("key")
-					) {
+					if (factor.includes("secret") || factor.includes("password") || factor.includes("key")) {
 						const action = new vscode.CodeAction(
 							`_snapback: Remove Secret - ${factor.substring(0, 50)}${factor.length > 50 ? "..." : ""}`,
 							vscode.CodeActionKind.QuickFix,
@@ -104,10 +97,7 @@ export class DetectionCodeActionProvider implements vscode.CodeActionProvider {
 							arguments: [document.uri, factor],
 						};
 						actions.push(action);
-					} else if (
-						factor.includes("phantom") ||
-						factor.includes("dependency")
-					) {
+					} else if (factor.includes("phantom") || factor.includes("dependency")) {
 						const action = new vscode.CodeAction(
 							`_snapback: Add Dependency - ${factor.substring(0, 50)}${factor.length > 50 ? "..." : ""}`,
 							vscode.CodeActionKind.QuickFix,
@@ -122,11 +112,7 @@ export class DetectionCodeActionProvider implements vscode.CodeActionProvider {
 				}
 			}
 		} catch (error) {
-			logger.error(
-				"Error providing code actions",
-				error instanceof Error ? error : undefined,
-				{ error },
-			);
+			logger.error("Error providing code actions", error instanceof Error ? error : undefined, { error });
 		}
 
 		return actions;
@@ -146,22 +132,17 @@ export class DetectionCodeActionProvider implements vscode.CodeActionProvider {
 		// Check for common patterns
 		if (content.includes("eval(")) {
 			factors.push("eval() usage detected - security risk");
-			recommendations.push(
-				"Avoid using eval() as it can execute arbitrary code",
-			);
+			recommendations.push("Avoid using eval() as it can execute arbitrary code");
 		}
 
 		if (content.includes("Function(")) {
 			factors.push("Function constructor usage detected - security risk");
-			recommendations.push(
-				"Avoid using Function constructor as it can execute arbitrary code",
-			);
+			recommendations.push("Avoid using Function constructor as it can execute arbitrary code");
 		}
 
 		// Simple score calculation
 		const score = factors.length > 0 ? Math.min(factors.length * 0.2, 1.0) : 0;
-		const severity =
-			factors.length > 0 ? (factors.length > 2 ? "high" : "medium") : "low";
+		const severity = factors.length > 0 ? (factors.length > 2 ? "high" : "medium") : "low";
 
 		return {
 			score,

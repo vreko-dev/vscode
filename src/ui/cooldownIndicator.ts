@@ -41,11 +41,7 @@ export class CooldownIndicator {
 	 * @param protectionLevel The protection level
 	 * @param durationMs Cooldown duration in milliseconds
 	 */
-	public async setCooldown(
-		filePath: string,
-		protectionLevel: ProtectionLevel,
-		durationMs: number,
-	): Promise<void> {
+	public async setCooldown(filePath: string, protectionLevel: ProtectionLevel, durationMs: number): Promise<void> {
 		const expiresAt = Date.now() + durationMs;
 
 		// Store the cooldown information in memory
@@ -114,18 +110,9 @@ export class CooldownIndicator {
 			if (cooldownManager) {
 				try {
 					// We need to check all protection levels since we don't know which one was used
-					const watchedInCooldown = await cooldownManager.isInCooldown(
-						filePath,
-						"watch",
-					);
-					const warningInCooldown = await cooldownManager.isInCooldown(
-						filePath,
-						"warn",
-					);
-					const protectedInCooldown = await cooldownManager.isInCooldown(
-						filePath,
-						"block",
-					);
+					const watchedInCooldown = await cooldownManager.isInCooldown(filePath, "watch");
+					const warningInCooldown = await cooldownManager.isInCooldown(filePath, "warn");
+					const protectedInCooldown = await cooldownManager.isInCooldown(filePath, "block");
 					return watchedInCooldown || warningInCooldown || protectedInCooldown;
 				} catch (error) {
 					logger.warn(
@@ -178,18 +165,11 @@ export class CooldownIndicator {
 	 * Create a detailed tooltip showing cooldown information
 	 */
 	private createCooldownTooltip(): string {
-		const lines = [
-			"## 🧢 SnapBack Cooldown Status",
-			"",
-			"**Files in cooldown:**",
-		];
+		const lines = ["## 🧢 SnapBack Cooldown Status", "", "**Files in cooldown:**"];
 
 		// Add each file in cooldown
 		for (const [filePath, cooldown] of this.activeCooldowns) {
-			const timeLeft = Math.max(
-				0,
-				Math.ceil((cooldown.expiresAt - Date.now()) / 1000),
-			);
+			const timeLeft = Math.max(0, Math.ceil((cooldown.expiresAt - Date.now()) / 1000));
 			const levelIcon = this.getLevelIcon(cooldown.level);
 			const fileName = filePath.split("/").pop() || filePath;
 			lines.push(`- ${levelIcon} ${fileName} (${timeLeft}s remaining)`);

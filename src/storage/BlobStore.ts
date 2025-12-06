@@ -1,11 +1,7 @@
 // apps/vscode/src/storage/BlobStore.ts
 
 import * as vscode from "vscode";
-import {
-	atomicWriteFile,
-	ensureDirectory,
-	fileExists,
-} from "./utils/atomicWrite";
+import { atomicWriteFile, ensureDirectory, fileExists } from "./utils/atomicWrite";
 import { getBlobPath, hashContent } from "./utils/hash";
 
 /**
@@ -39,9 +35,7 @@ export class BlobStore {
 	 * Store content and return its hash (blob ID).
 	 * If content already exists, returns hash without writing.
 	 */
-	async store(
-		content: string,
-	): Promise<{ hash: string; size: number; isNew: boolean }> {
+	async store(content: string): Promise<{ hash: string; size: number; isNew: boolean }> {
 		const hash = hashContent(content);
 		const blobPath = getBlobPath(hash);
 		const blobUri = vscode.Uri.joinPath(this.blobsUri, blobPath);
@@ -118,9 +112,7 @@ export class BlobStore {
 
 		try {
 			// Iterate through 2-level directory structure
-			const level1Entries = await vscode.workspace.fs.readDirectory(
-				this.blobsUri,
-			);
+			const level1Entries = await vscode.workspace.fs.readDirectory(this.blobsUri);
 
 			for (const [l1Name, l1Type] of level1Entries) {
 				if (l1Type !== vscode.FileType.Directory) continue;
@@ -157,9 +149,7 @@ export class BlobStore {
 		let count = 0;
 
 		try {
-			const level1Entries = await vscode.workspace.fs.readDirectory(
-				this.blobsUri,
-			);
+			const level1Entries = await vscode.workspace.fs.readDirectory(this.blobsUri);
 
 			for (const [l1Name, l1Type] of level1Entries) {
 				if (l1Type !== vscode.FileType.Directory) continue;
@@ -173,9 +163,7 @@ export class BlobStore {
 					const l2Uri = vscode.Uri.joinPath(l1Uri, l2Name);
 					const blobEntries = await vscode.workspace.fs.readDirectory(l2Uri);
 
-					count += blobEntries.filter(
-						([, type]) => type === vscode.FileType.File,
-					).length;
+					count += blobEntries.filter(([, type]) => type === vscode.FileType.File).length;
 				}
 			}
 		} catch {

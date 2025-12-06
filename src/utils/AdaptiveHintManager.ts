@@ -293,10 +293,7 @@ export class AdaptiveHintManager {
 	 * @param priority - Optional priority to filter by
 	 * @returns Random appropriate hint or undefined if none available
 	 */
-	getRandomHint(
-		category?: HintCategory,
-		priority?: HintPriority,
-	): Hint | undefined {
+	getRandomHint(category?: HintCategory, priority?: HintPriority): Hint | undefined {
 		let hints = this.getAppropriateHints();
 
 		// Filter by category if specified
@@ -337,10 +334,7 @@ export class AdaptiveHintManager {
 
 		buttons.push("Got It");
 
-		const selection = await vscode.window.showInformationMessage(
-			`${hint.title}: ${hint.content}`,
-			...buttons,
-		);
+		const selection = await vscode.window.showInformationMessage(`${hint.title}: ${hint.content}`, ...buttons);
 
 		// Handle user selection
 		switch (selection) {

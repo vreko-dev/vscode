@@ -40,8 +40,7 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 			}
 
 			// Get protection level
-			const protectionLevel =
-				this.protectedFileRegistry.getProtectionLevel(filePath);
+			const protectionLevel = this.protectedFileRegistry.getProtectionLevel(filePath);
 
 			// Only show CodeLenses for BLOCK level protected files
 			if (protectionLevel !== "block") {
@@ -52,14 +51,11 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 			const codeLenses: vscode.CodeLens[] = [];
 
 			// Add main CodeLens with protection information
-			const protectionInfoLens = new vscode.CodeLens(
-				new vscode.Range(0, 0, 0, 0),
-				{
-					title: `$(shield) BLOCK Protection Active - Save requires snapshot`,
-					command: "snapback.showProtectionDetails",
-					arguments: [filePath],
-				},
-			);
+			const protectionInfoLens = new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
+				title: "$(shield) BLOCK Protection Active - Save requires snapshot",
+				command: "snapback.showProtectionDetails",
+				arguments: [filePath],
+			});
 			codeLenses.push(protectionInfoLens);
 
 			// Add action CodeLenses
@@ -87,10 +83,7 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 			// this.codeLenses = codeLenses;
 			return codeLenses;
 		} catch (error) {
-			logger.error(
-				"Error providing CodeLenses:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error providing CodeLenses:", error instanceof Error ? error : undefined);
 			return [];
 		}
 	}
@@ -111,22 +104,17 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 	 */
 	register(context: vscode.ExtensionContext): void {
 		// Register the CodeLens provider for all file types
-		const providerDisposable = vscode.languages.registerCodeLensProvider(
-			{ scheme: "file" },
-			this,
-		);
+		const providerDisposable = vscode.languages.registerCodeLensProvider({ scheme: "file" }, this);
 		this.disposables.push(providerDisposable);
 
 		// Register command handlers
-		const allowOnceCommand = vscode.commands.registerCommand(
-			"snapback.allowOnce",
-			(filePath: string) => this.handleAllowOnce(filePath),
+		const allowOnceCommand = vscode.commands.registerCommand("snapback.allowOnce", (filePath: string) =>
+			this.handleAllowOnce(filePath),
 		);
 		this.disposables.push(allowOnceCommand);
 
-		const markWrongCommand = vscode.commands.registerCommand(
-			"snapback.markWrong",
-			(filePath: string) => this.handleMarkWrong(filePath),
+		const markWrongCommand = vscode.commands.registerCommand("snapback.markWrong", (filePath: string) =>
+			this.handleMarkWrong(filePath),
 		);
 		this.disposables.push(markWrongCommand);
 
@@ -148,10 +136,7 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 			logger.info("Allow once requested for file", { filePath });
 
 			// Grant temporary allowance for this file (valid for 5 minutes)
-			this.protectedFileRegistry.grantTemporaryAllowance(
-				filePath,
-				5 * 60 * 1000,
-			);
+			this.protectedFileRegistry.grantTemporaryAllowance(filePath, 5 * 60 * 1000);
 
 			// Show status bar message
 			vscode.window.setStatusBarMessage(
@@ -159,10 +144,7 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 				3000,
 			);
 		} catch (error) {
-			logger.error(
-				"Error handling allow once:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error handling allow once:", error instanceof Error ? error : undefined);
 			vscode.window.showErrorMessage("Failed to allow save operation");
 		}
 	}
@@ -176,9 +158,7 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 
 			// Show status bar message
 			vscode.window.setStatusBarMessage(
-				`✅ Marked as false positive: ${vscode.workspace.asRelativePath(
-					filePath,
-				)}`,
+				`✅ Marked as false positive: ${vscode.workspace.asRelativePath(filePath)}`,
 				3000,
 			);
 
@@ -186,10 +166,7 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 			// This would typically involve recording this as a false positive and potentially
 			// adjusting protection rules
 		} catch (error) {
-			logger.error(
-				"Error handling mark wrong:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error handling mark wrong:", error instanceof Error ? error : undefined);
 			vscode.window.showErrorMessage("Failed to mark as false positive");
 		}
 	}
@@ -202,23 +179,19 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 			logger.info("Show details requested for file", { filePath });
 
 			// Get protection information
-			const protectionLevel =
-				this.protectedFileRegistry.getProtectionLevel(filePath);
+			const protectionLevel = this.protectedFileRegistry.getProtectionLevel(filePath);
 			const relativePath = vscode.workspace.asRelativePath(filePath);
 
 			// Show information message with details
 			vscode.window.showInformationMessage(
-				`File Protection Details`,
+				"File Protection Details",
 				{
 					detail: `File: ${relativePath}\nProtection Level: ${protectionLevel}\n\nThis file requires a snapshot before saving to prevent accidental changes to critical code.`,
 				},
 				"OK",
 			);
 		} catch (error) {
-			logger.error(
-				"Error handling show details:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error handling show details:", error instanceof Error ? error : undefined);
 			vscode.window.showErrorMessage("Failed to show protection details");
 		}
 	}

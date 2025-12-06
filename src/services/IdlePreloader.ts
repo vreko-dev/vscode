@@ -63,9 +63,7 @@ export class IdlePreloader {
 	register<T>(loader: LazyLoader<T>, name: string, delayMs = 1000): void {
 		// Don't register if already preloading or loaded
 		if (loader.isLoaded() || loader.isLoading()) {
-			logger.debug(
-				`${name} already loaded/loading, skipping preload registration`,
-			);
+			logger.debug(`${name} already loaded/loading, skipping preload registration`);
 			return;
 		}
 
@@ -133,18 +131,12 @@ export class IdlePreloader {
 					logger.info(`${name} preloaded successfully (${duration}ms)`);
 				} catch (error) {
 					this.status.set(name, "failed");
-					logger.error(
-						`Failed to preload ${name}`,
-						error instanceof Error ? error : undefined,
-					);
+					logger.error(`Failed to preload ${name}`, error instanceof Error ? error : undefined);
 				}
 			}, 0);
 		} catch (error) {
 			this.status.set(name, "failed");
-			logger.error(
-				`Failed to preload ${name}`,
-				error instanceof Error ? error : undefined,
-			);
+			logger.error(`Failed to preload ${name}`, error instanceof Error ? error : undefined);
 		}
 	}
 

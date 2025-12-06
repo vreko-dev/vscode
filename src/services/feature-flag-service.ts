@@ -16,8 +16,7 @@ interface FeatureFlags {
 
 export class FeatureFlagService {
 	private apiBaseUrl: string;
-	private cache: Map<string, { flags: FeatureFlags; timestamp: number }> =
-		new Map();
+	private cache: Map<string, { flags: FeatureFlags; timestamp: number }> = new Map();
 	private defaultTtl: number = 5 * 60 * 1000; // 5 minutes default TTL
 
 	constructor() {
@@ -30,10 +29,7 @@ export class FeatureFlagService {
 	/**
 	 * Get feature flags for a user with caching
 	 */
-	async getUserFlags(
-		userId: string,
-		forceRefresh: boolean = false,
-	): Promise<FeatureFlags> {
+	async getUserFlags(userId: string, forceRefresh = false): Promise<FeatureFlags> {
 		const cached = this.cache.get(userId);
 		const now = Date.now();
 
@@ -73,18 +69,15 @@ export class FeatureFlagService {
 	 * Fetch feature flags from the backend API
 	 */
 	private async fetchUserFlagsFromApi(userId: string): Promise<FeatureFlags> {
-		const response = await fetch(
-			`${this.apiBaseUrl}/api/rpc/featureFlags.getUserFlags`,
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					userId,
-				}),
+		const response = await fetch(`${this.apiBaseUrl}/api/rpc/featureFlags.getUserFlags`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
 			},
-		);
+			body: JSON.stringify({
+				userId,
+			}),
+		});
 
 		if (!response.ok) {
 			throw new Error(`HTTP ${response.status}: ${response.statusText}`);

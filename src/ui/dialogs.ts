@@ -51,9 +51,7 @@ export namespace SnapBackDialogs {
 	 */
 	export async function showOverrideDialog(
 		_options: BlockDialogOptions,
-	): Promise<
-		{ action: "override"; justification: string } | { action: "cancel" }
-	> {
+	): Promise<{ action: "override"; justification: string } | { action: "cancel" }> {
 		// Show dialog with input box for justification
 		const justification = await vscode.window.showInputBox({
 			prompt: "Enter justification for overriding this protection",
@@ -95,9 +93,7 @@ export namespace SnapBackDialogs {
 		lines.push("");
 		lines.push("Choose an action:");
 		lines.push("- Continue: Save without snapshot (not recommended)");
-		lines.push(
-			"- Create Snapshot & Continue: Save and create a snapshot for rollback",
-		);
+		lines.push("- Create Snapshot & Continue: Save and create a snapshot for rollback");
 		lines.push("- Cancel Save: Abort this save operation");
 
 		return lines.join("\n");
@@ -106,9 +102,7 @@ export namespace SnapBackDialogs {
 	/**
 	 * Show accessibility warning dialog
 	 */
-	export async function showAccessibilityWarning(
-		message: string,
-	): Promise<void> {
+	export async function showAccessibilityWarning(message: string): Promise<void> {
 		await vscode.window.showWarningMessage(message, {
 			modal: true,
 		});

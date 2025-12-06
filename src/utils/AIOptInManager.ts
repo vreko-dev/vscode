@@ -45,9 +45,7 @@ export class AIOptInManager {
 	 * @returns True if user has made a choice, false otherwise
 	 */
 	hasUserMadeChoice(): boolean {
-		return !!this.context.globalState.get<boolean>(
-			AI_OPT_IN_KEYS.USER_CHOICE_MADE,
-		);
+		return !!this.context.globalState.get<boolean>(AI_OPT_IN_KEYS.USER_CHOICE_MADE);
 	}
 
 	/**
@@ -78,25 +76,21 @@ export class AIOptInManager {
 		const items: (vscode.QuickPickItem & { value: boolean })[] = [
 			{
 				label: "$(check) Enable automatic checkpoints",
-				description:
-					"Create snapshots automatically during AI-assisted coding sessions",
-				detail:
-					"SnapBack will create checkpoints when it detects rapid, large insertions typical of AI assistants",
+				description: "Create snapshots automatically during AI-assisted coding sessions",
+				detail: "SnapBack will create checkpoints when it detects rapid, large insertions typical of AI assistants",
 				value: true,
 			},
 			{
 				label: "$(x) Keep manual snapshots only",
 				description: "Continue creating snapshots manually as usual",
-				detail:
-					"You can still create snapshots manually with the existing commands",
+				detail: "You can still create snapshots manually with the existing commands",
 				value: false,
 			},
 		];
 
 		const selection = await vscode.window.showQuickPick(items, {
 			title: "AI-Assisted Coding Detected",
-			placeHolder:
-				"Would you like to enable automatic checkpoints for AI-assisted sessions?",
+			placeHolder: "Would you like to enable automatic checkpoints for AI-assisted sessions?",
 		});
 
 		if (selection) {
@@ -118,10 +112,7 @@ export class AIOptInManager {
 	private saveUserChoice(enabled: boolean): void {
 		this.context.globalState.update(AI_OPT_IN_KEYS.USER_CHOICE_MADE, true);
 		this.context.globalState.update(AI_OPT_IN_KEYS.ENABLED, enabled);
-		this.context.globalState.update(
-			AI_OPT_IN_KEYS.CHOICE_TIMESTAMP,
-			Date.now(),
-		);
+		this.context.globalState.update(AI_OPT_IN_KEYS.CHOICE_TIMESTAMP, Date.now());
 
 		logger.info("AI checkpointing preference saved", {
 			enabled,
@@ -153,9 +144,7 @@ export class AIOptInManager {
 		return {
 			choiceMade: this.hasUserMadeChoice(),
 			enabled: this.isAIcheckpointingEnabled(),
-			timestamp: this.context.globalState.get<number>(
-				AI_OPT_IN_KEYS.CHOICE_TIMESTAMP,
-			),
+			timestamp: this.context.globalState.get<number>(AI_OPT_IN_KEYS.CHOICE_TIMESTAMP),
 		};
 	}
 }

@@ -17,10 +17,7 @@ import type {
 } from "../types/snapbackrc.types";
 import { SNAPBACKRC_SCHEMA } from "../types/snapbackrc.types";
 import { logger } from "../utils/logger";
-import {
-	DEFAULT_IGNORE_PATTERNS,
-	DEFAULT_SNAPBACK_CONFIG,
-} from "./defaultConfig";
+import { DEFAULT_IGNORE_PATTERNS, DEFAULT_SNAPBACK_CONFIG } from "./defaultConfig";
 
 type ConfigManagerEvents = "configLoaded" | "configDeleted";
 
@@ -68,10 +65,7 @@ export class ConfigurationManager extends EventEmitter {
 			this.emitConfig("configLoaded", defaultConfig);
 			return defaultConfig;
 		} catch (error) {
-			logger.error(
-				"Configuration load error:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Configuration load error:", error instanceof Error ? error : undefined);
 			const defaults = await this.applyDefaultConfiguration();
 			this.config = defaults;
 			return defaults;
@@ -95,20 +89,14 @@ export class ConfigurationManager extends EventEmitter {
 
 	shouldIgnore(filePath: string): boolean {
 		const patterns = this.config?.ignore ?? DEFAULT_IGNORE_PATTERNS;
-		return patterns.some((pattern) =>
-			minimatch(filePath, pattern, { dot: true }),
-		);
+		return patterns.some((pattern) => minimatch(filePath, pattern, { dot: true }));
 	}
 
-	getSetting<K extends keyof SnapBackSettings>(
-		key: K,
-	): SnapBackSettings[K] | undefined {
+	getSetting<K extends keyof SnapBackSettings>(key: K): SnapBackSettings[K] | undefined {
 		return this.config?.settings?.[key];
 	}
 
-	getPolicy<K extends keyof SnapBackPolicies>(
-		key: K,
-	): SnapBackPolicies[K] | undefined {
+	getPolicy<K extends keyof SnapBackPolicies>(key: K): SnapBackPolicies[K] | undefined {
 		return this.config?.policies?.[key];
 	}
 
@@ -178,13 +166,8 @@ export class ConfigurationManager extends EventEmitter {
 					if (!isValid) {
 						const errors = this.validate.errors
 							?.map(
-								(validationError: {
-									instancePath?: string;
-									message?: string;
-								}) =>
-									`${
-										validationError.instancePath || "(root)"
-									}: ${validationError.message}`,
+								(validationError: { instancePath?: string; message?: string }) =>
+									`${validationError.instancePath || "(root)"}: ${validationError.message}`,
 							)
 							.join(", ");
 
@@ -208,19 +191,10 @@ export class ConfigurationManager extends EventEmitter {
 					}
 
 					// Debug logging for each config being processed
-					logger.debug(
-						`Processing config file: ${path.relative(
-							this.workspaceRoot,
-							configFile,
-						)}`,
-					);
+					logger.debug(`Processing config file: ${path.relative(this.workspaceRoot, configFile)}`);
 
 					// Merge with existing config (deeper configs override shallower ones)
-					mergedConfig = this.deepMergeConfigs(
-						mergedConfig,
-						parsed as SnapBackRC,
-						configFile,
-					);
+					mergedConfig = this.deepMergeConfigs(mergedConfig, parsed as SnapBackRC, configFile);
 				} catch (fileError) {
 					const fileErr = fileError as NodeJS.ErrnoException;
 					if (fileErr.message?.includes("JSON")) {
@@ -251,19 +225,13 @@ export class ConfigurationManager extends EventEmitter {
 				? this.mergeWithDefaults(mergedConfig)
 				: null;
 		} catch (error) {
-			logger.error(
-				"Error loading .snapbackrc configurations:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error loading .snapbackrc configurations:", error instanceof Error ? error : undefined);
 			return null;
 		}
 	}
 
 	private setupWatcher(): void {
-		const pattern = new vscode.RelativePattern(
-			this.workspaceRoot,
-			".snapbackrc",
-		);
+		const pattern = new vscode.RelativePattern(this.workspaceRoot, ".snapbackrc");
 		this.watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
 		this.watcher.onDidChange(async () => {
@@ -293,44 +261,35 @@ export class ConfigurationManager extends EventEmitter {
 		try {
 			await this.load();
 		} catch (error) {
-			logger.error(
-				"Failed to reload configuration:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Failed to reload configuration:", error instanceof Error ? error : undefined);
 			await this.applyDefaultConfiguration();
 		}
 	}
 
 	private async applyProtection(config: SnapBackRC): Promise<void> {
 		if (this.managedPaths.size > 0) {
-			const removals = Array.from(this.managedPaths).map(
-				async (pathToRemove) => {
-					try {
-						await this.protectedFileRegistry.remove(pathToRemove);
-					} catch (error) {
-						logger.warn("Failed to remove managed path during config reload:", {
-							path: pathToRemove,
-							error,
-						});
-					}
-				},
-			);
+			const removals = Array.from(this.managedPaths).map(async (pathToRemove) => {
+				try {
+					await this.protectedFileRegistry.remove(pathToRemove);
+				} catch (error) {
+					logger.warn("Failed to remove managed path during config reload:", {
+						path: pathToRemove,
+						error,
+					});
+				}
+			});
 			await Promise.all(removals);
 			this.managedPaths.clear();
 		}
 
 		const ignorePatterns = config.ignore ?? DEFAULT_IGNORE_PATTERNS;
-		const ignoreGlob =
-			ignorePatterns.length > 0 ? `{${ignorePatterns.join(",")}}` : undefined;
+		const ignoreGlob = ignorePatterns.length > 0 ? `{${ignorePatterns.join(",")}}` : undefined;
 
 		const protectedPaths: string[] = [];
 
 		if (config.protection?.length) {
 			for (const rule of config.protection) {
-				const files = await vscode.workspace.findFiles(
-					rule.pattern,
-					ignoreGlob,
-				);
+				const files = await vscode.workspace.findFiles(rule.pattern, ignoreGlob);
 
 				for (const file of files) {
 					await this.protectedFileRegistry.add(file.fsPath, {
@@ -388,28 +347,17 @@ export class ConfigurationManager extends EventEmitter {
 	 * @param overridePath The path of the override config file (for logging/provenance)
 	 * @returns Merged configuration
 	 */
-	private deepMergeConfigs(
-		base: SnapBackRC,
-		override: SnapBackRC,
-		overridePath: string,
-	): SnapBackRC {
+	private deepMergeConfigs(base: SnapBackRC, override: SnapBackRC, overridePath: string): SnapBackRC {
 		// Debug logging for merge operation
-		logger.debug(
-			`Merging config from ${path.relative(this.workspaceRoot, overridePath)}`,
-			{
-				overrideProtectionCount: override.protection?.length,
-				baseProtectionCount: base.protection?.length,
-				hasOverrideSettings: !!override.settings,
-				hasBaseSettings: !!base.settings,
-			},
-		);
+		logger.debug(`Merging config from ${path.relative(this.workspaceRoot, overridePath)}`, {
+			overrideProtectionCount: override.protection?.length,
+			baseProtectionCount: base.protection?.length,
+			hasOverrideSettings: !!override.settings,
+			hasBaseSettings: !!base.settings,
+		});
 
 		const result = {
-			protection: this.deepMergeProtections(
-				base.protection,
-				override.protection,
-				overridePath,
-			),
+			protection: this.deepMergeProtections(base.protection, override.protection, overridePath),
 			ignore: this.deepMergeIgnore(base.ignore, override.ignore),
 			settings: this.deepMergeSettings(base.settings, override.settings),
 			policies: this.deepMergePolicies(base.policies, override.policies),
@@ -418,12 +366,9 @@ export class ConfigurationManager extends EventEmitter {
 		};
 
 		// Debug logging for merged result
-		logger.debug(
-			`Merge result from ${path.relative(this.workspaceRoot, overridePath)}`,
-			{
-				resultProtectionCount: result.protection?.length,
-			},
-		);
+		logger.debug(`Merge result from ${path.relative(this.workspaceRoot, overridePath)}`, {
+			resultProtectionCount: result.protection?.length,
+		});
 
 		return result;
 	}
@@ -453,10 +398,7 @@ export class ConfigurationManager extends EventEmitter {
 		}
 
 		// Create a map of existing patterns for efficient lookup
-		const protectionMap = new Map<
-			string,
-			NonNullable<SnapBackRC["protection"]>[number]
-		>();
+		const protectionMap = new Map<string, NonNullable<SnapBackRC["protection"]>[number]>();
 		for (const rule of base) {
 			protectionMap.set(rule.pattern, { ...rule });
 		}
@@ -479,10 +421,7 @@ export class ConfigurationManager extends EventEmitter {
 	 * @param override The override ignore patterns
 	 * @returns Merged ignore patterns
 	 */
-	private deepMergeIgnore(
-		base: SnapBackRC["ignore"],
-		override: SnapBackRC["ignore"],
-	): SnapBackRC["ignore"] {
+	private deepMergeIgnore(base: SnapBackRC["ignore"], override: SnapBackRC["ignore"]): SnapBackRC["ignore"] {
 		if (!override) {
 			return base;
 		}
@@ -502,10 +441,7 @@ export class ConfigurationManager extends EventEmitter {
 	 * @param override The override settings
 	 * @returns Merged settings
 	 */
-	private deepMergeSettings(
-		base: SnapBackRC["settings"],
-		override: SnapBackRC["settings"],
-	): SnapBackRC["settings"] {
+	private deepMergeSettings(base: SnapBackRC["settings"], override: SnapBackRC["settings"]): SnapBackRC["settings"] {
 		if (!override) {
 			return base;
 		}
@@ -518,10 +454,7 @@ export class ConfigurationManager extends EventEmitter {
 		const result: Record<string, unknown> = { ...base };
 
 		for (const [key, value] of Object.entries(override)) {
-			if (
-				key === "defaultProtectionLevel" &&
-				base[key as keyof SnapBackSettings]
-			) {
+			if (key === "defaultProtectionLevel" && base[key as keyof SnapBackSettings]) {
 				// For protection levels, more restrictive wins
 				const baseLevel = base[key as keyof SnapBackSettings];
 				const overrideLevel = value;
@@ -543,14 +476,8 @@ export class ConfigurationManager extends EventEmitter {
 				typeof value === "number"
 			) {
 				// For numbers, lower values are more restrictive
-				result[key] = Math.min(
-					base[key as keyof SnapBackSettings] as number,
-					value,
-				);
-			} else if (
-				typeof value === "boolean" &&
-				typeof base[key as keyof SnapBackSettings] === "boolean"
-			) {
+				result[key] = Math.min(base[key as keyof SnapBackSettings] as number, value);
+			} else if (typeof value === "boolean" && typeof base[key as keyof SnapBackSettings] === "boolean") {
 				// For booleans, true is generally more restrictive
 				result[key] = (base[key as keyof SnapBackSettings] as boolean) || value;
 			} else {
@@ -568,10 +495,7 @@ export class ConfigurationManager extends EventEmitter {
 	 * @param override The override policies
 	 * @returns Merged policies
 	 */
-	private deepMergePolicies(
-		base: SnapBackRC["policies"],
-		override: SnapBackRC["policies"],
-	): SnapBackRC["policies"] {
+	private deepMergePolicies(base: SnapBackRC["policies"], override: SnapBackRC["policies"]): SnapBackRC["policies"] {
 		if (!override) {
 			return base;
 		}
@@ -584,10 +508,7 @@ export class ConfigurationManager extends EventEmitter {
 		const result: Record<string, unknown> = { ...base };
 
 		for (const [key, value] of Object.entries(override)) {
-			if (
-				key === "minimumProtectionLevel" &&
-				base[key as keyof SnapBackPolicies]
-			) {
+			if (key === "minimumProtectionLevel" && base[key as keyof SnapBackPolicies]) {
 				// For protection levels, more restrictive wins
 				const baseLevel = base[key as keyof SnapBackPolicies];
 				const overrideLevel = value;
@@ -603,17 +524,12 @@ export class ConfigurationManager extends EventEmitter {
 				if (overridePriority > basePriority) {
 					result[key] = value;
 				}
-			} else if (
-				key === "enforceProtectionLevels" ||
-				key === "allowOverrides"
-			) {
+			} else if (key === "enforceProtectionLevels" || key === "allowOverrides") {
 				// For booleans, true is generally more restrictive for enforce, false for allow
 				if (key === "enforceProtectionLevels") {
-					result[key] =
-						(base[key as keyof SnapBackPolicies] as boolean) || value; // true wins
+					result[key] = (base[key as keyof SnapBackPolicies] as boolean) || value; // true wins
 				} else {
-					result[key] =
-						(base[key as keyof SnapBackPolicies] as boolean) && value; // false wins (more restrictive)
+					result[key] = (base[key as keyof SnapBackPolicies] as boolean) && value; // false wins (more restrictive)
 				}
 			} else {
 				// Default: override wins
@@ -630,10 +546,7 @@ export class ConfigurationManager extends EventEmitter {
 	 * @param override The override hooks
 	 * @returns Merged hooks
 	 */
-	private deepMergeHooks(
-		base: SnapBackRC["hooks"],
-		override: SnapBackRC["hooks"],
-	): SnapBackRC["hooks"] {
+	private deepMergeHooks(base: SnapBackRC["hooks"], override: SnapBackRC["hooks"]): SnapBackRC["hooks"] {
 		if (!override) {
 			return base;
 		}
@@ -662,17 +575,11 @@ export class ConfigurationManager extends EventEmitter {
 		return override ?? base;
 	}
 
-	private showSyntaxError(
-		error: NodeJS.ErrnoException,
-		configPath?: string,
-	): void {
+	private showSyntaxError(error: NodeJS.ErrnoException, configPath?: string): void {
 		const filePath = configPath || this.configPath;
 		vscode.window
 			.showErrorMessage(
-				`Syntax error in ${path.relative(
-					this.workspaceRoot,
-					filePath,
-				)}: ${error.message}`,
+				`Syntax error in ${path.relative(this.workspaceRoot, filePath)}: ${error.message}`,
 				"Fix Now",
 			)
 			.then(async (choice) => {
@@ -688,14 +595,8 @@ export class ConfigurationManager extends EventEmitter {
 					columnNumber?: number;
 				};
 
-				if (
-					typeof syntaxMeta.lineNumber === "number" &&
-					typeof syntaxMeta.columnNumber === "number"
-				) {
-					const position = new vscode.Position(
-						syntaxMeta.lineNumber - 1,
-						syntaxMeta.columnNumber - 1,
-					);
+				if (typeof syntaxMeta.lineNumber === "number" && typeof syntaxMeta.columnNumber === "number") {
+					const position = new vscode.Position(syntaxMeta.lineNumber - 1, syntaxMeta.columnNumber - 1);
 					editor.selection = new vscode.Selection(position, position);
 					editor.revealRange(new vscode.Range(position, position));
 				}

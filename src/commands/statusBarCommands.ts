@@ -17,10 +17,7 @@ interface EnhancedQuickPickItem extends vscode.QuickPickItem {
  * - Drill-down into specific levels
  * - Common actions (protect, refresh, settings, docs)
  */
-export function registerStatusBarCommands(
-	_context: vscode.ExtensionContext,
-	ctx: CommandContext,
-): vscode.Disposable[] {
+export function registerStatusBarCommands(_context: vscode.ExtensionContext, ctx: CommandContext): vscode.Disposable[] {
 	return [
 		vscode.commands.registerCommand(COMMANDS.UTILITY.SHOW_STATUS, async () => {
 			await showProtectionStatus(ctx.protectedFileRegistry);
@@ -31,9 +28,7 @@ export function registerStatusBarCommands(
 /**
  * Show the protection status QuickPick with detailed breakdown
  */
-async function showProtectionStatus(
-	protectedFileRegistry: ProtectedFileRegistry,
-): Promise<void> {
+async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry): Promise<void> {
 	const files = await protectedFileRegistry.list();
 
 	if (files.length === 0) {
@@ -52,9 +47,7 @@ async function showProtectionStatus(
 	}
 
 	// Count by protection level
-	const watchCount = files.filter(
-		(f) => f.protectionLevel === "watch" || !f.protectionLevel,
-	).length;
+	const watchCount = files.filter((f) => f.protectionLevel === "watch" || !f.protectionLevel).length;
 	const warnCount = files.filter((f) => f.protectionLevel === "warn").length;
 	const blockCount = files.filter((f) => f.protectionLevel === "block").length;
 
@@ -103,8 +96,7 @@ async function showProtectionStatus(
 		{
 			label: `${getProtectionLevelSignage("warn").emoji} ${getProtectionLevelSignage("warn").label} (Notify)`,
 			description: `${warnCount} ${warnCount === 1 ? "file" : "files"}`,
-			detail:
-				"Confirmation prompt before save • Review changes • Stay informed",
+			detail: "Confirmation prompt before save • Review changes • Stay informed",
 			buttons:
 				warnCount > 0
 					? [
@@ -243,9 +235,7 @@ async function showFilesByLevel(
 	const allFiles = await protectedFileRegistry.list();
 	const filteredFiles = allFiles.filter(
 		(f) =>
-			f.protectionLevel === level ||
-			((level === "watch" || level === (undefined as any)) &&
-				!f.protectionLevel),
+			f.protectionLevel === level || ((level === "watch" || level === (undefined as any)) && !f.protectionLevel),
 	);
 
 	if (filteredFiles.length === 0) {
@@ -261,9 +251,7 @@ async function showFilesByLevel(
 	const items = filteredFiles.map((file) => ({
 		label: `$(file) ${file.label}`,
 		description: file.path,
-		detail: `Last protected: ${new Date(
-			file.lastProtectedAt || Date.now(),
-		).toLocaleString()}`,
+		detail: `Last protected: ${new Date(file.lastProtectedAt || Date.now()).toLocaleString()}`,
 		file: file,
 	}));
 

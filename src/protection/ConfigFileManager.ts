@@ -35,10 +35,7 @@ export class ConfigFileManager {
 	/**
 	 * Write patterns to config file
 	 */
-	async writeConfig(
-		_configType: "protected" | "ignore",
-		patterns: string[],
-	): Promise<void> {
+	async writeConfig(_configType: "protected" | "ignore", patterns: string[]): Promise<void> {
 		const fileName = ".snapbackrc";
 		const configPath = path.join(this.workspaceRoot, fileName);
 		const content = `${patterns.join("\n")}\n`;
@@ -49,10 +46,7 @@ export class ConfigFileManager {
 	/**
 	 * Add a pattern to config file (appends if not exists)
 	 */
-	async addPattern(
-		configType: "protected" | "ignore",
-		pattern: string,
-	): Promise<void> {
+	async addPattern(configType: "protected" | "ignore", pattern: string): Promise<void> {
 		const patterns = await this.readConfig(configType);
 
 		// Avoid duplicates
@@ -67,10 +61,7 @@ export class ConfigFileManager {
 	/**
 	 * Remove a pattern from config file
 	 */
-	async removePattern(
-		configType: "protected" | "ignore",
-		pattern: string,
-	): Promise<void> {
+	async removePattern(configType: "protected" | "ignore", pattern: string): Promise<void> {
 		const patterns = await this.readConfig(configType);
 		const filtered = patterns.filter((p) => p !== pattern);
 
@@ -82,10 +73,7 @@ export class ConfigFileManager {
 	/**
 	 * Check if a pattern exists in config
 	 */
-	async hasPattern(
-		configType: "protected" | "ignore",
-		pattern: string,
-	): Promise<boolean> {
+	async hasPattern(configType: "protected" | "ignore", pattern: string): Promise<boolean> {
 		const patterns = await this.readConfig(configType);
 		return patterns.includes(pattern);
 	}
@@ -93,10 +81,7 @@ export class ConfigFileManager {
 	/**
 	 * Check if a file path matches any pattern in config
 	 */
-	async matchesConfig(
-		configType: "protected" | "ignore",
-		filePath: string,
-	): Promise<boolean> {
+	async matchesConfig(configType: "protected" | "ignore", filePath: string): Promise<boolean> {
 		const patterns = await this.readConfig(configType);
 		const relativePath = path.relative(this.workspaceRoot, filePath);
 
@@ -111,10 +96,7 @@ export class ConfigFileManager {
 					return true;
 				}
 			} catch (error) {
-				logger.warn(
-					`Failed to evaluate pattern "${pattern}"`,
-					error instanceof Error ? error.message : error,
-				);
+				logger.warn(`Failed to evaluate pattern "${pattern}"`, error instanceof Error ? error.message : error);
 			}
 		}
 		return false;
@@ -133,10 +115,7 @@ export class ConfigFileManager {
 	/**
 	 * Create default config file if it doesn't exist
 	 */
-	async ensureConfigExists(
-		configType: "protected" | "ignore",
-		defaultPatterns: string[] = [],
-	): Promise<void> {
+	async ensureConfigExists(configType: "protected" | "ignore", defaultPatterns: string[] = []): Promise<void> {
 		const fileName = ".snapbackrc";
 		const configPath = path.join(this.workspaceRoot, fileName);
 
@@ -213,10 +192,7 @@ export class ConfigFileManager {
 	/**
 	 * Add a pattern with validation
 	 */
-	async addPatternWithValidation(
-		configType: "protected" | "ignore",
-		pattern: string,
-	): Promise<void> {
+	async addPatternWithValidation(configType: "protected" | "ignore", pattern: string): Promise<void> {
 		if (!this.validatePattern(pattern)) {
 			throw new Error(`Invalid glob pattern: ${pattern}`);
 		}

@@ -58,9 +58,7 @@ export async function showSnapshotSelection(
 				});
 			} catch (error) {
 				vscode.window.showErrorMessage(
-					`Failed to load snapshots: ${
-						error instanceof Error ? error.message : String(error)
-					}`,
+					`Failed to load snapshots: ${error instanceof Error ? error.message : String(error)}`,
 				);
 				return undefined;
 			}
@@ -73,9 +71,7 @@ export async function showSnapshotSelection(
  * @param files Array of file paths to select from
  * @returns Promise resolving to array of selected file paths, or undefined if cancelled
  */
-export async function showFileSelection(
-	files: string[],
-): Promise<string[] | undefined> {
+export async function showFileSelection(files: string[]): Promise<string[] | undefined> {
 	// Format files for quick pick with checkboxes
 	const fileItems = files.map((file) => ({
 		label: file,
@@ -159,13 +155,8 @@ export async function confirmRestoration(
 */
 
 // MVP implementation uses inline CodeLens + status-bar toast instead of modals
-export async function confirmRestoration(
-	_snapshotName: string,
-	_fileCount?: number,
-): Promise<boolean> {
+export async function confirmRestoration(_snapshotName: string, _fileCount?: number): Promise<boolean> {
 	// In MVP, restoration confirmation is handled via inline UI elements
 	// This function is a placeholder that will be replaced with inline implementation
-	throw new Error(
-		"Restoration confirmation modal replaced with inline UI in MVP",
-	);
+	throw new Error("Restoration confirmation modal replaced with inline UI in MVP");
 }

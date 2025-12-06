@@ -113,22 +113,10 @@ export class ContextKeyManager {
 		assistantDetails: Record<string, string>;
 	}): void {
 		this.setContextKey(CONTEXT_KEYS.AI_DETECTED, aiInfo.hasAI);
-		this.setContextKey(
-			CONTEXT_KEYS.GITHUB_COPILOT_DETECTED,
-			aiInfo.detectedAssistants.includes("GITHUB_COPILOT"),
-		);
-		this.setContextKey(
-			CONTEXT_KEYS.CLAUDE_DETECTED,
-			aiInfo.detectedAssistants.includes("CLAUDE"),
-		);
-		this.setContextKey(
-			CONTEXT_KEYS.TABNINE_DETECTED,
-			aiInfo.detectedAssistants.includes("TABNINE"),
-		);
-		this.setContextKey(
-			CONTEXT_KEYS.CODEIUM_DETECTED,
-			aiInfo.detectedAssistants.includes("CODEIUM"),
-		);
+		this.setContextKey(CONTEXT_KEYS.GITHUB_COPILOT_DETECTED, aiInfo.detectedAssistants.includes("GITHUB_COPILOT"));
+		this.setContextKey(CONTEXT_KEYS.CLAUDE_DETECTED, aiInfo.detectedAssistants.includes("CLAUDE"));
+		this.setContextKey(CONTEXT_KEYS.TABNINE_DETECTED, aiInfo.detectedAssistants.includes("TABNINE"));
+		this.setContextKey(CONTEXT_KEYS.CODEIUM_DETECTED, aiInfo.detectedAssistants.includes("CODEIUM"));
 	}
 
 	/**

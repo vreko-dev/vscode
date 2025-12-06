@@ -18,9 +18,7 @@ import {
  * Single source of truth for protection level signage.
  * If you change emoji/labels here, the whole UI updates.
  */
-export const PROTECTION_LEVEL_SIGNAGE: Readonly<
-	Record<ProtectionLevelCanonical, ProtectionLevelSignage>
-> = {
+export const PROTECTION_LEVEL_SIGNAGE: Readonly<Record<ProtectionLevelCanonical, ProtectionLevelSignage>> = {
 	watch: {
 		level: PROTECTION_LEVEL_CANONICAL.WATCH,
 		label: "Watch",
@@ -29,8 +27,7 @@ export const PROTECTION_LEVEL_SIGNAGE: Readonly<
 		color: "#10B981",
 		themeColor: "charts.green",
 		description: "Auto-snapshot on save with zero friction.",
-		tooltip:
-			"Watch: auto-snapshot on save. No prompts, minimal friction, ideal for low-risk files.",
+		tooltip: "Watch: auto-snapshot on save. No prompts, minimal friction, ideal for low-risk files.",
 	},
 	warn: {
 		level: PROTECTION_LEVEL_CANONICAL.WARN,
@@ -40,8 +37,7 @@ export const PROTECTION_LEVEL_SIGNAGE: Readonly<
 		color: "#FACC15", // yellow
 		themeColor: "charts.yellow",
 		description: "Notify before save; review changes and confirm.",
-		tooltip:
-			"Warn: confirm before save. Review the diff and choose when to create snapshots.",
+		tooltip: "Warn: confirm before save. Review the diff and choose when to create snapshots.",
 	},
 	block: {
 		level: PROTECTION_LEVEL_CANONICAL.BLOCK,
@@ -51,8 +47,7 @@ export const PROTECTION_LEVEL_SIGNAGE: Readonly<
 		color: "#EF4444",
 		themeColor: "charts.red",
 		description: "Require snapshot or explicit override before saving.",
-		tooltip:
-			"Block: require a snapshot or explicit override for critical files before save.",
+		tooltip: "Block: require a snapshot or explicit override for critical files before save.",
 	},
 } as const;
 
@@ -60,17 +55,14 @@ export const PROTECTION_LEVEL_SIGNAGE: Readonly<
  * Repo-level protection status signage.
  * This is about *coverage* over critical files, not individual file levels.
  */
-export const REPO_STATUS_SIGNAGE: Readonly<
-	Record<RepoStatusCanonical, RepoStatusSignage>
-> = {
+export const REPO_STATUS_SIGNAGE: Readonly<Record<RepoStatusCanonical, RepoStatusSignage>> = {
 	unprotected: {
 		status: REPO_STATUS_CANONICAL.UNPROTECTED,
 		label: "Unprotected",
 		emoji: "⭕",
 		color: "#9CA3AF", // gray
 		description: "No critical files are currently protected.",
-		tooltip:
-			"Unprotected: no critical files have protection levels applied in this workspace.",
+		tooltip: "Unprotected: no critical files have protection levels applied in this workspace.",
 	},
 	partial: {
 		status: REPO_STATUS_CANONICAL.PARTIAL,
@@ -78,8 +70,7 @@ export const REPO_STATUS_SIGNAGE: Readonly<
 		emoji: "🟡",
 		color: "#FACC15",
 		description: "Some critical files are protected; others are not.",
-		tooltip:
-			"Partial: some critical files are protected, but there are gaps in coverage.",
+		tooltip: "Partial: some critical files are protected, but there are gaps in coverage.",
 	},
 	protected: {
 		status: REPO_STATUS_CANONICAL.PROTECTED,
@@ -87,8 +78,7 @@ export const REPO_STATUS_SIGNAGE: Readonly<
 		emoji: "🟢",
 		color: "#10B981",
 		description: "All critical files are covered by protection levels.",
-		tooltip:
-			"Protected: all critical files have an active protection level applied.",
+		tooltip: "Protected: all critical files have an active protection level applied.",
 	},
 	error: {
 		status: REPO_STATUS_CANONICAL.ERROR,
@@ -96,8 +86,7 @@ export const REPO_STATUS_SIGNAGE: Readonly<
 		emoji: "⚠️",
 		color: "#F97316",
 		description: "Repo protection status could not be determined.",
-		tooltip:
-			"Error: SnapBack couldn't compute repo protection status. Check logs or try reloading.",
+		tooltip: "Error: SnapBack couldn't compute repo protection status. Check logs or try reloading.",
 	},
 } as const;
 
@@ -105,9 +94,7 @@ export const REPO_STATUS_SIGNAGE: Readonly<
  * File health decorations used for inline editor badges.
  * These visually describe the *current analysis state*, not the level.
  */
-export const FILE_HEALTH_DECORATIONS: Readonly<
-	Record<FileHealthCanonical, FileHealthDecorationSignage>
-> = {
+export const FILE_HEALTH_DECORATIONS: Readonly<Record<FileHealthCanonical, FileHealthDecorationSignage>> = {
 	protected: {
 		state: FILE_HEALTH_CANONICAL.PROTECTED,
 		label: "Protected",
@@ -146,9 +133,7 @@ export const BRAND_SIGNAGE: BrandSignage = {
 /**
  * Core concept signage (snapshot, session, etc.).
  */
-export const CORE_CONCEPT_SIGNAGE: Readonly<
-	Record<CoreConceptKey, CoreConceptSignage>
-> = {
+export const CORE_CONCEPT_SIGNAGE: Readonly<Record<CoreConceptKey, CoreConceptSignage>> = {
 	snapshot: {
 		key: "snapshot",
 		label: "Snapshot",
@@ -161,8 +146,7 @@ export const CORE_CONCEPT_SIGNAGE: Readonly<
 		label: "Session",
 		emoji: "🕐",
 		codicon: "debug",
-		tooltip:
-			"Time-bounded collection of activity and snapshots (definition evolving).",
+		tooltip: "Time-bounded collection of activity and snapshots (definition evolving).",
 	},
 	protectedFiles: {
 		key: "protectedFiles",
@@ -191,9 +175,7 @@ export const CORE_CONCEPT_SIGNAGE: Readonly<
  * Legacy → canonical mapping helpers
  * to support incremental migration.
  */
-export function legacyProtectionLevelToCanonical(
-	legacy: LegacyProtectionLevelString,
-): ProtectionLevelCanonical {
+export function legacyProtectionLevelToCanonical(legacy: LegacyProtectionLevelString): ProtectionLevelCanonical {
 	switch (legacy) {
 		case "Watched":
 			return PROTECTION_LEVEL_CANONICAL.WATCH;
@@ -209,9 +191,7 @@ export function legacyProtectionLevelToCanonical(
 	}
 }
 
-export function canonicalProtectionLevelToLegacy(
-	level: ProtectionLevelCanonical,
-): LegacyProtectionLevelString {
+export function canonicalProtectionLevelToLegacy(level: ProtectionLevelCanonical): LegacyProtectionLevelString {
 	switch (level) {
 		case PROTECTION_LEVEL_CANONICAL.WATCH:
 			return "Watched";

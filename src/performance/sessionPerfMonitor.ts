@@ -161,11 +161,7 @@ export function resetSessionPerfData(): void {
  * @param value Metric value
  * @param tags Optional tags
  */
-export function recordSessionMetric(
-	name: string,
-	value: number,
-	tags?: Record<string, string | number>,
-): void {
+export function recordSessionMetric(name: string, value: number, tags?: Record<string, string | number>): void {
 	if (sessionPerfMonitor) {
 		sessionPerfMonitor.recordMetric(name, value, tags);
 	}

@@ -75,10 +75,7 @@ export class TelemetryProxy {
 			// Queue on error
 			const eventData = this.enrichEventData(event, properties, options);
 			this.offlineQueue.enqueue(event, eventData);
-			logger.debug(
-				`Event queued due to error: ${event}`,
-				toError(error).message,
-			);
+			logger.debug(`Event queued due to error: ${event}`, toError(error).message);
 		}
 	}
 
@@ -112,16 +109,11 @@ export class TelemetryProxy {
 	 * Send event to telemetry endpoint
 	 * Returns true if successful, false otherwise
 	 */
-	private async sendEvent(
-		eventData: Record<string, unknown>,
-	): Promise<boolean> {
+	private async sendEvent(eventData: Record<string, unknown>): Promise<boolean> {
 		const result = await this.sendEventWithRetry(eventData);
 
 		if (!result.success) {
-			logger.warn(
-				`Telemetry failed: ${result.message || "Unknown error"}`,
-				result.error,
-			);
+			logger.warn(`Telemetry failed: ${result.message || "Unknown error"}`, result.error);
 			return false;
 		}
 
@@ -133,26 +125,23 @@ export class TelemetryProxy {
 		eventData: Record<string, unknown>,
 	): Promise<{ success: boolean; message?: string; error?: Error }> {
 		try {
-			const response = await fetch(
-				`${this.apiBaseUrl}/api/rpc/telemetry.proxyEvent`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(eventData),
+			const response = await fetch(`${this.apiBaseUrl}/api/rpc/telemetry.proxyEvent`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
 				},
-			);
+				body: JSON.stringify(eventData),
+			});
 
 			if (!response.ok) {
-				logger.warn(
-					`Telemetry HTTP ${response.status}: ${response.statusText}`,
-				);
+				logger.warn(`Telemetry HTTP ${response.status}: ${response.statusText}`);
 				return { success: false, message: response.statusText };
 			}
 
-			const result: { success: boolean; message?: string } =
-				(await response.json()) as { success: boolean; message?: string };
+			const result: { success: boolean; message?: string } = (await response.json()) as {
+				success: boolean;
+				message?: string;
+			};
 			if (!result.success) {
 				logger.warn(`Telemetry failed: ${result.message || "Unknown error"}`);
 				return result;
@@ -171,10 +160,7 @@ export class TelemetryProxy {
 			};
 
 			if (!result.success) {
-				logger.warn(
-					`Telemetry failed: ${result.message || "Unknown error"}`,
-					error as Error,
-				);
+				logger.warn(`Telemetry failed: ${result.message || "Unknown error"}`, error as Error);
 			}
 
 			return Promise.resolve(result);
@@ -185,11 +171,7 @@ export class TelemetryProxy {
 	 * Identify a user
 	 * Links the authenticated ID with any previous anonymous ID
 	 */
-	async identify(
-		distinctId: string,
-		anonymousId?: string,
-		properties: Record<string, unknown> = {},
-	): Promise<void> {
+	async identify(distinctId: string, anonymousId?: string, properties: Record<string, unknown> = {}): Promise<void> {
 		const payload = {
 			distinctId,
 			anonymousId,
@@ -325,9 +307,7 @@ export class TelemetryProxy {
 				}
 
 				// Attempt to send
-				const success = await this.sendEvent(
-					queuedEvent.properties as Record<string, unknown>,
-				);
+				const success = await this.sendEvent(queuedEvent.properties as Record<string, unknown>);
 
 				if (success) {
 					// Remove from queue on success
@@ -337,12 +317,8 @@ export class TelemetryProxy {
 				} else {
 					// Increment retry count and wait
 					this.offlineQueue.incrementRetryCount(queuedEvent.id);
-					const retryDelay = this.offlineQueue.getRetryDelay(
-						queuedEvent.retryCount + 1,
-					);
-					logger.debug(
-						`Event retry scheduled in ${retryDelay}ms: ${queuedEvent.event}`,
-					);
+					const retryDelay = this.offlineQueue.getRetryDelay(queuedEvent.retryCount + 1);
+					logger.debug(`Event retry scheduled in ${retryDelay}ms: ${queuedEvent.event}`);
 
 					// Schedule retry with exponential backoff
 					this.scheduleNextProcessing(retryDelay);

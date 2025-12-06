@@ -104,8 +104,7 @@ export function registerPolicyOverrideCommands(
 				}
 
 				// Get workspace root
-				const workspaceRoot =
-					vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+				const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 				if (!workspaceRoot) {
 					vscode.window.showErrorMessage("No workspace folder found");
 					return;
@@ -128,8 +127,7 @@ export function registerPolicyOverrideCommands(
 					[
 						{
 							label: `${watchSignage.emoji} ${watchSignage.label}`,
-							description:
-								watchSignage.description || "Silent auto-snapshotting",
+							description: watchSignage.description || "Silent auto-snapshotting",
 							value: "watch",
 						},
 						{
@@ -139,9 +137,7 @@ export function registerPolicyOverrideCommands(
 						},
 						{
 							label: `${blockSignage.emoji} ${blockSignage.label}`,
-							description:
-								blockSignage.description ||
-								"Require snapshot or explicit override",
+							description: blockSignage.description || "Require snapshot or explicit override",
 							value: "block",
 						},
 						{
@@ -214,14 +210,8 @@ export function registerPolicyOverrideCommands(
 					`Policy override created for "${filePath}" with level "${newLevel.label}" (${ttl.label})`,
 				);
 			} catch (error) {
-				vscode.window.showErrorMessage(
-					`Failed to create policy override: ${(error as Error).message}`,
-				);
-				logger.error(
-					"Failed to create policy override",
-					error instanceof Error ? error : undefined,
-					{ error },
-				);
+				vscode.window.showErrorMessage(`Failed to create policy override: ${(error as Error).message}`);
+				logger.error("Failed to create policy override", error instanceof Error ? error : undefined, { error });
 			}
 		},
 	);

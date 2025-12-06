@@ -68,10 +68,7 @@ export class WelcomeErrorRecovery {
 	/**
 	 * Handle authentication failure during welcome panel
 	 */
-	async handleAuthError(
-		error: Error,
-		userId?: string,
-	): Promise<RecoveryAction> {
+	async handleAuthError(error: Error, userId?: string): Promise<RecoveryAction> {
 		const errorState: ErrorState = {
 			code: WELCOME_ERROR_CODES.AUTH_FAILED,
 			message: "Failed to authenticate during welcome setup",
@@ -145,9 +142,7 @@ export class WelcomeErrorRecovery {
 	/**
 	 * Handle corrupted or missing panel state
 	 */
-	async handleStateCorruption(
-		missingFields: string[],
-	): Promise<RecoveryAction> {
+	async handleStateCorruption(missingFields: string[]): Promise<RecoveryAction> {
 		const errorState: ErrorState = {
 			code: WELCOME_ERROR_CODES.STATE_CORRUPTION,
 			message: `Missing required state: ${missingFields.join(", ")}`,
@@ -259,10 +254,7 @@ export class WelcomeErrorRecovery {
 		}
 
 		// Switch to fallback if max retries exceeded
-		if (
-			recovery.currentAttempt >= recovery.maxAttempts &&
-			errorState.recoverable
-		) {
+		if (recovery.currentAttempt >= recovery.maxAttempts && errorState.recoverable) {
 			recovery.type = "fallback";
 			logger.info("Switching to fallback UI after max retries", {
 				errorCode: errorState.code,
@@ -276,10 +268,7 @@ export class WelcomeErrorRecovery {
 	/**
 	 * Execute retry with exponential backoff
 	 */
-	async executeRetry<T>(
-		action: () => Promise<T>,
-		errorCode: string,
-	): Promise<T | null> {
+	async executeRetry<T>(action: () => Promise<T>, errorCode: string): Promise<T | null> {
 		try {
 			const result = await withRetry(action, {
 				...RetryPresets.network,

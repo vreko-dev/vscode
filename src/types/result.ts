@@ -21,9 +21,7 @@
  * }
  * ```
  */
-export type Result<T, E = Error> =
-	| { success: true; value: T }
-	| { success: false; error: E };
+export type Result<T, E = Error> = { success: true; value: T } | { success: false; error: E };
 
 /**
  * Creates a successful result
@@ -72,9 +70,7 @@ export function Err<E = Error>(error: E): Result<never, E> {
  * }
  * ```
  */
-export function isOk<T, E>(
-	result: Result<T, E>,
-): result is { success: true; value: T } {
+export function isOk<T, E>(result: Result<T, E>): result is { success: true; value: T } {
 	return result.success === true;
 }
 
@@ -93,9 +89,7 @@ export function isOk<T, E>(
  * }
  * ```
  */
-export function isErr<T, E>(
-	result: Result<T, E>,
-): result is { success: false; error: E } {
+export function isErr<T, E>(result: Result<T, E>): result is { success: false; error: E } {
 	return result.success === false;
 }
 
@@ -164,10 +158,7 @@ export function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T {
  * }); // Logs error and returns 0
  * ```
  */
-export function unwrapOrElse<T, E>(
-	result: Result<T, E>,
-	fn: (error: E) => T,
-): T {
+export function unwrapOrElse<T, E>(result: Result<T, E>, fn: (error: E) => T): T {
 	if (isOk(result)) {
 		return result.value;
 	}
@@ -188,10 +179,7 @@ export function unwrapOrElse<T, E>(
  * // doubled: Ok(10)
  * ```
  */
-export function map<T, U, E>(
-	result: Result<T, E>,
-	fn: (value: T) => U,
-): Result<U, E> {
+export function map<T, U, E>(result: Result<T, E>, fn: (value: T) => U): Result<U, E> {
 	if (isOk(result)) {
 		return Ok(fn(result.value));
 	}
@@ -211,10 +199,7 @@ export function map<T, U, E>(
  * const wrappedError = mapErr(result, (err) => new CustomError(err));
  * ```
  */
-export function mapErr<T, E, F>(
-	result: Result<T, E>,
-	fn: (error: E) => F,
-): Result<T, F> {
+export function mapErr<T, E, F>(result: Result<T, E>, fn: (error: E) => F): Result<T, F> {
 	if (isErr(result)) {
 		return Err(fn(result.error));
 	}
@@ -235,10 +220,7 @@ export function mapErr<T, E, F>(
  * // chained: Ok(2.5)
  * ```
  */
-export function andThen<T, U, E>(
-	result: Result<T, E>,
-	fn: (value: T) => Result<U, E>,
-): Result<U, E> {
+export function andThen<T, U, E>(result: Result<T, E>, fn: (value: T) => Result<U, E>): Result<U, E> {
 	if (isOk(result)) {
 		return fn(result.value);
 	}
@@ -261,9 +243,7 @@ export function andThen<T, U, E>(
  * }
  * ```
  */
-export async function fromPromise<T>(
-	promise: Promise<T>,
-): Promise<Result<T, Error>> {
+export async function fromPromise<T>(promise: Promise<T>): Promise<Result<T, Error>> {
 	try {
 		const value = await promise;
 		return Ok(value);
@@ -379,9 +359,7 @@ export function allOrErrors<T, E>(results: Result<T, E>[]): Result<T[], E[]> {
  * const failed = safeParseInt('abc'); // Err(Error('Not a number'))
  * ```
  */
-export function tryCatch<T, Args extends unknown[]>(
-	fn: (...args: Args) => T,
-): (...args: Args) => Result<T, Error> {
+export function tryCatch<T, Args extends unknown[]>(fn: (...args: Args) => T): (...args: Args) => Result<T, Error> {
 	return (...args: Args): Result<T, Error> => {
 		try {
 			return Ok(fn(...args));

@@ -66,14 +66,9 @@ export class UpdateConfigurationCommand {
 					progress.report({ increment: 20, message: "Done!" });
 					await this.showUpdateSuggestions(configDifferences, configPath);
 				} catch (error) {
-					logger.error(
-						"[SnapBack] Configuration update error:",
-						error instanceof Error ? error : undefined,
-					);
+					logger.error("[SnapBack] Configuration update error:", error instanceof Error ? error : undefined);
 					vscode.window.showErrorMessage(
-						`Configuration analysis failed: ${
-							error instanceof Error ? error.message : "Unknown error"
-						}`,
+						`Configuration analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`,
 					);
 				}
 			},
@@ -85,10 +80,7 @@ export class UpdateConfigurationCommand {
 		const configFiles = await this.configDetector.detectConfigFiles();
 
 		// Get all files in the workspace
-		const allFiles = await vscode.workspace.findFiles(
-			"**/*",
-			"{node_modules/**,.git/**,dist/**,build/**}",
-		);
+		const allFiles = await vscode.workspace.findFiles("**/*", "{node_modules/**,.git/**,dist/**,build/**}");
 
 		const fileStatuses: FileProtectionStatus[] = [];
 
@@ -111,9 +103,7 @@ export class UpdateConfigurationCommand {
 			const protectionInfo = this.getSuggestedProtectionLevel(relativePath);
 
 			// Check if this file is already in our list
-			const existingIndex = fileStatuses.findIndex(
-				(f) => f.filePath === relativePath,
-			);
+			const existingIndex = fileStatuses.findIndex((f) => f.filePath === relativePath);
 			if (existingIndex >= 0) {
 				// Update existing entry
 				fileStatuses[existingIndex].suggestedProtection = protectionInfo.level;
@@ -254,17 +244,11 @@ export class UpdateConfigurationCommand {
 		return { level: null };
 	}
 
-	private async handleMissingConfig(
-		fileStatuses: FileProtectionStatus[],
-	): Promise<void> {
-		const protectedFiles = fileStatuses.filter(
-			(f) => f.suggestedProtection !== null,
-		);
+	private async handleMissingConfig(fileStatuses: FileProtectionStatus[]): Promise<void> {
+		const protectedFiles = fileStatuses.filter((f) => f.suggestedProtection !== null);
 
 		if (protectedFiles.length === 0) {
-			vscode.window.showInformationMessage(
-				"No files requiring protection were found in your project.",
-			);
+			vscode.window.showInformationMessage("No files requiring protection were found in your project.");
 			return;
 		}
 
@@ -289,34 +273,20 @@ export class UpdateConfigurationCommand {
 			// For now, we'll just return all files that should be protected
 			return fileStatuses.filter((f) => f.suggestedProtection !== null);
 		} catch (error) {
-			logger.error(
-				"Error reading config file:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error reading config file:", error instanceof Error ? error : undefined);
 			return fileStatuses.filter((f) => f.suggestedProtection !== null);
 		}
 	}
 
-	private async showUpdateSuggestions(
-		differences: FileProtectionStatus[],
-		_configPath: string,
-	): Promise<void> {
+	private async showUpdateSuggestions(differences: FileProtectionStatus[], _configPath: string): Promise<void> {
 		if (differences.length === 0) {
-			vscode.window.showInformationMessage(
-				"✅ SnapBack configuration is up to date with your project files.",
-			);
+			vscode.window.showInformationMessage("✅ SnapBack configuration is up to date with your project files.");
 			return;
 		}
 
-		const blockFiles = differences.filter(
-			(d) => d.suggestedProtection === "block",
-		);
-		const warnFiles = differences.filter(
-			(d) => d.suggestedProtection === "warn",
-		);
-		const watchFiles = differences.filter(
-			(d) => d.suggestedProtection === "watch",
-		);
+		const blockFiles = differences.filter((d) => d.suggestedProtection === "block");
+		const warnFiles = differences.filter((d) => d.suggestedProtection === "warn");
+		const watchFiles = differences.filter((d) => d.suggestedProtection === "watch");
 
 		let _message = `Found ${differences.length} files with suggested protection levels:\n`;
 		if (blockFiles.length > 0)
@@ -367,9 +337,7 @@ export class UpdateConfigurationCommand {
 		);
 	}
 
-	private async createConfigurationFromSuggestions(
-		protectedFiles: FileProtectionStatus[],
-	): Promise<void> {
+	private async createConfigurationFromSuggestions(protectedFiles: FileProtectionStatus[]): Promise<void> {
 		const config: SnapBackRC = {
 			protection: protectedFiles
 				.filter((f) => f.suggestedProtection)
@@ -415,10 +383,7 @@ export class UpdateConfigurationCommand {
 		await vscode.window.showTextDocument(doc);
 	}
 
-	private async writeConfiguration(
-		rcPath: string,
-		config: SnapBackRC,
-	): Promise<void> {
+	private async writeConfiguration(rcPath: string, config: SnapBackRC): Promise<void> {
 		// Convert to JSON with proper formatting
 		const content = JSON.stringify(config, null, 2);
 		await fs.writeFile(rcPath, content, "utf8");

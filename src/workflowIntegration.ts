@@ -288,10 +288,7 @@ export class WorkflowIntegration {
 			 */
 			const riskSeverity = context.riskPatterns.length;
 			const baseConfidence = 80;
-			const calculatedConfidence = Math.min(
-				95,
-				baseConfidence + riskSeverity * 5,
-			);
+			const calculatedConfidence = Math.min(95, baseConfidence + riskSeverity * 5);
 
 			suggestions.push({
 				id: `suggestion-${Date.now()}-2`,
@@ -323,10 +320,7 @@ export class WorkflowIntegration {
 			 * Base confidence: 60%, adjusted by sensitivity level and access patterns
 			 */
 			const sensitivityBonus = context.sensitiveFiles.some(
-				(file) =>
-					file.includes("key") ||
-					file.includes("secret") ||
-					file.includes("password"),
+				(file) => file.includes("key") || file.includes("secret") || file.includes("password"),
 			)
 				? 20
 				: 10;
@@ -334,8 +328,7 @@ export class WorkflowIntegration {
 			suggestions.push({
 				id: `suggestion-${Date.now()}-3`,
 				title: "Sensitive Files Detected",
-				description:
-					"Sensitive configuration files detected. Consider adding protection.",
+				description: "Sensitive configuration files detected. Consider adding protection.",
 				action: "protect_sensitive_files",
 				confidence: 60 + sensitivityBonus,
 				priority: sensitivityBonus > 15 ? "high" : "medium",

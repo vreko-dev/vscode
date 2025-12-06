@@ -54,10 +54,7 @@ export default defineConfig({
 			"@": path.resolve(__dirname, "./src"),
 			"@test": path.resolve(__dirname, "./test"),
 			"@snapback/core": path.resolve(__dirname, "../../packages/core/src"),
-			"@snapback/contracts": path.resolve(
-				__dirname,
-				"../../packages/contracts/src",
-			),
+			"@snapback/contracts": path.resolve(__dirname, "../../packages/contracts/src"),
 		},
 	},
 });

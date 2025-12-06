@@ -179,9 +179,7 @@ export class GlobValidator {
 	 */
 	public sanitizeGlobPattern(pattern: string): string {
 		if (!this.isGlobSafe(pattern)) {
-			throw new Error(
-				"Unsafe glob pattern detected: Pattern violates security constraints",
-			);
+			throw new Error("Unsafe glob pattern detected: Pattern violates security constraints");
 		}
 		return pattern;
 	}

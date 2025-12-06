@@ -125,9 +125,7 @@ export class SnapshotNamingStrategy {
 		// Priority 1: Check for test files (highest priority)
 		const testFiles = files.filter((f) => this.isTestFile(f.path));
 		if (testFiles.length > 0 && testFiles.length === files.length) {
-			return `Updated ${testFiles.length} test${
-				testFiles.length > 1 ? "s" : ""
-			}`;
+			return `Updated ${testFiles.length} test${testFiles.length > 1 ? "s" : ""}`;
 		}
 
 		// Priority 2: Check for dependency files
@@ -139,17 +137,13 @@ export class SnapshotNamingStrategy {
 		// Priority 3: Check for config files (all files must be configs)
 		const configFiles = files.filter((f) => this.isConfigFile(f.path));
 		if (configFiles.length > 0 && configFiles.length === files.length) {
-			return `Modified ${configFiles.length} config${
-				configFiles.length > 1 ? "s" : ""
-			}`;
+			return `Modified ${configFiles.length} config${configFiles.length > 1 ? "s" : ""}`;
 		}
 
 		// Priority 4: Mixed types with test files - prioritize test detection
 		if (testFiles.length > 0 && testFiles.length < files.length) {
 			// Has test files mixed with other types
-			return `Updated ${testFiles.length} test${
-				testFiles.length > 1 ? "s" : ""
-			}`;
+			return `Updated ${testFiles.length} test${testFiles.length > 1 ? "s" : ""}`;
 		}
 
 		return null;
@@ -162,9 +156,7 @@ export class SnapshotNamingStrategy {
 	 * @param info - Snapshot information
 	 * @returns Promise resolving to content-based name or null
 	 */
-	private async tryContentAnalysisNaming(
-		info: SnapshotInfo,
-	): Promise<string | null> {
+	private async tryContentAnalysisNaming(info: SnapshotInfo): Promise<string | null> {
 		try {
 			// Count both imports and structure changes
 			const importCount = await this.countImportChanges(info.files);
@@ -209,10 +201,7 @@ export class SnapshotNamingStrategy {
 	 * @returns Fallback name
 	 */
 	private fallbackNaming(info: SnapshotInfo): string {
-		const totalLines = info.files.reduce(
-			(sum, file) => sum + file.linesAdded + file.linesDeleted,
-			0,
-		);
+		const totalLines = info.files.reduce((sum, file) => sum + file.linesAdded + file.linesDeleted, 0);
 		const fileCount = info.files.length;
 
 		// Check if files are code files (should use git-style format)
@@ -275,16 +264,10 @@ export class SnapshotNamingStrategy {
 	 * @param filePath - Path to the file
 	 * @returns Git-style name (e.g., "Added auth.ts")
 	 */
-	private generateSingleFileGitName(
-		status: "added" | "modified" | "deleted",
-		filePath: string,
-	): string {
+	private generateSingleFileGitName(status: "added" | "modified" | "deleted", filePath: string): string {
 		const basename = path.basename(filePath);
 		const sanitizedName = this.sanitizeFilename(basename);
-		const truncatedName = this.truncatePath(
-			sanitizedName,
-			SnapshotNamingStrategy.MAX_NAME_LENGTH - 20,
-		);
+		const truncatedName = this.truncatePath(sanitizedName, SnapshotNamingStrategy.MAX_NAME_LENGTH - 20);
 
 		switch (status) {
 			case "added":
@@ -318,9 +301,7 @@ export class SnapshotNamingStrategy {
 
 		// Find common directory
 		const commonDir = this.findCommonDirectory(files);
-		const dirName = commonDir
-			? this.getRelativeDirectory(commonDir)
-			: "workspace";
+		const dirName = commonDir ? this.getRelativeDirectory(commonDir) : "workspace";
 
 		return `${statusSummary} in ${dirName}`;
 	}
@@ -346,9 +327,7 @@ export class SnapshotNamingStrategy {
 
 		for (let i = 0; i < firstSegments.length; i++) {
 			const segment = firstSegments[i];
-			const allMatch = segmentArrays.every(
-				(segments) => segments[i] === segment,
-			);
+			const allMatch = segmentArrays.every((segments) => segments[i] === segment);
 
 			if (allMatch) {
 				commonSegments.push(segment);
@@ -412,11 +391,7 @@ export class SnapshotNamingStrategy {
 		const basename = path.basename(dirPath);
 
 		// Filter out temporary directory names (like snapback-naming-test-xxx)
-		if (
-			basename.includes("tmp") ||
-			basename.includes("test-") ||
-			basename.startsWith(".")
-		) {
+		if (basename.includes("tmp") || basename.includes("test-") || basename.startsWith(".")) {
 			// Try to extract from file paths instead
 			if (files.length > 0) {
 				const firstFile = files[0].path;
@@ -425,12 +400,7 @@ export class SnapshotNamingStrategy {
 				// Look for meaningful directory names (not temp dirs)
 				for (let i = parts.length - 2; i >= 0; i--) {
 					const part = parts[i];
-					if (
-						!part.includes("tmp") &&
-						!part.includes("test-") &&
-						!part.startsWith(".") &&
-						part.length > 2
-					) {
+					if (!part.includes("tmp") && !part.includes("test-") && !part.startsWith(".") && part.length > 2) {
 						return part;
 					}
 				}
@@ -453,17 +423,8 @@ export class SnapshotNamingStrategy {
 		const ext = path.extname(filePath).toLowerCase();
 
 		// Special case: known non-extension files that are code-related
-		const knownCodeFiles = [
-			"Dockerfile",
-			"Makefile",
-			"README.md",
-			".gitignore",
-		];
-		if (
-			knownCodeFiles.some(
-				(known) => basename === known || basename.endsWith(known),
-			)
-		) {
+		const knownCodeFiles = ["Dockerfile", "Makefile", "README.md", ".gitignore"];
+		if (knownCodeFiles.some((known) => basename === known || basename.endsWith(known))) {
 			return true;
 		}
 

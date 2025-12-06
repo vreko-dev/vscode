@@ -11,9 +11,9 @@
  * Flow: ProtectionDecision → SnapshotOrchestrator → Persisted Snapshot
  */
 
-import type { ProtectionDecision, SnapshotIntent } from "./types";
-import type { FileInfo } from "./signalAggregator";
 import type { IKeyValueStorage } from "@snapback/sdk";
+import type { FileInfo } from "./signalAggregator";
+import type { ProtectionDecision, SnapshotIntent } from "./types";
 
 export interface SnapshotMetadata {
 	riskScore: number;
@@ -58,11 +58,7 @@ export class SnapshotOrchestrator {
 		snapshotRetentionDays: 7,
 	};
 
-	constructor(
-		repoId: string,
-		config?: Partial<SnapshotConfig>,
-		storage?: IKeyValueStorage,
-	) {
+	constructor(repoId: string, config?: Partial<SnapshotConfig>, storage?: IKeyValueStorage) {
 		this.repoId = repoId;
 		this.storage = storage ?? null;
 		if (config) {
@@ -71,9 +67,7 @@ export class SnapshotOrchestrator {
 		// Load persisted snapshots if storage available (fire and forget)
 		if (this.storage) {
 			// Non-blocking async load
-			Promise.resolve(this.loadFromStorage()).catch((error) =>
-				console.error("Failed to load snapshots:", error),
-			);
+			Promise.resolve(this.loadFromStorage()).catch((error) => console.error("Failed to load snapshots:", error));
 		}
 	}
 
@@ -83,9 +77,7 @@ export class SnapshotOrchestrator {
 	private async loadFromStorage(): Promise<void> {
 		if (!this.storage) return;
 		try {
-			const stored = await this.storage.get<PersistedSnapshot[]>(
-				"snapback.snapshots",
-			);
+			const stored = await this.storage.get<PersistedSnapshot[]>("snapback.snapshots");
 			if (stored && Array.isArray(stored)) {
 				for (const snapshot of stored) {
 					this.snapshots.set(snapshot.id, snapshot);
@@ -113,10 +105,7 @@ export class SnapshotOrchestrator {
 	/**
 	 * Create snapshot from ProtectionDecision
 	 */
-	async createSnapshot(
-		decision: ProtectionDecision,
-		files: FileInfo[],
-	): Promise<PersistedSnapshot | null> {
+	async createSnapshot(decision: ProtectionDecision, files: FileInfo[]): Promise<PersistedSnapshot | null> {
 		if (!decision.createSnapshot) {
 			return null;
 		}
@@ -200,9 +189,7 @@ export class SnapshotOrchestrator {
 	 */
 	private async enforceStorageLimits(): Promise<void> {
 		// Sort by timestamp (oldest first)
-		const sorted = Array.from(this.snapshots.values()).sort(
-			(a, b) => a.timestamp - b.timestamp,
-		);
+		const sorted = Array.from(this.snapshots.values()).sort((a, b) => a.timestamp - b.timestamp);
 
 		// Remove oldest until we have space
 		for (const snapshot of sorted) {
@@ -255,9 +242,7 @@ export class SnapshotOrchestrator {
 	/**
 	 * Restore snapshot to workspace
 	 */
-	async restoreSnapshot(
-		id: string,
-	): Promise<{ success: boolean; filesRestored: number }> {
+	async restoreSnapshot(id: string): Promise<{ success: boolean; filesRestored: number }> {
 		const snapshot = this.snapshots.get(id);
 		if (!snapshot) {
 			return { success: false, filesRestored: 0 };
@@ -275,12 +260,7 @@ export class SnapshotOrchestrator {
 	 * Clean up expired snapshots
 	 */
 	async cleanup(): Promise<void> {
-		const maxAge =
-			this.config.snapshotRetentionDays *
-			24 *
-			60 *
-			60 *
-			1000;
+		const maxAge = this.config.snapshotRetentionDays * 24 * 60 * 60 * 1000;
 		const now = Date.now();
 
 		const toDelete: string[] = [];
@@ -315,10 +295,7 @@ export class SnapshotOrchestrator {
 		return {
 			used: this.totalStorageUsed,
 			available,
-			utilizationPercent: (
-				(this.totalStorageUsed / this.config.maxStorageBytes) *
-				100
-			).toFixed(1),
+			utilizationPercent: ((this.totalStorageUsed / this.config.maxStorageBytes) * 100).toFixed(1),
 			snapshotCount: this.snapshots.size,
 		};
 	}
@@ -343,9 +320,7 @@ export class SnapshotOrchestrator {
 	/**
 	 * Convert decision to snapshot trigger
 	 */
-	private decisionToTrigger(
-		decision: ProtectionDecision,
-	): "auto" | "ai-detected" | "manual" | "burst" {
+	private decisionToTrigger(decision: ProtectionDecision): "auto" | "ai-detected" | "manual" | "burst" {
 		if (decision.reasons.includes("ai_detected")) {
 			return "ai-detected";
 		}
@@ -367,9 +342,6 @@ export class SnapshotOrchestrator {
 /**
  * Factory for creating SnapshotOrchestrator
  */
-export function createSnapshotOrchestrator(
-	repoId: string,
-	config?: Partial<SnapshotConfig>,
-): SnapshotOrchestrator {
+export function createSnapshotOrchestrator(repoId: string, config?: Partial<SnapshotConfig>): SnapshotOrchestrator {
 	return new SnapshotOrchestrator(repoId, config);
 }

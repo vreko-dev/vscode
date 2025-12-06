@@ -23,14 +23,8 @@ export class ProtectionConfigManager {
 	 */
 	async initialize(): Promise<void> {
 		// Ensure config files exist with sensible defaults
-		await this.configManager.ensureConfigExists(
-			"protected",
-			this.getDefaultProtectedPatterns(),
-		);
-		await this.configManager.ensureConfigExists(
-			"ignore",
-			this.getDefaultIgnorePatterns(),
-		);
+		await this.configManager.ensureConfigExists("protected", this.getDefaultProtectedPatterns());
+		await this.configManager.ensureConfigExists("ignore", this.getDefaultIgnorePatterns());
 
 		// Load and apply protection settings
 		await this.loadAndApplyProtection();
@@ -52,8 +46,7 @@ export class ProtectionConfigManager {
 
 		// Find all files matching protected patterns (excluding ignored patterns)
 		const includeGlob = `{${protectedPatterns.join(",")}}`;
-		const excludeGlob =
-			ignorePatterns.length > 0 ? `{${ignorePatterns.join(",")}}` : undefined;
+		const excludeGlob = ignorePatterns.length > 0 ? `{${ignorePatterns.join(",")}}` : undefined;
 
 		const files = await vscode.workspace.findFiles(includeGlob, excludeGlob);
 
@@ -72,10 +65,7 @@ export class ProtectionConfigManager {
 		const relativePath = vscode.workspace.asRelativePath(filePath);
 
 		// Check if file is in ignore list
-		const isIgnored = await this.configManager.hasPattern(
-			"ignore",
-			relativePath,
-		);
+		const isIgnored = await this.configManager.hasPattern("ignore", relativePath);
 
 		if (isIgnored) {
 			// Ask user to confirm removal from ignore
@@ -123,10 +113,7 @@ export class ProtectionConfigManager {
 	 * Set up file system watcher for config file changes
 	 */
 	private setupConfigWatcher(): void {
-		const pattern = new vscode.RelativePattern(
-			this.workspaceRoot,
-			".snapback{protected,ignore}",
-		);
+		const pattern = new vscode.RelativePattern(this.workspaceRoot, ".snapback{protected,ignore}");
 
 		this.fileWatcher = vscode.workspace.createFileSystemWatcher(pattern);
 
@@ -143,21 +130,10 @@ export class ProtectionConfigManager {
 				this.reloadDebounceTimer = setTimeout(async () => {
 					try {
 						await this.reloadProtection();
-						showStatusBarMessage(
-							"SnapBack: Protection settings reloaded",
-							"sync",
-							1000,
-						);
+						showStatusBarMessage("SnapBack: Protection settings reloaded", "sync", 1000);
 					} catch (error) {
-						logger.error(
-							"[SnapBack] Error reloading protection:",
-							toError(error),
-						);
-						showStatusBarMessage(
-							"SnapBack: Error reloading protection settings",
-							"error",
-							1000,
-						);
+						logger.error("[SnapBack] Error reloading protection:", toError(error));
+						showStatusBarMessage("SnapBack: Error reloading protection settings", "error", 1000);
 					}
 				}, 500);
 			}),

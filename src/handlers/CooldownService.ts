@@ -108,36 +108,21 @@ export class CooldownService {
 	async setCooldown(
 		filePath: string,
 		protectionLevel: ProtectionLevel,
-		action:
-			| "snapshot_created"
-			| "save_allowed"
-			| "save_blocked"
-			| "user_override",
+		action: "snapshot_created" | "save_allowed" | "save_blocked" | "user_override",
 		snapshotId?: string,
 	): Promise<void> {
 		// Set cooldown duration based on protection level (from SDK centralized thresholds)
 		const cooldownPeriod =
-			protectionLevel === "block"
-				? THRESHOLDS.protection.protectedCooldown
-				: THRESHOLDS.protection.otherCooldown;
+			protectionLevel === "block" ? THRESHOLDS.protection.protectedCooldown : THRESHOLDS.protection.otherCooldown;
 
 		// Set cooldown in cooldown indicator (UI)
 		if (this.cooldownIndicator) {
-			this.cooldownIndicator.setCooldown(
-				filePath,
-				protectionLevel,
-				cooldownPeriod,
-			);
+			this.cooldownIndicator.setCooldown(filePath, protectionLevel, cooldownPeriod);
 		}
 
 		// Set cooldown in registry (persistent storage)
 		try {
-			await this.registry.setCooldown(
-				filePath,
-				protectionLevel,
-				action,
-				snapshotId,
-			);
+			await this.registry.setCooldown(filePath, protectionLevel, action, snapshotId);
 		} catch (error) {
 			logger.warn("Failed to set cooldown in registry", { error });
 		}

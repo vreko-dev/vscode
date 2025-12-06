@@ -73,26 +73,17 @@ export class AnalysisCoordinator {
 		try {
 			// For now, try to get detailed analysis from API for diagnostics
 			const apiClient = new ApiClient();
-			const apiResult = await apiClient.analyzeFiles([
-				{ path: filePath, content },
-			]);
+			const apiResult = await apiClient.analyzeFiles([{ path: filePath, content }]);
 			analysisResult = apiResult as AnalysisResult | BasicAnalysisResult;
 		} catch (error) {
-			logger.error(
-				"API analysis failed, using risk assessment result",
-				error as Error,
-			);
+			logger.error("API analysis failed, using risk assessment result", error as Error);
 			// Fallback to risk assessment result
 			analysisResult = {
 				score: riskAssessment.score / 100, // Normalize to 0-1
 				factors: riskAssessment.factors,
 				recommendations: [],
 				severity:
-					riskAssessment.level === "high"
-						? "critical"
-						: riskAssessment.level === "medium"
-							? "high"
-							: "low",
+					riskAssessment.level === "high" ? "critical" : riskAssessment.level === "medium" ? "high" : "low",
 			};
 		}
 
@@ -100,8 +91,7 @@ export class AnalysisCoordinator {
 		await this.publishDiagnostics(filePath, analysisResult);
 
 		// Check if risk requires blocking
-		const protectionLevel =
-			this.registry.getProtectionLevel(filePath) || "watch";
+		const protectionLevel = this.registry.getProtectionLevel(filePath) || "watch";
 		const blockingResult = await this.handleRiskBasedBlocking(
 			filePath,
 			filename,
@@ -139,10 +129,7 @@ export class AnalysisCoordinator {
 			// Create diagnostics for each factor
 			// Handle both string[] (BasicAnalysisResult) and object[] (AnalysisResult)
 			analysisResult.factors.forEach((factor, index: number) => {
-				const factorMessage =
-					typeof factor === "string"
-						? factor
-						: factor.message || "Unknown issue";
+				const factorMessage = typeof factor === "string" ? factor : factor.message || "Unknown issue";
 				const diagnostic = new vscode.Diagnostic(
 					new vscode.Range(0, 0, 0, 1), // Place at beginning of file for now
 					`SnapBack: ${factorMessage}`,
@@ -185,31 +172,21 @@ export class AnalysisCoordinator {
 			);
 
 			if (selection !== "Save Anyway (Override)") {
-				await this.auditLogger.recordAudit(
-					filePath,
-					protectionLevel,
-					"save_blocked",
-					{
-						reason: "critical_security_issues_blocked",
-						factors: analysisResult.factors,
-						risk_score: analysisResult.score,
-					},
-				);
+				await this.auditLogger.recordAudit(filePath, protectionLevel, "save_blocked", {
+					reason: "critical_security_issues_blocked",
+					factors: analysisResult.factors,
+					risk_score: analysisResult.score,
+				});
 				await this.restoreDocumentContents(document, content);
 				throw new vscode.CancellationError();
 			}
 
 			// Record override
-			await this.auditLogger.recordAudit(
-				filePath,
-				protectionLevel,
-				"save_allowed",
-				{
-					reason: "user_override_critical_security",
-					factors: analysisResult.factors,
-					risk_score: analysisResult.score,
-				},
-			);
+			await this.auditLogger.recordAudit(filePath, protectionLevel, "save_allowed", {
+				reason: "user_override_critical_security",
+				factors: analysisResult.factors,
+				risk_score: analysisResult.score,
+			});
 
 			return { shouldBlock: false, userOverride: true };
 		}
@@ -226,15 +203,10 @@ export class AnalysisCoordinator {
 
 			switch (selection) {
 				case "Cancel Save": {
-					await this.auditLogger.recordAudit(
-						filePath,
-						protectionLevel,
-						"save_blocked",
-						{
-							reason: "critical_security_issues",
-							factors: analysisResult.factors,
-						},
-					);
+					await this.auditLogger.recordAudit(filePath, protectionLevel, "save_blocked", {
+						reason: "critical_security_issues",
+						factors: analysisResult.factors,
+					});
 					await this.restoreDocumentContents(document, content);
 					throw new vscode.CancellationError();
 				}
@@ -256,12 +228,9 @@ export class AnalysisCoordinator {
 					break;
 				default: {
 					// If user closes the dialog without selecting an option, cancel save
-					await this.auditLogger.recordAudit(
-						filePath,
-						protectionLevel,
-						"save_blocked",
-						{ reason: "dialog_cancelled" },
-					);
+					await this.auditLogger.recordAudit(filePath, protectionLevel, "save_blocked", {
+						reason: "dialog_cancelled",
+					});
 					await this.restoreDocumentContents(document, content);
 					throw new vscode.CancellationError();
 				}
@@ -284,15 +253,9 @@ export class AnalysisCoordinator {
 						analysisResult.recommendations?.join("\\n"),
 				);
 			}
-		} else if (
-			analysisResult.severity === "medium" &&
-			analysisResult.factors?.length > 0
-		) {
+		} else if (analysisResult.severity === "medium" && analysisResult.factors?.length > 0) {
 			// For medium severity, show a less intrusive notification
-			vscode.window.setStatusBarMessage(
-				`⚠️ Medium security issues detected in ${filename}`,
-				5000,
-			);
+			vscode.window.setStatusBarMessage(`⚠️ Medium security issues detected in ${filename}`, 5000);
 		}
 
 		return { shouldBlock: false, userOverride: false };
@@ -315,9 +278,7 @@ export class AnalysisCoordinator {
 	/**
 	 * Map analysis severity to VS Code diagnostic severity.
 	 */
-	private getDiagnosticSeverity(
-		severity: string | undefined,
-	): vscode.DiagnosticSeverity {
+	private getDiagnosticSeverity(severity: string | undefined): vscode.DiagnosticSeverity {
 		switch (severity) {
 			case "critical":
 				return vscode.DiagnosticSeverity.Error;
@@ -335,10 +296,7 @@ export class AnalysisCoordinator {
 	/**
 	 * Restore document contents when save is cancelled.
 	 */
-	private async restoreDocumentContents(
-		document: vscode.TextDocument,
-		preSaveContent: string,
-	): Promise<void> {
+	private async restoreDocumentContents(document: vscode.TextDocument, preSaveContent: string): Promise<void> {
 		try {
 			const currentContent = document.getText();
 			if (currentContent === preSaveContent) {

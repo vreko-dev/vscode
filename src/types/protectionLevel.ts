@@ -41,9 +41,7 @@ export type LegacyProtectionLevel = "Watched" | "Warning" | "Protected";
  * @returns Corresponding ProtectionLevel enum value
  * @throws Error if legacy string is not recognized
  */
-export function legacyStringToLevel(
-	legacy: LegacyProtectionLevel,
-): ProtectionLevel {
+export function legacyStringToLevel(legacy: LegacyProtectionLevel): ProtectionLevel {
 	const mapping: Record<LegacyProtectionLevel, ProtectionLevel> = {
 		Watched: ProtectionLevel.Checkpoint,
 		Warning: ProtectionLevel.Guarded,
@@ -58,9 +56,7 @@ export function legacyStringToLevel(
  * @returns Corresponding legacy string ("Watched", "Warning", or "Protected")
  * @throws Error if level is not a valid protection level
  */
-export function levelToLegacyString(
-	level: ProtectionLevel,
-): LegacyProtectionLevel {
+export function levelToLegacyString(level: ProtectionLevel): LegacyProtectionLevel {
 	const mapping: Record<ProtectionLevel, LegacyProtectionLevel> = {
 		[ProtectionLevel.Checkpoint]: "Watched",
 		[ProtectionLevel.Guarded]: "Warning",
@@ -75,13 +71,8 @@ export function levelToLegacyString(
  * @param value - Value to check
  * @returns True if value is a valid legacy protection level
  */
-export function isLegacyProtectionLevel(
-	value: unknown,
-): value is LegacyProtectionLevel {
-	return (
-		typeof value === "string" &&
-		(value === "Watched" || value === "Warning" || value === "Protected")
-	);
+export function isLegacyProtectionLevel(value: unknown): value is LegacyProtectionLevel {
+	return typeof value === "string" && (value === "Watched" || value === "Warning" || value === "Protected");
 }
 
 /**

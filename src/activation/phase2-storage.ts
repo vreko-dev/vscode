@@ -25,10 +25,7 @@ export interface Phase2Result {
 	mcpManager?: MCPLifecycleManager;
 }
 
-export async function initializePhase2Storage(
-	workspaceRoot: string,
-	context: ExtensionContext,
-): Promise<Phase2Result> {
+export async function initializePhase2Storage(workspaceRoot: string, context: ExtensionContext): Promise<Phase2Result> {
 	const phase2Start = Date.now();
 	logger.info("[PERF] Phase 2 starting...");
 
@@ -72,10 +69,7 @@ export async function initializePhase2Storage(
 					logger.info("Snapshot migration completed in background");
 				} catch (migrationError) {
 					logger.warn("Background snapshot migration failed, continuing", {
-						error:
-							migrationError instanceof Error
-								? migrationError.message
-								: String(migrationError),
+						error: migrationError instanceof Error ? migrationError.message : String(migrationError),
 					});
 				}
 			})();
@@ -83,9 +77,7 @@ export async function initializePhase2Storage(
 
 		// Initialize protected file registry
 		const regStart = Date.now();
-		const protectedFileRegistry = new ProtectedFileRegistry(
-			context.workspaceState,
-		);
+		const protectedFileRegistry = new ProtectedFileRegistry(context.workspaceState);
 		console.log("[PERF] ProtectedFileRegistry created", {
 			ms: Date.now() - regStart,
 		});
@@ -97,15 +89,10 @@ export async function initializePhase2Storage(
 			// CooldownCache is now part of StorageManager initialization
 			logger.info("CooldownManager initialized via StorageManager");
 		} catch (cooldownError) {
-			const err =
-				cooldownError instanceof Error
-					? cooldownError
-					: new Error(String(cooldownError));
+			const err = cooldownError instanceof Error ? cooldownError : new Error(String(cooldownError));
 			logger.error("[CooldownManager] Initialization failed", err);
 			// CooldownManager is optional - don't show user error, just warn
-			logger.warn(
-				"[WARN] CooldownManager not available - rate-limiting and audit features disabled",
-			);
+			logger.warn("[WARN] CooldownManager not available - rate-limiting and audit features disabled");
 		}
 
 		const cfgStart = Date.now();
@@ -135,10 +122,7 @@ export async function initializePhase2Storage(
 		// Run async initialization without awaiting
 		const autoInitStart = Date.now();
 		autoProtectConfig.initialize().catch((err) => {
-			logger.error(
-				"[WARN] AutoProtectConfig initialization failed",
-				err as Error,
-			);
+			logger.error("[WARN] AutoProtectConfig initialization failed", err as Error);
 		});
 		console.log("[PERF] AutoProtectConfig.initialize() started", {
 			ms: Date.now() - autoInitStart,
@@ -147,10 +131,7 @@ export async function initializePhase2Storage(
 		// ⚡ Load .snapbackrc asynchronously
 		// Don't await - load in background
 		const loaderStart = Date.now();
-		const snapbackrcLoader = new SnapBackRCLoader(
-			protectedFileRegistry,
-			workspaceRoot,
-		);
+		const snapbackrcLoader = new SnapBackRCLoader(protectedFileRegistry, workspaceRoot);
 		console.log("[PERF] SnapBackRCLoader created", {
 			ms: Date.now() - loaderStart,
 		});
@@ -170,18 +151,13 @@ export async function initializePhase2Storage(
 		});
 
 		// ⚡ Migration check deferred - don't block activation
-		const migrationService = new MigrationService(
-			context,
-			protectedFileRegistry,
-		);
+		const migrationService = new MigrationService(context, protectedFileRegistry);
 		// Run migration check asynchronously
 		migrationService.checkAndMigrate().catch((err) => {
 			logger.error("Migration service failed", err as Error);
 		});
 
-		logger.info(
-			"Storage and configuration components initialized (async ops deferred)",
-		);
+		logger.info("Storage and configuration components initialized (async ops deferred)");
 		console.log("[PERF] Phase 2 completed", { ms: Date.now() - phase2Start });
 		PhaseLogger.logPhase("2: Storage & Configuration");
 
@@ -221,10 +197,7 @@ export async function initializePhase2Storage(
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		const err = error instanceof Error ? error : new Error(String(error));
 
-		logger.error(
-			"[CRITICAL] Failed to initialize storage and configuration components",
-			err,
-		);
+		logger.error("[CRITICAL] Failed to initialize storage and configuration components", err);
 
 		// Show user-facing error
 		vscode.window.showErrorMessage(
@@ -238,9 +211,7 @@ export async function initializePhase2Storage(
 		);
 
 		// Create minimal fallback objects
-		const protectedFileRegistry = new ProtectedFileRegistry(
-			context.workspaceState,
-		);
+		const protectedFileRegistry = new ProtectedFileRegistry(context.workspaceState);
 
 		const configManager = new ConfigFileManager(workspaceRoot);
 		const snapbackrcDecorator = new SnapBackRCDecorator();
@@ -253,10 +224,7 @@ export async function initializePhase2Storage(
 		);
 		await autoProtectConfig.initialize();
 
-		const snapbackrcLoader = new SnapBackRCLoader(
-			protectedFileRegistry,
-			workspaceRoot,
-		);
+		const snapbackrcLoader = new SnapBackRCLoader(protectedFileRegistry, workspaceRoot);
 		await snapbackrcLoader.loadConfig();
 		snapbackrcLoader.watchConfigFile();
 

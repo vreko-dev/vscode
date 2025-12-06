@@ -32,8 +32,7 @@ export function initializeConfig() {
 }
 
 function updateConfig() {
-	const workspaceConfig =
-		vscode.workspace.getConfiguration("snapback.guardian");
+	const workspaceConfig = vscode.workspace.getConfiguration("snapback.guardian");
 	config = {
 		enabled: workspaceConfig.get("enabled", true),
 		warnThreshold: workspaceConfig.get("warnThreshold", 5),

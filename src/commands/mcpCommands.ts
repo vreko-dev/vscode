@@ -102,49 +102,31 @@ export function registerMcpCommands(
 				const currentEnabled = config.get<boolean>("aiDetectionEnabled", true);
 
 				// Persist configuration change
-				await config.update(
-					"aiDetectionEnabled",
-					!currentEnabled,
-					vscode.ConfigurationTarget.Global,
-				);
+				await config.update("aiDetectionEnabled", !currentEnabled, vscode.ConfigurationTarget.Global);
 
 				// Update UI and provide feedback
-				vscode.window.showInformationMessage(
-					`AI Monitoring ${!currentEnabled ? "enabled" : "disabled"}`,
-				);
+				vscode.window.showInformationMessage(`AI Monitoring ${!currentEnabled ? "enabled" : "disabled"}`);
 				statusBar.setProtectionStatus(!currentEnabled ? "protected" : "atRisk");
 			} catch (error) {
-				vscode.window.showErrorMessage(
-					`Failed to toggle AI monitoring: ${error}`,
-				);
+				vscode.window.showErrorMessage(`Failed to toggle AI monitoring: ${error}`);
 			}
 		}),
 	);
 
 	// Command: Show AI Monitoring Status
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.showAIMonitoringStatus",
-			async () => {
-				try {
-					const config = vscode.workspace.getConfiguration("snapback");
-					const aiDetectionEnabled = config.get<boolean>(
-						"aiDetectionEnabled",
-						true,
-					);
+		vscode.commands.registerCommand("snapback.showAIMonitoringStatus", async () => {
+			try {
+				const config = vscode.workspace.getConfiguration("snapback");
+				const aiDetectionEnabled = config.get<boolean>("aiDetectionEnabled", true);
 
-					vscode.window.showInformationMessage(
-						`AI Monitoring is currently ${
-							aiDetectionEnabled ? "enabled" : "disabled"
-						}`,
-					);
-				} catch (error) {
-					vscode.window.showErrorMessage(
-						`Failed to get AI monitoring status: ${error}`,
-					);
-				}
-			},
-		),
+				vscode.window.showInformationMessage(
+					`AI Monitoring is currently ${aiDetectionEnabled ? "enabled" : "disabled"}`,
+				);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to get AI monitoring status: ${error}`);
+			}
+		}),
 	);
 
 	return disposables;

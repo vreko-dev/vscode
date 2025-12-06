@@ -46,9 +46,7 @@ export class SandboxError extends Error {
  * @param filePath Path to the JavaScript/TypeScript file to execute
  * @returns Promise resolving to the sandbox result
  */
-export async function executeSandboxedScriptWrapper(
-	filePath: string,
-): Promise<SandboxResult> {
+export async function executeSandboxedScriptWrapper(filePath: string): Promise<SandboxResult> {
 	const startTime = Date.now();
 
 	try {
@@ -75,15 +73,9 @@ export async function executeSandboxedScriptWrapper(
 			| "ERR_NON_POJO_RETURN"
 			| "ERR_EXECUTION_ERROR" = "ERR_EXECUTION_ERROR";
 
-		if (
-			err.message.includes("timeout") ||
-			err.message.includes("ERR_SB_TIMEOUT")
-		) {
+		if (err.message.includes("timeout") || err.message.includes("ERR_SB_TIMEOUT")) {
 			code = "ERR_SB_TIMEOUT";
-		} else if (
-			err.message.includes("memory") ||
-			err.message.includes("ERR_SB_MEMORY")
-		) {
+		} else if (err.message.includes("memory") || err.message.includes("ERR_SB_MEMORY")) {
 			code = "ERR_SB_MEMORY";
 		} else if (
 			err.message.includes("codegen") ||
@@ -98,11 +90,7 @@ export async function executeSandboxedScriptWrapper(
 			err.message.includes("ERR_SB_MODULE_LOAD")
 		) {
 			code = "ERR_SB_MODULE_LOAD";
-		} else if (
-			err.message.includes("env") ||
-			err.message.includes("argv") ||
-			err.message.includes("ERR_SB_ENV")
-		) {
+		} else if (err.message.includes("env") || err.message.includes("argv") || err.message.includes("ERR_SB_ENV")) {
 			code = "ERR_SB_ENV";
 		} else if (
 			err.message.includes("POJO") ||

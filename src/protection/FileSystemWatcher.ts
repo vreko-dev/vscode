@@ -14,9 +14,7 @@ export class FileSystemWatcher {
 		this.disposables.push(
 			this.watcher.onDidDelete((uri) => {
 				if (this.registry.isProtected(uri.fsPath)) {
-					logger.info(
-						`[SnapBack] Protected file deleted, removing from registry: ${uri.fsPath}`,
-					);
+					logger.info(`[SnapBack] Protected file deleted, removing from registry: ${uri.fsPath}`);
 					this.registry.remove(uri.fsPath);
 				}
 			}),

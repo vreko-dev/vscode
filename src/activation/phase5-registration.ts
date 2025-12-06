@@ -20,27 +20,18 @@ export async function initializePhase5Registration(
 ): Promise<Phase5Result> {
 	try {
 		// Register tree data providers
-		vscode.window.registerTreeDataProvider(
-			VIEW_IDS.PROTECTED_FILES,
-			phase4Result.protectedFilesTreeProvider,
-		);
+		vscode.window.registerTreeDataProvider(VIEW_IDS.PROTECTED_FILES, phase4Result.protectedFilesTreeProvider);
 
 		// 🟢 Phase 2: Register SnapBack TreeView (primary dashboard view)
 		// Note: SnapBackTreeProvider already creates and registers its own TreeView
 		// via SnapBackTreeProvider.register() in phase4, so no additional registration needed
 
 		// Register sessions tree provider
-		vscode.window.registerTreeDataProvider(
-			VIEW_IDS.SESSIONS,
-			phase4Result.sessionsTreeProvider,
-		);
+		vscode.window.registerTreeDataProvider(VIEW_IDS.SESSIONS, phase4Result.sessionsTreeProvider);
 
 		// 🆕 Register SnapBack Explorer (Cloud Features) tree provider
 		if (phase4Result.explorerTreeProvider) {
-			vscode.window.registerTreeDataProvider(
-				VIEW_IDS.EXPLORER,
-				phase4Result.explorerTreeProvider,
-			);
+			vscode.window.registerTreeDataProvider(VIEW_IDS.EXPLORER, phase4Result.explorerTreeProvider);
 
 			// Register Explorer tree commands
 			context.subscriptions.push(
@@ -65,20 +56,13 @@ export async function initializePhase5Registration(
 		);
 
 		// 🟢 Phase 2: Register toggle grouping mode command
-		registerToggleGroupingModeCommand(
-			context,
-			phase4Result.snapBackTreeProvider,
-		);
+		registerToggleGroupingModeCommand(context, phase4Result.snapBackTreeProvider);
 
 		// Register file decoration providers
-		vscode.window.registerFileDecorationProvider(
-			phase4Result.protectionDecorationProvider,
-		);
+		vscode.window.registerFileDecorationProvider(phase4Result.protectionDecorationProvider);
 
 		// 🆕 Register file health decoration provider
-		vscode.window.registerFileDecorationProvider(
-			phase4Result.fileHealthDecorationProvider,
-		);
+		vscode.window.registerFileDecorationProvider(phase4Result.fileHealthDecorationProvider);
 
 		// Register document content provider
 		vscode.workspace.registerTextDocumentContentProvider(
@@ -88,27 +72,19 @@ export async function initializePhase5Registration(
 
 		// Register code action provider
 		context.subscriptions.push(
-			vscode.languages.registerCodeActionsProvider(
-				"*",
-				phase4Result.detectionCodeActionProvider,
-			),
+			vscode.languages.registerCodeActionsProvider("*", phase4Result.detectionCodeActionProvider),
 		);
 
 		// Register CodeLens provider for protection indicators
 		context.subscriptions.push(
-			vscode.languages.registerCodeLensProvider(
-				"*",
-				phase4Result.protectionCodeLensProvider,
-			),
+			vscode.languages.registerCodeLensProvider("*", phase4Result.protectionCodeLensProvider),
 		);
 
 		// Register window blur listener for session finalization
 		context.subscriptions.push(
 			vscode.window.onDidChangeWindowState((e) => {
 				if (!e.focused) {
-					console.log(
-						"[Phase5] Window blur detected, triggering session finalization",
-					);
+					console.log("[Phase5] Window blur detected, triggering session finalization");
 					sessionCoordinator.handleWindowBlur();
 				}
 			}),

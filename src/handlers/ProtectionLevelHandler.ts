@@ -60,8 +60,7 @@ export class ProtectionLevelHandler {
 		preSaveContent: string,
 		document: vscode.TextDocument,
 	): Promise<ProtectionHandlingResult> {
-		const protectionLevel =
-			this.registry.getProtectionLevel(filePath) || "watch";
+		const protectionLevel = this.registry.getProtectionLevel(filePath) || "watch";
 
 		logger.debug("Handling protection level", {
 			filePath,
@@ -72,20 +71,14 @@ export class ProtectionLevelHandler {
 		// Check if file is in cooldown
 		const inCooldown = await this.cooldownService.isInCooldown(filePath);
 		if (inCooldown) {
-			logger.info(
-				"File is in cooldown, allowing save without additional checks",
-				{
-					filePath,
-					protectionLevel,
-				},
-			);
-
-			await this.auditLogger.recordAudit(
+			logger.info("File is in cooldown, allowing save without additional checks", {
 				filePath,
 				protectionLevel,
-				"save_allowed",
-				{ reason: "cooldown_bypass" },
-			);
+			});
+
+			await this.auditLogger.recordAudit(filePath, protectionLevel, "save_allowed", {
+				reason: "cooldown_bypass",
+			});
 
 			return {
 				shouldProceed: true,
@@ -101,20 +94,11 @@ export class ProtectionLevelHandler {
 			// M2: Create snapshot before allowing save (even for Protected level with override)
 			let snapshotId: string | undefined;
 			try {
-				snapshotId = await this.createSnapshotForFile(
-					filePath,
-					filename,
-					preSaveContent,
-				);
+				snapshotId = await this.createSnapshotForFile(filePath, filename, preSaveContent);
 
 				if (snapshotId) {
 					// Set cooldown for this file
-					await this.cooldownService.setCooldown(
-						filePath,
-						protectionLevel,
-						"user_override",
-						snapshotId,
-					);
+					await this.cooldownService.setCooldown(filePath, protectionLevel, "user_override", snapshotId);
 
 					logger.info("Snapshot created for temporary allowance", {
 						filePath,
@@ -122,21 +106,14 @@ export class ProtectionLevelHandler {
 					});
 				}
 			} catch (error) {
-				logger.error(
-					"Failed to create snapshot for temporary allowance",
-					error as Error,
-					{ filePath },
-				);
+				logger.error("Failed to create snapshot for temporary allowance", error as Error, { filePath });
 				// Continue anyway - don't block save
 			}
 
 			// Consume the allowance
 			this.registry.consumeTemporaryAllowance(filePath);
 
-			vscode.window.setStatusBarMessage(
-				`✅ Save allowed once for ${filename}`,
-				2000,
-			);
+			vscode.window.setStatusBarMessage(`✅ Save allowed once for ${filename}`, 2000);
 
 			await this.auditLogger.recordAudit(
 				filePath,
@@ -157,21 +134,10 @@ export class ProtectionLevelHandler {
 		// Handle based on protection level
 		switch (protectionLevel) {
 			case "block":
-				return await this.handleBlockLevel(
-					filePath,
-					filename,
-					preSaveContent,
-					document,
-					protectionLevel,
-				);
+				return await this.handleBlockLevel(filePath, filename, preSaveContent, document, protectionLevel);
 
 			case "warn":
-				return await this.handleWarnLevel(
-					filePath,
-					filename,
-					preSaveContent,
-					protectionLevel,
-				);
+				return await this.handleWarnLevel(filePath, filename, preSaveContent, protectionLevel);
 
 			default:
 				return await this.handleWatchLevel(
@@ -215,17 +181,11 @@ A snapshot will be created before saving.`,
 			// User cancelled - revert and block save
 			logger.info("User cancelled BLOCK mode save", { filePath });
 
-			vscode.window.setStatusBarMessage(
-				`🔴 Save cancelled for ${filename}`,
-				2000,
-			);
+			vscode.window.setStatusBarMessage(`🔴 Save cancelled for ${filename}`, 2000);
 
-			await this.auditLogger.recordAudit(
-				filePath,
-				protectionLevel,
-				"save_blocked",
-				{ reason: "user_cancelled_block_dialog" },
-			);
+			await this.auditLogger.recordAudit(filePath, protectionLevel, "save_blocked", {
+				reason: "user_cancelled_block_dialog",
+			});
 
 			await this.restoreDocumentContents(document, preSaveContent);
 			throw new vscode.CancellationError();
@@ -237,20 +197,11 @@ A snapshot will be created before saving.`,
 		});
 
 		try {
-			const snapshotId = await this.createSnapshotForFile(
-				filePath,
-				filename,
-				preSaveContent,
-			);
+			const snapshotId = await this.createSnapshotForFile(filePath, filename, preSaveContent);
 
 			if (snapshotId) {
 				// Set cooldown for this file
-				await this.cooldownService.setCooldown(
-					filePath,
-					protectionLevel,
-					"snapshot_created",
-					snapshotId,
-				);
+				await this.cooldownService.setCooldown(filePath, protectionLevel, "snapshot_created", snapshotId);
 
 				await this.auditLogger.recordAudit(
 					filePath,
@@ -260,10 +211,7 @@ A snapshot will be created before saving.`,
 					snapshotId,
 				);
 
-				vscode.window.setStatusBarMessage(
-					`✅ Snapshot created for ${filename} - save allowed`,
-					3000,
-				);
+				vscode.window.setStatusBarMessage(`✅ Snapshot created for ${filename} - save allowed`, 3000);
 
 				logger.info("Snapshot created for BLOCK mode save", {
 					filePath,
@@ -286,15 +234,10 @@ A snapshot will be created before saving.`,
 				`SnapBack: Failed to create snapshot for ${filename}. Save will be blocked.`,
 			);
 
-			await this.auditLogger.recordAudit(
-				filePath,
-				protectionLevel,
-				"save_blocked",
-				{
-					reason: "snapshot_creation_failed",
-					error: error instanceof Error ? error.message : String(error),
-				},
-			);
+			await this.auditLogger.recordAudit(filePath, protectionLevel, "save_blocked", {
+				reason: "snapshot_creation_failed",
+				error: error instanceof Error ? error.message : String(error),
+			});
 
 			await this.restoreDocumentContents(document, preSaveContent);
 			throw new vscode.CancellationError();
@@ -322,16 +265,12 @@ A snapshot will be created before saving.`,
 		if (shouldDebounce) {
 			logger.debug("Skipping snapshot due to debounce (warn level)", {
 				filePath,
-				timeSinceLastSnapshot:
-					this.cooldownService.getTimeSinceLastSnapshot(filePath),
+				timeSinceLastSnapshot: this.cooldownService.getTimeSinceLastSnapshot(filePath),
 			});
 
-			await this.auditLogger.recordAudit(
-				filePath,
-				protectionLevel,
-				"save_allowed",
-				{ reason: "debounce_bypass" },
-			);
+			await this.auditLogger.recordAudit(filePath, protectionLevel, "save_allowed", {
+				reason: "debounce_bypass",
+			});
 
 			return {
 				shouldProceed: true,
@@ -342,20 +281,11 @@ A snapshot will be created before saving.`,
 
 		// Create snapshot
 		try {
-			const snapshotId = await this.createSnapshotForFile(
-				filePath,
-				filename,
-				preSaveContent,
-			);
+			const snapshotId = await this.createSnapshotForFile(filePath, filename, preSaveContent);
 
 			if (snapshotId) {
 				// Set cooldown for this file
-				await this.cooldownService.setCooldown(
-					filePath,
-					protectionLevel,
-					"snapshot_created",
-					snapshotId,
-				);
+				await this.cooldownService.setCooldown(filePath, protectionLevel, "snapshot_created", snapshotId);
 
 				await this.auditLogger.recordAudit(
 					filePath,
@@ -368,10 +298,7 @@ A snapshot will be created before saving.`,
 				this.showWarnNotification(
 					filename,
 					snapshotId,
-					path.relative(
-						vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "",
-						filePath,
-					),
+					path.relative(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "", filePath),
 				);
 
 				return {
@@ -385,19 +312,12 @@ A snapshot will be created before saving.`,
 			logger.error("Failed to create warn-level snapshot", error as Error, {
 				filePath,
 			});
-			vscode.window.showErrorMessage(
-				`SnapBack: Failed to snapshot ${filename}. Save will proceed.`,
-			);
+			vscode.window.showErrorMessage(`SnapBack: Failed to snapshot ${filename}. Save will proceed.`);
 
-			await this.auditLogger.recordAudit(
-				filePath,
-				protectionLevel,
-				"save_allowed",
-				{
-					reason: "snapshot_creation_failed",
-					error: error instanceof Error ? error.message : String(error),
-				},
-			);
+			await this.auditLogger.recordAudit(filePath, protectionLevel, "save_allowed", {
+				reason: "snapshot_creation_failed",
+				error: error instanceof Error ? error.message : String(error),
+			});
 		}
 
 		return {
@@ -422,16 +342,12 @@ A snapshot will be created before saving.`,
 		if (shouldDebounce) {
 			logger.debug("Skipping snapshot due to debounce (watch level)", {
 				filePath,
-				timeSinceLastSnapshot:
-					this.cooldownService.getTimeSinceLastSnapshot(filePath),
+				timeSinceLastSnapshot: this.cooldownService.getTimeSinceLastSnapshot(filePath),
 			});
 
-			await this.auditLogger.recordAudit(
-				filePath,
-				protectionLevel,
-				"save_allowed",
-				{ reason: "debounce_bypass" },
-			);
+			await this.auditLogger.recordAudit(filePath, protectionLevel, "save_allowed", {
+				reason: "debounce_bypass",
+			});
 
 			return {
 				shouldProceed: true,
@@ -442,20 +358,11 @@ A snapshot will be created before saving.`,
 
 		// Create snapshot IMMEDIATELY, synchronously blocking the save with PRE-SAVE content
 		try {
-			const snapshotId = await this.createSnapshotForFile(
-				filePath,
-				filename,
-				preSaveContent,
-			);
+			const snapshotId = await this.createSnapshotForFile(filePath, filename, preSaveContent);
 
 			if (snapshotId) {
 				// Set cooldown for this file
-				await this.cooldownService.setCooldown(
-					filePath,
-					protectionLevel,
-					"snapshot_created",
-					snapshotId,
-				);
+				await this.cooldownService.setCooldown(filePath, protectionLevel, "snapshot_created", snapshotId);
 
 				await this.auditLogger.recordAudit(
 					filePath,
@@ -465,10 +372,7 @@ A snapshot will be created before saving.`,
 					snapshotId,
 				);
 
-				vscode.window.setStatusBarMessage(
-					`✅ Snapshot created: ${filename}`,
-					2000,
-				);
+				vscode.window.setStatusBarMessage(`✅ Snapshot created: ${filename}`, 2000);
 
 				return {
 					shouldProceed: true,
@@ -482,19 +386,12 @@ A snapshot will be created before saving.`,
 				filePath,
 			});
 
-			vscode.window.showErrorMessage(
-				`SnapBack: Failed to snapshot ${filename}. Save will proceed.`,
-			);
+			vscode.window.showErrorMessage(`SnapBack: Failed to snapshot ${filename}. Save will proceed.`);
 
-			await this.auditLogger.recordAudit(
-				filePath,
-				protectionLevel,
-				"save_allowed",
-				{
-					reason: "snapshot_creation_failed",
-					error: error instanceof Error ? error.message : String(error),
-				},
-			);
+			await this.auditLogger.recordAudit(filePath, protectionLevel, "save_allowed", {
+				reason: "snapshot_creation_failed",
+				error: error instanceof Error ? error.message : String(error),
+			});
 		}
 
 		return {
@@ -523,8 +420,7 @@ A snapshot will be created before saving.`,
 		});
 
 		// Get workspace root
-		const workspaceRoot =
-			vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+		const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
 		// Convert absolute path to relative path
 		const relativePath = path.relative(workspaceRoot, filePath);
 
@@ -545,13 +441,12 @@ A snapshot will be created before saving.`,
 		const snapshotName = await namingStrategy.generateName(snapshotInfo);
 
 		// Pass PRE-SAVE content to snapshot creation with relative paths
-		const snapshotId =
-			await this.operationCoordinator.coordinateSnapshotCreation(
-				false, // Don't show notification (we'll show our own)
-				[relativePath], // Only snapshot this specific file (relative path)
-				{ [relativePath]: preSaveContent }, // PRE-SAVE content map with relative path
-				snapshotName, // Intelligent snapshot name
-			);
+		const snapshotId = await this.operationCoordinator.coordinateSnapshotCreation(
+			false, // Don't show notification (we'll show our own)
+			[relativePath], // Only snapshot this specific file (relative path)
+			{ [relativePath]: preSaveContent }, // PRE-SAVE content map with relative path
+			snapshotName, // Intelligent snapshot name
+		);
 
 		if (snapshotId) {
 			await this.registry.markSnapshot(snapshotId, [filePath]);
@@ -575,54 +470,33 @@ A snapshot will be created before saving.`,
 	/**
 	 * Show notification for warn-level snapshot with restore option.
 	 */
-	private showWarnNotification(
-		filename: string,
-		snapshotId: string,
-		relativePath: string,
-	): void {
-		vscode.window.setStatusBarMessage(
-			`🟡 Snapshot captured for ${filename}`,
-			5000,
-		);
+	private showWarnNotification(filename: string, snapshotId: string, relativePath: string): void {
+		vscode.window.setStatusBarMessage(`🟡 Snapshot captured for ${filename}`, 5000);
 
-		vscode.window
-			.showInformationMessage(
-				`SnapBack captured a snapshot for "${filename}"`,
-				"Restore Snapshot",
-			)
-			.then(
-				async (selection) => {
-					if (selection !== "Restore Snapshot") {
-						return;
-					}
+		vscode.window.showInformationMessage(`SnapBack captured a snapshot for "${filename}"`, "Restore Snapshot").then(
+			async (selection) => {
+				if (selection !== "Restore Snapshot") {
+					return;
+				}
 
-					try {
-						const restored = await this.operationCoordinator.restoreToSnapshot(
-							snapshotId,
-							{ files: [relativePath] },
-						);
-						if (restored) {
-							vscode.window.showInformationMessage(
-								`SnapBack restored "${filename}" from latest snapshot`,
-							);
-						}
-					} catch (error) {
-						logger.error(
-							"Failed to restore warn-level snapshot",
-							error as Error,
-							{ snapshotId, relativePath },
-						);
-						vscode.window.showErrorMessage(
-							`SnapBack: Unable to restore ${filename} from snapshot`,
-						);
-					}
-				},
-				(error: unknown) => {
-					logger.warn("Warn notification action failed", {
-						error: error instanceof Error ? error.message : String(error),
+				try {
+					const restored = await this.operationCoordinator.restoreToSnapshot(snapshotId, {
+						files: [relativePath],
 					});
-				},
-			);
+					if (restored) {
+						vscode.window.showInformationMessage(`SnapBack restored "${filename}" from latest snapshot`);
+					}
+				} catch (error) {
+					logger.error("Failed to restore warn-level snapshot", error as Error, { snapshotId, relativePath });
+					vscode.window.showErrorMessage(`SnapBack: Unable to restore ${filename} from snapshot`);
+				}
+			},
+			(error: unknown) => {
+				logger.warn("Warn notification action failed", {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			},
+		);
 	}
 
 	/**
@@ -632,10 +506,7 @@ A snapshot will be created before saving.`,
 	 * @param document - VS Code document to restore
 	 * @param preSaveContent - Content to restore
 	 */
-	async restoreDocumentContents(
-		document: vscode.TextDocument,
-		preSaveContent: string,
-	): Promise<void> {
+	async restoreDocumentContents(document: vscode.TextDocument, preSaveContent: string): Promise<void> {
 		try {
 			const currentContent = document.getText();
 			if (currentContent === preSaveContent) {

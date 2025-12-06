@@ -81,15 +81,8 @@ export class UserBehaviorTracker {
 	 * Initializes the first use timestamp if not already set
 	 */
 	private initializeFirstUseTimestamp(): void {
-		if (
-			!this.context.globalState.get<number>(
-				USER_BEHAVIOR_KEYS.FIRST_USE_TIMESTAMP,
-			)
-		) {
-			this.context.globalState.update(
-				USER_BEHAVIOR_KEYS.FIRST_USE_TIMESTAMP,
-				Date.now(),
-			);
+		if (!this.context.globalState.get<number>(USER_BEHAVIOR_KEYS.FIRST_USE_TIMESTAMP)) {
+			this.context.globalState.update(USER_BEHAVIOR_KEYS.FIRST_USE_TIMESTAMP, Date.now());
 			logger.info("First use timestamp initialized");
 		}
 	}
@@ -100,10 +93,7 @@ export class UserBehaviorTracker {
 	 * @param key - Key of the counter to increment
 	 * @param amount - Amount to increment by (default: 1)
 	 */
-	incrementCounter(
-		key: keyof typeof USER_BEHAVIOR_KEYS,
-		amount: number = 1,
-	): void {
+	incrementCounter(key: keyof typeof USER_BEHAVIOR_KEYS, amount = 1): void {
 		const keyName = USER_BEHAVIOR_KEYS[key];
 		const current = this.context.globalState.get<number>(keyName, 0);
 		const newValue = current + amount;
@@ -122,17 +112,11 @@ export class UserBehaviorTracker {
 	 * @param command - Command that was used
 	 * @param count - Number of times the command was used (default: 1)
 	 */
-	recordCommandUsage(command: string, count: number = 1): void {
-		const commandsUsed = this.context.globalState.get<Record<string, number>>(
-			USER_BEHAVIOR_KEYS.COMMANDS_USED,
-			{},
-		);
+	recordCommandUsage(command: string, count = 1): void {
+		const commandsUsed = this.context.globalState.get<Record<string, number>>(USER_BEHAVIOR_KEYS.COMMANDS_USED, {});
 		const commandsUsedRecord = commandsUsed || {};
 		commandsUsedRecord[command] = (commandsUsedRecord[command] || 0) + count;
-		this.context.globalState.update(
-			USER_BEHAVIOR_KEYS.COMMANDS_USED,
-			commandsUsedRecord,
-		);
+		this.context.globalState.update(USER_BEHAVIOR_KEYS.COMMANDS_USED, commandsUsedRecord);
 
 		logger.debug("Command usage recorded", {
 			command,
@@ -158,10 +142,7 @@ export class UserBehaviorTracker {
 	 * @returns Record of commands and their usage counts
 	 */
 	getCommandUsage(): Record<string, number> {
-		const commandsUsed = this.context.globalState.get<Record<string, number>>(
-			USER_BEHAVIOR_KEYS.COMMANDS_USED,
-			{},
-		);
+		const commandsUsed = this.context.globalState.get<Record<string, number>>(USER_BEHAVIOR_KEYS.COMMANDS_USED, {});
 		return commandsUsed || {};
 	}
 
@@ -171,9 +152,7 @@ export class UserBehaviorTracker {
 	 * @returns Timestamp of first use
 	 */
 	getFirstUseTimestamp(): number {
-		const timestamp = this.context.globalState.get<number>(
-			USER_BEHAVIOR_KEYS.FIRST_USE_TIMESTAMP,
-		);
+		const timestamp = this.context.globalState.get<number>(USER_BEHAVIOR_KEYS.FIRST_USE_TIMESTAMP);
 		return timestamp !== undefined ? timestamp : Date.now();
 	}
 
@@ -229,10 +208,7 @@ export class UserBehaviorTracker {
 	 */
 	getCommandDiversity(): number {
 		const commandsUsed = this.getCommandUsage();
-		const totalCommands = Object.values(commandsUsed).reduce(
-			(sum, count) => sum + count,
-			0,
-		);
+		const totalCommands = Object.values(commandsUsed).reduce((sum, count) => sum + count, 0);
 		const uniqueCommands = Object.keys(commandsUsed).length;
 
 		if (totalCommands === 0) {

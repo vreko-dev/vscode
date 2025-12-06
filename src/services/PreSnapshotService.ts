@@ -77,10 +77,7 @@ export class PreSnapshotService implements vscode.Disposable {
 			vscode.window.onDidChangeActiveTextEditor((editor) => {
 				if (editor) {
 					this.handleEditorChange(editor).catch((error) => {
-						logger.error(
-							"Failed to handle editor change",
-							error instanceof Error ? error : undefined,
-						);
+						logger.error("Failed to handle editor change", error instanceof Error ? error : undefined);
 					});
 				}
 			}),
@@ -90,10 +87,7 @@ export class PreSnapshotService implements vscode.Disposable {
 		this.disposables.push(
 			vscode.workspace.onDidChangeTextDocument((event) => {
 				this.handleTextDocumentChange(event).catch((error) => {
-					logger.error(
-						"Failed to handle text document change",
-						error instanceof Error ? error : undefined,
-					);
+					logger.error("Failed to handle text document change", error instanceof Error ? error : undefined);
 				});
 			}),
 		);
@@ -141,11 +135,9 @@ export class PreSnapshotService implements vscode.Disposable {
 		// Schedule debounced snapshot
 		const timeout = setTimeout(() => {
 			this.createPreSnapshot(editor.document.uri, editor).catch((error) => {
-				logger.error(
-					"Failed to create pre-snapshot",
-					error instanceof Error ? error : undefined,
-					{ fileUri: editor.document.uri.toString() },
-				);
+				logger.error("Failed to create pre-snapshot", error instanceof Error ? error : undefined, {
+					fileUri: editor.document.uri.toString(),
+				});
 			});
 			// Remove debounce state after execution
 			this.debounceState.delete(fileKey);
@@ -172,9 +164,7 @@ export class PreSnapshotService implements vscode.Disposable {
 	 *
 	 * @param event - Text document change event
 	 */
-	public async handleTextDocumentChange(
-		event: vscode.TextDocumentChangeEvent,
-	): Promise<void> {
+	public async handleTextDocumentChange(event: vscode.TextDocumentChangeEvent): Promise<void> {
 		if (!this.enabled) {
 			return;
 		}
@@ -186,13 +176,10 @@ export class PreSnapshotService implements vscode.Disposable {
 			// If manual edit detected, clear tracking
 			if (analysis.likelyManual) {
 				this.quickDiffProvider.clearTracking(event.document.uri);
-				logger.debug(
-					"PreSnapshotService: Manual edit detected, cleared tracking",
-					{
-						fileUri: event.document.uri.toString(),
-						changeLength: change.text.length,
-					},
-				);
+				logger.debug("PreSnapshotService: Manual edit detected, cleared tracking", {
+					fileUri: event.document.uri.toString(),
+					changeLength: change.text.length,
+				});
 				break; // Only need to clear once
 			}
 		}
@@ -233,10 +220,7 @@ export class PreSnapshotService implements vscode.Disposable {
 	 * @param uri - File URI
 	 * @param editor - Text editor (for content access)
 	 */
-	private async createPreSnapshot(
-		uri: vscode.Uri,
-		editor: vscode.TextEditor,
-	): Promise<void> {
+	private async createPreSnapshot(uri: vscode.Uri, editor: vscode.TextEditor): Promise<void> {
 		try {
 			const startTime = performance.now();
 
@@ -268,11 +252,7 @@ export class PreSnapshotService implements vscode.Disposable {
 					added: content.split("\n").length,
 					deleted: 0,
 				};
-				this.sessionCoordinator.addCandidate(
-					uri.toString(),
-					snapshot.id,
-					stats,
-				);
+				this.sessionCoordinator.addCandidate(uri.toString(), snapshot.id, stats);
 			}
 
 			const duration = performance.now() - startTime;
@@ -291,11 +271,9 @@ export class PreSnapshotService implements vscode.Disposable {
 			}
 		} catch (error) {
 			// Don't track on error
-			logger.error(
-				"PreSnapshotService: Failed to create snapshot",
-				error instanceof Error ? error : undefined,
-				{ fileUri: uri.toString() },
-			);
+			logger.error("PreSnapshotService: Failed to create snapshot", error instanceof Error ? error : undefined, {
+				fileUri: uri.toString(),
+			});
 		}
 	}
 

@@ -5,10 +5,7 @@ import type { ExtensionContext } from "vscode";
  * Nudge Trigger Types
  * Categorized by user activity: authentication, feature discovery, milestones
  */
-export type NudgeTrigger =
-	| "auth_failed"
-	| "feature_discovered"
-	| "milestone_reached";
+export type NudgeTrigger = "auth_failed" | "feature_discovered" | "milestone_reached";
 
 /**
  * NudgeManager: Prevents duplicate nudges via race condition protection
@@ -79,9 +76,7 @@ export class NudgeManager {
 		try {
 			// Layer 3: Time-based persistent throttle
 			// Check globalState for last nudge time (survives extension reloads)
-			const lastNudgeTime = this.context.globalState.get<number>(
-				"snapback.lastAuthNudge",
-			);
+			const lastNudgeTime = this.context.globalState.get<number>("snapback.lastAuthNudge");
 			const now = Date.now();
 			const THROTTLE_PERIOD = 24 * 60 * 60 * 1000;
 
@@ -127,9 +122,7 @@ export class NudgeManager {
 	 * @returns Milliseconds since epoch, or null if never nudged
 	 */
 	getLastNudgeTime(): number | null {
-		return (
-			this.context.globalState.get<number>("snapback.lastAuthNudge") ?? null
-		);
+		return this.context.globalState.get<number>("snapback.lastAuthNudge") ?? null;
 	}
 
 	/**

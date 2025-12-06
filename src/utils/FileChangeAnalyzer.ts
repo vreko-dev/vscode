@@ -89,10 +89,7 @@ export async function analyzeSnapshot(
 	snapshotFiles: Record<string, string>,
 	workspaceRoot: string,
 ): Promise<FileChange[]> {
-	const analyzer = new SDKFileChangeAnalyzer(
-		workspaceRoot,
-		vscodeFileSystemProvider,
-	);
+	const analyzer = new SDKFileChangeAnalyzer(workspaceRoot, vscodeFileSystemProvider);
 	return analyzer.analyzeSnapshot(snapshotFiles);
 }
 
@@ -112,9 +109,6 @@ export async function analyzeFile(
 	snapshotContent: string,
 	workspaceRoot: string,
 ): Promise<FileChange> {
-	const analyzer = new SDKFileChangeAnalyzer(
-		workspaceRoot,
-		vscodeFileSystemProvider,
-	);
+	const analyzer = new SDKFileChangeAnalyzer(workspaceRoot, vscodeFileSystemProvider);
 	return analyzer.analyzeFile(absoluteFilePath, snapshotContent);
 }

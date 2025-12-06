@@ -80,9 +80,7 @@ async function checkCoreServices(): Promise<boolean> {
 async function checkExtensionManifest(): Promise<boolean> {
 	try {
 		const packageJsonPath = path.join(process.cwd(), "package.json");
-		const packageJson = JSON.parse(
-			await fs.promises.readFile(packageJsonPath, "utf-8"),
-		);
+		const packageJson = JSON.parse(await fs.promises.readFile(packageJsonPath, "utf-8"));
 
 		// Check required fields
 		const requiredFields = [
@@ -103,18 +101,12 @@ async function checkExtensionManifest(): Promise<boolean> {
 		}
 
 		// Check activation events
-		if (
-			!Array.isArray(packageJson.activationEvents) ||
-			packageJson.activationEvents.length === 0
-		) {
+		if (!Array.isArray(packageJson.activationEvents) || packageJson.activationEvents.length === 0) {
 			return false;
 		}
 
 		// Check contributes.commands
-		if (
-			!packageJson.contributes?.commands ||
-			!Array.isArray(packageJson.contributes.commands)
-		) {
+		if (!packageJson.contributes?.commands || !Array.isArray(packageJson.contributes.commands)) {
 			return false;
 		}
 
@@ -181,8 +173,7 @@ async function runAssessment(): Promise<AssessmentResult> {
 	};
 
 	codeQualitySection.score =
-		codeQualitySection.checks.filter((c) => c.passed).length *
-		(20 / codeQualitySection.checks.length);
+		codeQualitySection.checks.filter((c) => c.passed).length * (20 / codeQualitySection.checks.length);
 	result.sections.push(codeQualitySection);
 
 	// Section 2: Feature Functionality
@@ -198,24 +189,18 @@ async function runAssessment(): Promise<AssessmentResult> {
 			},
 			{
 				name: "Protection System Implementation",
-				passed: await checkFileExists(
-					path.join(process.cwd(), "src/services/protectedFileRegistry.ts"),
-				),
+				passed: await checkFileExists(path.join(process.cwd(), "src/services/protectedFileRegistry.ts")),
 				notes: "ProtectedFileRegistry service exists",
 			},
 			{
 				name: "Snapshot System Implementation",
-				passed: await checkFileExists(
-					path.join(process.cwd(), "src/snapshot/SnapshotManager.ts"),
-				),
+				passed: await checkFileExists(path.join(process.cwd(), "src/snapshot/SnapshotManager.ts")),
 				notes: "SnapshotManager service exists",
 			},
 		],
 	};
 
-	featureSection.score =
-		featureSection.checks.filter((c) => c.passed).length *
-		(25 / featureSection.checks.length);
+	featureSection.score = featureSection.checks.filter((c) => c.passed).length * (25 / featureSection.checks.length);
 	result.sections.push(featureSection);
 
 	// Section 3: Documentation & Assets
@@ -237,20 +222,12 @@ async function runAssessment(): Promise<AssessmentResult> {
 		],
 	};
 
-	docsSection.score =
-		docsSection.checks.filter((c) => c.passed).length *
-		(15 / docsSection.checks.length);
+	docsSection.score = docsSection.checks.filter((c) => c.passed).length * (15 / docsSection.checks.length);
 	result.sections.push(docsSection);
 
 	// Calculate total score
-	result.score = result.sections.reduce(
-		(sum, section) => sum + section.score,
-		0,
-	);
-	result.maxScore = result.sections.reduce(
-		(sum, section) => sum + section.maxScore,
-		0,
-	);
+	result.score = result.sections.reduce((sum, section) => sum + section.score, 0);
+	result.maxScore = result.sections.reduce((sum, section) => sum + section.maxScore, 0);
 
 	return result;
 }
@@ -285,9 +262,7 @@ function printAssessmentResult(result: AssessmentResult): void {
 
 	// Section details
 	for (const section of result.sections) {
-		console.log(
-			`## ${section.name} (${Math.round(section.score)}/${section.maxScore})`,
-		);
+		console.log(`## ${section.name} (${Math.round(section.score)}/${section.maxScore})`);
 		for (const check of section.checks) {
 			logger.info(`  ${check.passed ? "✅" : "❌"} ${check.name}`);
 			if (check.notes) {

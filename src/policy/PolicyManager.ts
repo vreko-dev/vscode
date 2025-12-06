@@ -2,12 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { minimatch } from "minimatch";
 import * as vscode from "vscode";
-import type {
-	OverrideRationale,
-	PolicyConfig,
-	PolicyOverride,
-	PolicyRule,
-} from "../types/policy.types";
+import type { OverrideRationale, PolicyConfig, PolicyOverride, PolicyRule } from "../types/policy.types";
 import type { ProtectionLevel } from "../types/protection";
 import { logger } from "../utils/logger";
 
@@ -85,10 +80,7 @@ export class PolicyManager {
 				});
 				await this.createDefaultPolicy();
 			} else {
-				logger.error(
-					"Failed to load policy",
-					error instanceof Error ? error : undefined,
-				);
+				logger.error("Failed to load policy", error instanceof Error ? error : undefined);
 				this.policy = this.getDefaultPolicy();
 			}
 		}
@@ -187,9 +179,7 @@ export class PolicyManager {
 
 		// Return default if specified
 		if (this.policy.settings?.defaultProtectionLevel) {
-			return this.convertPolicyLevel(
-				this.policy.settings.defaultProtectionLevel,
-			);
+			return this.convertPolicyLevel(this.policy.settings.defaultProtectionLevel);
 		}
 
 		return null;
@@ -251,7 +241,7 @@ export class PolicyManager {
 		// Calculate TTL timestamp
 		let ttlTimestamp: number | undefined;
 		if (ttl !== "permanent") {
-			const days = parseInt(ttl.replace("d", ""), 10);
+			const days = Number.parseInt(ttl.replace("d", ""), 10);
 			if (Number.isNaN(days)) {
 				throw new Error("Invalid TTL format. Use '7d', '30d', or 'permanent'");
 			}
@@ -284,9 +274,7 @@ export class PolicyManager {
 		}
 
 		// Check if an override already exists for this pattern
-		const existingIndex = this.policy.overrides.findIndex(
-			(o) => o.pattern === relativePath,
-		);
+		const existingIndex = this.policy.overrides.findIndex((o) => o.pattern === relativePath);
 
 		if (existingIndex >= 0) {
 			// Update existing override
@@ -303,9 +291,7 @@ export class PolicyManager {
 	/**
 	 * Convert policy level to protection level
 	 */
-	private convertPolicyLevel(
-		level: "watch" | "warn" | "block" | "unprotected",
-	): ProtectionLevel | null {
+	private convertPolicyLevel(level: "watch" | "warn" | "block" | "unprotected"): ProtectionLevel | null {
 		switch (level) {
 			case "block":
 				return "block";
@@ -340,10 +326,7 @@ export class PolicyManager {
 				path: this.policyPath,
 			});
 		} catch (error) {
-			logger.error(
-				"Failed to create default policy",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Failed to create default policy", error instanceof Error ? error : undefined);
 		}
 	}
 
@@ -391,10 +374,7 @@ export class PolicyManager {
 		try {
 			// Watch for policy file changes
 			this.watcher = vscode.workspace.createFileSystemWatcher(
-				new vscode.RelativePattern(
-					path.dirname(this.policyPath),
-					"policy.json",
-				),
+				new vscode.RelativePattern(path.dirname(this.policyPath), "policy.json"),
 			);
 
 			this.disposables.push(
@@ -424,10 +404,7 @@ export class PolicyManager {
 				}),
 			);
 		} catch (error) {
-			logger.error(
-				"Failed to set up policy watcher",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Failed to set up policy watcher", error instanceof Error ? error : undefined);
 		}
 	}
 
@@ -454,8 +431,7 @@ export class PolicyManager {
 			return;
 		}
 
-		const warningDays =
-			this.policy.settings?.overrideExpirationWarningDays || 7;
+		const warningDays = this.policy.settings?.overrideExpirationWarningDays || 7;
 		const warningThreshold = Date.now() + warningDays * 24 * 60 * 60 * 1000;
 
 		for (const override of this.policy.overrides) {
@@ -473,9 +449,7 @@ export class PolicyManager {
 
 			// Expiring soon
 			if (override.ttl < warningThreshold) {
-				const daysRemaining = Math.ceil(
-					(override.ttl - now) / (24 * 60 * 60 * 1000),
-				);
+				const daysRemaining = Math.ceil((override.ttl - now) / (24 * 60 * 60 * 1000));
 				await this.notifyExpiringOverride(override, daysRemaining);
 			}
 		}
@@ -485,16 +459,9 @@ export class PolicyManager {
 	 * Notify user of expired override
 	 */
 	private async notifyExpiredOverride(override: PolicyOverride): Promise<void> {
-		const message =
-			`Policy override expired for "${override.pattern}". ` +
-			`Original protection rules now apply.`;
+		const message = `Policy override expired for "${override.pattern}". ` + "Original protection rules now apply.";
 
-		const action = await vscode.window.showWarningMessage(
-			message,
-			"Renew Override",
-			"Remove Override",
-			"Dismiss",
-		);
+		const action = await vscode.window.showWarningMessage(message, "Renew Override", "Remove Override", "Dismiss");
 
 		if (action === "Renew Override") {
 			await this.renewOverride(override);
@@ -506,13 +473,8 @@ export class PolicyManager {
 	/**
 	 * Notify user of expiring override
 	 */
-	private async notifyExpiringOverride(
-		override: PolicyOverride,
-		daysRemaining: number,
-	): Promise<void> {
-		const message =
-			`Policy override for "${override.pattern}" ` +
-			`expires in ${daysRemaining} day(s).`;
+	private async notifyExpiringOverride(override: PolicyOverride, daysRemaining: number): Promise<void> {
+		const message = `Policy override for "${override.pattern}" ` + `expires in ${daysRemaining} day(s).`;
 
 		const action = await vscode.window.showInformationMessage(
 			message,
@@ -558,13 +520,9 @@ export class PolicyManager {
 	 */
 	private async removeOverride(pattern: string): Promise<void> {
 		if (this.policy?.overrides) {
-			this.policy.overrides = this.policy.overrides.filter(
-				(override) => override.pattern !== pattern,
-			);
+			this.policy.overrides = this.policy.overrides.filter((override) => override.pattern !== pattern);
 			await this.savePolicy();
-			vscode.window.showInformationMessage(
-				`Override for "${pattern}" removed.`,
-			);
+			vscode.window.showInformationMessage(`Override for "${pattern}" removed.`);
 		}
 	}
 
@@ -583,10 +541,7 @@ export class PolicyManager {
 				path: this.policyPath,
 			});
 		} catch (error) {
-			logger.error(
-				"Failed to save policy",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Failed to save policy", error instanceof Error ? error : undefined);
 			throw error;
 		}
 	}

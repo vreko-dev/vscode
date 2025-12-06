@@ -4,10 +4,7 @@ import { COMMANDS } from "../constants/index";
 import type { CommandContext } from "./index";
 import { UpdateConfigurationCommand } from "./updateConfiguration";
 
-export function registerUtilityCommands(
-	_context: vscode.ExtensionContext,
-	ctx: CommandContext,
-): vscode.Disposable[] {
+export function registerUtilityCommands(_context: vscode.ExtensionContext, ctx: CommandContext): vscode.Disposable[] {
 	const disposables: vscode.Disposable[] = [];
 
 	// Debug command - only register in development mode
@@ -25,24 +22,16 @@ export function registerUtilityCommands(
 	disposables.push(
 		vscode.commands.registerCommand(COMMANDS.UTILITY.INITIALIZE, async () => {
 			const { message } = await ctx.getProtectionStateSummary();
-			vscode.window.showInformationMessage(
-				`SnapBack protection initialized: ${message}`,
-			);
+			vscode.window.showInformationMessage(`SnapBack protection initialized: ${message}`);
 		}),
 	);
 
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.updateConfiguration",
-			async () => {
-				const configDetector = new ConfigDetector(ctx.workspaceRoot);
-				const updateCommand = new UpdateConfigurationCommand(
-					ctx.workspaceRoot,
-					configDetector,
-				);
-				await updateCommand.execute();
-			},
-		),
+		vscode.commands.registerCommand("snapback.updateConfiguration", async () => {
+			const configDetector = new ConfigDetector(ctx.workspaceRoot);
+			const updateCommand = new UpdateConfigurationCommand(ctx.workspaceRoot, configDetector);
+			await updateCommand.execute();
+		}),
 	);
 
 	// Add other utility commands here

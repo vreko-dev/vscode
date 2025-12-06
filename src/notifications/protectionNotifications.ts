@@ -41,7 +41,7 @@ export class ProtectionNotifications {
 	async showProtectionLevelNotification(
 		filePath: string,
 		level: ProtectionLevel,
-		isNewProtection: boolean = false,
+		isNewProtection = false,
 	): Promise<void> {
 		const notificationId = "protection-level";
 		const scope = `${filePath}:${level}`;
@@ -61,10 +61,7 @@ export class ProtectionNotifications {
 			? ["Got it"] // New protection: just acknowledge
 			: ["Got it", "Don't show again"]; // Existing: allow permanent dismiss
 
-		const result = await vscode.window.showInformationMessage(
-			message,
-			...buttons,
-		);
+		const result = await vscode.window.showInformationMessage(message, ...buttons);
 
 		// Handle "Don't show again" selection
 		if (result === "Don't show again") {
@@ -98,10 +95,7 @@ export class ProtectionNotifications {
 	 * Reset acknowledgment for a specific protection notification.
 	 * Used when the protection level changes or user resets preferences.
 	 */
-	async resetAcknowledgment(
-		filePath: string,
-		level?: ProtectionLevel,
-	): Promise<void> {
+	async resetAcknowledgment(filePath: string, level?: ProtectionLevel): Promise<void> {
 		const notificationId = "protection-level";
 		if (level) {
 			const scope = `${filePath}:${level}`;

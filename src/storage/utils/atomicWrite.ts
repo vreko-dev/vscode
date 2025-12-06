@@ -7,18 +7,11 @@ import { randomId } from "./fileId";
  * Atomically write content to a file using write-then-rename pattern.
  * This prevents corrupted files if the extension crashes mid-write.
  */
-export async function atomicWriteFile(
-	uri: vscode.Uri,
-	content: string | Uint8Array,
-): Promise<void> {
-	const data =
-		typeof content === "string" ? Buffer.from(content, "utf-8") : content;
+export async function atomicWriteFile(uri: vscode.Uri, content: string | Uint8Array): Promise<void> {
+	const data = typeof content === "string" ? Buffer.from(content, "utf-8") : content;
 
 	// Create temp file path in same directory
-	const tempUri = vscode.Uri.joinPath(
-		vscode.Uri.joinPath(uri, ".."),
-		`.tmp-${randomId(8)}`,
-	);
+	const tempUri = vscode.Uri.joinPath(vscode.Uri.joinPath(uri, ".."), `.tmp-${randomId(8)}`);
 
 	try {
 		// 1. Write to temp file
@@ -95,9 +88,6 @@ export async function readJsonFile<T>(uri: vscode.Uri): Promise<T | null> {
 /**
  * Write JSON file atomically with pretty printing
  */
-export async function writeJsonFile(
-	uri: vscode.Uri,
-	data: unknown,
-): Promise<void> {
+export async function writeJsonFile(uri: vscode.Uri, data: unknown): Promise<void> {
 	await atomicWriteFile(uri, JSON.stringify(data, null, 2));
 }

@@ -148,17 +148,14 @@ export class AuthedApiClient {
 			throw new Error("No credentials to refresh");
 		}
 
-		const response = await fetch(
-			`${this.apiBaseUrl}/api/auth/extension/refresh`,
-			{
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					refreshToken: creds.refreshToken,
-					client: "vscode",
-				}),
-			},
-		);
+		const response = await fetch(`${this.apiBaseUrl}/api/auth/extension/refresh`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				refreshToken: creds.refreshToken,
+				client: "vscode",
+			}),
+		});
 
 		if (!response.ok) {
 			// Refresh token invalid/revoked - clear credentials

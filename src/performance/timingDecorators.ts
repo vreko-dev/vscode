@@ -39,9 +39,7 @@ let globalMonitor: PerformanceMonitor | null = null;
 /**
  * Set the global performance monitor instance
  */
-export function setPerformanceMonitor(
-	monitor: PerformanceMonitor | null,
-): void {
+export function setPerformanceMonitor(monitor: PerformanceMonitor | null): void {
 	globalMonitor = monitor;
 }
 
@@ -57,11 +55,7 @@ export function getPerformanceMonitor(): PerformanceMonitor | null {
  * @param operationName Optional custom operation name (defaults to className.methodName)
  */
 export function timedMethod(operationName?: string) {
-	return (
-		target: object,
-		propertyKey: string,
-		descriptor: PropertyDescriptor,
-	) => {
+	return (target: object, propertyKey: string, descriptor: PropertyDescriptor) => {
 		const originalMethod = descriptor.value;
 
 		descriptor.value = function (...args: unknown[]) {

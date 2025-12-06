@@ -137,9 +137,7 @@ export class SnapBackStatusBar {
 		// Get highest level info from canonical signage
 		const highestLevel = stats.highestLevel;
 		if (!highestLevel) {
-			return `${BRAND_SIGNAGE.logoEmoji} ${stats.total} ${
-				stats.total === 1 ? "file" : "files"
-			} | Protected`;
+			return `${BRAND_SIGNAGE.logoEmoji} ${stats.total} ${stats.total === 1 ? "file" : "files"} | Protected`;
 		}
 
 		const levelMetadata = PROTECTION_LEVELS[highestLevel];
@@ -151,9 +149,7 @@ export class SnapBackStatusBar {
 	/**
 	 * Get status bar color based on highest protection level
 	 */
-	private getColor(
-		stats: ProtectionStats,
-	): "none" | "warning" | "error" | "default" {
+	private getColor(stats: ProtectionStats): "none" | "warning" | "error" | "default" {
 		if (stats.block > 0) {
 			return "error"; // Red background for protected files
 		}
@@ -169,33 +165,22 @@ export class SnapBackStatusBar {
 	/**
 	 * Update status bar appearance
 	 */
-	private updateStatusBar(
-		text: string,
-		colorType: "none" | "warning" | "error" | "default",
-	): void {
+	private updateStatusBar(text: string, colorType: "none" | "warning" | "error" | "default"): void {
 		this.statusBarItem.text = text;
 
 		// Set background color based on protection level
 		switch (colorType) {
 			case "error":
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-					"statusBarItem.errorBackground",
-				);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
 				break;
 			case "warning":
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-					"statusBarItem.warningBackground",
-				);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 				break;
 			case "default":
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-					"statusBarItem.background",
-				);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.background");
 				break;
 			default:
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-					"statusBarItem.background",
-				);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.background");
 				break;
 		}
 
@@ -216,15 +201,9 @@ export class SnapBackStatusBar {
 		const blockSignage = getProtectionLevelSignage("block");
 
 		tooltip.appendMarkdown("**SnapBack Protection Status**\n\n");
-		tooltip.appendMarkdown(
-			`${watchSignage.emoji} ${watchSignage.label}: ${stats.watch} file(s)\n`,
-		);
-		tooltip.appendMarkdown(
-			`${warnSignage.emoji} ${warnSignage.label}: ${stats.warn} file(s)\n`,
-		);
-		tooltip.appendMarkdown(
-			`${blockSignage.emoji} ${blockSignage.label}: ${stats.block} file(s)\n\n`,
-		);
+		tooltip.appendMarkdown(`${watchSignage.emoji} ${watchSignage.label}: ${stats.watch} file(s)\n`);
+		tooltip.appendMarkdown(`${warnSignage.emoji} ${warnSignage.label}: ${stats.warn} file(s)\n`);
+		tooltip.appendMarkdown(`${blockSignage.emoji} ${blockSignage.label}: ${stats.block} file(s)\n\n`);
 
 		if (stats.highestLevel) {
 			tooltip.appendMarkdown(`Highest level: **${stats.highestLevel}**\n`);

@@ -40,9 +40,7 @@ export class SnapshotStorageAdapter implements IStorage {
 		// Convert new SnapshotManifest to old Snapshot type
 		return {
 			id: snapshot.id,
-			name:
-				snapshot.name ||
-				`Snapshot ${new Date(snapshot.timestamp).toLocaleString()}`,
+			name: snapshot.name || `Snapshot ${new Date(snapshot.timestamp).toLocaleString()}`,
 			timestamp: snapshot.timestamp,
 			files: Object.keys(snapshot.contents || {}),
 			isProtected: false,
@@ -58,9 +56,7 @@ export class SnapshotStorageAdapter implements IStorage {
 		const snapshots = await this.storage.listSnapshots();
 		return snapshots.map((snapshot) => ({
 			id: snapshot.id,
-			name:
-				snapshot.name ||
-				`Snapshot ${new Date(snapshot.timestamp).toLocaleString()}`,
+			name: snapshot.name || `Snapshot ${new Date(snapshot.timestamp).toLocaleString()}`,
 			timestamp: snapshot.timestamp,
 			files: Object.keys(snapshot.files || {}),
 			isProtected: false,

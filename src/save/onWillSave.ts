@@ -22,10 +22,7 @@ export class OnWillSaveHandler {
 	private context: vscode.ExtensionContext;
 	private apiClient: ApiClient;
 
-	constructor(
-		registry: ProtectedFileRegistry,
-		context: vscode.ExtensionContext,
-	) {
+	constructor(registry: ProtectedFileRegistry, context: vscode.ExtensionContext) {
 		this.registry = registry;
 		this.context = context;
 		this.apiClient = new ApiClient();
@@ -78,45 +75,34 @@ export class OnWillSaveHandler {
 			this.recordBudgetProbe("ui_action_ms", uiActionTime);
 		} catch (error) {
 			// Log error but don't block save in case of internal errors
-			logger.error(
-				"Error in onWillSave handler",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error in onWillSave handler", error instanceof Error ? error : undefined);
 		}
 	}
 
 	/**
 	 * Get protection decision from backend analysis
 	 */
-	private async getProtectionDecision(
-		document: vscode.TextDocument,
-	): Promise<ProtectionDecision> {
+	private async getProtectionDecision(document: vscode.TextDocument): Promise<ProtectionDecision> {
 		try {
 			// Call the backend API for analysis
 			const content = document.getText();
 			const filePath = document.uri.fsPath;
 
-			const analysisResult = await this.apiClient.analyzeFiles([
-				{ path: filePath, content: content },
-			]);
+			const analysisResult = await this.apiClient.analyzeFiles([{ path: filePath, content: content }]);
 
 			// Extract risk information from the analysis result
 			// The actual structure will depend on the API response
-			const riskScore =
-				(analysisResult as unknown as { riskScore: number }).riskScore || 0;
+			const riskScore = (analysisResult as unknown as { riskScore: number }).riskScore || 0;
 			const riskFactors =
 				(
 					analysisResult as unknown as {
 						riskFactors: Array<{ message?: string; type?: string }>;
 					}
 				).riskFactors || [];
-			const riskLevel =
-				(analysisResult as unknown as { riskLevel: string }).riskLevel || "low";
+			const riskLevel = (analysisResult as unknown as { riskLevel: string }).riskLevel || "low";
 
 			// Convert risk factors to reasons
-			const reasons = riskFactors.map(
-				(factor) => factor.message || factor.type || "Unknown risk factor",
-			);
+			const reasons = riskFactors.map((factor) => factor.message || factor.type || "Unknown risk factor");
 
 			// Determine decision based on risk level and score
 			let decision: "Allow" | "Warn" | "Block" = "Allow";
@@ -127,8 +113,7 @@ export class OnWillSaveHandler {
 			}
 
 			// Get diagnostic message from the first risk factor or default message
-			const diagnosticMessage =
-				reasons.length > 0 ? reasons[0] : "Potential risk detected";
+			const diagnosticMessage = reasons.length > 0 ? reasons[0] : "Potential risk detected";
 
 			return {
 				decision,
@@ -160,8 +145,7 @@ export class OnWillSaveHandler {
 				decision,
 				riskScore,
 				reasons,
-				diagnosticMessage:
-					reasons.length > 0 ? reasons[0] : "Potential risk detected",
+				diagnosticMessage: reasons.length > 0 ? reasons[0] : "Potential risk detected",
 			};
 		}
 	}
@@ -193,8 +177,7 @@ export class OnWillSaveHandler {
 				name: "Slack Token",
 			},
 			{
-				pattern:
-					/[f|F][a|A][c|C][e|E][b|B][o|O][o|O][k|K].*['"][0-9a-f]{32}['"]/g,
+				pattern: /[f|F][a|A][c|C][e|E][b|B][o|O][o|O][k|K].*['"][0-9a-f]{32}['"]/g,
 				weight: 3,
 				name: "Facebook Access Token",
 			},
@@ -210,8 +193,7 @@ export class OnWillSaveHandler {
 			{ pattern: /key-[0-9a-zA-Z]{32}/g, weight: 2, name: "Mailgun API Key" },
 			{ pattern: /SK[0-9a-fA-F]{32}/g, weight: 2, name: "Twilio API Key" },
 			{
-				pattern:
-					/[a|A][p|P][i|I][_]?[k|K][e|E][y|Y].*['"][0-9a-zA-Z]{32,45}['"]/g,
+				pattern: /[a|A][p|P][i|I][_]?[k|K][e|E][y|Y].*['"][0-9a-zA-Z]{32,45}['"]/g,
 				weight: 2,
 				name: "Generic API Key",
 			},
@@ -272,10 +254,7 @@ export class OnWillSaveHandler {
 		let score = 0;
 
 		// Extract potential secret candidates (strings in quotes)
-		const potentialSecrets =
-			content.match(
-				/["'`]([a-zA-Z0-9!@#$%^&*()_+\-=[\]{}|;:,.<>?]{16,100})["'`]/g,
-			) || [];
+		const potentialSecrets = content.match(/["'`]([a-zA-Z0-9!@#$%^&*()_+\-=[\]{}|;:,.<>?]{16,100})["'`]/g) || [];
 
 		for (const potential of potentialSecrets) {
 			// Extract the actual secret value (remove quotes)
@@ -363,17 +342,12 @@ export class OnWillSaveHandler {
 		}
 
 		// Check for high entropy strings
-		const potentialSecrets =
-			content.match(
-				/["'`]([a-zA-Z0-9!@#$%^&*()_+\-=[\]{}|;:,.<>?]{16,100})["'`]/g,
-			) || [];
+		const potentialSecrets = content.match(/["'`]([a-zA-Z0-9!@#$%^&*()_+\-=[\]{}|;:,.<>?]{16,100})["'`]/g) || [];
 		for (const potential of potentialSecrets) {
 			const secret = potential.substring(1, potential.length - 1);
 			const entropy = this.calculateShannonEntropy(secret);
 			if (entropy > 4.0) {
-				reasons.push(
-					`High entropy string detected (entropy: ${entropy.toFixed(2)})`,
-				);
+				reasons.push(`High entropy string detected (entropy: ${entropy.toFixed(2)})`);
 			}
 		}
 
@@ -398,10 +372,7 @@ export class OnWillSaveHandler {
 	/**
 	 * Handle warning level protection
 	 */
-	private async handleWarningLevel(
-		document: vscode.TextDocument,
-		decision: ProtectionDecision,
-	): Promise<void> {
+	private async handleWarningLevel(document: vscode.TextDocument, decision: ProtectionDecision): Promise<void> {
 		// For warning level, we show a notification but don't block by default
 		if (decision.decision === "Block" || decision.decision === "Warn") {
 			// Show notification about potential risks
@@ -445,31 +416,20 @@ export class OnWillSaveHandler {
 
 				case "createSnapshot": {
 					// Show override dialog to collect justification
-					const overrideResult =
-						await SnapBackDialogs.showOverrideDialog(dialogOptions);
+					const overrideResult = await SnapBackDialogs.showOverrideDialog(dialogOptions);
 					if (overrideResult.action === "override") {
 						// Record justification and allow save
-						await this.recordJustification(
-							document,
-							overrideResult.justification,
-						);
-						return;
-					} else {
-						// Cancel the save operation
-						event.waitUntil(
-							Promise.reject(
-								new Error("Save cancelled by SnapBack protection"),
-							),
-						);
+						await this.recordJustification(document, overrideResult.justification);
 						return;
 					}
+					// Cancel the save operation
+					event.waitUntil(Promise.reject(new Error("Save cancelled by SnapBack protection")));
+					return;
 				}
 
 				case "cancel":
 					// Cancel the save operation
-					event.waitUntil(
-						Promise.reject(new Error("Save cancelled by SnapBack protection")),
-					);
+					event.waitUntil(Promise.reject(new Error("Save cancelled by SnapBack protection")));
 					return;
 			}
 		}
@@ -478,30 +438,19 @@ export class OnWillSaveHandler {
 	/**
 	 * Record justification for snapshot creation
 	 */
-	private async recordJustification(
-		document: vscode.TextDocument,
-		justification: string,
-	): Promise<void> {
+	private async recordJustification(document: vscode.TextDocument, justification: string): Promise<void> {
 		// In a real implementation, this would:
 		// 1. Create a snapshot of the document
 		// 2. Record the justification with the snapshot
 		// 3. Store in audit log
 
 		const fileName = document.uri.path.split("/").pop() || "file";
-		logger.info(
-			`Snapshot created for ${fileName} with justification: ${justification}`,
-		);
+		logger.info(`Snapshot created for ${fileName} with justification: ${justification}`);
 
 		// For now, we'll just store the justification in context state for demonstration
-		const justifications = this.context.globalState.get<Record<string, string>>(
-			"snapback.justifications",
-			{},
-		);
+		const justifications = this.context.globalState.get<Record<string, string>>("snapback.justifications", {});
 		justifications[document.uri.toString()] = justification;
-		await this.context.globalState.update(
-			"snapback.justifications",
-			justifications,
-		);
+		await this.context.globalState.update("snapback.justifications", justifications);
 	}
 
 	/**
@@ -512,10 +461,7 @@ export class OnWillSaveHandler {
 		logger.debug(`Budget probe ${probeName}: ${value}ms`);
 
 		// For now, we'll just store in context state for demonstration
-		const probes = this.context.globalState.get<Record<string, number[]>>(
-			"snapback.budgetProbes",
-			{},
-		);
+		const probes = this.context.globalState.get<Record<string, number[]>>("snapback.budgetProbes", {});
 		if (!probes[probeName]) {
 			probes[probeName] = [];
 		}
@@ -523,10 +469,7 @@ export class OnWillSaveHandler {
 		this.context.globalState
 			.update("snapback.budgetProbes", probes)
 			.then(undefined, (error) =>
-				logger.error(
-					"Failed to update budget probes",
-					error instanceof Error ? error : undefined,
-				),
+				logger.error("Failed to update budget probes", error instanceof Error ? error : undefined),
 			);
 	}
 }

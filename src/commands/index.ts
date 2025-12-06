@@ -29,11 +29,7 @@ import type { WorkspaceMemoryManager } from "../workspaceMemory";
 import { registerAuthCommands } from "./authCommands";
 import { registerDecorationCommands } from "./decorationCommands"; // 🆕 Import decoration commands
 import { registerDetectionCommands } from "./detectionCommands";
-import {
-	registerConnectCommand,
-	registerOpenSnapshotInWebCommand,
-	registerRefreshTreeCommand,
-} from "./explorerTree";
+import { registerConnectCommand, registerOpenSnapshotInWebCommand, registerRefreshTreeCommand } from "./explorerTree";
 import { registerMcpCommands } from "./mcpCommands"; // 🆕 Import MCP commands
 import { registerOfflineModeCommands } from "./offlineModeCommands";
 import { registerPolicyOverrideCommands } from "./policyOverrideCommands";
@@ -63,10 +59,7 @@ import { registerWorkflowCommands } from "./workflowCommands";
  * context.subscriptions.push(disposable);
  * ```
  */
-function registerCommandSafely<T extends (...args: any[]) => any>(
-	commandId: string,
-	handler: T,
-): vscode.Disposable {
+function registerCommandSafely<T extends (...args: any[]) => any>(commandId: string, handler: T): vscode.Disposable {
 	try {
 		return vscode.commands.registerCommand(commandId, handler);
 	} catch (error) {
@@ -243,9 +236,7 @@ export function registerAllCommands(
 					) => {
 						return Promise.race([
 							primary(),
-							new Promise((resolve) =>
-								setTimeout(() => resolve(fallback()), timeout),
-							),
+							new Promise((resolve) => setTimeout(() => resolve(fallback()), timeout)),
 						]);
 					},
 				} as InstanceType<typeof ServiceFederation>,
@@ -258,11 +249,7 @@ export function registerAllCommands(
 	return [
 		...registerAuthCommands(context),
 		...registerProtectionCommands(context, commandContext),
-		...registerSnapshotCommands(
-			context,
-			commandContext.snapshotManager,
-			commandContext.refreshViews,
-		),
+		...registerSnapshotCommands(context, commandContext.snapshotManager, commandContext.refreshViews),
 		...registerSessionCommands(context, commandContext),
 		...registerViewCommands(context, commandContext),
 		...registerWorkflowCommands(context, commandContext),
@@ -278,10 +265,7 @@ export function registerAllCommands(
 		...(commandContext.explorerTreeProvider
 			? [
 					registerConnectCommand(context, commandContext.explorerTreeProvider),
-					registerRefreshTreeCommand(
-						context,
-						commandContext.explorerTreeProvider,
-					),
+					registerRefreshTreeCommand(context, commandContext.explorerTreeProvider),
 					registerOpenSnapshotInWebCommand(context),
 				]
 			: []),

@@ -110,9 +110,7 @@ export function hasPrivacyConsent(): boolean {
  * @param feature Feature to check (clipboard, watcher, gitWrapper)
  * @returns Whether the feature is enabled
  */
-export function isFeatureEnabled(
-	feature: "clipboard" | "watcher" | "gitWrapper",
-): boolean {
+export function isFeatureEnabled(feature: "clipboard" | "watcher" | "gitWrapper"): boolean {
 	// If no consent given, features are disabled
 	if (!hasPrivacyConsent()) {
 		return false;

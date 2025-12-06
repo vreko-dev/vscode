@@ -11,12 +11,8 @@ import { SessionFileTreeItem, SessionTreeItem } from "./sessionTypes";
  * tree structure. Each session is shown as a top-level item with its files
  * as child items.
  */
-export class SessionsTreeProvider
-	implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable
-{
-	private _onDidChangeTreeData = new vscode.EventEmitter<
-		vscode.TreeItem | undefined
-	>();
+export class SessionsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable {
+	private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
 	// Local cache of sessions
@@ -34,10 +30,7 @@ export class SessionsTreeProvider
 		// Listen for session finalization events
 		this.disposables.push(
 			this.sessionCoordinator.onSessionFinalized((session) => {
-				console.log(
-					"[SessionsTreeProvider] Session finalized event received:",
-					session.id,
-				);
+				console.log("[SessionsTreeProvider] Session finalized event received:", session.id);
 				this.sessions.push(session);
 				this.storageManager.storeSessionManifest(session);
 				this.refresh();
@@ -48,10 +41,7 @@ export class SessionsTreeProvider
 	private async loadSessions(): Promise<void> {
 		console.log("[SessionsTreeProvider] loadSessions() called");
 		this.sessions = await this.storageManager.listSessionManifests();
-		console.log(
-			"[SessionsTreeProvider] Loaded sessions:",
-			this.sessions.length,
-		);
+		console.log("[SessionsTreeProvider] Loaded sessions:", this.sessions.length);
 		this.refresh();
 	}
 
@@ -89,9 +79,7 @@ export class SessionsTreeProvider
 
 		if (element instanceof SessionTreeItem) {
 			// Show files in session
-			return element.session.files.map(
-				(fileEntry) => new SessionFileTreeItem(fileEntry),
-			);
+			return element.session.files.map((fileEntry) => new SessionFileTreeItem(fileEntry));
 		}
 
 		return [];

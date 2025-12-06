@@ -408,11 +408,7 @@ Pattern Confidence: ${aiInfo.confidence}%
 Activity Type: ${aiInfo.activityType}
 Files Modified: ${aiInfo.filesModified} files in last ${aiInfo.timeFrame}
 
-Auto-snapshot: ${
-				aiInfo.autoSnapshotId
-					? `✅ Created (${aiInfo.autoSnapshotId})`
-					: "❌ Not created"
-			}
+Auto-snapshot: ${aiInfo.autoSnapshotId ? `✅ Created (${aiInfo.autoSnapshotId})` : "❌ Not created"}
 Protection Status: ACTIVE
 Safe to accept AI suggestions - recovery ready if needed.`,
 			timestamp: Date.now(),
@@ -453,11 +449,7 @@ ${securityInfo.modifiedFiles.map((f) => `• ${f.file} (${f.type})`).join("\n")}
 Risk Factors:
 ${securityInfo.riskFactors.map((r) => `• ${r}`).join("\n")}
 
-Snapshot: ${
-				securityInfo.autoSnapshotId
-					? "✅ Auto-created before changes"
-					: "❌ Not created"
-			}
+Snapshot: ${securityInfo.autoSnapshotId ? "✅ Auto-created before changes" : "❌ Not created"}
 [Review Changes] [Rollback Now] [Mark Safe]`,
 			timestamp: Date.now(),
 			actions: [
@@ -552,9 +544,7 @@ ${
 }
 
 Available Recovery Options:
-${failureInfo.recoveryOptions
-	.map((o) => `• ${o.type}: ${o.description}`)
-	.join("\n")}
+${failureInfo.recoveryOptions.map((o) => `• ${o.type}: ${o.description}`).join("\n")}
 
 [Quick Rollback] [Selective Recovery] [View Error Log]`,
 			timestamp: Date.now(),
@@ -595,9 +585,7 @@ ${failureInfo.recoveryOptions
 
 Current Status: ${statusInfo.currentStatus}
 • AI Detection: ${
-				statusInfo.aiDetection.enabled
-					? SNAPBACK_ICONS.SUCCESS
-					: SNAPBACK_ICONS.FAILED
+				statusInfo.aiDetection.enabled ? SNAPBACK_ICONS.SUCCESS : SNAPBACK_ICONS.FAILED
 			} Enabled (monitoring ${statusInfo.aiDetection.tools.join(", ")})
 • Auto-snapshot: ${statusInfo.autoSnapshot.enabled ? SNAPBACK_ICONS.SUCCESS : SNAPBACK_ICONS.FAILED} ${
 				statusInfo.autoSnapshot.frequency
@@ -791,10 +779,7 @@ Last activity: ${statusInfo.lastActivity}
 			case "error":
 				// In MVP, error notifications are handled via inline UI elements
 				// For now, we'll show a non-modal error message
-				vscode.window.showErrorMessage(
-					formattedMessage,
-					...(notification.actions?.map((a) => a.title) || []),
-				);
+				vscode.window.showErrorMessage(formattedMessage, ...(notification.actions?.map((a) => a.title) || []));
 				break;
 		}
 	}

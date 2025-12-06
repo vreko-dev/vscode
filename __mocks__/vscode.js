@@ -53,9 +53,7 @@ class MockTreeDataProvider extends MockEventEmitter {
 	}
 
 	get onDidChangeTreeData() {
-		return this._onDidChangeTreeData.onDidChange.bind(
-			this._onDidChangeTreeData,
-		);
+		return this._onDidChangeTreeData.onDidChange.bind(this._onDidChangeTreeData);
 	}
 
 	getTreeItem(element) {

@@ -154,10 +154,7 @@ export class LazyLoader<T> {
 	 * Dispose a service if it has a dispose method
 	 */
 	private disposeService(service: T): void {
-		if (
-			service &&
-			typeof (service as unknown as Disposable).dispose === "function"
-		) {
+		if (service && typeof (service as unknown as Disposable).dispose === "function") {
 			(service as unknown as Disposable).dispose();
 		}
 	}

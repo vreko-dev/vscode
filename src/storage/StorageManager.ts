@@ -72,10 +72,7 @@ export class StorageManager implements IStorageManager {
 			// Directory might already exist or be inaccessible
 			// This is fine - we'll fail later on first actual use if truly broken
 			if (err.code !== "FileExists") {
-				console.warn(
-					"[SnapBack Storage] Directory creation warning:",
-					err?.message,
-				);
+				console.warn("[SnapBack Storage] Directory creation warning:", err?.message);
 			}
 		}
 
@@ -92,9 +89,7 @@ export class StorageManager implements IStorageManager {
 
 		this.initialized = true;
 
-		console.log(
-			`[SnapBack Storage] Initialized (lazy mode) at ${this.storageUri.fsPath}`,
-		);
+		console.log(`[SnapBack Storage] Initialized (lazy mode) at ${this.storageUri.fsPath}`);
 	}
 
 	/**
@@ -140,9 +135,7 @@ export class StorageManager implements IStorageManager {
 			await writeJsonFile(this.metadataUri, metadata);
 		} else if (existing.version < STORAGE_VERSION) {
 			// Handle migrations in the future
-			console.log(
-				`[SnapBack Storage] Upgrading from v${existing.version} to v${STORAGE_VERSION}`,
-			);
+			console.log(`[SnapBack Storage] Upgrading from v${existing.version} to v${STORAGE_VERSION}`);
 			existing.version = STORAGE_VERSION;
 			await writeJsonFile(this.metadataUri, existing);
 		}
@@ -238,10 +231,7 @@ export class StorageManager implements IStorageManager {
 		this.updateStats().catch(console.error);
 	}
 
-	async getSnapshotsForFile(
-		filePath: string,
-		limit?: number,
-	): Promise<SnapshotManifest[]> {
+	async getSnapshotsForFile(filePath: string, limit?: number): Promise<SnapshotManifest[]> {
 		// Lazy-initialize components on first use
 		await this.ensureComponentsInitialized();
 		return this.snapshotStore.getForFile(filePath, limit);
@@ -272,11 +262,7 @@ export class StorageManager implements IStorageManager {
 	): Promise<SessionManifest> {
 		// Lazy-initialize components on first use
 		await this.ensureComponentsInitialized();
-		const manifest = await this.sessionStore.finalizeSession(
-			reason,
-			files,
-			options,
-		);
+		const manifest = await this.sessionStore.finalizeSession(reason, files, options);
 
 		if (!manifest) {
 			throw new Error("No active session to finalize");
@@ -314,9 +300,7 @@ export class StorageManager implements IStorageManager {
 	// Audit
 	// ============================================
 
-	async recordAudit(
-		entry: Omit<AuditEntry, "id" | "timestamp">,
-	): Promise<void> {
+	async recordAudit(entry: Omit<AuditEntry, "id" | "timestamp">): Promise<void> {
 		// Lazy-initialize components on first use
 		await this.ensureComponentsInitialized();
 		await this.auditLog.append(entry);
@@ -334,10 +318,7 @@ export class StorageManager implements IStorageManager {
 		return this.auditLog.getAll(limit);
 	}
 
-	async getAuditEntriesByAction(
-		action: AuditEntry["action"],
-		limit?: number,
-	): Promise<AuditEntry[]> {
+	async getAuditEntriesByAction(action: AuditEntry["action"], limit?: number): Promise<AuditEntry[]> {
 		// Lazy-initialize components on first use
 		await this.ensureComponentsInitialized();
 		return this.auditLog.getByAction(action, limit);

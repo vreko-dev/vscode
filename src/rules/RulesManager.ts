@@ -38,7 +38,7 @@ export class RulesManager {
 	private readonly POLLING_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours (daily)
 	private context: vscode.ExtensionContext;
 	private telemetry: VSCodeTelemetry | null = null;
-	private offlineMode: boolean = false;
+	private offlineMode = false;
 
 	// Ed25519 public key (32 bytes)
 	// In production: Load from secure environment variable
@@ -57,16 +57,15 @@ export class RulesManager {
 			} else {
 				// Fallback to test key if environment variable is invalid
 				this.PUBLIC_KEY = new Uint8Array([
-					215, 90, 152, 1, 130, 177, 10, 183, 213, 75, 254, 211, 201, 100, 7,
-					58, 14, 225, 114, 243, 218, 166, 35, 37, 175, 2, 26, 104, 247, 7, 81,
-					26,
+					215, 90, 152, 1, 130, 177, 10, 183, 213, 75, 254, 211, 201, 100, 7, 58, 14, 225, 114, 243, 218, 166,
+					35, 37, 175, 2, 26, 104, 247, 7, 81, 26,
 				]);
 			}
 		} else {
 			// Fallback to test key if environment variable is not set
 			this.PUBLIC_KEY = new Uint8Array([
-				215, 90, 152, 1, 130, 177, 10, 183, 213, 75, 254, 211, 201, 100, 7, 58,
-				14, 225, 114, 243, 218, 166, 35, 37, 175, 2, 26, 104, 247, 7, 81, 26,
+				215, 90, 152, 1, 130, 177, 10, 183, 213, 75, 254, 211, 201, 100, 7, 58, 14, 225, 114, 243, 218, 166, 35,
+				37, 175, 2, 26, 104, 247, 7, 81, 26,
 			]);
 		}
 	}
@@ -176,9 +175,7 @@ export class RulesManager {
 			if (response.bundle) {
 				try {
 					// Validate the rules bundle with signature verification
-					const validatedRules = await this.validateRulesBundle(
-						response.bundle,
-					);
+					const validatedRules = await this.validateRulesBundle(response.bundle);
 					this.currentRules = validatedRules;
 					logger.info("Rules updated successfully");
 
@@ -232,9 +229,7 @@ export class RulesManager {
 			// 1. Parse JWS structure
 			const parts = bundle.split(".");
 			if (parts.length !== 3) {
-				throw new Error(
-					"Invalid JWS format: expected 3 parts (header.payload.signature)",
-				);
+				throw new Error("Invalid JWS format: expected 3 parts (header.payload.signature)");
 			}
 
 			const [headerB64, payloadB64, signatureB64] = parts;
@@ -244,11 +239,7 @@ export class RulesManager {
 			const signature = this.base64UrlDecode(signatureB64);
 
 			try {
-				const isValid = nacl.sign.detached.verify(
-					message,
-					signature,
-					this.PUBLIC_KEY,
-				);
+				const isValid = nacl.sign.detached.verify(message, signature, this.PUBLIC_KEY);
 
 				if (!isValid) {
 					logger.error("Rule bundle signature verification failed");
@@ -261,13 +252,8 @@ export class RulesManager {
 				}
 			} catch (verifyError: unknown) {
 				// Handle specific tweetnacl errors
-				if (
-					verifyError instanceof Error &&
-					verifyError.message?.includes("bad signature size")
-				) {
-					logger.error(
-						"Rule bundle signature verification failed due to bad signature size",
-					);
+				if (verifyError instanceof Error && verifyError.message?.includes("bad signature size")) {
+					logger.error("Rule bundle signature verification failed due to bad signature size");
 					// Track signature verification failure
 					this.telemetry?.trackError(
 						"signature.verification.failed",
@@ -284,9 +270,7 @@ export class RulesManager {
 			this.telemetry?.trackFeatureUsed("signature.verification.success");
 
 			// 3. Parse and validate payload
-			const payloadJson = new TextDecoder().decode(
-				this.base64UrlDecode(payloadB64),
-			);
+			const payloadJson = new TextDecoder().decode(this.base64UrlDecode(payloadB64));
 			const payload = JSON.parse(payloadJson) as PolicyBundle;
 
 			// 4. Validate schema structure
@@ -303,9 +287,7 @@ export class RulesManager {
 					current: currentVersion,
 					required: payload.minClientVersion,
 				});
-				throw new Error(
-					`Extension update required: min version ${payload.minClientVersion}`,
-				);
+				throw new Error(`Extension update required: min version ${payload.minClientVersion}`);
 			}
 
 			// 6. Verify bundle freshness (not older than 7 days)

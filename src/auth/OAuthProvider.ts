@@ -54,10 +54,7 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 	): Promise<vscode.AuthenticationSession[]> {
 		if (this._currentSession) {
 			// Check if session is expired
-			if (
-				this._currentSession.expiresAt &&
-				Date.now() >= this._currentSession.expiresAt
-			) {
+			if (this._currentSession.expiresAt && Date.now() >= this._currentSession.expiresAt) {
 				logger.info("Session expired, attempting refresh");
 				await this.refreshSession();
 			}
@@ -87,9 +84,7 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 
 			// Open external browser for OAuth flow
 			const callbackUri = await vscode.env.asExternalUri(
-				vscode.Uri.parse(
-					`${vscode.env.uriScheme}://MarcelleLabs.snapback-vscode/oauth-callback`,
-				),
+				vscode.Uri.parse(`${vscode.env.uriScheme}://MarcelleLabs.snapback-vscode/oauth-callback`),
 			);
 
 			// Open browser to authorization endpoint
@@ -110,9 +105,7 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 				id: this.generateRandomString(16),
 				accessToken: tokenResponse.access_token,
 				refreshToken: tokenResponse.refresh_token,
-				expiresAt: tokenResponse.expires_in
-					? Date.now() + tokenResponse.expires_in * 1000
-					: undefined,
+				expiresAt: tokenResponse.expires_in ? Date.now() + tokenResponse.expires_in * 1000 : undefined,
 				account: {
 					id: tokenResponse.user_id || "unknown",
 					label: tokenResponse.user_email || "SnapBack User",
@@ -135,9 +128,7 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 			return session;
 		} catch (error) {
 			logger.error("Failed to create OAuth session", error as Error);
-			throw new Error(
-				`Authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
+			throw new Error(`Authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`);
 		}
 	}
 
@@ -183,20 +174,17 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 		try {
 			logger.info("Refreshing OAuth session");
 
-			const response = await fetch(
-				`${SnapBackOAuthProvider.AUTH_BASE_URL}/oauth/token`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						grant_type: "refresh_token",
-						refresh_token: this._currentSession.refreshToken,
-						client_id: "vscode-extension",
-					}),
+			const response = await fetch(`${SnapBackOAuthProvider.AUTH_BASE_URL}/oauth/token`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
 				},
-			);
+				body: JSON.stringify({
+					grant_type: "refresh_token",
+					refresh_token: this._currentSession.refreshToken,
+					client_id: "vscode-extension",
+				}),
+			});
 
 			if (!response.ok) {
 				throw new Error(`Token refresh failed: ${response.statusText}`);
@@ -212,11 +200,8 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 			const updatedSession: SnapBackSession = {
 				...this._currentSession,
 				accessToken: tokenResponse.access_token,
-				refreshToken:
-					tokenResponse.refresh_token || this._currentSession.refreshToken,
-				expiresAt: tokenResponse.expires_in
-					? Date.now() + tokenResponse.expires_in * 1000
-					: undefined,
+				refreshToken: tokenResponse.refresh_token || this._currentSession.refreshToken,
+				expiresAt: tokenResponse.expires_in ? Date.now() + tokenResponse.expires_in * 1000 : undefined,
 			};
 
 			await this.storeSession(updatedSession);
@@ -237,9 +222,7 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 	 */
 	private async restoreSession(): Promise<void> {
 		try {
-			const sessionJson = await this.context.secrets.get(
-				"snapback.oauth.session",
-			);
+			const sessionJson = await this.context.secrets.get("snapback.oauth.session");
 			if (sessionJson) {
 				const session = JSON.parse(sessionJson) as SnapBackSession;
 				this._currentSession = session;
@@ -259,24 +242,17 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 	 * Store session in secure storage
 	 */
 	private async storeSession(session: SnapBackSession): Promise<void> {
-		await this.context.secrets.store(
-			"snapback.oauth.session",
-			JSON.stringify(session),
-		);
+		await this.context.secrets.store("snapback.oauth.session", JSON.stringify(session));
 	}
 
 	/**
 	 * Build OAuth authorization URL
 	 */
-	private buildAuthUrl(
-		state: string,
-		codeChallenge: string,
-		scopes: readonly string[],
-	): string {
+	private buildAuthUrl(state: string, codeChallenge: string, scopes: readonly string[]): string {
 		const params = new URLSearchParams({
 			client_id: "vscode-extension",
 			response_type: "code",
-			redirect_uri: `vscode://MarcelleLabs.snapback-vscode/oauth-callback`,
+			redirect_uri: "vscode://MarcelleLabs.snapback-vscode/oauth-callback",
 			state: state,
 			code_challenge: codeChallenge,
 			code_challenge_method: "S256",
@@ -289,9 +265,7 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 	/**
 	 * Wait for OAuth callback from redirect
 	 */
-	private async waitForAuthCallback(
-		state: string,
-	): Promise<{ code: string; state: string }> {
+	private async waitForAuthCallback(state: string): Promise<{ code: string; state: string }> {
 		return new Promise((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				reject(new Error("Authentication timed out"));
@@ -310,18 +284,12 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 						const error = query.get("error");
 
 						if (error) {
-							reject(
-								new Error(
-									`OAuth error: ${error} - ${query.get("error_description") || ""}`,
-								),
-							);
+							reject(new Error(`OAuth error: ${error} - ${query.get("error_description") || ""}`));
 							return;
 						}
 
 						if (!code || !returnedState) {
-							reject(
-								new Error("Invalid OAuth callback: missing code or state"),
-							);
+							reject(new Error("Invalid OAuth callback: missing code or state"));
 							return;
 						}
 
@@ -353,28 +321,23 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 		user_id?: string;
 		user_email?: string;
 	}> {
-		const response = await fetch(
-			`${SnapBackOAuthProvider.AUTH_BASE_URL}/oauth/token`,
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					grant_type: "authorization_code",
-					code: code,
-					code_verifier: codeVerifier,
-					redirect_uri: redirectUri,
-					client_id: "vscode-extension",
-				}),
+		const response = await fetch(`${SnapBackOAuthProvider.AUTH_BASE_URL}/oauth/token`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
 			},
-		);
+			body: JSON.stringify({
+				grant_type: "authorization_code",
+				code: code,
+				code_verifier: codeVerifier,
+				redirect_uri: redirectUri,
+				client_id: "vscode-extension",
+			}),
+		});
 
 		if (!response.ok) {
 			const errorText = await response.text();
-			throw new Error(
-				`Token exchange failed: ${response.status} ${response.statusText} - ${errorText}`,
-			);
+			throw new Error(`Token exchange failed: ${response.status} ${response.statusText} - ${errorText}`);
 		}
 
 		const tokenResponse = await response.json();
@@ -430,8 +393,7 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 	 * Generate cryptographically secure random string
 	 */
 	private generateRandomString(length: number): string {
-		const chars =
-			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+		const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
 		const array = new Uint8Array(length);
 		crypto.getRandomValues(array);
 		return Array.from(array, (byte) => chars[byte % chars.length]).join("");

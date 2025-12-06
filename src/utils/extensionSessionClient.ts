@@ -19,9 +19,7 @@ interface ExtensionSessionData {
  * @param sessionData The session data to send
  * @returns Promise that resolves when the data is sent
  */
-export async function sendExtensionSession(
-	sessionData: ExtensionSessionData,
-): Promise<void> {
+export async function sendExtensionSession(sessionData: ExtensionSessionData): Promise<void> {
 	try {
 		// Get configuration from VS Code settings
 		const config = vscode.workspace.getConfiguration("snapback");
@@ -47,12 +45,8 @@ export async function sendExtensionSession(
 
 		if (!response.ok) {
 			const errorText = await response.text();
-			logger.error(
-				`Failed to send extension session: ${response.status} ${errorText}`,
-			);
-			throw new Error(
-				`Failed to send extension session: ${response.status} ${errorText}`,
-			);
+			logger.error(`Failed to send extension session: ${response.status} ${errorText}`);
+			throw new Error(`Failed to send extension session: ${response.status} ${errorText}`);
 		}
 
 		logger.debug("Extension session sent successfully", {

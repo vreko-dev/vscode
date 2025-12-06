@@ -28,53 +28,42 @@ export function registerSnapshotCreationCommands(
 	const disposables: vscode.Disposable[] = [];
 
 	// Extract needed services from context
-	const {
-		operationCoordinator,
-		protectedFileRegistry,
-		refreshViews,
-		snapshotManager,
-	} = commandContext;
+	const { operationCoordinator, protectedFileRegistry, refreshViews, snapshotManager } = commandContext;
 
 	// Command: Create Snapshot
 	disposables.push(
-		vscode.commands.registerCommand(
-			COMMANDS.SNAPSHOT.CREATE_LEGACY,
-			async () => {
-				try {
-					vscode.window.showInformationMessage("Creating snapshot...");
-					const snapshotId =
-						await operationCoordinator.coordinateSnapshotCreation();
+		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.CREATE_LEGACY, async () => {
+			try {
+				vscode.window.showInformationMessage("Creating snapshot...");
+				const snapshotId = await operationCoordinator.coordinateSnapshotCreation();
 
-					// Only proceed if snapshot was created successfully
-					if (snapshotId) {
-						// Get the snapshot to display its semantic name
-						const snapshot = await snapshotManager.get(snapshotId);
-						const displayName = snapshot?.name || snapshotId;
+				// Only proceed if snapshot was created successfully
+				if (snapshotId) {
+					// Get the snapshot to display its semantic name
+					const snapshot = await snapshotManager.get(snapshotId);
+					const displayName = snapshot?.name || snapshotId;
 
-						vscode.window.showInformationMessage(
-							`Snapshot "${displayName}" created successfully`,
-						);
+					vscode.window.showInformationMessage(`Snapshot "${displayName}" created successfully`);
 
-						const protectedEntries = await protectedFileRegistry.list();
-						await protectedFileRegistry.markSnapshot(
-							snapshotId,
-							protectedEntries.map((entry) => entry.path),
-						);
+					const protectedEntries = await protectedFileRegistry.list();
+					await protectedFileRegistry.markSnapshot(
+						snapshotId,
+						protectedEntries.map((entry) => entry.path),
+					);
 
-						// Refresh tree views
-						refreshViews();
+					// Refresh tree views
+					refreshViews();
 
-						// Notify Safety Dashboard if available
-						vscode.commands.executeCommand("snapback.refreshSafetyDashboard");
-					} else {
-						vscode.window.showErrorMessage("Failed to create snapshot");
-						return;
-					}
-				} catch (error) {
-					vscode.window.showErrorMessage(`Failed to create snapshot: ${error}`);
+					// Notify Safety Dashboard if available
+					vscode.commands.executeCommand("snapback.refreshSafetyDashboard");
+				} else {
+					vscode.window.showErrorMessage("Failed to create snapshot");
+					return;
 				}
-			},
-		),
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to create snapshot: ${error}`);
+			}
+		}),
 	);
 
 	return disposables;

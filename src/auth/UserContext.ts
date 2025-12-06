@@ -68,9 +68,7 @@ export type UserContext = AuthenticatedContext | AnonymousContext;
  * @param context - User context to check
  * @returns true if context is AuthenticatedContext
  */
-export function isAuthenticatedContext(
-	context: UserContext,
-): context is AuthenticatedContext {
+export function isAuthenticatedContext(context: UserContext): context is AuthenticatedContext {
 	return context.isAuthenticated === true;
 }
 
@@ -80,9 +78,7 @@ export function isAuthenticatedContext(
  * @param context - User context to check
  * @returns true if context is AnonymousContext
  */
-export function isAnonymousContext(
-	context: UserContext,
-): context is AnonymousContext {
+export function isAnonymousContext(context: UserContext): context is AnonymousContext {
 	return context.isAuthenticated === false;
 }
 
@@ -95,12 +91,7 @@ export function isAnonymousContext(
  * const canSnapshot = canAccessFeature(context, 'snapshots');
  * ```
  */
-export const ANONYMOUS_FEATURES = [
-	"snapshots",
-	"local-protection",
-	"watch-mode",
-	"ai-detection",
-] as const;
+export const ANONYMOUS_FEATURES = ["snapshots", "local-protection", "watch-mode", "ai-detection"] as const;
 
 export const TIER_FEATURES = {
 	free: [
@@ -134,8 +125,7 @@ export const TIER_FEATURES = {
 } as const;
 
 export type AnonymousFeature = (typeof ANONYMOUS_FEATURES)[number];
-export type PaidFeature =
-	(typeof TIER_FEATURES)[keyof typeof TIER_FEATURES][number];
+export type PaidFeature = (typeof TIER_FEATURES)[keyof typeof TIER_FEATURES][number];
 export type Feature = AnonymousFeature | PaidFeature;
 
 /**
@@ -145,10 +135,7 @@ export type Feature = AnonymousFeature | PaidFeature;
  * @param feature - Feature to check
  * @returns true if user's tier/status allows feature access
  */
-export function canAccessFeature(
-	context: UserContext,
-	feature: Feature,
-): boolean {
+export function canAccessFeature(context: UserContext, feature: Feature): boolean {
 	if (isAnonymousContext(context)) {
 		return (ANONYMOUS_FEATURES as readonly string[]).includes(feature);
 	}

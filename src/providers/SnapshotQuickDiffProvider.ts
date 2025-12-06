@@ -53,10 +53,7 @@ export class SnapshotQuickDiffProvider implements vscode.QuickDiffProvider {
 	 * @param _token - Cancellation token (unused, but required by interface)
 	 * @returns snapback:// URI if tracked, null if not tracked
 	 */
-	provideOriginalResource(
-		uri: vscode.Uri,
-		_token: vscode.CancellationToken,
-	): vscode.Uri | null {
+	provideOriginalResource(uri: vscode.Uri, _token: vscode.CancellationToken): vscode.Uri | null {
 		if (!uri) {
 			return null;
 		}

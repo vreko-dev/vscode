@@ -11,11 +11,7 @@ interface CooldownEntry {
 	protectionLevel: ProtectionLevel;
 	triggeredAt: number;
 	expiresAt: number;
-	actionTaken:
-		| "snapshot_created"
-		| "save_allowed"
-		| "save_blocked"
-		| "user_override";
+	actionTaken: "snapshot_created" | "save_allowed" | "save_blocked" | "user_override";
 	snapshotId?: string;
 }
 
@@ -26,11 +22,7 @@ interface AuditEntry {
 	id: string;
 	filePath: string;
 	protectionLevel: ProtectionLevel;
-	action:
-		| "save_attempt"
-		| "save_blocked"
-		| "snapshot_created"
-		| "user_override";
+	action: "save_attempt" | "save_blocked" | "snapshot_created" | "user_override";
 	timestamp: number;
 	details?: Record<string, unknown>;
 	snapshotId?: string;
@@ -85,10 +77,7 @@ export class CooldownManager {
 			const message = error instanceof Error ? error.message : String(error);
 
 			// Log the detailed error for debugging
-			logger.error(
-				"[StorageBroker] Failed to initialize CooldownManager",
-				error as Error,
-			);
+			logger.error("[StorageBroker] Failed to initialize CooldownManager", error as Error);
 
 			// Extract actionable information from the error
 			if (message.includes("sql.js")) {
@@ -131,8 +120,7 @@ export class CooldownManager {
 		}
 
 		const now = Date.now();
-		const duration =
-			customDuration || this.getCooldownDuration(protectionLevel, actionTaken);
+		const duration = customDuration || this.getCooldownDuration(protectionLevel, actionTaken);
 		const expiresAt = now + duration;
 
 		// Generate a unique ID for the cooldown entry
@@ -151,15 +139,7 @@ export class CooldownManager {
 						INSERT INTO cooldowns (id, file_path, protection_level, triggered_at, expires_at, action_taken, snapshot_id)
 						VALUES (?, ?, ?, ?, ?, ?, ?)
 					`);
-					stmt.run(
-						id,
-						filePath,
-						protectionLevel,
-						now,
-						expiresAt,
-						actionTaken,
-						snapshotId || null,
-					);
+					stmt.run(id, filePath, protectionLevel, now, expiresAt, actionTaken, snapshotId || null);
 				});
 			}
 
@@ -179,10 +159,7 @@ export class CooldownManager {
 	 * @param protectionLevel The protection level
 	 * @returns True if the file is in cooldown, false otherwise
 	 */
-	async isInCooldown(
-		filePath: string,
-		protectionLevel: ProtectionLevel,
-	): Promise<boolean> {
+	async isInCooldown(filePath: string, protectionLevel: ProtectionLevel): Promise<boolean> {
 		if (!this.initialized) {
 			throw new Error("CooldownManager not initialized");
 		}
@@ -192,26 +169,23 @@ export class CooldownManager {
 		try {
 			if (this.storageBroker) {
 				// Use StorageBroker to query the cooldown status
-				return await this.storageBroker.queueOperation(
-					"check_cooldown",
-					async () => {
-						const db = this.storageBroker?.getDatabase();
-						if (!db) {
-							throw new Error("Storage broker not properly initialized");
-						}
+				return await this.storageBroker.queueOperation("check_cooldown", async () => {
+					const db = this.storageBroker?.getDatabase();
+					if (!db) {
+						throw new Error("Storage broker not properly initialized");
+					}
 
-						const stmt = db.prepare(`
+					const stmt = db.prepare(`
 						SELECT COUNT(*) as count FROM cooldowns
 						WHERE file_path = ?
 						AND protection_level = ?
 						AND expires_at > ?
 					`);
-						const result = stmt.get(filePath, protectionLevel, now) as {
-							count: number;
-						};
-						return result.count > 0;
-					},
-				);
+					const result = stmt.get(filePath, protectionLevel, now) as {
+						count: number;
+					};
+					return result.count > 0;
+				});
 			}
 			return false;
 		} catch (error) {
@@ -229,20 +203,14 @@ export class CooldownManager {
 	 * @param actionTaken The action taken
 	 * @returns Cooldown duration in milliseconds
 	 */
-	private getCooldownDuration(
-		protectionLevel: ProtectionLevel,
-		actionTaken: CooldownEntry["actionTaken"],
-	): number {
+	private getCooldownDuration(protectionLevel: ProtectionLevel, actionTaken: CooldownEntry["actionTaken"]): number {
 		// Special handling for user overrides
 		if (actionTaken === "user_override") {
 			return this.DEFAULT_COOLDOWN_PERIODS.userOverride;
 		}
 
 		// Return the default duration based on protection level
-		return (
-			this.DEFAULT_COOLDOWN_PERIODS[protectionLevel] ||
-			this.DEFAULT_COOLDOWN_PERIODS.warn
-		);
+		return this.DEFAULT_COOLDOWN_PERIODS[protectionLevel] || this.DEFAULT_COOLDOWN_PERIODS.warn;
 	}
 
 	/**
@@ -281,15 +249,7 @@ export class CooldownManager {
 						VALUES (?, ?, ?, ?, ?, ?, ?)
 					`);
 					const detailsJson = details ? JSON.stringify(details) : null;
-					stmt.run(
-						id,
-						filePath,
-						protectionLevel,
-						action,
-						timestamp,
-						detailsJson,
-						snapshotId || null,
-					);
+					stmt.run(id, filePath, protectionLevel, action, timestamp, detailsJson, snapshotId || null);
 				});
 			}
 
@@ -309,10 +269,7 @@ export class CooldownManager {
 	 * @param limit Maximum number of entries to return
 	 * @returns Array of audit entries
 	 */
-	async getAuditTrail(
-		filePath: string,
-		limit: number = 50,
-	): Promise<AuditEntry[]> {
+	async getAuditTrail(filePath: string, limit = 50): Promise<AuditEntry[]> {
 		if (!this.initialized) {
 			throw new Error("CooldownManager not initialized");
 		}
@@ -320,42 +277,39 @@ export class CooldownManager {
 		try {
 			if (this.storageBroker) {
 				// Use StorageBroker to query the audit trail
-				return await this.storageBroker.queueOperation(
-					"get_audit_trail",
-					async () => {
-						const db = this.storageBroker?.getDatabase();
-						if (!db) {
-							throw new Error("Storage broker not properly initialized");
-						}
+				return await this.storageBroker.queueOperation("get_audit_trail", async () => {
+					const db = this.storageBroker?.getDatabase();
+					if (!db) {
+						throw new Error("Storage broker not properly initialized");
+					}
 
-						const stmt = db.prepare(`
+					const stmt = db.prepare(`
 						SELECT id, file_path, protection_level, action, timestamp, details, snapshot_id
 						FROM audit_trail
 						WHERE file_path = ?
 						ORDER BY timestamp DESC
 						LIMIT ?
 					`);
-						const rows = stmt.all(filePath, limit) as Array<{
-							id: string;
-							file_path: string;
-							protection_level: string;
-							action: string;
-							timestamp: number;
-							details: string | null;
-							snapshot_id: string | null;
-						}>;
+					const rows = stmt.all(filePath, limit) as Array<{
+						id: string;
+						file_path: string;
+						protection_level: string;
+						action: string;
+						timestamp: number;
+						details: string | null;
+						snapshot_id: string | null;
+					}>;
 
-						return rows.map((row) => ({
-							id: row.id,
-							filePath: row.file_path,
-							protectionLevel: row.protection_level as ProtectionLevel,
-							action: row.action as AuditEntry["action"],
-							timestamp: row.timestamp,
-							details: row.details ? JSON.parse(row.details) : undefined,
-							snapshotId: row.snapshot_id || undefined,
-						}));
-					},
-				);
+					return rows.map((row) => ({
+						id: row.id,
+						filePath: row.file_path,
+						protectionLevel: row.protection_level as ProtectionLevel,
+						action: row.action as AuditEntry["action"],
+						timestamp: row.timestamp,
+						details: row.details ? JSON.parse(row.details) : undefined,
+						snapshotId: row.snapshot_id || undefined,
+					}));
+				});
 			}
 			return [];
 		} catch (error) {
@@ -379,21 +333,18 @@ export class CooldownManager {
 		try {
 			if (this.storageBroker) {
 				// Use StorageBroker to delete expired cooldowns
-				await this.storageBroker.queueOperation(
-					"clear_expired_cooldowns",
-					async () => {
-						const db = this.storageBroker?.getDatabase();
-						if (!db) {
-							throw new Error("Storage broker not properly initialized");
-						}
+				await this.storageBroker.queueOperation("clear_expired_cooldowns", async () => {
+					const db = this.storageBroker?.getDatabase();
+					if (!db) {
+						throw new Error("Storage broker not properly initialized");
+					}
 
-						const stmt = db.prepare(`
+					const stmt = db.prepare(`
 						DELETE FROM cooldowns WHERE expires_at < ?
 					`);
-						const result = stmt.run(now);
-						logger.info(`Cleared ${result.changes} expired cooldowns`);
-					},
-				);
+					const result = stmt.run(now);
+					logger.info(`Cleared ${result.changes} expired cooldowns`);
+				});
 			}
 
 			logger.debug("Expired cooldowns cleared");

@@ -5,7 +5,7 @@ import * as crypto from "node:crypto";
 /**
  * Generate a random alphanumeric string
  */
-export function randomId(length: number = 6): string {
+export function randomId(length = 6): string {
 	const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
 	const bytes = crypto.randomBytes(length);
 	let result = "";
@@ -42,5 +42,5 @@ export function generateAuditId(): string {
  */
 export function parseTimestampFromId(id: string): number | null {
 	const match = id.match(/^(?:snap|sess|audit)-(\d+)-/);
-	return match ? parseInt(match[1], 10) : null;
+	return match ? Number.parseInt(match[1], 10) : null;
 }

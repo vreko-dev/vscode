@@ -37,9 +37,7 @@ export interface AuthedApiClient {
  * @param context - VS Code extension context
  * @returns AuthedApiClient instance
  */
-export function createAuthedApiClient(
-	_context: vscode.ExtensionContext,
-): AuthedApiClient {
+export function createAuthedApiClient(_context: vscode.ExtensionContext): AuthedApiClient {
 	return {
 		async fetch<T>(_path: string, _init?: RequestInit): Promise<T> {
 			// TODO: Implement actual authenticated fetch with token refresh

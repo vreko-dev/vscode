@@ -1,10 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
-import {
-	CORE_CONCEPT_SIGNAGE,
-	PROTECTION_LEVEL_SIGNAGE,
-} from "../signage/index";
+import { CORE_CONCEPT_SIGNAGE, PROTECTION_LEVEL_SIGNAGE } from "../signage/index";
 import type { ProtectionLevelCanonical } from "../signage/types";
 import { logger } from "../utils/logger";
 import type { ProtectedFileEntry } from "./types";
@@ -28,12 +25,8 @@ import type { ProtectedFileEntry } from "./types";
  * - File: Just the filename, no redundant level indicators
  * - Tooltip: Full details with path and protection metadata
  */
-export class ProtectedFilesTreeProvider
-	implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable
-{
-	private readonly _onDidChangeTreeData = new vscode.EventEmitter<
-		vscode.TreeItem | undefined
-	>();
+export class ProtectedFilesTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable {
+	private readonly _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 	private disposables: vscode.Disposable[] = [];
 
@@ -70,9 +63,7 @@ export class ProtectedFilesTreeProvider
 				});
 
 				if (validFiles.length !== files.length) {
-					logger.info(
-						`📦 Found ${validFiles.length} valid protected files out of ${files.length} total`,
-					);
+					logger.info(`📦 Found ${validFiles.length} valid protected files out of ${files.length} total`);
 				}
 
 				// 🛡️ Verify state consistency for all files
@@ -81,23 +72,15 @@ export class ProtectedFilesTreeProvider
 				}
 
 				// Group files by canonical protection level (block > warn > watch)
-				const blockFiles = validFiles.filter(
-					(f) => f.protectionLevel === "block",
-				);
-				const warnFiles = validFiles.filter(
-					(f) => f.protectionLevel === "warn",
-				);
-				const watchFiles = validFiles.filter(
-					(f) => f.protectionLevel === "watch" || !f.protectionLevel,
-				);
+				const blockFiles = validFiles.filter((f) => f.protectionLevel === "block");
+				const warnFiles = validFiles.filter((f) => f.protectionLevel === "warn");
+				const watchFiles = validFiles.filter((f) => f.protectionLevel === "watch" || !f.protectionLevel);
 
 				// Create section nodes (collapsed by default to reduce cognitive overload)
 				const sections: vscode.TreeItem[] = [];
 
 				if (blockFiles.length > 0) {
-					sections.push(
-						createProtectionLevelSection("block", blockFiles.length),
-					);
+					sections.push(createProtectionLevelSection("block", blockFiles.length));
 				}
 
 				if (warnFiles.length > 0) {
@@ -105,26 +88,19 @@ export class ProtectedFilesTreeProvider
 				}
 
 				if (watchFiles.length > 0) {
-					sections.push(
-						createProtectionLevelSection("watch", watchFiles.length),
-					);
+					sections.push(createProtectionLevelSection("watch", watchFiles.length));
 				}
 
 				return sections;
 			} catch (error) {
-				logger.error(
-					"Error loading protected files:",
-					error instanceof Error ? error : undefined,
-				);
+				logger.error("Error loading protected files:", error instanceof Error ? error : undefined);
 				return [];
 			}
 		}
 
 		// Section level: show files in that protection level
 		if (element.contextValue?.startsWith("protectionLevel.")) {
-			const canonicalLevel = element.contextValue.split(
-				".",
-			)[1] as ProtectionLevelCanonical;
+			const canonicalLevel = element.contextValue.split(".")[1] as ProtectionLevelCanonical;
 
 			// Direct mapping now that we're using canonical types everywhere
 			const level = canonicalLevel;
@@ -147,10 +123,7 @@ export class ProtectedFilesTreeProvider
 
 				return levelFiles.map((entry) => createProtectedFileTreeItem(entry));
 			} catch (error) {
-				logger.error(
-					"Error loading files for protection level:",
-					error instanceof Error ? error : undefined,
-				);
+				logger.error("Error loading files for protection level:", error instanceof Error ? error : undefined);
 				return [];
 			}
 		}
@@ -173,10 +146,7 @@ export class ProtectedFilesTreeProvider
 /**
  * Create a section node for a protection level using canonical signage
  */
-function createProtectionLevelSection(
-	level: ProtectionLevelCanonical,
-	count: number,
-): vscode.TreeItem {
+function createProtectionLevelSection(level: ProtectionLevelCanonical, count: number): vscode.TreeItem {
 	const signage = PROTECTION_LEVEL_SIGNAGE[level];
 	const item = new vscode.TreeItem(
 		`${signage.emoji} ${signage.label}`,
@@ -201,9 +171,7 @@ function createProtectionLevelSection(
  * - Rich tooltip with protection metadata
  * - Click-to-open command
  */
-export function createProtectedFileTreeItem(
-	entry: ProtectedFileEntry,
-): vscode.TreeItem {
+export function createProtectedFileTreeItem(entry: ProtectedFileEntry): vscode.TreeItem {
 	// Add defensive check to prevent crashes with invalid entries
 	if (!entry || !entry.label) {
 		logger.error("⚠️ Invalid entry in createProtectedFileTreeItem", undefined, {
@@ -220,10 +188,7 @@ export function createProtectedFileTreeItem(
 	const signage = PROTECTION_LEVEL_SIGNAGE[canonicalLevel];
 
 	// Just show the filename - no need to repeat protection level since it's grouped
-	const item = new vscode.TreeItem(
-		entry.label,
-		vscode.TreeItemCollapsibleState.None,
-	);
+	const item = new vscode.TreeItem(entry.label, vscode.TreeItemCollapsibleState.None);
 
 	item.id = entry.id;
 	item.contextValue = "snapback.item.protectedFile";

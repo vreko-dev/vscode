@@ -69,18 +69,12 @@ export async function initializePhase3Managers(
 
 		// Initialize smart context detector
 		t = Date.now();
-		const smartContextDetector = new SmartContextDetector(
-			workspaceMemoryManager,
-		);
+		const smartContextDetector = new SmartContextDetector(workspaceMemoryManager);
 		console.log("[PERF] SmartContextDetector", { ms: Date.now() - t });
 
 		// Initialize Milestone Service
 		t = Date.now();
-		const milestoneService = new MilestoneService(
-			_context,
-			telemetryProxy,
-			notificationManager,
-		);
+		const milestoneService = new MilestoneService(_context, telemetryProxy, notificationManager);
 		console.log("[PERF] MilestoneService", { ms: Date.now() - t });
 
 		// Initialize operation coordinator
@@ -147,10 +141,7 @@ export async function initializePhase3Managers(
 
 		// Initialize WorkflowIntegration
 		t = Date.now();
-		const workflowIntegration = new WorkflowIntegration(
-			smartContextDetector,
-			notificationManager,
-		);
+		const workflowIntegration = new WorkflowIntegration(smartContextDetector, notificationManager);
 		console.log("[PERF] WorkflowIntegration", { ms: Date.now() - t });
 
 		// 🟢 TDD GREEN: Initialize ProtectionService for repo audit
@@ -188,11 +179,8 @@ export async function initializePhase3Managers(
 			// This path should rarely execute since protectedFileRegistry is usually available
 			const noopRegistry = {} as ProtectedFileRegistry;
 			const noopManager = new ProtectionManager(noopRegistry, () => null);
-			protectionService = new ProtectionService(
-				noopRegistry,
-				noopManager,
-				new NoopAIRiskService(),
-				() => Promise.resolve(),
+			protectionService = new ProtectionService(noopRegistry, noopManager, new NoopAIRiskService(), () =>
+				Promise.resolve(),
 			);
 			console.log("[PERF] ProtectionService (fallback)", {
 				ms: Date.now() - t,

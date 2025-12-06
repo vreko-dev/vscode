@@ -9,10 +9,7 @@ export function setRisk(uri: vscode.Uri, score: number, label: string) {
 	riskMap.set(uri.toString(), { score, label });
 
 	if (!statusBarItem) {
-		statusBarItem = vscode.window.createStatusBarItem(
-			vscode.StatusBarAlignment.Right,
-			100,
-		);
+		statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 		statusBarItem.command = "snapback.openReport";
 	}
 

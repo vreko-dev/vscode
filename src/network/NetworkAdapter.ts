@@ -78,10 +78,7 @@ export interface NetworkAdapter {
 	 * @param headers - Optional headers
 	 * @returns Promise<NetworkResponse>
 	 */
-	get<T = unknown>(
-		url: string,
-		headers?: Record<string, string>,
-	): Promise<NetworkResponse<T>>;
+	get<T = unknown>(url: string, headers?: Record<string, string>): Promise<NetworkResponse<T>>;
 
 	/**
 	 * Execute a POST request (convenience method)
@@ -91,11 +88,7 @@ export interface NetworkAdapter {
 	 * @param headers - Optional headers
 	 * @returns Promise<NetworkResponse>
 	 */
-	post<T = unknown>(
-		url: string,
-		body: unknown,
-		headers?: Record<string, string>,
-	): Promise<NetworkResponse<T>>;
+	post<T = unknown>(url: string, body: unknown, headers?: Record<string, string>): Promise<NetworkResponse<T>>;
 
 	/**
 	 * Check network connectivity
@@ -125,12 +118,7 @@ export class NetworkError extends Error {
  */
 export class TimeoutError extends NetworkError {
 	constructor(url: string, timeout: number) {
-		super(
-			`Request timeout after ${timeout}ms: ${url}`,
-			408,
-			"Request Timeout",
-			url,
-		);
+		super(`Request timeout after ${timeout}ms: ${url}`, 408, "Request Timeout", url);
 		this.name = "TimeoutError";
 	}
 }

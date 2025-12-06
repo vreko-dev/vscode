@@ -73,29 +73,17 @@ export class TipBudgetManager {
 	 * Initializes session tracking
 	 */
 	private initializeSession(): void {
-		const storedSessionId = this.context.globalState.get<string>(
-			TIP_BUDGET_KEYS.CURRENT_SESSION_ID,
-		);
+		const storedSessionId = this.context.globalState.get<string>(TIP_BUDGET_KEYS.CURRENT_SESSION_ID);
 
 		if (storedSessionId) {
 			this.currentSessionId = storedSessionId;
 		} else {
-			this.context.globalState.update(
-				TIP_BUDGET_KEYS.CURRENT_SESSION_ID,
-				this.currentSessionId,
-			);
+			this.context.globalState.update(TIP_BUDGET_KEYS.CURRENT_SESSION_ID, this.currentSessionId);
 		}
 
 		// Initialize current session tip count if not already set
-		if (
-			!this.context.globalState.get<number>(
-				TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION,
-			)
-		) {
-			this.context.globalState.update(
-				TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION,
-				0,
-			);
+		if (!this.context.globalState.get<number>(TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION)) {
+			this.context.globalState.update(TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION, 0);
 		}
 
 		logger.debug("Tip budget session initialized", {
@@ -125,13 +113,8 @@ export class TipBudgetManager {
 		}
 
 		// Check 48-hour budget
-		const tipsShownTimestamps = this.context.globalState.get<number[]>(
-			TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS,
-			[],
-		);
-		const recentTips = tipsShownTimestamps.filter(
-			(timestamp) => now - timestamp < TIP_BUDGET_CONFIG.PERIOD_48H,
-		);
+		const tipsShownTimestamps = this.context.globalState.get<number[]>(TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS, []);
+		const recentTips = tipsShownTimestamps.filter((timestamp) => now - timestamp < TIP_BUDGET_CONFIG.PERIOD_48H);
 
 		if (recentTips.length >= TIP_BUDGET_CONFIG.MAX_TIPS_PER_48H) {
 			logger.debug("Tip budget exceeded for 48-hour period", {
@@ -155,24 +138,13 @@ export class TipBudgetManager {
 			TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION,
 			0,
 		);
-		this.context.globalState.update(
-			TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION,
-			tipsShownCurrentSession + 1,
-		);
+		this.context.globalState.update(TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION, tipsShownCurrentSession + 1);
 
 		// Update 48-hour timestamps
-		const tipsShownTimestamps = this.context.globalState.get<number[]>(
-			TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS,
-			[],
-		);
-		const recentTips = tipsShownTimestamps.filter(
-			(timestamp) => now - timestamp < TIP_BUDGET_CONFIG.PERIOD_48H,
-		);
+		const tipsShownTimestamps = this.context.globalState.get<number[]>(TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS, []);
+		const recentTips = tipsShownTimestamps.filter((timestamp) => now - timestamp < TIP_BUDGET_CONFIG.PERIOD_48H);
 		recentTips.push(now);
-		this.context.globalState.update(
-			TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS,
-			recentTips,
-		);
+		this.context.globalState.update(TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS, recentTips);
 
 		logger.debug("Tip shown recorded", {
 			sessionId: this.currentSessionId,
@@ -186,14 +158,8 @@ export class TipBudgetManager {
 	 */
 	startNewSession(): void {
 		this.currentSessionId = this.generateSessionId();
-		this.context.globalState.update(
-			TIP_BUDGET_KEYS.CURRENT_SESSION_ID,
-			this.currentSessionId,
-		);
-		this.context.globalState.update(
-			TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION,
-			0,
-		);
+		this.context.globalState.update(TIP_BUDGET_KEYS.CURRENT_SESSION_ID, this.currentSessionId);
+		this.context.globalState.update(TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION, 0);
 
 		logger.info("New tip budget session started", {
 			sessionId: this.currentSessionId,
@@ -225,14 +191,9 @@ export class TipBudgetManager {
 			TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION,
 			0,
 		);
-		const tipsShownTimestamps = this.context.globalState.get<number[]>(
-			TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS,
-			[],
-		);
+		const tipsShownTimestamps = this.context.globalState.get<number[]>(TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS, []);
 		const now = Date.now();
-		const recentTips = tipsShownTimestamps.filter(
-			(timestamp) => now - timestamp < TIP_BUDGET_CONFIG.PERIOD_48H,
-		);
+		const recentTips = tipsShownTimestamps.filter((timestamp) => now - timestamp < TIP_BUDGET_CONFIG.PERIOD_48H);
 
 		return {
 			canShowTip: this.canShowTip(),
@@ -247,18 +208,9 @@ export class TipBudgetManager {
 	 * Resets tip budget data (for testing)
 	 */
 	resetBudgetData(): void {
-		this.context.globalState.update(
-			TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS,
-			undefined,
-		);
-		this.context.globalState.update(
-			TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION,
-			undefined,
-		);
-		this.context.globalState.update(
-			TIP_BUDGET_KEYS.CURRENT_SESSION_ID,
-			undefined,
-		);
+		this.context.globalState.update(TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS, undefined);
+		this.context.globalState.update(TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION, undefined);
+		this.context.globalState.update(TIP_BUDGET_KEYS.CURRENT_SESSION_ID, undefined);
 
 		logger.info("Tip budget data reset");
 	}
@@ -273,10 +225,7 @@ export class TipBudgetManager {
 			TIP_BUDGET_KEYS.TIPS_SHOWN_CURRENT_SESSION,
 			0,
 		);
-		return Math.max(
-			0,
-			TIP_BUDGET_CONFIG.MAX_TIPS_PER_SESSION - tipsShownCurrentSession,
-		);
+		return Math.max(0, TIP_BUDGET_CONFIG.MAX_TIPS_PER_SESSION - tipsShownCurrentSession);
 	}
 
 	/**
@@ -285,14 +234,9 @@ export class TipBudgetManager {
 	 * @returns Number of tips remaining in 48-hour period
 	 */
 	getRemaining48hBudget(): number {
-		const tipsShownTimestamps = this.context.globalState.get<number[]>(
-			TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS,
-			[],
-		);
+		const tipsShownTimestamps = this.context.globalState.get<number[]>(TIP_BUDGET_KEYS.TIPS_SHOWN_TIMESTAMPS, []);
 		const now = Date.now();
-		const recentTips = tipsShownTimestamps.filter(
-			(timestamp) => now - timestamp < TIP_BUDGET_CONFIG.PERIOD_48H,
-		);
+		const recentTips = tipsShownTimestamps.filter((timestamp) => now - timestamp < TIP_BUDGET_CONFIG.PERIOD_48H);
 		return Math.max(0, TIP_BUDGET_CONFIG.MAX_TIPS_PER_48H - recentTips.length);
 	}
 }

@@ -64,10 +64,7 @@ export async function compareWithSnapshot(
 
 		// Filter snapshots that contain this file
 		const fileSnapshots = snapshots
-			.filter(
-				(snapshot) =>
-					snapshot.files && snapshot.files[relativePath] !== undefined,
-			)
+			.filter((snapshot) => snapshot.files && snapshot.files[relativePath] !== undefined)
 			.sort((a, b) => b.timestamp - a.timestamp);
 
 		if (fileSnapshots.length === 0) {
@@ -131,14 +128,9 @@ export async function compareWithSnapshot(
 			}
 		});
 	} catch (error) {
-		logger.error(
-			"Failed to compare with snapshot:",
-			error instanceof Error ? error : undefined,
-		);
+		logger.error("Failed to compare with snapshot:", error instanceof Error ? error : undefined);
 		vscode.window.showErrorMessage(
-			`Failed to compare with snapshot: ${
-				error instanceof Error ? error.message : String(error)
-			}`,
+			`Failed to compare with snapshot: ${error instanceof Error ? error.message : String(error)}`,
 		);
 	}
 }

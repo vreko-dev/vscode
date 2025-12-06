@@ -5,12 +5,8 @@ import { logger } from "../utils/logger";
 import type { ProtectionLevelMetadata } from "../views/types";
 import { PROTECTION_LEVELS } from "../views/types";
 
-export class ProtectionDecorationProvider
-	implements vscode.FileDecorationProvider
-{
-	private readonly _onDidChangeFileDecorations = new vscode.EventEmitter<
-		vscode.Uri | vscode.Uri[]
-	>();
+export class ProtectionDecorationProvider implements vscode.FileDecorationProvider {
+	private readonly _onDidChangeFileDecorations = new vscode.EventEmitter<vscode.Uri | vscode.Uri[]>();
 	readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
 
 	/**
@@ -29,10 +25,7 @@ export class ProtectionDecorationProvider
 		// REQUIRED: Listen to registry changes for decoration updates
 		this.disposables.push(
 			registry.onProtectionChanged((uris) => {
-				logger.info(
-					"[SnapBack] Decoration provider received onProtectionChanged event for URIs:",
-					uris,
-				);
+				logger.info("[SnapBack] Decoration provider received onProtectionChanged event for URIs:", uris);
 
 				// Debounce decoration updates to prevent UI thrashing
 				this.debounceDecorationUpdate(uris);
@@ -42,10 +35,7 @@ export class ProtectionDecorationProvider
 		// Initialize policy manager for override checks
 		this.policyManager = new PolicyManager(workspaceRoot);
 		this.policyManager.initialize().catch((error) => {
-			logger.error(
-				"Failed to initialize policy manager for decorations",
-				error,
-			);
+			logger.error("Failed to initialize policy manager for decorations", error);
 		});
 	}
 
@@ -65,9 +55,7 @@ export class ProtectionDecorationProvider
 		// Set new timer to fire decoration update after 200ms
 		this.debounceTimer = setTimeout(() => {
 			if (this.pendingUris.length > 0) {
-				logger.info(
-					`[SnapBack] Firing debounced decoration update for ${this.pendingUris.length} URIs`,
-				);
+				logger.info(`[SnapBack] Firing debounced decoration update for ${this.pendingUris.length} URIs`);
 				this._onDidChangeFileDecorations.fire(this.pendingUris);
 				this.pendingUris = [];
 			}
@@ -80,10 +68,8 @@ export class ProtectionDecorationProvider
 
 		if (isProtected) {
 			// Get protection level from registry
-			const protectionLevel =
-				this.registry.getProtectionLevel(uri.fsPath) || "watch";
-			const levelMetadata: ProtectionLevelMetadata =
-				PROTECTION_LEVELS[protectionLevel];
+			const protectionLevel = this.registry.getProtectionLevel(uri.fsPath) || "watch";
+			const levelMetadata: ProtectionLevelMetadata = PROTECTION_LEVELS[protectionLevel];
 
 			// Check if file has an active override
 			const activeOverride = this.policyManager.getActiveOverride(uri.fsPath);
@@ -97,15 +83,9 @@ export class ProtectionDecorationProvider
 			}
 
 			// Only log protected files at debug level
-			logger.debug(
-				`[SnapBack] Decorated protected file: ${uri.fsPath} (${levelMetadata.label})`,
-			);
+			logger.debug(`[SnapBack] Decorated protected file: ${uri.fsPath} (${levelMetadata.label})`);
 
-			return new vscode.FileDecoration(
-				badge,
-				tooltip,
-				new vscode.ThemeColor(levelMetadata.themeColor),
-			);
+			return new vscode.FileDecoration(badge, tooltip, new vscode.ThemeColor(levelMetadata.themeColor));
 		}
 
 		return undefined;

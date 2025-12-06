@@ -10,8 +10,7 @@ export class SnapshotFileNode extends vscode.TreeItem {
 	constructor(
 		public readonly filePath: string,
 		public readonly snapshotId: string,
-		public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode
-			.TreeItemCollapsibleState.None,
+		public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
 	) {
 		super(filePath, collapsibleState);
 		this.contextValue = "snapshotFile";
@@ -30,34 +29,24 @@ export class SnapshotFileNode extends vscode.TreeItem {
 export class SnapshotNode extends vscode.TreeItem {
 	constructor(
 		public readonly snapshot: Snapshot,
-		public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode
-			.TreeItemCollapsibleState.Collapsed,
+		public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Collapsed,
 	) {
-		super(
-			`Snapshot ${new Date(snapshot.timestamp).toLocaleString()}`,
-			collapsibleState,
-		);
+		super(`Snapshot ${new Date(snapshot.timestamp).toLocaleString()}`, collapsibleState);
 		this.contextValue = "snapshot";
 		this.iconPath = new vscode.ThemeIcon("history");
 		this.description = snapshot.id.substring(0, 8);
-		this.tooltip = `ID: ${snapshot.id}\nCaptured: ${new Date(
-			snapshot.timestamp,
-		).toLocaleString()}`;
+		this.tooltip = `ID: ${snapshot.id}\nCaptured: ${new Date(snapshot.timestamp).toLocaleString()}`;
 	}
 }
 
 /**
  * SnapshotNavigatorProvider provides a tree view of snapshots and their files
  */
-export class SnapshotNavigatorProvider
-	implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable
-{
-	private _onDidChangeTreeData: vscode.EventEmitter<
-		vscode.TreeItem | undefined | null | undefined
-	> = new vscode.EventEmitter<vscode.TreeItem | undefined | null | undefined>();
-	readonly onDidChangeTreeData: vscode.Event<
-		vscode.TreeItem | undefined | null | undefined
-	> = this._onDidChangeTreeData.event;
+export class SnapshotNavigatorProvider implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable {
+	private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | undefined> =
+		new vscode.EventEmitter<vscode.TreeItem | undefined | null | undefined>();
+	readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | null | undefined> =
+		this._onDidChangeTreeData.event;
 
 	constructor(private storage?: SnapshotStorage) {}
 
@@ -108,10 +97,7 @@ export class SnapshotNavigatorProvider
 				.sort((a, b) => b.timestamp - a.timestamp)
 				.map((snapshot) => new SnapshotNode(snapshot as unknown as Snapshot));
 		} catch (error) {
-			logger.error(
-				"Error loading snapshots:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error loading snapshots:", error instanceof Error ? error : undefined);
 			return [];
 		}
 	}
@@ -119,17 +105,13 @@ export class SnapshotNavigatorProvider
 	/**
 	 * Get files for a specific snapshot
 	 */
-	private async getSnapshotFiles(
-		snapshot: Snapshot,
-	): Promise<SnapshotFileNode[]> {
+	private async getSnapshotFiles(snapshot: Snapshot): Promise<SnapshotFileNode[]> {
 		// Use fileContents instead of files array
 		if (!snapshot.fileContents) {
 			return [];
 		}
 
-		return Object.keys(snapshot.fileContents).map(
-			(filePath) => new SnapshotFileNode(filePath, snapshot.id),
-		);
+		return Object.keys(snapshot.fileContents).map((filePath) => new SnapshotFileNode(filePath, snapshot.id));
 	}
 
 	dispose(): void {

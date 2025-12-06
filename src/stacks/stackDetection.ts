@@ -28,13 +28,9 @@ import { STACK_PROFILES, type StackProfile } from "./stackProfiles";
  * const stacks = await detectStacks();
  * // Returns: [nextjs, nodejs, typescript, docker, ...] if those stacks detected
  */
-export async function detectStacks(
-	workspaceRoot?: string,
-): Promise<StackProfile[]> {
+export async function detectStacks(workspaceRoot?: string): Promise<StackProfile[]> {
 	try {
-		const workspace =
-			workspaceRoot ||
-			(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? undefined);
+		const workspace = workspaceRoot || (vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? undefined);
 
 		if (!workspace) {
 			logger.warn("No workspace root available for stack detection");
@@ -63,10 +59,7 @@ export async function detectStacks(
 					}
 				} catch (error) {
 					// Log individual detector errors but continue
-					logger.debug(
-						`Stack detector error: ${profile.id} / ${detector.glob}`,
-						error as Error,
-					);
+					logger.debug(`Stack detector error: ${profile.id} / ${detector.glob}`, error as Error);
 				}
 			}
 
@@ -106,10 +99,7 @@ export function detectStacksSync(_workspaceRoot: string): StackProfile[] {
  * @param workspaceRoot - Root directory of workspace
  * @returns True if the stack is detected
  */
-export async function isStackDetected(
-	stackId: string,
-	workspaceRoot?: string,
-): Promise<boolean> {
+export async function isStackDetected(stackId: string, workspaceRoot?: string): Promise<boolean> {
 	const detected = await detectStacks(workspaceRoot);
 	return detected.some((s) => s.id === stackId);
 }
@@ -125,9 +115,7 @@ export async function getDetectedStackRules(workspaceRoot?: string) {
 	const detected = await detectStacks(workspaceRoot);
 	const rules = detected.flatMap((stack) => stack.rules);
 
-	logger.debug(
-		`Combined ${rules.length} protection rules from ${detected.length} stacks`,
-	);
+	logger.debug(`Combined ${rules.length} protection rules from ${detected.length} stacks`);
 
 	return rules;
 }

@@ -136,38 +136,21 @@ export class SemanticSnapshotNamer {
 	 * @returns True if dependency changes are detected
 	 */
 	private checkDependencyChanges(files: string[], diff: string): boolean {
-		const depFiles = [
-			"package.json",
-			"package-lock.json",
-			"yarn.lock",
-			"pnpm-lock.yaml",
-		];
-		const isPackageJson = files.some((f) =>
-			depFiles.includes(this.getBaseName(f)),
-		);
+		const depFiles = ["package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml"];
+		const isPackageJson = files.some((f) => depFiles.includes(this.getBaseName(f)));
 
 		// If it's package.json, check if the changes are in dependencies or scripts
 		if (isPackageJson) {
 			// If the diff contains "scripts" section changes, it's build setup, not dependency change
-			if (
-				diff.includes('"scripts"') ||
-				diff.includes("build") ||
-				diff.includes("test")
-			) {
+			if (diff.includes('"scripts"') || diff.includes("build") || diff.includes("test")) {
 				return false; // Let build setup detection handle this
 			}
 			// If the diff contains "dependencies" or "devDependencies", it's a dependency change
-			return (
-				diff.includes('"dependencies"') || diff.includes('"devDependencies"')
-			);
+			return diff.includes('"dependencies"') || diff.includes('"devDependencies"');
 		}
 
 		// For other lock files, it's always a dependency change
-		return files.some((f) =>
-			["package-lock.json", "yarn.lock", "pnpm-lock.yaml"].includes(
-				this.getBaseName(f),
-			),
-		);
+		return files.some((f) => ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"].includes(this.getBaseName(f)));
 	}
 
 	/**
@@ -175,9 +158,7 @@ export class SemanticSnapshotNamer {
 	 * @param analysis Analysis results
 	 * @returns Semantic name for dependency changes
 	 */
-	private nameDependencyChange(analysis: {
-		changedPackages: string[];
-	}): string {
+	private nameDependencyChange(analysis: { changedPackages: string[] }): string {
 		const packages = analysis.changedPackages;
 		if (packages.length === 1) {
 			return `updated-${packages[0]}`;
@@ -197,30 +178,14 @@ export class SemanticSnapshotNamer {
 	 * @returns True if config changes are detected
 	 */
 	private checkConfigChanges(files: string[]): boolean {
-		const configPatterns = [
-			"tsconfig.json",
-			".env",
-			"jest.config",
-			"babel.config",
-			".eslintrc",
-		];
+		const configPatterns = ["tsconfig.json", ".env", "jest.config", "babel.config", ".eslintrc"];
 
 		// Exclude build tool config files from general config detection
-		const buildConfigFiles = [
-			"webpack.config",
-			"vite.config",
-			"rollup.config",
-			"gulpfile",
-			"gruntfile",
-		];
+		const buildConfigFiles = ["webpack.config", "vite.config", "rollup.config", "gulpfile", "gruntfile"];
 
 		return files.some((f) => {
-			const isGeneralConfig = configPatterns.some((pattern) =>
-				f.includes(pattern),
-			);
-			const isBuildConfig = buildConfigFiles.some((pattern) =>
-				f.includes(pattern),
-			);
+			const isGeneralConfig = configPatterns.some((pattern) => f.includes(pattern));
+			const isBuildConfig = buildConfigFiles.some((pattern) => f.includes(pattern));
 			// Only return true for general config files, not build config files
 			return isGeneralConfig && !isBuildConfig;
 		});
@@ -233,10 +198,8 @@ export class SemanticSnapshotNamer {
 	 */
 	private nameConfigChange(analysis: { configFiles: string[] }): string {
 		const configs = analysis.configFiles;
-		if (configs.find((f: string) => f.includes("tsconfig.json")))
-			return "typescript-config-update";
-		if (configs.some((f: string) => f.includes(".env")))
-			return "environment-config-change";
+		if (configs.find((f: string) => f.includes("tsconfig.json"))) return "typescript-config-update";
+		if (configs.some((f: string) => f.includes(".env"))) return "environment-config-change";
 		return "config-update";
 	}
 
@@ -277,9 +240,7 @@ export class SemanticSnapshotNamer {
 	 */
 	private checkFeatureAddition(files: string[], diff: string): boolean {
 		const newFilesCount = this.countNewFiles(diff);
-		const hasNewComponents = files.some(
-			(f) => f.includes("/components/") || f.includes("/features/"),
-		);
+		const hasNewComponents = files.some((f) => f.includes("/components/") || f.includes("/features/"));
 		return newFilesCount > 3 && hasNewComponents;
 	}
 
@@ -312,28 +273,16 @@ export class SemanticSnapshotNamer {
 	 */
 	private checkBugFix(files: string[], diff: string): boolean {
 		// Look for common bug fix patterns in the diff
-		const bugFixPatterns = [
-			/fix/i,
-			/bug/i,
-			/error/i,
-			/correct/i,
-			/resolve/i,
-			/\bfix(es)?\b/i,
-			/hotfix/i,
-		];
+		const bugFixPatterns = [/fix/i, /bug/i, /error/i, /correct/i, /resolve/i, /\bfix(es)?\b/i, /hotfix/i];
 
 		// Check if any file name suggests a bug fix
 		const bugFixFilePatterns = [/fix/i, /bug/i, /patch/i, /hotfix/i];
 
 		// Check file names
-		const hasBugFixFileName = files.some((file) =>
-			bugFixFilePatterns.some((pattern) => pattern.test(file)),
-		);
+		const hasBugFixFileName = files.some((file) => bugFixFilePatterns.some((pattern) => pattern.test(file)));
 
 		// Check diff content for bug fix keywords
-		const hasBugFixInDiff = bugFixPatterns.some((pattern) =>
-			pattern.test(diff),
-		);
+		const hasBugFixInDiff = bugFixPatterns.some((pattern) => pattern.test(diff));
 
 		// Look for specific code change patterns that suggest bug fixes
 		const hasBugFixCodePatterns =
@@ -360,10 +309,7 @@ export class SemanticSnapshotNamer {
 			// Try to extract the bug description
 			const bugMatch = analysis.diff.match(/(?:BUG:|FIXME:)\s*([^\n]+)/i);
 			if (bugMatch?.[1]) {
-				const bugDescription = bugMatch[1]
-					.trim()
-					.replace(/\s+/g, "-")
-					.toLowerCase();
+				const bugDescription = bugMatch[1].trim().replace(/\s+/g, "-").toLowerCase();
 				// Limit the length to keep names reasonable
 				return `fixed-${bugDescription.substring(0, 30)}`;
 			}
@@ -456,9 +402,7 @@ export class SemanticSnapshotNamer {
 
 		return files.some((file) => {
 			const fileName = file.toLowerCase();
-			return buildFiles.some((buildFile) =>
-				fileName.includes(buildFile.toLowerCase()),
-			);
+			return buildFiles.some((buildFile) => fileName.includes(buildFile.toLowerCase()));
 		});
 	}
 
@@ -499,12 +443,7 @@ export class SemanticSnapshotNamer {
 		}
 
 		// Check for specific file types
-		if (
-			analysis.files.some(
-				(file: string) =>
-					file.includes("Dockerfile") || file.includes("docker"),
-			)
-		) {
+		if (analysis.files.some((file: string) => file.includes("Dockerfile") || file.includes("docker"))) {
 			return "build-setup-docker";
 		}
 
@@ -544,9 +483,7 @@ export class SemanticSnapshotNamer {
 			/(?:extends|implements)\s+\w+/i,
 		];
 
-		const hasRefactoringPatterns = refactoringPatterns.some((pattern) =>
-			pattern.test(diff),
-		);
+		const hasRefactoringPatterns = refactoringPatterns.some((pattern) => pattern.test(diff));
 
 		const ratio = this.countLinesChanged(diff) / Math.max(files.length, 1);
 		const hasNoNewFiles = this.countNewFiles(diff) === 0;
@@ -564,40 +501,25 @@ export class SemanticSnapshotNamer {
 	 * @returns Semantic name for refactoring
 	 */
 	private nameRefactoring(analysis: ChangeAnalysis): string {
-		if (analysis.filesAffected && analysis.filesAffected.length > 10)
-			return "large-refactoring";
+		if (analysis.filesAffected && analysis.filesAffected.length > 10) return "large-refactoring";
 
 		// Check for common refactoring patterns
-		if (
-			analysis.diff.includes("rename from") &&
-			analysis.diff.includes("rename to")
-		) {
+		if (analysis.diff.includes("rename from") && analysis.diff.includes("rename to")) {
 			return "renamed-files";
 		}
 
 		// Check for specific refactoring types
-		if (
-			analysis.diff.includes("class ") &&
-			analysis.diff.includes("extends ")
-		) {
+		if (analysis.diff.includes("class ") && analysis.diff.includes("extends ")) {
 			return "class-restructure";
 		}
 
-		if (
-			analysis.diff.includes("import {") ||
-			analysis.diff.includes("export {")
-		) {
+		if (analysis.diff.includes("import {") || analysis.diff.includes("export {")) {
 			return "module-restructure";
 		}
 
-		if (
-			analysis.diff.includes("function ") ||
-			analysis.diff.includes("const ")
-		) {
+		if (analysis.diff.includes("function ") || analysis.diff.includes("const ")) {
 			// Check if it's a significant function refactoring
-			const functionCount = (
-				analysis.diff.match(/function\s+\w+|const\s+\w+\s*=/g) || []
-			).length;
+			const functionCount = (analysis.diff.match(/function\s+\w+|const\s+\w+\s*=/g) || []).length;
 			if (functionCount > 3) {
 				return "function-refactor";
 			}
@@ -618,12 +540,7 @@ export class SemanticSnapshotNamer {
 		// Look for more sophisticated refactoring patterns in the diff
 		const architecturePatterns = [/\bmvc\b/i, /\bmvp\b/i, /\bmvvm\b/i];
 
-		const designPatterns = [
-			/\bsingleton\b/i,
-			/\bfactory\b/i,
-			/\bobserver\b/i,
-			/\bstrategy\b/i,
-		];
+		const designPatterns = [/\bsingleton\b/i, /\bfactory\b/i, /\bobserver\b/i, /\bstrategy\b/i];
 
 		const performancePatterns = [
 			/\bmemoize\b/i,
@@ -633,38 +550,20 @@ export class SemanticSnapshotNamer {
 			/\bmemoization\b/i,
 		];
 
-		const organizationPatterns = [
-			/\bnamespace\b/i,
-			/\bmodule\b/i,
-			/\bpackage\b/i,
-		];
+		const organizationPatterns = [/\bnamespace\b/i, /\bmodule\b/i, /\bpackage\b/i];
 
 		// Check if any advanced patterns are in the diff
-		const hasArchitecture = architecturePatterns.some((pattern) =>
-			pattern.test(diff),
-		);
+		const hasArchitecture = architecturePatterns.some((pattern) => pattern.test(diff));
 		const hasDesign = designPatterns.some((pattern) => pattern.test(diff));
-		const hasPerformance = performancePatterns.some((pattern) =>
-			pattern.test(diff),
-		);
-		const hasOrganization = organizationPatterns.some((pattern) =>
-			pattern.test(diff),
-		);
+		const hasPerformance = performancePatterns.some((pattern) => pattern.test(diff));
+		const hasOrganization = organizationPatterns.some((pattern) => pattern.test(diff));
 
 		// Also check file names for refactoring indicators
 		const refactoringFilePatterns = [/refactor/i, /restructure/i, /optimize/i];
 
-		const hasRefactoringFiles = files.some((file) =>
-			refactoringFilePatterns.some((pattern) => pattern.test(file)),
-		);
+		const hasRefactoringFiles = files.some((file) => refactoringFilePatterns.some((pattern) => pattern.test(file)));
 
-		return (
-			hasArchitecture ||
-			hasDesign ||
-			hasPerformance ||
-			hasOrganization ||
-			hasRefactoringFiles
-		);
+		return hasArchitecture || hasDesign || hasPerformance || hasOrganization || hasRefactoringFiles;
 	}
 
 	/**
@@ -676,9 +575,7 @@ export class SemanticSnapshotNamer {
 		// Check for architecture refactoring (contains MVC/MVP/MVVM patterns)
 		const architecturePatterns = [/\bmvc\b/i, /\bmvp\b/i, /\bmvvm\b/i];
 
-		const hasArchitecture = architecturePatterns.some((pattern) =>
-			pattern.test(analysis.diff),
-		);
+		const hasArchitecture = architecturePatterns.some((pattern) => pattern.test(analysis.diff));
 		if (hasArchitecture) {
 			return "architecture-refactor";
 		}
@@ -701,8 +598,7 @@ export class SemanticSnapshotNamer {
 				analysis.diff.includes("debounce") ||
 				analysis.diff.includes("throttle") ||
 				analysis.diff.includes("memoization")) &&
-			(analysis.diff.includes("performance") ||
-				analysis.diff.includes("memoization"))
+			(analysis.diff.includes("performance") || analysis.diff.includes("memoization"))
 		) {
 			return "performance-refactor";
 		}
@@ -848,9 +744,7 @@ export class SemanticSnapshotNamer {
 	 */
 	private extractFeatureName(filePath: string): string {
 		const parts = filePath.split("/");
-		const featureIndex = parts.findIndex(
-			(p) => p === "features" || p === "components",
-		);
+		const featureIndex = parts.findIndex((p) => p === "features" || p === "components");
 		return parts[featureIndex + 1] || "component";
 	}
 

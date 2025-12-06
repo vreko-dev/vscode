@@ -15,10 +15,7 @@ import { logger } from "../utils/logger";
 import type { ProtectionLevel } from "../views/types";
 import type { AIRiskService } from "./aiRiskService";
 import type { ProtectedFileRegistry } from "./protectedFileRegistry";
-import type {
-	ProtectionManager,
-	RepoProtectionAudit,
-} from "./protectionPolicy";
+import type { ProtectionManager, RepoProtectionAudit } from "./protectionPolicy";
 
 /**
  * Save permission check result
@@ -108,9 +105,7 @@ export class ProtectionService {
 	 * @param document VS Code document being saved
 	 * @returns Save permission result
 	 */
-	async checkSaveAllowed(
-		document: vscode.TextDocument,
-	): Promise<SaveCheckResult> {
+	async checkSaveAllowed(document: vscode.TextDocument): Promise<SaveCheckResult> {
 		const filePath = document.uri.fsPath;
 		const isProtected = this.registry.isProtected(filePath);
 

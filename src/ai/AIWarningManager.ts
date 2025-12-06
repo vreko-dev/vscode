@@ -124,10 +124,7 @@ export class AIWarningManager {
 	/**
 	 * Build user-friendly warning message
 	 */
-	private buildWarningMessage(
-		detection: AIDetection,
-		confidencePercent: number,
-	): string {
+	private buildWarningMessage(detection: AIDetection, confidencePercent: number): string {
 		const toolName = this.formatToolName(detection.tool);
 
 		if (detection.burst) {
@@ -136,14 +133,14 @@ export class AIWarningManager {
 			return (
 				`${SNAPBACK_ICONS.AI} AI-assisted edit detected (${toolName}, ${confidencePercent}% confidence)\n\n` +
 				`Rapid insertion of ~${insertedChars} characters detected.\n\n` +
-				`Review changes before saving, or restore previous version.`
+				"Review changes before saving, or restore previous version."
 			);
 		}
 
 		// Simple message for extension-presence detection
 		return (
 			`${SNAPBACK_ICONS.AI} AI-assisted edit detected (${toolName}, ${confidencePercent}% confidence)\n\n` +
-			`Review changes before saving, or restore previous version.`
+			"Review changes before saving, or restore previous version."
 		);
 	}
 

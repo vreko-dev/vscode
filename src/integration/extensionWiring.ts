@@ -11,13 +11,10 @@
  * This is the glue layer between VS Code and domain logic.
  */
 
-import type {
-	ProtectionDecision,
-	SaveContext,
-} from "../domain/types";
-import type { FileInfo } from "../domain/signalAggregator";
 import type { UserNotification } from "../domain/notificationAdapter";
+import type { FileInfo } from "../domain/signalAggregator";
 import type { PersistedSnapshot } from "../domain/snapshotOrchestrator";
+import type { ProtectionDecision, SaveContext } from "../domain/types";
 
 export interface ExtensionConfig {
 	enabled: boolean;
@@ -116,10 +113,7 @@ export class ExtensionWiring {
 			clearTimeout(this.bufferTimeout);
 		}
 
-		this.bufferTimeout = setTimeout(
-			() => this.processBatch(),
-			this.DEBOUNCE_MS,
-		);
+		this.bufferTimeout = setTimeout(() => this.processBatch(), this.DEBOUNCE_MS);
 	}
 
 	/**
@@ -167,9 +161,7 @@ export class ExtensionWiring {
 	private convertToFileInfo(events: FileChangeEvent[]): FileInfo[] {
 		return events.map((event) => ({
 			path: event.file,
-			extension: event.file.includes(".")
-				? `.${event.file.split(".").pop() || ""}`
-				: "",
+			extension: event.file.includes(".") ? `.${event.file.split(".").pop() || ""}` : "",
 			sizeBytes: Math.floor(Math.random() * 10000), // Mock size
 			isNew: event.type === "create",
 			isBinary: this.isBinaryFile(event.file),
@@ -198,15 +190,9 @@ export class ExtensionWiring {
 			aiConfidence: 0,
 			riskScore: Math.floor(Math.random() * 100),
 			burstDetected: files.length >= 3,
-			containsCriticalFiles: files.some((f) =>
-				["package.json", ".env", "tsconfig.json"].includes(f.path),
-			),
-			criticalFileCount: files.filter((f) =>
-				["package.json", ".env", "tsconfig.json"].includes(f.path),
-			).length,
-			sessionId: `sess-${Math.floor(
-				(Date.now() - this.state.sessionStartTime) / 60000,
-			)}`,
+			containsCriticalFiles: files.some((f) => ["package.json", ".env", "tsconfig.json"].includes(f.path)),
+			criticalFileCount: files.filter((f) => ["package.json", ".env", "tsconfig.json"].includes(f.path)).length,
+			sessionId: `sess-${Math.floor((Date.now() - this.state.sessionStartTime) / 60000)}`,
 			sessionFileCount: files.length,
 			sessionDurationMs: Date.now() - this.state.sessionStartTime,
 		};
@@ -223,9 +209,7 @@ export class ExtensionWiring {
 			showNotification: createSnapshot || context.riskScore >= 30,
 			reasons: createSnapshot ? ["burst_pattern"] : [],
 			confidence: Math.random(),
-			summary: createSnapshot
-				? "Protecting files from changes"
-				: "Normal activity",
+			summary: createSnapshot ? "Protecting files from changes" : "Normal activity",
 			context: {
 				riskScore: context.riskScore,
 				sessionId: context.sessionId,
@@ -239,10 +223,7 @@ export class ExtensionWiring {
 	/**
 	 * Create snapshot (mock)
 	 */
-	private createSnapshot(
-		decision: ProtectionDecision,
-		files: FileInfo[],
-	): PersistedSnapshot {
+	private createSnapshot(decision: ProtectionDecision, files: FileInfo[]): PersistedSnapshot {
 		const id = `snap-${Date.now()}`;
 
 		return {
@@ -282,9 +263,7 @@ export class ExtensionWiring {
 	/**
 	 * Show notification to user
 	 */
-	private async showNotification(
-		notification: UserNotification,
-	): Promise<void> {
+	private async showNotification(notification: UserNotification): Promise<void> {
 		// Mock implementation
 		if (this.config.showDebugInfo) {
 			console.log("[SnapBack]", notification.title);
@@ -301,9 +280,7 @@ export class ExtensionWiring {
 	/**
 	 * Restore snapshot
 	 */
-	async restoreSnapshot(
-		_snapshotId: string,
-	): Promise<{ success: boolean; filesRestored: number }> {
+	async restoreSnapshot(_snapshotId: string): Promise<{ success: boolean; filesRestored: number }> {
 		if (!this.state.lastSnapshot) {
 			return { success: false, filesRestored: 0 };
 		}
@@ -357,8 +334,6 @@ export class ExtensionWiring {
 /**
  * Factory for creating ExtensionWiring
  */
-export function createExtensionWiring(
-	config?: Partial<ExtensionConfig>,
-): ExtensionWiring {
+export function createExtensionWiring(config?: Partial<ExtensionConfig>): ExtensionWiring {
 	return new ExtensionWiring(config);
 }

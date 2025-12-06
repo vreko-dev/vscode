@@ -61,8 +61,7 @@ function getRelativeTime(timestamp: number): string {
 	return date.toLocaleDateString("en-US", {
 		month: "short",
 		day: "numeric",
-		year:
-			date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+		year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
 	});
 }
 
@@ -148,12 +147,7 @@ export function getSnapshotLabel(snapshot: SnapshotLike): SnapshotLabel {
 
 	// Remove trigger prefix if present to get description
 	if (name) {
-		description = name
-			.replace(
-				/^(Auto-save|Manual|Risk detected|Pre-commit|Before)[\s:·-]*/i,
-				"",
-			)
-			.trim();
+		description = name.replace(/^(Auto-save|Manual|Risk detected|Pre-commit|Before)[\s:·-]*/i, "").trim();
 		// Remove timestamp suffix if present
 		description = description.replace(/\s*[\d-]{10,}[\s:]*[\d:]*$/i, "").trim();
 	}

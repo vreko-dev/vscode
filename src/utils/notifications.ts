@@ -44,11 +44,7 @@ import * as vscode from "vscode";
  *
  * @since 1.0.0
  */
-export function showStatusBarMessage(
-	message: string,
-	icon?: string,
-	duration = 1000,
-): void {
+export function showStatusBarMessage(message: string, icon?: string, duration = 1000): void {
 	const iconPrefix = icon ? `$(${icon}) ` : "";
 	vscode.window.setStatusBarMessage(`${iconPrefix}${message}`, duration);
 }

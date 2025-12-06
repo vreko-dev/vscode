@@ -26,8 +26,7 @@ export class OnboardingProgression {
 			phase: 1, // First interaction
 			trigger: "extension.activated",
 			unlocks: ["basicProtection", "manualSnapshot"],
-			notification:
-				"\u{1f6e1} Welcome to SnapBack! Right-click any file to add protection.",
+			notification: "\u{1f6e1} Welcome to SnapBack! Right-click any file to add protection.",
 			celebration: "You're now protected!",
 		},
 		{
@@ -58,8 +57,7 @@ export class OnboardingProgression {
 			phase: 5, // After first restore
 			trigger: "restore.successful",
 			unlocks: ["advancedRestore", "snapshotComparison"],
-			notification:
-				"🔄 Perfect! You've successfully restored from a snapshot. You're now a SnapBack pro!",
+			notification: "🔄 Perfect! You've successfully restored from a snapshot. You're now a SnapBack pro!",
 			celebration: "Restore champion!",
 		},
 	];
@@ -127,10 +125,7 @@ export class OnboardingProgression {
 	isFeatureUnlocked(feature: string): boolean {
 		// Check all phases up to current phase
 		for (const phase of OnboardingProgression.PROGRESSION_PATH) {
-			if (
-				phase.phase <= this.state.currentPhase &&
-				phase.unlocks.includes(feature)
-			) {
+			if (phase.phase <= this.state.currentPhase && phase.unlocks.includes(feature)) {
 				return true;
 			}
 		}
@@ -217,9 +212,7 @@ export class OnboardingProgression {
 	}
 
 	private loadState(): OnboardingState {
-		const savedState = this.globalState.get<OnboardingState>(
-			OnboardingProgression.STORAGE_KEY,
-		);
+		const savedState = this.globalState.get<OnboardingState>(OnboardingProgression.STORAGE_KEY);
 		if (savedState) {
 			return savedState;
 		}

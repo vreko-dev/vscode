@@ -22,12 +22,7 @@ export class AgentWatcher {
 
 	private initializeWatchers() {
 		// Watch common AI agent directories
-		const agentPaths = [
-			".continue/pending",
-			".cursor/tmp",
-			".windsurf/tmp",
-			".aider.tmp",
-		];
+		const agentPaths = [".continue/pending", ".cursor/tmp", ".windsurf/tmp", ".aider.tmp"];
 
 		for (const agentPath of agentPaths) {
 			try {
@@ -57,9 +52,7 @@ export class AgentWatcher {
 			// Analyze with backend API
 			let result: AnalysisResult | BasicAnalysisResult;
 			try {
-				const apiResult = await this.apiClient.analyzeFiles([
-					{ path: filePath, content: content },
-				]);
+				const apiResult = await this.apiClient.analyzeFiles([{ path: filePath, content: content }]);
 				// Cast the unknown result to our expected type
 				result = apiResult as AnalysisResult | BasicAnalysisResult;
 			} catch (error) {
@@ -75,9 +68,7 @@ export class AgentWatcher {
 			if (result.score >= 8) {
 				// Block critical changes
 				// Convert factors to string array for requestOverride
-				const factors = result.factors.map((f) =>
-					typeof f === "string" ? f : f.message || "Unknown issue",
-				);
+				const factors = result.factors.map((f) => (typeof f === "string" ? f : f.message || "Unknown issue"));
 				const override = await this.requestOverride(result.score, factors);
 				if (!override) {
 					// Delete the file to prevent application
@@ -94,22 +85,12 @@ export class AgentWatcher {
 				);
 			}
 		} catch (error) {
-			logger.error(
-				"Error handling file change",
-				error instanceof Error ? error : undefined,
-				{ error },
-			);
+			logger.error("Error handling file change", error instanceof Error ? error : undefined, { error });
 		}
 	}
 
-	private async requestOverride(
-		score: number,
-		factors: string[],
-	): Promise<boolean> {
-		const factorsText =
-			factors.length > 0
-				? `\n\nRisk factors:\n${factors.map((f) => `- ${f}`).join("\n")}`
-				: "";
+	private async requestOverride(score: number, factors: string[]): Promise<boolean> {
+		const factorsText = factors.length > 0 ? `\n\nRisk factors:\n${factors.map((f) => `- ${f}`).join("\n")}` : "";
 
 		const result = await vscode.window.showWarningMessage(
 			`SnapBack detected a critical risk (${score}/10) in AI-generated change.${factorsText}`,
@@ -126,9 +107,7 @@ export class AgentWatcher {
 
 			if (reason !== undefined) {
 				// Log the override reason
-				logger.info(
-					`[AUDIT] AI change override: ${reason || "No reason provided"} (Risk: ${score}/10)`,
-				);
+				logger.info(`[AUDIT] AI change override: ${reason || "No reason provided"} (Risk: ${score}/10)`);
 				return true;
 			}
 		}
@@ -137,9 +116,7 @@ export class AgentWatcher {
 	}
 
 	// Basic pattern detection for offline fallback
-	private async basicPatternDetection(
-		content: string,
-	): Promise<BasicAnalysisResult> {
+	private async basicPatternDetection(content: string): Promise<BasicAnalysisResult> {
 		// Simple pattern detection for basic security issues
 		const factors: string[] = [];
 		const recommendations: string[] = [];
@@ -147,22 +124,17 @@ export class AgentWatcher {
 		// Check for common patterns
 		if (content.includes("eval(")) {
 			factors.push("eval() usage detected - security risk");
-			recommendations.push(
-				"Avoid using eval() as it can execute arbitrary code",
-			);
+			recommendations.push("Avoid using eval() as it can execute arbitrary code");
 		}
 
 		if (content.includes("Function(")) {
 			factors.push("Function constructor usage detected - security risk");
-			recommendations.push(
-				"Avoid using Function constructor as it can execute arbitrary code",
-			);
+			recommendations.push("Avoid using Function constructor as it can execute arbitrary code");
 		}
 
 		// Simple score calculation
 		const score = factors.length > 0 ? Math.min(factors.length * 0.2, 1.0) : 0;
-		const severity =
-			factors.length > 0 ? (factors.length > 2 ? "high" : "medium") : "low";
+		const severity = factors.length > 0 ? (factors.length > 2 ? "high" : "medium") : "low";
 
 		return {
 			score,

@@ -39,9 +39,7 @@ interface CacheEntry {
  *
  * @see {@link https://code.visualstudio.com/api/extension-guides/virtual-documents}
  */
-export class SnapshotContentProvider
-	implements vscode.TextDocumentContentProvider
-{
+export class SnapshotContentProvider implements vscode.TextDocumentContentProvider {
 	private contentCache: Map<string, CacheEntry> = new Map();
 	private readonly CACHE_MAX_SIZE = 100;
 	private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -86,9 +84,7 @@ export class SnapshotContentProvider
 			}
 
 			// Find file in snapshot
-			const fileState = snapshot.fileStates?.find(
-				(f: FileState) => f.path === filePath,
-			);
+			const fileState = snapshot.fileStates?.find((f: FileState) => f.path === filePath);
 
 			if (!fileState) {
 				logger.warn("File not found in snapshot", { snapshotId, filePath });
@@ -100,11 +96,9 @@ export class SnapshotContentProvider
 
 			return fileState.content;
 		} catch (error) {
-			logger.error(
-				"Failed to provide snapshot content",
-				error instanceof Error ? error : undefined,
-				{ uri: uri ? uri.toString() : "unknown" },
-			);
+			logger.error("Failed to provide snapshot content", error instanceof Error ? error : undefined, {
+				uri: uri ? uri.toString() : "unknown",
+			});
 			return ""; // Graceful degradation - never throw
 		}
 	}

@@ -143,19 +143,8 @@ export const DEFAULT_CONFIG: AutoDecisionConfig = {
 	notifyThreshold: 40,
 	minFilesForBurst: 3,
 	maxSnapshotsPerMinute: 4,
-	alwaysProtectPatterns: [
-		"package.json",
-		"tsconfig.json",
-		".env*",
-		"*.config.js",
-		"*.config.ts",
-	],
-	neverProtectPatterns: [
-		"node_modules/**",
-		"dist/**",
-		"*.log",
-		"*.lock",
-	],
+	alwaysProtectPatterns: ["package.json", "tsconfig.json", ".env*", "*.config.js", "*.config.ts"],
+	neverProtectPatterns: ["node_modules/**", "dist/**", "*.log", "*.lock"],
 };
 
 // ============================================

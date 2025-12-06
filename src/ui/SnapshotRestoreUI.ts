@@ -9,10 +9,7 @@
 import * as vscode from "vscode";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
-import {
-	analyzeSnapshot,
-	type FileChange,
-} from "../utils/FileChangeAnalyzer";
+import { analyzeSnapshot, type FileChange } from "../utils/FileChangeAnalyzer";
 import { logger } from "../utils/logger";
 
 /**
@@ -55,10 +52,7 @@ export class SnapshotRestoreUI {
 			}
 
 			// Phase 3: Show diff previews
-			const shouldRestore = await this.showDiffPreviews(
-				snapshot,
-				selectedFiles,
-			);
+			const shouldRestore = await this.showDiffPreviews(snapshot, selectedFiles);
 			if (!shouldRestore) {
 				await this.cleanupDiffTabs();
 				return false; // User cancelled
@@ -75,9 +69,7 @@ export class SnapshotRestoreUI {
 		} catch (error) {
 			logger.error("Restore workflow failed", error as Error);
 			vscode.window.showErrorMessage(
-				`Restore workflow failed: ${
-					error instanceof Error ? error.message : String(error)
-				}`,
+				`Restore workflow failed: ${error instanceof Error ? error.message : String(error)}`,
 			);
 
 			// Ensure cleanup on error
@@ -104,9 +96,7 @@ export class SnapshotRestoreUI {
 				const snapshots = await this.coordinator.listSnapshots();
 
 				if (snapshots.length === 0) {
-					vscode.window.showInformationMessage(
-						"No snapshots available to restore",
-					);
+					vscode.window.showInformationMessage("No snapshots available to restore");
 					return undefined;
 				}
 
@@ -148,9 +138,7 @@ export class SnapshotRestoreUI {
 	 *
 	 * Shows files with change indicators and allows multi-selection
 	 */
-	private async selectFilesWithPreview(
-		snapshot: SnapshotInfo,
-	): Promise<FileChange[] | undefined> {
+	private async selectFilesWithPreview(snapshot: SnapshotInfo): Promise<FileChange[] | undefined> {
 		return vscode.window.withProgress(
 			{
 				location: vscode.ProgressLocation.Window,
@@ -159,10 +147,7 @@ export class SnapshotRestoreUI {
 			},
 			async () => {
 				// Analyze all file changes
-				const changes = await analyzeSnapshot(
-					snapshot.fileContents,
-					this.workspaceRoot,
-				);
+				const changes = await analyzeSnapshot(snapshot.fileContents, this.workspaceRoot);
 
 				if (changes.length === 0) {
 					vscode.window.showInformationMessage("No files in snapshot");
@@ -170,11 +155,9 @@ export class SnapshotRestoreUI {
 				}
 
 				// Create QuickPick with file items
-				const quickPick =
-					vscode.window.createQuickPick<FileChangeQuickPickItem>();
+				const quickPick = vscode.window.createQuickPick<FileChangeQuickPickItem>();
 				quickPick.title = `Restore from: ${snapshot.name}`;
-				quickPick.placeholder =
-					"Select files to restore (Space to toggle, Enter to preview diffs)";
+				quickPick.placeholder = "Select files to restore (Space to toggle, Enter to preview diffs)";
 				quickPick.canSelectMany = true;
 				quickPick.matchOnDetail = true;
 				quickPick.matchOnDescription = true;
@@ -215,10 +198,7 @@ export class SnapshotRestoreUI {
 	 *
 	 * Opens side-by-side diffs for all selected files and shows action bar
 	 */
-	private async showDiffPreviews(
-		snapshot: SnapshotInfo,
-		selectedFiles: FileChange[],
-	): Promise<boolean> {
+	private async showDiffPreviews(snapshot: SnapshotInfo, selectedFiles: FileChange[]): Promise<boolean> {
 		logger.info("Opening diff previews", {
 			snapshotId: snapshot.id,
 			fileCount: selectedFiles.length,
@@ -250,9 +230,7 @@ export class SnapshotRestoreUI {
 
 				// Create URIs for diff editor
 				// Format: snapback-snapshot:snapshot-id/file/path.ts
-				const snapshotUri = vscode.Uri.parse(
-					`snapback-snapshot:${snapshot.id}/${fileChange.filePath}`,
-				);
+				const snapshotUri = vscode.Uri.parse(`snapback-snapshot:${snapshot.id}/${fileChange.filePath}`);
 
 				const currentUri = vscode.Uri.file(fileChange.filePath);
 
@@ -305,10 +283,7 @@ export class SnapshotRestoreUI {
 	 * Shows status bar with Restore and Cancel actions
 	 */
 	private showRestoreStatusBar(snapshotName: string, fileCount: number): void {
-		this.statusBarItem = vscode.window.createStatusBarItem(
-			vscode.StatusBarAlignment.Left,
-			1000,
-		);
+		this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
 
 		this.statusBarItem.text = `$(repo) Reviewing: ${snapshotName} (${fileCount} files)`;
 		this.statusBarItem.tooltip = "Click to choose: Restore or Cancel";
@@ -320,34 +295,25 @@ export class SnapshotRestoreUI {
 	/**
 	 * Waits for user to click Restore or Cancel
 	 */
-	private async waitForRestoreDecision(
-		_snapshotName: string,
-		_fileCount: number,
-	): Promise<boolean> {
+	private async waitForRestoreDecision(_snapshotName: string, _fileCount: number): Promise<boolean> {
 		// Create a promise that resolves when the user makes a decision
 		return new Promise<boolean>((resolve) => {
 			// Set up command handlers for the status bar actions
-			const restoreCommand = vscode.commands.registerCommand(
-				"snapback.internal.restoreFromPreview",
-				() => {
-					// Clean up command handlers
-					restoreCommand.dispose();
-					cancelCommand.dispose();
-					// Resolve with true (restore)
-					resolve(true);
-				},
-			);
+			const restoreCommand = vscode.commands.registerCommand("snapback.internal.restoreFromPreview", () => {
+				// Clean up command handlers
+				restoreCommand.dispose();
+				cancelCommand.dispose();
+				// Resolve with true (restore)
+				resolve(true);
+			});
 
-			const cancelCommand = vscode.commands.registerCommand(
-				"snapback.internal.cancelRestore",
-				() => {
-					// Clean up command handlers
-					restoreCommand.dispose();
-					cancelCommand.dispose();
-					// Resolve with false (cancel)
-					resolve(false);
-				},
-			);
+			const cancelCommand = vscode.commands.registerCommand("snapback.internal.cancelRestore", () => {
+				// Clean up command handlers
+				restoreCommand.dispose();
+				cancelCommand.dispose();
+				// Resolve with false (cancel)
+				resolve(false);
+			});
 
 			/**
 			 * MVP Note: Modal dialog has been commented out for MVP and will be replaced with
@@ -384,10 +350,7 @@ export class SnapshotRestoreUI {
 	/**
 	 * Phase 4: Execute Restoration
 	 */
-	private async executeRestoration(
-		snapshotId: string,
-		selectedFiles: FileChange[],
-	): Promise<boolean> {
+	private async executeRestoration(snapshotId: string, selectedFiles: FileChange[]): Promise<boolean> {
 		return vscode.window.withProgress(
 			{
 				location: vscode.ProgressLocation.Notification,
@@ -418,9 +381,7 @@ export class SnapshotRestoreUI {
 				} catch (error) {
 					logger.error("Restoration failed", error as Error);
 					vscode.window.showErrorMessage(
-						`Restoration failed: ${
-							error instanceof Error ? error.message : String(error)
-						}`,
+						`Restoration failed: ${error instanceof Error ? error.message : String(error)}`,
 					);
 					return false;
 				}

@@ -226,17 +226,12 @@ export interface ProtectionLevelMetadata {
  * Protection level configurations
  * Now sourced from the canonical signage module to ensure consistency.
  */
-export const PROTECTION_LEVELS: Record<
-	ProtectionLevel,
-	ProtectionLevelMetadata
-> = {
+export const PROTECTION_LEVELS: Record<ProtectionLevel, ProtectionLevelMetadata> = {
 	watch: {
 		level: "watch",
 		icon: PROTECTION_LEVEL_SIGNAGE.watch.emoji || "🟢",
 		label: PROTECTION_LEVEL_SIGNAGE.watch.label,
-		description:
-			PROTECTION_LEVEL_SIGNAGE.watch.description ||
-			"Silent auto-snapshot on save",
+		description: PROTECTION_LEVEL_SIGNAGE.watch.description || "Silent auto-snapshot on save",
 		color: PROTECTION_LEVEL_SIGNAGE.watch.color || "#10B981",
 		themeColor: PROTECTION_LEVEL_SIGNAGE.watch.themeColor || "charts.green",
 	},
@@ -244,9 +239,7 @@ export const PROTECTION_LEVELS: Record<
 		level: "warn",
 		icon: PROTECTION_LEVEL_SIGNAGE.warn.emoji || "🟡",
 		label: PROTECTION_LEVEL_SIGNAGE.warn.label,
-		description:
-			PROTECTION_LEVEL_SIGNAGE.warn.description ||
-			"Notify before save with options",
+		description: PROTECTION_LEVEL_SIGNAGE.warn.description || "Notify before save with options",
 		color: PROTECTION_LEVEL_SIGNAGE.warn.color || "#FACC15",
 		themeColor: PROTECTION_LEVEL_SIGNAGE.warn.themeColor || "charts.yellow",
 	},
@@ -254,9 +247,7 @@ export const PROTECTION_LEVELS: Record<
 		level: "block",
 		icon: PROTECTION_LEVEL_SIGNAGE.block.emoji || "🔴",
 		label: PROTECTION_LEVEL_SIGNAGE.block.label,
-		description:
-			PROTECTION_LEVEL_SIGNAGE.block.description ||
-			"Require snapshot or explicit override",
+		description: PROTECTION_LEVEL_SIGNAGE.block.description || "Require snapshot or explicit override",
 		color: PROTECTION_LEVEL_SIGNAGE.block.color || "#EF4444",
 		themeColor: PROTECTION_LEVEL_SIGNAGE.block.themeColor || "charts.red",
 	},
@@ -276,10 +267,7 @@ export interface ProtectedFileProvider {
 	list(): Promise<ProtectedFileEntry[]>;
 	total(): Promise<number>;
 	// 🆕 Update add method signature to include protection level
-	add(
-		path: string,
-		options?: { snapshotId?: string; protectionLevel?: ProtectionLevel },
-	): Promise<void>;
+	add(path: string, options?: { snapshotId?: string; protectionLevel?: ProtectionLevel }): Promise<void>;
 	// 🆕 Add method to update protection level
 	updateProtectionLevel(path: string, level: ProtectionLevel): Promise<void>;
 	remove(path: string): Promise<void>;

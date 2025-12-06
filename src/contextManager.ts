@@ -35,29 +35,15 @@ export class ContextManager {
 		const isProtected = this.registry.isProtected(filePath);
 
 		// Get protection level if file is protected
-		const protectionLevel = isProtected
-			? this.registry.getProtectionLevel(filePath)
-			: undefined;
+		const protectionLevel = isProtected ? this.registry.getProtectionLevel(filePath) : undefined;
 
 		// Check if file can be protected (not unsaved/untitled)
 		const canProtect = !filePath.includes("Untitled");
 
 		// Set context variables
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.isProtected",
-			isProtected,
-		);
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.currentLevel",
-			protectionLevel,
-		);
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.canProtect",
-			canProtect,
-		);
+		await vscode.commands.executeCommand("setContext", "snapback.isProtected", isProtected);
+		await vscode.commands.executeCommand("setContext", "snapback.currentLevel", protectionLevel);
+		await vscode.commands.executeCommand("setContext", "snapback.canProtect", canProtect);
 
 		logger.info(`[SnapBack] Context updated for ${filePath}:`, {
 			isProtected,
@@ -70,21 +56,9 @@ export class ContextManager {
 	 * Clear file-specific context variables
 	 */
 	private async clearFileContext(): Promise<void> {
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.isProtected",
-			false,
-		);
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.currentLevel",
-			undefined,
-		);
-		await vscode.commands.executeCommand(
-			"setContext",
-			"snapback.canProtect",
-			false,
-		);
+		await vscode.commands.executeCommand("setContext", "snapback.isProtected", false);
+		await vscode.commands.executeCommand("setContext", "snapback.currentLevel", undefined);
+		await vscode.commands.executeCommand("setContext", "snapback.canProtect", false);
 	}
 
 	/**

@@ -10,11 +10,7 @@ import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import type { AttentionItem } from "../services/protectionPolicy";
 import type { ProtectionService } from "../services/protectionService";
 import type { StorageSnapshotSummaryProvider } from "../services/snapshotSummaryProvider";
-import type {
-	BlockingIssue,
-	WatchItem,
-	WorkspaceSafetyService,
-} from "../services/WorkspaceSafetyService";
+import type { BlockingIssue, WatchItem, WorkspaceSafetyService } from "../services/WorkspaceSafetyService";
 import { CORE_CONCEPT_SIGNAGE, REPO_STATUS_SIGNAGE } from "../signage/index";
 
 type SafetyTreeNode =
@@ -26,12 +22,8 @@ type SafetyTreeNode =
 	| PlaceholderNode
 	| AttentionItemNode;
 
-export class SafetyDashboardTreeProvider
-	implements vscode.TreeDataProvider<SafetyTreeNode>
-{
-	private _onDidChangeTreeData = new vscode.EventEmitter<
-		SafetyTreeNode | undefined
-	>();
+export class SafetyDashboardTreeProvider implements vscode.TreeDataProvider<SafetyTreeNode> {
+	private _onDidChangeTreeData = new vscode.EventEmitter<SafetyTreeNode | undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
 	constructor(
@@ -48,10 +40,7 @@ export class SafetyDashboardTreeProvider
 	/**
 	 * Register command to allow external refresh triggers
 	 */
-	static registerRefreshCommand(
-		context: vscode.ExtensionContext,
-		provider: SafetyDashboardTreeProvider,
-	): void {
+	static registerRefreshCommand(context: vscode.ExtensionContext, provider: SafetyDashboardTreeProvider): void {
 		context.subscriptions.push(
 			vscode.commands.registerCommand(COMMANDS.VIEW.REFRESH_DASHBOARD, () => {
 				provider.refresh();
@@ -168,12 +157,7 @@ export class SafetyDashboardTreeProvider
 		const snapshots = await this.snapshotProvider.listRecent(10);
 
 		if (snapshots.length === 0) {
-			return [
-				new PlaceholderNode(
-					"No snapshots yet. Create one to get started!",
-					"info",
-				),
-			];
+			return [new PlaceholderNode("No snapshots yet. Create one to get started!", "info")];
 		}
 
 		return snapshots.map((snapshot) => new SnapshotNode(snapshot));
@@ -202,30 +186,18 @@ export class SafetyDashboardTreeProvider
 			const statusLabel = this.getStatusLabel(audit.status);
 			items.push(new PlaceholderNode(`Status: ${statusLabel}`, "info"));
 
-			items.push(
-				new PlaceholderNode(`Protected: ${audit.protectedCount} files`, "info"),
-			);
+			items.push(new PlaceholderNode(`Protected: ${audit.protectedCount} files`, "info"));
 
 			// Show attention items if any exist
 			if (audit.attentionItems && audit.attentionItems.length > 0) {
-				items.push(
-					new PlaceholderNode(
-						`⚠️ Needs Attention (${audit.attentionItems.length})`,
-						"warning",
-					),
-				);
+				items.push(new PlaceholderNode(`⚠️ Needs Attention (${audit.attentionItems.length})`, "warning"));
 
 				// Add each attention item
 				for (const item of audit.attentionItems) {
 					items.push(new AttentionItemNode(item));
 				}
 			} else {
-				items.push(
-					new PlaceholderNode(
-						"✓ All critical files properly protected",
-						"success",
-					),
-				);
+				items.push(new PlaceholderNode("✓ All critical files properly protected", "success"));
 			}
 
 			return items;
@@ -237,10 +209,7 @@ export class SafetyDashboardTreeProvider
 
 	private getStatusIcon(status: string): string {
 		// Map repo status strings to canonical signage status values
-		const statusMap: Record<
-			string,
-			"unprotected" | "partial" | "protected" | "error"
-		> = {
+		const statusMap: Record<string, "unprotected" | "partial" | "protected" | "error"> = {
 			unprotected: "unprotected",
 			partial: "partial",
 			complete: "protected",
@@ -252,10 +221,7 @@ export class SafetyDashboardTreeProvider
 
 	private getStatusLabel(status: string): string {
 		// Map repo status strings to canonical signage status values
-		const statusMap: Record<
-			string,
-			"unprotected" | "partial" | "protected" | "error"
-		> = {
+		const statusMap: Record<string, "unprotected" | "partial" | "protected" | "error"> = {
 			unprotected: "unprotected",
 			partial: "partial",
 			complete: "protected",
@@ -279,18 +245,13 @@ class SectionNode extends vscode.TreeItem {
 		// Default to collapsed unless shouldExpand is true
 		super(
 			label,
-			shouldExpand
-				? vscode.TreeItemCollapsibleState.Expanded
-				: vscode.TreeItemCollapsibleState.Collapsed,
+			shouldExpand ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed,
 		);
 		// Show count or status label
 		this.description = statusLabel || `(${count})`;
 
 		if (shouldExpand && count > 0) {
-			this.iconPath = new vscode.ThemeIcon(
-				"warning",
-				new vscode.ThemeColor("problemsWarningIcon.foreground"),
-			);
+			this.iconPath = new vscode.ThemeIcon("warning", new vscode.ThemeColor("problemsWarningIcon.foreground"));
 		}
 	}
 }
@@ -302,15 +263,9 @@ class IssueNode extends vscode.TreeItem {
 
 		// Set icon based on severity
 		if (issue.severity === "high") {
-			this.iconPath = new vscode.ThemeIcon(
-				"error",
-				new vscode.ThemeColor("problemsErrorIcon.foreground"),
-			);
+			this.iconPath = new vscode.ThemeIcon("error", new vscode.ThemeColor("problemsErrorIcon.foreground"));
 		} else {
-			this.iconPath = new vscode.ThemeIcon(
-				"warning",
-				new vscode.ThemeColor("problemsWarningIcon.foreground"),
-			);
+			this.iconPath = new vscode.ThemeIcon("warning", new vscode.ThemeColor("problemsWarningIcon.foreground"));
 		}
 
 		// Make it clickable with action command
@@ -328,10 +283,7 @@ class WatchItemNode extends vscode.TreeItem {
 	constructor(item: WatchItem) {
 		super(item.message, vscode.TreeItemCollapsibleState.None);
 		this.contextValue = "watch.item";
-		this.iconPath = new vscode.ThemeIcon(
-			"info",
-			new vscode.ThemeColor("problemsInfoIcon.foreground"),
-		);
+		this.iconPath = new vscode.ThemeIcon("info", new vscode.ThemeColor("problemsInfoIcon.foreground"));
 
 		if (item.recommendation) {
 			this.description = item.recommendation;
@@ -380,10 +332,7 @@ class ProtectedFileNode extends vscode.TreeItem {
 
 		// Icon based on protection level - use canonical signage
 		const level = file.protectionLevel || "Watch";
-		this.iconPath =
-			level === "Block"
-				? new vscode.ThemeIcon("lock")
-				: new vscode.ThemeIcon("eye");
+		this.iconPath = level === "Block" ? new vscode.ThemeIcon("lock") : new vscode.ThemeIcon("eye");
 	}
 }
 
@@ -394,10 +343,7 @@ class PlaceholderNode extends vscode.TreeItem {
 
 		switch (type) {
 			case "success":
-				this.iconPath = new vscode.ThemeIcon(
-					"check",
-					new vscode.ThemeColor("testing.iconPassed"),
-				);
+				this.iconPath = new vscode.ThemeIcon("check", new vscode.ThemeColor("testing.iconPassed"));
 				break;
 			case "info":
 				this.iconPath = new vscode.ThemeIcon("info");
@@ -425,15 +371,9 @@ class AttentionItemNode extends vscode.TreeItem {
 
 		// Icon based on severity
 		if (item.severity === "error") {
-			this.iconPath = new vscode.ThemeIcon(
-				"error",
-				new vscode.ThemeColor("problemsErrorIcon.foreground"),
-			);
+			this.iconPath = new vscode.ThemeIcon("error", new vscode.ThemeColor("problemsErrorIcon.foreground"));
 		} else {
-			this.iconPath = new vscode.ThemeIcon(
-				"warning",
-				new vscode.ThemeColor("problemsWarningIcon.foreground"),
-			);
+			this.iconPath = new vscode.ThemeIcon("warning", new vscode.ThemeColor("problemsWarningIcon.foreground"));
 		}
 
 		this.tooltip = item.message;

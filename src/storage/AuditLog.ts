@@ -30,9 +30,7 @@ export class AuditLog {
 	/**
 	 * Append an audit entry
 	 */
-	async append(
-		entry: Omit<AuditEntry, "id" | "timestamp">,
-	): Promise<AuditEntry> {
+	async append(entry: Omit<AuditEntry, "id" | "timestamp">): Promise<AuditEntry> {
 		const fullEntry: AuditEntry = {
 			...entry,
 			id: generateAuditId(),
@@ -63,10 +61,7 @@ export class AuditLog {
 	/**
 	 * Get audit entries for a file (most recent first)
 	 */
-	async getForFile(
-		filePath: string,
-		limit: number = 50,
-	): Promise<AuditEntry[]> {
+	async getForFile(filePath: string, limit = 50): Promise<AuditEntry[]> {
 		const all = await this.getAll();
 		return all.filter((e) => e.filePath === filePath).slice(0, limit);
 	}
@@ -74,7 +69,7 @@ export class AuditLog {
 	/**
 	 * Get all audit entries (most recent first)
 	 */
-	async getAll(limit: number = 500): Promise<AuditEntry[]> {
+	async getAll(limit = 500): Promise<AuditEntry[]> {
 		try {
 			const data = await vscode.workspace.fs.readFile(this.auditUri);
 			const content = Buffer.from(data).toString("utf-8");
@@ -100,10 +95,7 @@ export class AuditLog {
 	/**
 	 * Get entries by action type
 	 */
-	async getByAction(
-		action: AuditEntry["action"],
-		limit: number = 100,
-	): Promise<AuditEntry[]> {
+	async getByAction(action: AuditEntry["action"], limit = 100): Promise<AuditEntry[]> {
 		const all = await this.getAll(500);
 		return all.filter((e) => e.action === action).slice(0, limit);
 	}
@@ -111,15 +103,9 @@ export class AuditLog {
 	/**
 	 * Get entries in time range
 	 */
-	async getInRange(
-		after: number,
-		before: number,
-		limit: number = 100,
-	): Promise<AuditEntry[]> {
+	async getInRange(after: number, before: number, limit = 100): Promise<AuditEntry[]> {
 		const all = await this.getAll(1000);
-		return all
-			.filter((e) => e.timestamp >= after && e.timestamp <= before)
-			.slice(0, limit);
+		return all.filter((e) => e.timestamp >= after && e.timestamp <= before).slice(0, limit);
 	}
 
 	/**
@@ -161,18 +147,12 @@ export class AuditLog {
 	/**
 	 * Rotate log if it exceeds max size (future improvement)
 	 */
-	async rotateIfNeeded(
-		maxSizeBytes: number = 10 * 1024 * 1024,
-	): Promise<boolean> {
+	async rotateIfNeeded(maxSizeBytes: number = 10 * 1024 * 1024): Promise<boolean> {
 		const size = await this.getSize();
 		if (size <= maxSizeBytes) return false;
 
 		// Archive current log
-		const archiveUri = vscode.Uri.joinPath(
-			this.auditUri,
-			"..",
-			`audit-${Date.now()}.jsonl.archive`,
-		);
+		const archiveUri = vscode.Uri.joinPath(this.auditUri, "..", `audit-${Date.now()}.jsonl.archive`);
 
 		try {
 			await vscode.workspace.fs.rename(this.auditUri, archiveUri);

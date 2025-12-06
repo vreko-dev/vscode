@@ -11,11 +11,7 @@ import type { StorageSnapshotSummaryProvider } from "./snapshotSummaryProvider";
 export interface BlockingIssue {
 	id: string;
 	severity: "high" | "medium" | "low";
-	type:
-		| "unprotected_critical_file"
-		| "stale_snapshot"
-		| "automation_failure"
-		| "missing_pre_commit_hook";
+	type: "unprotected_critical_file" | "stale_snapshot" | "automation_failure" | "missing_pre_commit_hook";
 	message: string;
 	filePath?: string;
 	lastModified?: string;
@@ -168,21 +164,12 @@ export class WorkspaceSafetyService {
 	}
 
 	private async findCriticalFiles(): Promise<string[]> {
-		const patterns = [
-			"**/.env*",
-			"**/config.*",
-			"**/secrets.*",
-			"**/.snapbackrc",
-			"**/credentials.*",
-		];
+		const patterns = ["**/.env*", "**/config.*", "**/secrets.*", "**/.snapbackrc", "**/credentials.*"];
 
 		const files: string[] = [];
 		for (const pattern of patterns) {
 			try {
-				const found = await vscode.workspace.findFiles(
-					pattern,
-					"**/node_modules/**",
-				);
+				const found = await vscode.workspace.findFiles(pattern, "**/node_modules/**");
 				files.push(...found.map((uri) => uri.fsPath));
 			} catch (_error) {}
 		}

@@ -59,10 +59,7 @@ export class OfflineEventQueue {
 	private readonly maxRetryDelay: number;
 	private readonly maxAge: number;
 
-	constructor(
-		context: vscode.ExtensionContext,
-		options: OfflineEventQueueOptions = {},
-	) {
+	constructor(context: vscode.ExtensionContext, options: OfflineEventQueueOptions = {}) {
 		this.context = context;
 		this.maxSize = options.maxSize ?? DEFAULT_MAX_SIZE;
 		this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -78,10 +75,7 @@ export class OfflineEventQueue {
 	 */
 	private loadFromStorage(): void {
 		try {
-			const persisted = this.context.globalState.get<QueuedEvent[]>(
-				STORAGE_KEY,
-				[],
-			);
+			const persisted = this.context.globalState.get<QueuedEvent[]>(STORAGE_KEY, []);
 
 			// Validate and filter events
 			const now = Date.now();

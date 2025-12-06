@@ -28,20 +28,16 @@ export function registerConnectCommand(
 			logger.info("Starting SnapBack OAuth connection");
 
 			// Use VS Code's authentication API with SnapBack provider
-			const session = await vscode.authentication.getSession(
-				"snapback",
-				["workspace:read", "snapshots:read"],
-				{ createIfNone: true },
-			);
+			const session = await vscode.authentication.getSession("snapback", ["workspace:read", "snapshots:read"], {
+				createIfNone: true,
+			});
 
 			if (session) {
 				logger.info("OAuth connection successful", {
 					userId: session.account.id,
 				});
 
-				vscode.window.showInformationMessage(
-					`Connected to SnapBack as ${session.account.label}`,
-				);
+				vscode.window.showInformationMessage(`Connected to SnapBack as ${session.account.label}`);
 
 				// Refresh tree to show authenticated state
 				explorerTreeProvider.refresh();
@@ -50,9 +46,7 @@ export function registerConnectCommand(
 			const errorMsg = error instanceof Error ? error.message : String(error);
 			logger.error("OAuth connection failed", error as Error);
 
-			vscode.window.showErrorMessage(
-				`Failed to connect to SnapBack: ${errorMsg}`,
-			);
+			vscode.window.showErrorMessage(`Failed to connect to SnapBack: ${errorMsg}`);
 		}
 	});
 }
@@ -80,36 +74,28 @@ export function registerRefreshTreeCommand(
  * Opens snapshot detail page in web browser
  * Context menu action for snapshot nodes
  */
-export function registerOpenSnapshotInWebCommand(
-	_context: vscode.ExtensionContext,
-): vscode.Disposable {
-	return vscode.commands.registerCommand(
-		"snapback.openSnapshotInWeb",
-		async (node: SnapBackTreeNode) => {
-			if (node.kind !== "snapshot" || !node.snapshotId) {
-				logger.warn("openSnapshotInWeb called on non-snapshot node", {
-					kind: node.kind,
-				});
-				return;
-			}
-
-			// Get API base URL from configuration
-			const config = vscode.workspace.getConfiguration("snapback");
-			const webBaseUrl = config.get<string>(
-				"webBaseUrl",
-				"https://app.snapback.dev",
-			);
-
-			const url = `${webBaseUrl}/snapshots/${node.snapshotId}`;
-
-			logger.info("Opening snapshot in web browser", {
-				snapshotId: node.snapshotId,
-				url,
+export function registerOpenSnapshotInWebCommand(_context: vscode.ExtensionContext): vscode.Disposable {
+	return vscode.commands.registerCommand("snapback.openSnapshotInWeb", async (node: SnapBackTreeNode) => {
+		if (node.kind !== "snapshot" || !node.snapshotId) {
+			logger.warn("openSnapshotInWeb called on non-snapshot node", {
+				kind: node.kind,
 			});
+			return;
+		}
 
-			await vscode.env.openExternal(vscode.Uri.parse(url));
-		},
-	);
+		// Get API base URL from configuration
+		const config = vscode.workspace.getConfiguration("snapback");
+		const webBaseUrl = config.get<string>("webBaseUrl", "https://app.snapback.dev");
+
+		const url = `${webBaseUrl}/snapshots/${node.snapshotId}`;
+
+		logger.info("Opening snapshot in web browser", {
+			snapshotId: node.snapshotId,
+			url,
+		});
+
+		await vscode.env.openExternal(vscode.Uri.parse(url));
+	});
 }
 
 /**
@@ -122,60 +108,51 @@ export function registerCreateSnapshotCommand(
 	_context: vscode.ExtensionContext,
 	snapshotManager: any, // TODO: Import proper type from managers
 ): vscode.Disposable {
-	return vscode.commands.registerCommand(
-		"snapback.createSnapshot",
-		async (node?: SnapBackTreeNode) => {
-			try {
-				const editor = vscode.window.activeTextEditor;
+	return vscode.commands.registerCommand("snapback.createSnapshot", async (node?: SnapBackTreeNode) => {
+		try {
+			const editor = vscode.window.activeTextEditor;
 
-				if (!editor) {
-					vscode.window.showWarningMessage(
-						"No active editor - please open a file first",
-					);
-					return;
-				}
-
-				const filePath = editor.document.uri.fsPath;
-
-				logger.info("Creating snapshot from Explorer tree", {
-					filePath,
-					nodeKind: node?.kind,
-				});
-
-				// Create snapshot using snapshot manager
-				const snapshot = await snapshotManager.createSnapshot(
-					[
-						{
-							path: filePath,
-							content: editor.document.getText(),
-							action: "modify",
-						},
-					],
-					{
-						description:
-							node?.kind === "blockingIssue"
-								? `Snapshot before fixing: ${node.label}`
-								: "Manual snapshot from Explorer",
-						protected: false,
-					},
-				);
-
-				vscode.window.showInformationMessage(
-					`Snapshot created: ${snapshot.id}`,
-				);
-
-				logger.info("Snapshot created successfully", {
-					snapshotId: snapshot.id,
-					filePath,
-				});
-			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : String(error);
-				logger.error("Failed to create snapshot", error as Error);
-
-				vscode.window.showErrorMessage(
-					`Failed to create snapshot: ${errorMsg}`,
-				);
+			if (!editor) {
+				vscode.window.showWarningMessage("No active editor - please open a file first");
+				return;
 			}
-		},
-	);
+
+			const filePath = editor.document.uri.fsPath;
+
+			logger.info("Creating snapshot from Explorer tree", {
+				filePath,
+				nodeKind: node?.kind,
+			});
+
+			// Create snapshot using snapshot manager
+			const snapshot = await snapshotManager.createSnapshot(
+				[
+					{
+						path: filePath,
+						content: editor.document.getText(),
+						action: "modify",
+					},
+				],
+				{
+					description:
+						node?.kind === "blockingIssue"
+							? `Snapshot before fixing: ${node.label}`
+							: "Manual snapshot from Explorer",
+					protected: false,
+				},
+			);
+
+			vscode.window.showInformationMessage(`Snapshot created: ${snapshot.id}`);
+
+			logger.info("Snapshot created successfully", {
+				snapshotId: snapshot.id,
+				filePath,
+			});
+		} catch (error) {
+			const errorMsg = error instanceof Error ? error.message : String(error);
+			logger.error("Failed to create snapshot", error as Error);
+
+			vscode.window.showErrorMessage(`Failed to create snapshot: ${errorMsg}`);
+		}
+	});
 }

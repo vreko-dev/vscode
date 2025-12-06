@@ -1,12 +1,8 @@
 import * as vscode from "vscode";
 import { DesignTokens, type ProtectionLevel } from "../styles/designTokens";
 
-export class FileDecorationProvider
-	implements vscode.FileDecorationProvider, vscode.Disposable
-{
-	private _onDidChangeFileDecorations = new vscode.EventEmitter<
-		vscode.Uri | vscode.Uri[] | undefined
-	>();
+export class FileDecorationProvider implements vscode.FileDecorationProvider, vscode.Disposable {
+	private _onDidChangeFileDecorations = new vscode.EventEmitter<vscode.Uri | vscode.Uri[] | undefined>();
 	readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
 
 	static getDecoration(level: ProtectionLevel): vscode.FileDecoration {

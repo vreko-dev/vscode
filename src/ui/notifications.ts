@@ -4,10 +4,7 @@ import { DesignTokens, type ProtectionLevel } from "../styles/designTokens";
 /**
  * Format notification message with appropriate icon prefix
  */
-export function formatNotification(
-	message: string,
-	level: ProtectionLevel,
-): string {
+export function formatNotification(message: string, level: ProtectionLevel): string {
 	if (level === "watch") {
 		return `${DesignTokens.icons.watch} SnapBack Monitoring Active\n\n${message}`;
 	}

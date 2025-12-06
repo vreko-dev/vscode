@@ -75,60 +75,42 @@ export function registerOfflineModeCommands(
 	 *
 	 * @since 1.2.0
 	 */
-	const toggleOfflineModeCommand = vscode.commands.registerCommand(
-		"snapback.toggleOfflineMode",
-		async () => {
-			try {
-				// Get current offline mode status from configuration
-				const config = vscode.workspace.getConfiguration("snapback");
-				const currentOfflineMode = config.get<boolean>(
-					"offlineMode.enabled",
-					false,
-				);
+	const toggleOfflineModeCommand = vscode.commands.registerCommand("snapback.toggleOfflineMode", async () => {
+		try {
+			// Get current offline mode status from configuration
+			const config = vscode.workspace.getConfiguration("snapback");
+			const currentOfflineMode = config.get<boolean>("offlineMode.enabled", false);
 
-				// Toggle the offline mode status
-				const newOfflineMode = !currentOfflineMode;
+			// Toggle the offline mode status
+			const newOfflineMode = !currentOfflineMode;
 
-				// Update the configuration
-				await config.update(
-					"offlineMode.enabled",
-					newOfflineMode,
-					vscode.ConfigurationTarget.Global,
-				);
+			// Update the configuration
+			await config.update("offlineMode.enabled", newOfflineMode, vscode.ConfigurationTarget.Global);
 
-				// Get the RulesManager instance
-				const rulesManager = RulesManager.getInstance();
+			// Get the RulesManager instance
+			const rulesManager = RulesManager.getInstance();
 
-				// Set offline mode in RulesManager
-				rulesManager.setOfflineMode(newOfflineMode);
+			// Set offline mode in RulesManager
+			rulesManager.setOfflineMode(newOfflineMode);
 
-				// Set offline mode in the status bar controller
-				commandContext.statusBarController.setOfflineMode(newOfflineMode);
+			// Set offline mode in the status bar controller
+			commandContext.statusBarController.setOfflineMode(newOfflineMode);
 
-				// Get the telemetry instance and set offline mode
-				// Note: We need to access the telemetry instance from the command context
-				// This is a simplified approach - in a real implementation you might want to
-				// pass the telemetry instance through the command context
+			// Get the telemetry instance and set offline mode
+			// Note: We need to access the telemetry instance from the command context
+			// This is a simplified approach - in a real implementation you might want to
+			// pass the telemetry instance through the command context
 
-				// Show notification
-				vscode.window.showInformationMessage(
-					`SnapBack offline mode ${newOfflineMode ? "enabled" : "disabled"}`,
-				);
+			// Show notification
+			vscode.window.showInformationMessage(`SnapBack offline mode ${newOfflineMode ? "enabled" : "disabled"}`);
 
-				// Log the change
-				logger.info(`Offline mode ${newOfflineMode ? "enabled" : "disabled"}`);
-			} catch (error) {
-				vscode.window.showErrorMessage(
-					`Failed to toggle offline mode: ${(error as Error).message}`,
-				);
-				logger.error(
-					"Failed to toggle offline mode",
-					error instanceof Error ? error : undefined,
-					{ error },
-				);
-			}
-		},
-	);
+			// Log the change
+			logger.info(`Offline mode ${newOfflineMode ? "enabled" : "disabled"}`);
+		} catch (error) {
+			vscode.window.showErrorMessage(`Failed to toggle offline mode: ${(error as Error).message}`);
+			logger.error("Failed to toggle offline mode", error instanceof Error ? error : undefined, { error });
+		}
+	});
 
 	disposables.push(toggleOfflineModeCommand);
 

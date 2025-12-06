@@ -83,8 +83,7 @@ export class SnapshotIconStrategy {
 	 * Pre-compiled regex patterns for performance optimization
 	 */
 	private static readonly TEST_FILE_REGEX = /\.(test|spec)\.(ts|js|tsx|jsx)$/i;
-	private static readonly CONFIG_FILE_REGEX =
-		/\.(config\.(ts|js)|eslintrc|prettierrc|env)/i;
+	private static readonly CONFIG_FILE_REGEX = /\.(config\.(ts|js)|eslintrc|prettierrc|env)/i;
 	private static readonly STYLE_FILE_REGEX = /\.(css|scss|less|sass)$/i;
 	private static readonly DOC_FILE_REGEX = /\.(md|mdx)$/i;
 	private static readonly SQL_FILE_REGEX = /\.sql$/i;
@@ -104,11 +103,7 @@ export class SnapshotIconStrategy {
 	/**
 	 * Config file patterns
 	 */
-	private static readonly CONFIG_FILES = new Set([
-		"tsconfig.json",
-		".eslintrc.json",
-		".prettierrc",
-	]);
+	private static readonly CONFIG_FILES = new Set(["tsconfig.json", ".eslintrc.json", ".prettierrc"]);
 
 	/**
 	 * Keyword sets for name-based classification (pre-defined for performance)
@@ -116,28 +111,11 @@ export class SnapshotIconStrategy {
 	private static readonly BUG_FIX_KEYWORDS = ["fix", "bugfix"];
 	private static readonly REFACTOR_KEYWORDS = ["refactor", "refactored"];
 	private static readonly ADDITION_KEYWORDS = ["added", "created", "file-add"];
-	private static readonly DELETION_KEYWORDS = [
-		"deleted",
-		"removed",
-		"file-delete",
-	];
-	private static readonly DOC_KEYWORDS = [
-		"docs",
-		"documentation",
-		"docs-update",
-	];
-	private static readonly STYLE_KEYWORDS = [
-		"style",
-		"styling",
-		"style-changes",
-	];
+	private static readonly DELETION_KEYWORDS = ["deleted", "removed", "file-delete"];
+	private static readonly DOC_KEYWORDS = ["docs", "documentation", "docs-update"];
+	private static readonly STYLE_KEYWORDS = ["style", "styling", "style-changes"];
 	private static readonly API_KEYWORDS = ["api-changes", "endpoint"];
-	private static readonly DATABASE_KEYWORDS = [
-		"database",
-		"db",
-		"migration",
-		"schema",
-	];
+	private static readonly DATABASE_KEYWORDS = ["database", "db", "migration", "schema"];
 	private static readonly PACKAGE_KEYWORDS = ["update-deps", "dependencies"];
 	private static readonly CONFIG_KEYWORDS = ["config-change"];
 
@@ -211,51 +189,25 @@ export class SnapshotIconStrategy {
 
 		// Priority 0: Check for prefix patterns (conventional commit style: "KEYWORD: description")
 		// These explicitly indicate the operation type and should take highest priority
-		if (
-			this.matchesPrefixKeyword(
-				lowerName,
-				SnapshotIconStrategy.ADDITION_KEYWORDS,
-			)
-		) {
+		if (this.matchesPrefixKeyword(lowerName, SnapshotIconStrategy.ADDITION_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP["file-add"];
 		}
-		if (
-			this.matchesPrefixKeyword(
-				lowerName,
-				SnapshotIconStrategy.BUG_FIX_KEYWORDS,
-			)
-		) {
+		if (this.matchesPrefixKeyword(lowerName, SnapshotIconStrategy.BUG_FIX_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP["fix-bug"];
 		}
-		if (
-			this.matchesPrefixKeyword(
-				lowerName,
-				SnapshotIconStrategy.DELETION_KEYWORDS,
-			)
-		) {
+		if (this.matchesPrefixKeyword(lowerName, SnapshotIconStrategy.DELETION_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP["file-delete"];
 		}
-		if (
-			this.matchesPrefixKeyword(
-				lowerName,
-				SnapshotIconStrategy.REFACTOR_KEYWORDS,
-			)
-		) {
+		if (this.matchesPrefixKeyword(lowerName, SnapshotIconStrategy.REFACTOR_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP.refactor;
 		}
-		if (
-			this.matchesPrefixKeyword(lowerName, SnapshotIconStrategy.DOC_KEYWORDS)
-		) {
+		if (this.matchesPrefixKeyword(lowerName, SnapshotIconStrategy.DOC_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP["docs-update"];
 		}
-		if (
-			this.matchesPrefixKeyword(lowerName, SnapshotIconStrategy.STYLE_KEYWORDS)
-		) {
+		if (this.matchesPrefixKeyword(lowerName, SnapshotIconStrategy.STYLE_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP["style-changes"];
 		}
-		if (
-			this.matchesPrefixKeyword(lowerName, SnapshotIconStrategy.CONFIG_KEYWORDS)
-		) {
+		if (this.matchesPrefixKeyword(lowerName, SnapshotIconStrategy.CONFIG_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP["config-change"];
 		}
 
@@ -265,16 +217,12 @@ export class SnapshotIconStrategy {
 		}
 
 		// Priority 2: Deletions
-		if (
-			this.matchesKeyword(lowerName, SnapshotIconStrategy.DELETION_KEYWORDS)
-		) {
+		if (this.matchesKeyword(lowerName, SnapshotIconStrategy.DELETION_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP["file-delete"];
 		}
 
 		// Priority 3: Refactors
-		if (
-			this.matchesKeyword(lowerName, SnapshotIconStrategy.REFACTOR_KEYWORDS)
-		) {
+		if (this.matchesKeyword(lowerName, SnapshotIconStrategy.REFACTOR_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP.refactor;
 		}
 
@@ -284,9 +232,7 @@ export class SnapshotIconStrategy {
 		}
 
 		// Priority 5: Database operations (more specific than generic additions)
-		if (
-			this.matchesKeyword(lowerName, SnapshotIconStrategy.DATABASE_KEYWORDS)
-		) {
+		if (this.matchesKeyword(lowerName, SnapshotIconStrategy.DATABASE_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP.database;
 		}
 
@@ -301,9 +247,7 @@ export class SnapshotIconStrategy {
 		}
 
 		// Priority 8: Additions (generic, lower priority unless prefixed)
-		if (
-			this.matchesKeyword(lowerName, SnapshotIconStrategy.ADDITION_KEYWORDS)
-		) {
+		if (this.matchesKeyword(lowerName, SnapshotIconStrategy.ADDITION_KEYWORDS)) {
 			return SnapshotIconStrategy.ICON_MAP["file-add"];
 		}
 
@@ -397,10 +341,7 @@ export class SnapshotIconStrategy {
 	 * @param keywords - The keywords to match against
 	 * @returns true if name starts with keyword + colon pattern, false otherwise
 	 */
-	private matchesPrefixKeyword(
-		name: string,
-		keywords: readonly string[],
-	): boolean {
+	private matchesPrefixKeyword(name: string, keywords: readonly string[]): boolean {
 		return keywords.some((k) => name.startsWith(`${k}:`));
 	}
 
@@ -414,10 +355,7 @@ export class SnapshotIconStrategy {
 		return files.some((file) => {
 			const fileName = path.basename(file);
 			const lowerFile = file.toLowerCase();
-			return (
-				SnapshotIconStrategy.TEST_FILE_REGEX.test(fileName) ||
-				lowerFile.includes("__tests__")
-			);
+			return SnapshotIconStrategy.TEST_FILE_REGEX.test(fileName) || lowerFile.includes("__tests__");
 		});
 	}
 

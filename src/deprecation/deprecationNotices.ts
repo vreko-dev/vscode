@@ -22,8 +22,7 @@ export const DEPRECATION_NOTICES: Record<string, DeprecationNotice> = {
 		title: "Manual Snapshot Creation",
 		status: "DEPRECATED",
 		affectedCode: ["extension.createSnapshot()"],
-		replacement:
-			"AutoDecisionEngine automatically determines when to create snapshots",
+		replacement: "AutoDecisionEngine automatically determines when to create snapshots",
 		version: "2.0.0",
 		timeline: "Removed in v2.1.0",
 		documentation: "See migration guide: docs/migration-v1-v2.md",
@@ -71,19 +70,14 @@ export function isDeprecated(patternId: string): boolean {
 /**
  * Get deprecation notice for pattern
  */
-export function getDeprecationNotice(
-	patternId: string,
-): DeprecationNotice | undefined {
+export function getDeprecationNotice(patternId: string): DeprecationNotice | undefined {
 	return DEPRECATION_NOTICES[patternId];
 }
 
 /**
  * Emit deprecation warning
  */
-export function emitDeprecationWarning(
-	patternId: string,
-	context?: string,
-): void {
+export function emitDeprecationWarning(patternId: string, context?: string): void {
 	const notice = DEPRECATION_NOTICES[patternId];
 
 	if (!notice) {
@@ -106,9 +100,7 @@ export function emitDeprecationWarning(
  * Get all deprecated patterns
  */
 export function getDeprecatedPatterns(): DeprecationNotice[] {
-	return Object.values(DEPRECATION_NOTICES).filter(
-		(n) => n.status === "DEPRECATED",
-	);
+	return Object.values(DEPRECATION_NOTICES).filter((n) => n.status === "DEPRECATED");
 }
 
 /**

@@ -37,8 +37,7 @@ export class ProtectionCodeLensProvider implements vscode.CodeLensProvider {
 
 		// Get protection level for this file
 		const filePath = document.uri.fsPath;
-		const protectionLevel =
-			this.protectedFileRegistry.getProtectionLevel(filePath);
+		const protectionLevel = this.protectedFileRegistry.getProtectionLevel(filePath);
 
 		if (!protectionLevel) {
 			// No protection - show option to protect
@@ -77,9 +76,7 @@ export class ProtectionCodeLensProvider implements vscode.CodeLensProvider {
 	/**
 	 * Get icon for protection level using canonical signage
 	 */
-	private getProtectionIcon(
-		level: "watch" | "warn" | "block" | undefined,
-	): string {
+	private getProtectionIcon(level: "watch" | "warn" | "block" | undefined): string {
 		switch (level) {
 			case "watch":
 				return getProtectionLevelSignage("watch").emoji || "🟢";
@@ -95,9 +92,7 @@ export class ProtectionCodeLensProvider implements vscode.CodeLensProvider {
 	/**
 	 * Get human-readable label for protection level using canonical signage
 	 */
-	private getProtectionLabel(
-		level: "watch" | "warn" | "block" | undefined,
-	): string {
+	private getProtectionLabel(level: "watch" | "warn" | "block" | undefined): string {
 		switch (level) {
 			case "watch":
 				return `${getProtectionLevelSignage("watch").label} (Silent)`;

@@ -344,10 +344,7 @@ export class OperationCoordinator {
 	 * }
 	 * ```
 	 */
-	updateOperationStatus(
-		id: string,
-		status: "pending" | "running" | "completed" | "failed",
-	): void {
+	updateOperationStatus(id: string, status: "pending" | "running" | "completed" | "failed"): void {
 		const operation = this.operations.get(id);
 		if (operation) {
 			operation.status = status;
@@ -503,9 +500,7 @@ export class OperationCoordinator {
 			}
 
 			// For full workspace snapshots, load ignore patterns and scan workspace
-			const ignorePatterns = !isIncremental
-				? await this.loadIgnorePatterns(workspaceRoot)
-				: [];
+			const ignorePatterns = !isIncremental ? await this.loadIgnorePatterns(workspaceRoot) : [];
 
 			// Create ignore instance (only needed for full workspace scan)
 			const ig = ignore().add(ignorePatterns);
@@ -550,9 +545,7 @@ export class OperationCoordinator {
 							});
 						} catch (error: unknown) {
 							vscode.window.showErrorMessage(
-								`Failed to scan workspace: ${
-									error instanceof Error ? error.message : String(error)
-								}`,
+								`Failed to scan workspace: ${error instanceof Error ? error.message : String(error)}`,
 							);
 							throw error;
 						}
@@ -567,10 +560,7 @@ export class OperationCoordinator {
 					// This allows us to snapshot pre-save content instead of reading from disk
 					let fileContents: Record<string, string> = {};
 
-					if (
-						providedFileContents &&
-						Object.keys(providedFileContents).length > 0
-					) {
+					if (providedFileContents && Object.keys(providedFileContents).length > 0) {
 						// Use provided contents (already captured before save)
 						fileContents = providedFileContents;
 						logger.info("Using provided file contents for snapshot", {
@@ -612,26 +602,18 @@ export class OperationCoordinator {
 											await Promise.all(
 												batchFiles.map(async (batchFile) => {
 													try {
-														const content = await readFile(
-															batchFile.file,
-															"utf-8",
-														);
+														const content = await readFile(batchFile.file, "utf-8");
 														const relativePath = path.relative(
 															workspaceRoot,
 															batchFile.file,
 														);
 														fileContents[relativePath] = content;
 													} catch (error: unknown) {
-														logger.warn(
-															"Failed to read file during snapshot scan",
-															{
-																file: batchFile.file,
-																error:
-																	error instanceof Error
-																		? error.message
-																		: String(error),
-															},
-														);
+														logger.warn("Failed to read file during snapshot scan", {
+															file: batchFile.file,
+															error:
+																error instanceof Error ? error.message : String(error),
+														});
 													}
 												}),
 											);
@@ -645,8 +627,7 @@ export class OperationCoordinator {
 								} catch (error: unknown) {
 									logger.warn("Failed to stat file during snapshot scan", {
 										file,
-										error:
-											error instanceof Error ? error.message : String(error),
+										error: error instanceof Error ? error.message : String(error),
 									});
 								}
 							}
@@ -657,18 +638,12 @@ export class OperationCoordinator {
 									batchFiles.map(async (batchFile) => {
 										try {
 											const content = await readFile(batchFile.file, "utf-8");
-											const relativePath = path.relative(
-												workspaceRoot,
-												batchFile.file,
-											);
+											const relativePath = path.relative(workspaceRoot, batchFile.file);
 											fileContents[relativePath] = content;
 										} catch (error: unknown) {
 											logger.warn("Failed to read file during snapshot scan", {
 												file: batchFile.file,
-												error:
-													error instanceof Error
-														? error.message
-														: String(error),
+												error: error instanceof Error ? error.message : String(error),
 											});
 										}
 									}),
@@ -676,12 +651,8 @@ export class OperationCoordinator {
 							}
 
 							totalProcessed += batch.length;
-							const progressPercent =
-								30 + Math.floor((totalProcessed / files.length) * 50);
-							this.updateOperationProgress(
-								operationId,
-								Math.min(progressPercent, 80),
-							);
+							const progressPercent = 30 + Math.floor((totalProcessed / files.length) * 50);
+							this.updateOperationProgress(operationId, Math.min(progressPercent, 80));
 							progress.report({
 								message: `Reading files... (${totalProcessed}/${files.length})`,
 							});
@@ -694,9 +665,7 @@ export class OperationCoordinator {
 					// This allows save-triggered snapshots to use format: snapshot_[filename]_[timestamp]
 					const snapshotTrigger =
 						customSnapshotName ||
-						(isIncremental
-							? `Auto-save: ${specificFiles.length} file(s)`
-							: "Manual snapshot creation");
+						(isIncremental ? `Auto-save: ${specificFiles.length} file(s)` : "Manual snapshot creation");
 
 					// Create the actual snapshot using new StorageManager API
 					const filesMap = new Map<string, string>();
@@ -719,8 +688,7 @@ export class OperationCoordinator {
 					});
 
 					// Determine trigger type from snapshotTrigger string
-					let trigger: "auto" | "manual" | "ai-detected" | "pre-save" =
-						"manual";
+					let trigger: "auto" | "manual" | "ai-detected" | "pre-save" = "manual";
 					if (snapshotTrigger.includes("Auto-save")) {
 						trigger = "auto";
 					} else if (snapshotTrigger.includes("AI")) {
@@ -730,9 +698,7 @@ export class OperationCoordinator {
 					const snapshotManifest = await this.storage.createSnapshot(filesMap, {
 						name:
 							customSnapshotName ||
-							(isIncremental
-								? `Auto-save: ${specificFiles?.length} file(s)`
-								: "Manual snapshot"),
+							(isIncremental ? `Auto-save: ${specificFiles?.length} file(s)` : "Manual snapshot"),
 						trigger,
 						metadata: {
 							riskScore: 0,
@@ -766,9 +732,7 @@ export class OperationCoordinator {
 						await this.notificationManager.showEnhancedSnapshotCreated({
 							trigger: "Manual snapshot creation",
 							protectedFiles: Object.keys(fileContents).length,
-							directories: new Set(
-								Object.keys(fileContents).map((f) => path.dirname(f)),
-							).size,
+							directories: new Set(Object.keys(fileContents).map((f) => path.dirname(f))).size,
 							snapshotId: snapshot.id,
 							storageLocation: ".snapback/snapshots/",
 						});
@@ -821,10 +785,7 @@ export class OperationCoordinator {
 							skippedDirs++;
 							// Log when skipping node_modules specifically
 							if (entry.name === "node_modules") {
-								logger.debug(
-									"Skipping node_modules directory during traversal",
-									{ path: fullPath },
-								);
+								logger.debug("Skipping node_modules directory during traversal", { path: fullPath });
 							}
 						} else {
 							skippedFiles++;
@@ -862,17 +823,12 @@ export class OperationCoordinator {
 							throw new Error(`File limit exceeded: ${options.maxFiles}`);
 						}
 
-						if (
-							options.maxTotalSize &&
-							totalSize + stats.size > options.maxTotalSize
-						) {
+						if (options.maxTotalSize && totalSize + stats.size > options.maxTotalSize) {
 							logger.warn("Directory traversal size limit exceeded", {
 								limitBytes: options.maxTotalSize,
 								totalSizeBytes: totalSize,
 							});
-							throw new Error(
-								`Size limit exceeded: ${options.maxTotalSize} bytes`,
-							);
+							throw new Error(`Size limit exceeded: ${options.maxTotalSize} bytes`);
 						}
 
 						fileCount++;
@@ -917,11 +873,7 @@ export class OperationCoordinator {
 		const gitignorePath = path.join(workspaceRoot, ".gitignore");
 		try {
 			const gitignore = await readFile(gitignorePath, "utf-8");
-			patterns.push(
-				...gitignore
-					.split("\n")
-					.filter((line) => line.trim() && !line.startsWith("#")),
-			);
+			patterns.push(...gitignore.split("\n").filter((line) => line.trim() && !line.startsWith("#")));
 		} catch {
 			// .gitignore doesn't exist, continue
 		}
@@ -930,11 +882,7 @@ export class OperationCoordinator {
 		const snapbackIgnorePath = path.join(workspaceRoot, ".snapbackignore");
 		try {
 			const snapbackIgnore = await readFile(snapbackIgnorePath, "utf-8");
-			patterns.push(
-				...snapbackIgnore
-					.split("\n")
-					.filter((line) => line.trim() && !line.startsWith("#")),
-			);
+			patterns.push(...snapbackIgnore.split("\n").filter((line) => line.trim() && !line.startsWith("#")));
 		} catch {
 			// .snapbackignore doesn't exist, continue
 		}
@@ -1010,18 +958,12 @@ export class OperationCoordinator {
 				}> = [];
 
 				// Check each file in snapshot against workspace
-				for (const [filePath, rawSnapshotContent] of Object.entries(
-					snapshot.contents || {},
-				)) {
+				for (const [filePath, rawSnapshotContent] of Object.entries(snapshot.contents || {})) {
 					// Handle both JSON-stringified and plain text formats
 					let snapshotContent: string;
 					try {
 						const parsed = JSON.parse(rawSnapshotContent);
-						if (
-							typeof parsed === "object" &&
-							parsed !== null &&
-							"content" in parsed
-						) {
+						if (typeof parsed === "object" && parsed !== null && "content" in parsed) {
 							snapshotContent = parsed.content;
 						} else {
 							// Invalid JSON format, treat as plain text
@@ -1061,8 +1003,7 @@ export class OperationCoordinator {
 						conflictType: conflict.type,
 					}));
 
-					const resolutions =
-						await this.conflictResolver.resolveConflicts(fileConflicts);
+					const resolutions = await this.conflictResolver.resolveConflicts(fileConflicts);
 
 					if (!resolutions) {
 						// User cancelled
@@ -1090,11 +1031,7 @@ export class OperationCoordinator {
 								let content: string;
 								try {
 									const parsed = JSON.parse(rawContent);
-									if (
-										typeof parsed === "object" &&
-										parsed !== null &&
-										"content" in parsed
-									) {
+									if (typeof parsed === "object" && parsed !== null && "content" in parsed) {
 										content = parsed.content;
 									} else {
 										// Invalid JSON format, treat as plain text
@@ -1105,13 +1042,8 @@ export class OperationCoordinator {
 									content = rawContent;
 								}
 
-								const fileUri = vscode.Uri.file(
-									path.join(workspaceRoot, filePath),
-								);
-								await vscode.workspace.fs.writeFile(
-									fileUri,
-									Buffer.from(content, "utf-8"),
-								);
+								const fileUri = vscode.Uri.file(path.join(workspaceRoot, filePath));
+								await vscode.workspace.fs.writeFile(fileUri, Buffer.from(content, "utf-8"));
 								filesRestored++;
 							}
 						}
@@ -1138,9 +1070,7 @@ export class OperationCoordinator {
 				}
 
 				// Restore files
-				for (const [filePath, rawContent] of Object.entries(
-					snapshot.contents,
-				)) {
+				for (const [filePath, rawContent] of Object.entries(snapshot.contents)) {
 					// Filter if specific files requested
 					if (options?.files && !options.files.includes(filePath)) {
 						continue;
@@ -1151,11 +1081,7 @@ export class OperationCoordinator {
 						let content: string;
 						try {
 							const parsed = JSON.parse(rawContent);
-							if (
-								typeof parsed === "object" &&
-								parsed !== null &&
-								"content" in parsed
-							) {
+							if (typeof parsed === "object" && parsed !== null && "content" in parsed) {
 								content = parsed.content;
 							} else {
 								// Invalid JSON format, treat as plain text
@@ -1167,10 +1093,7 @@ export class OperationCoordinator {
 						}
 
 						const fileUri = vscode.Uri.file(path.join(workspaceRoot, filePath));
-						await vscode.workspace.fs.writeFile(
-							fileUri,
-							Buffer.from(content, "utf-8"),
-						);
+						await vscode.workspace.fs.writeFile(fileUri, Buffer.from(content, "utf-8"));
 						filesRestored++;
 					}
 				}
@@ -1201,19 +1124,12 @@ export class OperationCoordinator {
 				// Track Milestone
 				void this.milestoneService.incrementRecoveries();
 
-				vscode.window.setStatusBarMessage(
-					`✅ Workspace restored from snapshot (${filesRestored} files)`,
-					5000,
-				);
+				vscode.window.setStatusBarMessage(`✅ Workspace restored from snapshot (${filesRestored} files)`, 5000);
 			}
 
 			return true;
 		} catch (error) {
-			logger.error(
-				"Restore failed",
-				error instanceof Error ? error : new Error(String(error)),
-				{ snapshotId },
-			);
+			logger.error("Restore failed", error instanceof Error ? error : new Error(String(error)), { snapshotId });
 			this.updateOperationStatus(operationId, "failed");
 			return false;
 		}
@@ -1262,9 +1178,7 @@ export class OperationCoordinator {
 	 */
 	async coordinateRiskAnalysis(filePath: string): Promise<void> {
 		const operationId = `risk-analysis-${Date.now()}`;
-		this.startOperation(operationId, "Risk Analysis", [
-			`file-access-${filePath}`,
-		]);
+		this.startOperation(operationId, "Risk Analysis", [`file-access-${filePath}`]);
 
 		try {
 			// Phase 1: Update workspace state and set analyzing status

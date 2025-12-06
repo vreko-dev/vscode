@@ -67,11 +67,7 @@ export interface TelemetryResponse {
 	received: boolean;
 }
 
-export function analyze(
-	client: SnapbackClient,
-	envelope: Envelope,
-	request: AnalyzeRequest,
-): Promise<AnalyzeResponse>;
+export function analyze(client: SnapbackClient, envelope: Envelope, request: AnalyzeRequest): Promise<AnalyzeResponse>;
 
 export function evaluatePolicy(
 	client: SnapbackClient,

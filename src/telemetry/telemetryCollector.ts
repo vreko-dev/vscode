@@ -51,8 +51,7 @@ export interface PostHogSDK {
 export class TelemetryCollector {
 	private postHog: PostHogSDK;
 	private optOutOverride: boolean | null = null;
-	private eventQueue: Array<{ event: string; properties: Record<string, any> }> =
-		[];
+	private eventQueue: Array<{ event: string; properties: Record<string, any> }> = [];
 
 	constructor(postHog: PostHogSDK) {
 		this.postHog = postHog;
@@ -62,10 +61,7 @@ export class TelemetryCollector {
 	/**
 	 * Capture generic event
 	 */
-	async capture(
-		eventName: string,
-		properties?: Record<string, any>,
-	): Promise<void> {
+	async capture(eventName: string, properties?: Record<string, any>): Promise<void> {
 		// Respect opt-out setting
 		if (this.isOptedOut()) {
 			logger.debug("Event blocked by opt-out", { eventName });
@@ -86,21 +82,17 @@ export class TelemetryCollector {
 			this.postHog.capture(eventName, filtered);
 			logger.debug("Event captured", { eventName, propertyCount: Object.keys(filtered).length });
 		} catch (error) {
-			logger.error(
-				"Failed to capture event",
-				error instanceof Error ? error : undefined,
-				{ eventName, propertyCount: Object.keys(filtered).length }
-			);
+			logger.error("Failed to capture event", error instanceof Error ? error : undefined, {
+				eventName,
+				propertyCount: Object.keys(filtered).length,
+			});
 		}
 	}
 
 	/**
 	 * Identify user (workspace)
 	 */
-	async identify(
-		workspaceId: string,
-		properties?: Record<string, any>,
-	): Promise<void> {
+	async identify(workspaceId: string, properties?: Record<string, any>): Promise<void> {
 		if (this.isOptedOut()) {
 			logger.debug("Identify blocked by opt-out", { workspaceId });
 			return;
@@ -112,11 +104,7 @@ export class TelemetryCollector {
 			this.postHog.identify(workspaceId, filtered);
 			logger.debug("Workspace identified", { workspaceId, propertyCount: Object.keys(filtered).length });
 		} catch (error) {
-			logger.error(
-				"Failed to identify workspace",
-				error instanceof Error ? error : undefined,
-				{ workspaceId }
-			);
+			logger.error("Failed to identify workspace", error instanceof Error ? error : undefined, { workspaceId });
 		}
 	}
 
@@ -149,9 +137,7 @@ export class TelemetryCollector {
 	/**
 	 * Capture protection level change
 	 */
-	async captureProtectionLevelChanged(
-		event: ProtectionLevelChangedEvent,
-	): Promise<void> {
+	async captureProtectionLevelChanged(event: ProtectionLevelChangedEvent): Promise<void> {
 		await this.capture("protection.level_changed", {
 			previousLevel: event.previousLevel,
 			newLevel: event.newLevel,
@@ -194,12 +180,7 @@ export class TelemetryCollector {
 	/**
 	 * Capture error event
 	 */
-	async captureError(
-		errorType: string,
-		errorMessage: string,
-		context: string,
-		stack?: string,
-	): Promise<void> {
+	async captureError(errorType: string, errorMessage: string, context: string, stack?: string): Promise<void> {
 		await this.capture("error.occurred", {
 			errorType,
 			errorMessage,
@@ -218,10 +199,7 @@ export class TelemetryCollector {
 			this.postHog.optOut();
 			logger.info("User opted out of telemetry");
 		} catch (error) {
-			logger.error(
-				"Failed to opt out",
-				error instanceof Error ? error : undefined
-			);
+			logger.error("Failed to opt out", error instanceof Error ? error : undefined);
 		}
 	}
 
@@ -234,10 +212,7 @@ export class TelemetryCollector {
 			this.postHog.optIn();
 			logger.info("User opted in to telemetry");
 		} catch (error) {
-			logger.error(
-				"Failed to opt in",
-				error instanceof Error ? error : undefined
-			);
+			logger.error("Failed to opt in", error instanceof Error ? error : undefined);
 		}
 	}
 
@@ -251,10 +226,7 @@ export class TelemetryCollector {
 		try {
 			return this.postHog.hasOptedOutCapturing();
 		} catch (error) {
-			logger.error(
-				"Failed to check opt-out status",
-				error instanceof Error ? error : undefined
-			);
+			logger.error("Failed to check opt-out status", error instanceof Error ? error : undefined);
 			// Default to opted-out on error (privacy-first)
 			return true;
 		}
@@ -267,11 +239,7 @@ export class TelemetryCollector {
 		try {
 			return this.postHog.isFeatureEnabled(flagName);
 		} catch (error) {
-			logger.error(
-				"Failed to check feature flag",
-				error instanceof Error ? error : undefined,
-				{ flagName }
-			);
+			logger.error("Failed to check feature flag", error instanceof Error ? error : undefined, { flagName });
 			return false;
 		}
 	}
@@ -283,11 +251,9 @@ export class TelemetryCollector {
 		try {
 			return this.postHog.getFeatureFlagPayload(flagName);
 		} catch (error) {
-			logger.error(
-				"Failed to get feature flag payload",
-				error instanceof Error ? error : undefined,
-				{ flagName }
-			);
+			logger.error("Failed to get feature flag payload", error instanceof Error ? error : undefined, {
+				flagName,
+			});
 			return null;
 		}
 	}

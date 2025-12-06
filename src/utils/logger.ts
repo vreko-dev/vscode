@@ -39,17 +39,13 @@ export class Logger {
 	private constructor(outputChannel: vscode.OutputChannel) {
 		this.outputChannel = outputChannel;
 		this.config = vscode.workspace.getConfiguration("snapback");
-		this.logLevel = this.parseLogLevel(
-			this.config.get<string>("logLevel", "info"),
-		);
+		this.logLevel = this.parseLogLevel(this.config.get<string>("logLevel", "info"));
 
 		// Listen for configuration changes
 		vscode.workspace.onDidChangeConfiguration((e) => {
 			if (e.affectsConfiguration("snapback.logLevel")) {
 				this.config = vscode.workspace.getConfiguration("snapback");
-				this.logLevel = this.parseLogLevel(
-					this.config.get<string>("logLevel", "info"),
-				);
+				this.logLevel = this.parseLogLevel(this.config.get<string>("logLevel", "info"));
 				this.info("Log level changed", {
 					newLevel: LogLevel[this.logLevel],
 				});
@@ -84,9 +80,7 @@ export class Logger {
 	static getInstance(outputChannel?: vscode.OutputChannel): Logger {
 		if (!Logger.instance) {
 			if (!outputChannel) {
-				throw new Error(
-					"Logger not initialized. Call getInstance with outputChannel first.",
-				);
+				throw new Error("Logger not initialized. Call getInstance with outputChannel first.");
 			}
 			Logger.instance = new Logger(outputChannel);
 		}
@@ -271,10 +265,7 @@ export class Logger {
 		const formattedMessage = `[${timestamp}] [${level}] ${message}`;
 
 		// Serialize additional arguments
-		const serializedArgs =
-			args.length > 0
-				? ` ${args.map((arg) => this.serialize(arg)).join(" ")}`
-				: "";
+		const serializedArgs = args.length > 0 ? ` ${args.map((arg) => this.serialize(arg)).join(" ")}` : "";
 
 		this.outputChannel.appendLine(formattedMessage + serializedArgs);
 	}
@@ -330,14 +321,10 @@ export class Logger {
  */
 export const logger = {
 	getInstance: Logger.getInstance.bind(Logger),
-	debug: (...args: Parameters<Logger["debug"]>) =>
-		Logger.getInstance().debug(...args),
-	info: (...args: Parameters<Logger["info"]>) =>
-		Logger.getInstance().info(...args),
-	warn: (...args: Parameters<Logger["warn"]>) =>
-		Logger.getInstance().warn(...args),
-	error: (...args: Parameters<Logger["error"]>) =>
-		Logger.getInstance().error(...args),
+	debug: (...args: Parameters<Logger["debug"]>) => Logger.getInstance().debug(...args),
+	info: (...args: Parameters<Logger["info"]>) => Logger.getInstance().info(...args),
+	warn: (...args: Parameters<Logger["warn"]>) => Logger.getInstance().warn(...args),
+	error: (...args: Parameters<Logger["error"]>) => Logger.getInstance().error(...args),
 	show: () => Logger.getInstance().show(),
 	dispose: () => Logger.getInstance().dispose(),
 };

@@ -50,14 +50,11 @@ export async function generateSessionSummary(
 	snapshotManager?: SnapshotManager,
 ): Promise<string> {
 	const generator = new SDKSessionSummaryGenerator({
-		snapshotProvider: snapshotManager
-			? new VscodeSnapshotProvider(snapshotManager)
-			: undefined,
+		snapshotProvider: snapshotManager ? new VscodeSnapshotProvider(snapshotManager) : undefined,
 		logger: {
 			debug: (message: string, data?: unknown) => logger.debug(message, data),
 			info: (message: string, data?: unknown) => logger.info(message, data),
-			error: (message: string, error?: Error, data?: unknown) =>
-				logger.error(message, error, data),
+			error: (message: string, error?: Error, data?: unknown) => logger.error(message, error, data),
 		},
 	});
 
@@ -74,10 +71,7 @@ export async function generateSessionSummary(
  * @param filePath Path to the file (used to determine language)
  * @returns Array of top identifiers
  */
-export async function extractTopIdentifiers(
-	content: string,
-	filePath: string,
-): Promise<string[]> {
+export async function extractTopIdentifiers(content: string, filePath: string): Promise<string[]> {
 	const generator = new SDKSessionSummaryGenerator();
 	return generator.extractTopIdentifiers(content, filePath);
 }

@@ -109,44 +109,18 @@ You can change these settings anytime in VS Code Settings.`;
 	 * Save consent settings to workspace configuration
 	 * @param settings Consent settings to save
 	 */
-	export async function saveConsentSettings(
-		settings: ConsentSettings,
-	): Promise<void> {
+	export async function saveConsentSettings(settings: ConsentSettings): Promise<void> {
 		const config = vscode.workspace.getConfiguration("snapback.privacy");
 
-		await config.update(
-			"consent",
-			settings.privacyConsent,
-			vscode.ConfigurationTarget.Global,
-		);
-		await config.update(
-			"clipboard",
-			settings.clipboardConsent,
-			vscode.ConfigurationTarget.Global,
-		);
-		await config.update(
-			"watcher",
-			settings.watcherConsent,
-			vscode.ConfigurationTarget.Global,
-		);
-		await config.update(
-			"gitWrapper",
-			settings.gitWrapperConsent,
-			vscode.ConfigurationTarget.Global,
-		);
+		await config.update("consent", settings.privacyConsent, vscode.ConfigurationTarget.Global);
+		await config.update("clipboard", settings.clipboardConsent, vscode.ConfigurationTarget.Global);
+		await config.update("watcher", settings.watcherConsent, vscode.ConfigurationTarget.Global);
+		await config.update("gitWrapper", settings.gitWrapperConsent, vscode.ConfigurationTarget.Global);
 
 		if (settings.lastReminded) {
-			await config.update(
-				"lastReminded",
-				settings.lastReminded.toISOString(),
-				vscode.ConfigurationTarget.Global,
-			);
+			await config.update("lastReminded", settings.lastReminded.toISOString(), vscode.ConfigurationTarget.Global);
 		} else {
-			await config.update(
-				"lastReminded",
-				undefined,
-				vscode.ConfigurationTarget.Global,
-			);
+			await config.update("lastReminded", undefined, vscode.ConfigurationTarget.Global);
 		}
 	}
 
@@ -188,11 +162,7 @@ You can change these settings anytime in VS Code Settings.`;
 		const consent = selection === allowButton;
 
 		const config = vscode.workspace.getConfiguration("snapback.privacy");
-		await config.update(
-			"clipboard",
-			consent,
-			vscode.ConfigurationTarget.Global,
-		);
+		await config.update("clipboard", consent, vscode.ConfigurationTarget.Global);
 
 		return consent;
 	}
@@ -246,11 +216,7 @@ You can change these settings anytime in VS Code Settings.`;
 		const consent = selection === allowButton;
 
 		const config = vscode.workspace.getConfiguration("snapback.privacy");
-		await config.update(
-			"gitWrapper",
-			consent,
-			vscode.ConfigurationTarget.Global,
-		);
+		await config.update("gitWrapper", consent, vscode.ConfigurationTarget.Global);
 
 		return consent;
 	}

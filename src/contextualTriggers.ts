@@ -49,9 +49,7 @@ export class ContextualTriggers {
 		}
 	}
 
-	private async handlePackageJsonSave(
-		document: vscode.TextDocument,
-	): Promise<void> {
+	private async handlePackageJsonSave(document: vscode.TextDocument): Promise<void> {
 		const filePath = document.fileName;
 		const isProtected = this.protectedFileRegistry.isProtected(filePath);
 
@@ -72,19 +70,13 @@ export class ContextualTriggers {
 					// We could store this preference in settings
 					await vscode.workspace
 						.getConfiguration("snapback")
-						.update(
-							"neverAskForPackageJsonProtection",
-							true,
-							vscode.ConfigurationTarget.Global,
-						);
+						.update("neverAskForPackageJsonProtection", true, vscode.ConfigurationTarget.Global);
 					break;
 			}
 		}
 	}
 
-	private async handleEnvFileSave(
-		document: vscode.TextDocument,
-	): Promise<void> {
+	private async handleEnvFileSave(document: vscode.TextDocument): Promise<void> {
 		const filePath = document.fileName;
 		const isProtected = this.protectedFileRegistry.isProtected(filePath);
 
@@ -103,9 +95,7 @@ export class ContextualTriggers {
 		}
 	}
 
-	private async handleConfigFileSave(
-		document: vscode.TextDocument,
-	): Promise<void> {
+	private async handleConfigFileSave(document: vscode.TextDocument): Promise<void> {
 		const filePath = document.fileName;
 		const fileName = path.basename(filePath);
 		const isProtected = this.protectedFileRegistry.isProtected(filePath);
@@ -124,23 +114,16 @@ export class ContextualTriggers {
 		}
 	}
 
-	private async protectFile(
-		filePath: string,
-		level: ProtectionLevel,
-	): Promise<void> {
+	private async protectFile(filePath: string, level: ProtectionLevel): Promise<void> {
 		try {
 			await this.protectedFileRegistry.add(filePath, {
 				protectionLevel: level,
 			});
 			const levelIcon = this.getProtectionIcon(level);
 			const fileName = path.basename(filePath);
-			vscode.window.showInformationMessage(
-				`Protection level set to ${level} ${levelIcon} for ${fileName}`,
-			);
+			vscode.window.showInformationMessage(`Protection level set to ${level} ${levelIcon} for ${fileName}`);
 		} catch (error) {
-			vscode.window.showErrorMessage(
-				`Failed to protect file: ${(error as Error).message}`,
-			);
+			vscode.window.showErrorMessage(`Failed to protect file: ${(error as Error).message}`);
 		}
 	}
 

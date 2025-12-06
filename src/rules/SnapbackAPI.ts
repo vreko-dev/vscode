@@ -83,13 +83,10 @@ export class SnapbackAPI {
 				headers["If-None-Match"] = etag;
 			}
 
-			const response = await this.fetchWithTimeout(
-				`${this.baseUrl}/api/rules/getBundle`,
-				{
-					method: "GET",
-					headers,
-				},
-			);
+			const response = await this.fetchWithTimeout(`${this.baseUrl}/api/rules/getBundle`, {
+				method: "GET",
+				headers,
+			});
 
 			// Handle 304 Not Modified
 			if (response.status === 304) {
@@ -126,11 +123,7 @@ export class SnapbackAPI {
 	/**
 	 * Fetch with timeout
 	 */
-	private async fetchWithTimeout(
-		url: string,
-		options: RequestInit,
-		timeout = 10000,
-	): Promise<Response> {
+	private async fetchWithTimeout(url: string, options: RequestInit, timeout = 10000): Promise<Response> {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), timeout);
 

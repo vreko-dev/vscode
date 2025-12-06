@@ -22,10 +22,7 @@ export class WorkspaceManager {
 	 * @param workspaceFolders - Array of workspace folders to manage
 	 * @param context - VS Code extension context for workspace state storage
 	 */
-	constructor(
-		workspaceFolders: readonly vscode.WorkspaceFolder[],
-		context: vscode.ExtensionContext,
-	) {
+	constructor(workspaceFolders: readonly vscode.WorkspaceFolder[], context: vscode.ExtensionContext) {
 		this.resolver = new WorkspaceFolderResolver(workspaceFolders);
 		this.workspaceState = context.workspaceState;
 	}
@@ -36,9 +33,7 @@ export class WorkspaceManager {
 	 * @param fileUri - URI of the file to resolve
 	 * @returns WorkspaceFolder containing the file, or null if not in any workspace
 	 */
-	getWorkspaceFolderForFile(
-		fileUri: vscode.Uri,
-	): vscode.WorkspaceFolder | null {
+	getWorkspaceFolderForFile(fileUri: vscode.Uri): vscode.WorkspaceFolder | null {
 		return this.resolver.getWorkspaceFolderForFile(fileUri);
 	}
 
@@ -124,10 +119,7 @@ export class WorkspaceManager {
 		const workspaceRoot = this.getWorkspaceRootForFile(fileUri);
 		const key = `snapback.recentFiles.${workspaceRoot}`;
 		const recent = await this.getRecentFiles(fileUri);
-		const updated = [
-			fileUri.fsPath,
-			...recent.filter((f) => f !== fileUri.fsPath),
-		].slice(0, 20);
+		const updated = [fileUri.fsPath, ...recent.filter((f) => f !== fileUri.fsPath)].slice(0, 20);
 		await this.workspaceState.update(key, updated);
 	}
 
@@ -153,10 +145,7 @@ export class WorkspaceManager {
 		const workspaceRoot = this.getWorkspaceRootForFile(fileUri);
 		const key = `snapback.recentBranches.${workspaceRoot}`;
 		const recent = await this.getRecentBranches(fileUri);
-		const updated = [branch, ...recent.filter((b) => b !== branch)].slice(
-			0,
-			10,
-		);
+		const updated = [branch, ...recent.filter((b) => b !== branch)].slice(0, 10);
 		await this.workspaceState.update(key, updated);
 	}
 
@@ -166,9 +155,7 @@ export class WorkspaceManager {
 	 * @param fileUri - URI of the file
 	 * @returns Protection level ("watch" | "warn" | "block")
 	 */
-	async getProtectionStatus(
-		fileUri: vscode.Uri,
-	): Promise<"watch" | "warn" | "block"> {
+	async getProtectionStatus(fileUri: vscode.Uri): Promise<"watch" | "warn" | "block"> {
 		const workspaceRoot = this.getWorkspaceRootForFile(fileUri);
 		const key = `snapback.protectionStatus.${workspaceRoot}.${fileUri.fsPath}`;
 		return this.workspaceState.get<"watch" | "warn" | "block">(key, "watch");
@@ -180,10 +167,7 @@ export class WorkspaceManager {
 	 * @param fileUri - URI of the file
 	 * @param level - Protection level to set
 	 */
-	async setProtectionStatus(
-		fileUri: vscode.Uri,
-		level: "watch" | "warn" | "block",
-	): Promise<void> {
+	async setProtectionStatus(fileUri: vscode.Uri, level: "watch" | "warn" | "block"): Promise<void> {
 		const workspaceRoot = this.getWorkspaceRootForFile(fileUri);
 		const key = `snapback.protectionStatus.${workspaceRoot}.${fileUri.fsPath}`;
 		await this.workspaceState.update(key, level);

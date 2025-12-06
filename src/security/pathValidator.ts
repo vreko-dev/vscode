@@ -171,10 +171,7 @@ export class PathValidator {
 			}
 
 			// Check for platform-specific attacks
-			if (
-				process.platform === "win32" &&
-				this.containsWindowsAttackVectors(targetPath)
-			) {
+			if (process.platform === "win32" && this.containsWindowsAttackVectors(targetPath)) {
 				return false;
 			}
 
@@ -237,10 +234,7 @@ export class PathValidator {
 		} catch (error) {
 			const fsError = error as FileSystemError;
 			// File doesn't exist or can't be accessed
-			if (
-				fsError.code === FileSystemErrorCode.NOT_FOUND ||
-				fsError.code === FileSystemErrorCode.ACCESS_DENIED
-			) {
+			if (fsError.code === FileSystemErrorCode.NOT_FOUND || fsError.code === FileSystemErrorCode.ACCESS_DENIED) {
 				return false;
 			}
 			throw error;
@@ -287,9 +281,7 @@ export class PathValidator {
 	 */
 	private containsEncodedTraversal(targetPath: string): boolean {
 		const lowerPath = targetPath.toLowerCase();
-		return ENCODED_TRAVERSAL_PATTERNS.some((pattern) =>
-			lowerPath.includes(pattern),
-		);
+		return ENCODED_TRAVERSAL_PATTERNS.some((pattern) => lowerPath.includes(pattern));
 	}
 
 	/**

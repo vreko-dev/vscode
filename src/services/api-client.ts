@@ -71,18 +71,12 @@ export class ApiClient {
 		};
 
 		try {
-			const response = await this.networkAdapter.post(
-				`${this.baseUrl}/v1/analyze`,
-				requestBody,
-				{
-					"X-API-Key": this.apiKey,
-				},
-			);
+			const response = await this.networkAdapter.post(`${this.baseUrl}/v1/analyze`, requestBody, {
+				"X-API-Key": this.apiKey,
+			});
 
 			if (!response.ok) {
-				throw new Error(
-					`API request failed: ${response.status} ${response.statusText} - ${response.text}`,
-				);
+				throw new Error(`API request failed: ${response.status} ${response.statusText} - ${response.text}`);
 			}
 
 			return response.data;
@@ -121,18 +115,12 @@ export class ApiClient {
 		};
 
 		try {
-			const response = await this.networkAdapter.post(
-				`${this.baseUrl}/v1/detect-secrets`,
-				requestBody,
-				{
-					"X-API-Key": this.apiKey,
-				},
-			);
+			const response = await this.networkAdapter.post(`${this.baseUrl}/v1/detect-secrets`, requestBody, {
+				"X-API-Key": this.apiKey,
+			});
 
 			if (!response.ok) {
-				throw new Error(
-					`API request failed: ${response.status} ${response.statusText} - ${response.text}`,
-				);
+				throw new Error(`API request failed: ${response.status} ${response.statusText} - ${response.text}`);
 			}
 
 			return response.data;
@@ -167,18 +155,12 @@ export class ApiClient {
 		};
 
 		try {
-			const response = await this.networkAdapter.post(
-				`${this.baseUrl}/v1/policy/evaluate`,
-				requestBody,
-				{
-					"X-API-Key": this.apiKey,
-				},
-			);
+			const response = await this.networkAdapter.post(`${this.baseUrl}/v1/policy/evaluate`, requestBody, {
+				"X-API-Key": this.apiKey,
+			});
 
 			if (!response.ok) {
-				throw new Error(
-					`API request failed: ${response.status} ${response.statusText} - ${response.text}`,
-				);
+				throw new Error(`API request failed: ${response.status} ${response.statusText} - ${response.text}`);
 			}
 
 			return response.data;

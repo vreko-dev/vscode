@@ -42,10 +42,7 @@ export class NotificationManager {
 	/**
 	 * Show notification to user with optional throttling and audit logging
 	 */
-	async show(
-		config: NotificationConfig,
-		context?: NotificationContext,
-	): Promise<string | undefined> {
+	async show(config: NotificationConfig, context?: NotificationContext): Promise<string | undefined> {
 		// Check if we've shown this notification recently (30 second cooldown)
 		const lastShown = this.shownNotifications.get(config.id) ?? 0;
 		const now = Date.now();
@@ -103,28 +100,17 @@ export class NotificationManager {
 	/**
 	 * Internal: show VS Code notification using vscode.window API
 	 */
-	private async showVsCodeMessage(
-		config: NotificationConfig,
-	): Promise<number | undefined> {
+	private async showVsCodeMessage(config: NotificationConfig): Promise<number | undefined> {
 		const actionLabels = config.actions?.map((a) => a.label) ?? [];
 
 		let result: string | undefined;
 
 		if (config.type === "error") {
-			result = await vscode.window.showErrorMessage(
-				config.message,
-				...actionLabels,
-			);
+			result = await vscode.window.showErrorMessage(config.message, ...actionLabels);
 		} else if (config.type === "warning") {
-			result = await vscode.window.showWarningMessage(
-				config.message,
-				...actionLabels,
-			);
+			result = await vscode.window.showWarningMessage(config.message, ...actionLabels);
 		} else {
-			result = await vscode.window.showInformationMessage(
-				config.message,
-				...actionLabels,
-			);
+			result = await vscode.window.showInformationMessage(config.message, ...actionLabels);
 		}
 
 		// Map button label back to action index
@@ -143,10 +129,7 @@ export class NotificationFactory {
 	/**
 	 * Threat detected notification (error level)
 	 */
-	static threatDetected(
-		filePath: string,
-		riskScore: number,
-	): NotificationConfig {
+	static threatDetected(filePath: string, riskScore: number): NotificationConfig {
 		return {
 			id: `threat:${filePath}:${Date.now()}`,
 			type: "error",
@@ -172,10 +155,7 @@ export class NotificationFactory {
 	/**
 	 * Risk threshold breached notification (warning level)
 	 */
-	static thresholdBreached(
-		riskScore: number,
-		threshold: number,
-	): NotificationConfig {
+	static thresholdBreached(riskScore: number, threshold: number): NotificationConfig {
 		return {
 			id: `threshold:${Date.now()}`,
 			type: "warning",
@@ -195,10 +175,7 @@ export class NotificationFactory {
 	/**
 	 * Burst detection notification (warning level)
 	 */
-	static burstDetected(
-		saveCount: number,
-		windowMs: number,
-	): NotificationConfig {
+	static burstDetected(saveCount: number, windowMs: number): NotificationConfig {
 		return {
 			id: `burst:${Date.now()}`,
 			type: "warning",
@@ -235,9 +212,7 @@ export class NotificationFactory {
 	/**
 	 * Protection enabled notification (info level)
 	 */
-	static protectionEnabled(
-		level: "watch" | "warn" | "block",
-	): NotificationConfig {
+	static protectionEnabled(level: "watch" | "warn" | "block"): NotificationConfig {
 		const levelDescriptions = {
 			watch: "Monitoring changes",
 			warn: "Showing warnings",
@@ -323,9 +298,7 @@ export class NotificationService {
 			const isCritical = decision.threats.includes("critical-file");
 
 			if (isCritical && decision.filePath) {
-				const notification = NotificationFactory.criticalFileModified(
-					decision.filePath,
-				);
+				const notification = NotificationFactory.criticalFileModified(decision.filePath);
 				await this.notificationManager.show(notification, {
 					filePath: decision.filePath,
 					riskScore: decision.riskScore,
@@ -367,14 +340,8 @@ export class NotificationService {
 	/**
 	 * Show threshold breach notification
 	 */
-	async notifyThresholdBreach(
-		riskScore: number,
-		threshold: number,
-	): Promise<void> {
-		const notification = NotificationFactory.thresholdBreached(
-			riskScore,
-			threshold,
-		);
+	async notifyThresholdBreach(riskScore: number, threshold: number): Promise<void> {
+		const notification = NotificationFactory.thresholdBreached(riskScore, threshold);
 		await this.notificationManager.show(notification, {
 			riskScore,
 			timestamp: Date.now(),
@@ -384,9 +351,7 @@ export class NotificationService {
 	/**
 	 * Show protection enabled notification
 	 */
-	async notifyProtectionEnabled(
-		level: "watch" | "warn" | "block",
-	): Promise<void> {
+	async notifyProtectionEnabled(level: "watch" | "warn" | "block"): Promise<void> {
 		const notification = NotificationFactory.protectionEnabled(level);
 		await this.notificationManager.show(notification);
 	}

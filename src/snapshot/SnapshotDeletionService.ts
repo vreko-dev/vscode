@@ -136,10 +136,7 @@ export class SnapshotDeletionService {
 	 * await service.deleteSnapshot('cp-123', { unprotectFirst: true });
 	 * ```
 	 */
-	async deleteSnapshot(
-		snapshotId: string,
-		options: DeletionOptions = {},
-	): Promise<DeletionResult> {
+	async deleteSnapshot(snapshotId: string, options: DeletionOptions = {}): Promise<DeletionResult> {
 		// 1. Validate snapshot exists
 		const snapshot = await this.snapshotManager.get(snapshotId);
 		if (!snapshot) {
@@ -148,9 +145,7 @@ export class SnapshotDeletionService {
 
 		// 2. Safety check: Protected snapshot
 		if (snapshot.isProtected && !options.unprotectFirst) {
-			throw new Error(
-				"Cannot delete protected snapshot. Set unprotectFirst=true to override.",
-			);
+			throw new Error("Cannot delete protected snapshot. Set unprotectFirst=true to override.");
 		}
 
 		// 3. Unprotect if requested
@@ -197,10 +192,7 @@ export class SnapshotDeletionService {
 	 * await service.deleteOlderThan(thirtyDaysAgo, true);
 	 * ```
 	 */
-	async deleteOlderThan(
-		timestamp: number,
-		keepProtected = true,
-	): Promise<DeletionResult> {
+	async deleteOlderThan(timestamp: number, keepProtected = true): Promise<DeletionResult> {
 		const allSnapshots = await this.snapshotManager.getAll();
 
 		// Filter snapshots to delete
@@ -231,10 +223,7 @@ export class SnapshotDeletionService {
 				deletedCount++;
 			} catch (error) {
 				// Log error but continue with other deletions
-				logger.error(
-					`Failed to delete snapshot ${snapshot.id}:`,
-					toError(error),
-				);
+				logger.error(`Failed to delete snapshot ${snapshot.id}:`, toError(error));
 			}
 		}
 
@@ -298,9 +287,7 @@ export class SnapshotDeletionService {
 		});
 
 		// Sort by timestamp (oldest first)
-		eligibleForDeletion.sort(
-			(a: Snapshot, b: Snapshot) => a.timestamp - b.timestamp,
-		);
+		eligibleForDeletion.sort((a: Snapshot, b: Snapshot) => a.timestamp - b.timestamp);
 
 		// Calculate how many we can delete while respecting minimum
 		const maxToDelete = allSnapshots.length - config.minimumSnapshots;

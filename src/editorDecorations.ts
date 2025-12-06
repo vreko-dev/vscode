@@ -19,39 +19,29 @@ export class EditorDecorations {
 		}, "RiskAnalyzer");
 
 		// Create decoration types for different risk levels
-		this.protectedDecorationType = vscode.window.createTextEditorDecorationType(
-			{
-				backgroundColor: new vscode.ThemeColor(
-					"editor.wordHighlightBackground",
-				),
-				borderColor: new vscode.ThemeColor("editor.wordHighlightBorder"),
-				borderStyle: "solid",
-				borderWidth: "1px",
-				overviewRulerColor: new vscode.ThemeColor(
-					"editor.wordHighlightBackground",
-				),
-				overviewRulerLane: vscode.OverviewRulerLane.Right,
-				light: {
-					backgroundColor: "rgba(0, 128, 0, 0.1)",
-					borderColor: "rgba(0, 128, 0, 0.3)",
-				},
-				dark: {
-					backgroundColor: "rgba(0, 128, 0, 0.2)",
-					borderColor: "rgba(0, 128, 0, 0.5)",
-				},
+		this.protectedDecorationType = vscode.window.createTextEditorDecorationType({
+			backgroundColor: new vscode.ThemeColor("editor.wordHighlightBackground"),
+			borderColor: new vscode.ThemeColor("editor.wordHighlightBorder"),
+			borderStyle: "solid",
+			borderWidth: "1px",
+			overviewRulerColor: new vscode.ThemeColor("editor.wordHighlightBackground"),
+			overviewRulerLane: vscode.OverviewRulerLane.Right,
+			light: {
+				backgroundColor: "rgba(0, 128, 0, 0.1)",
+				borderColor: "rgba(0, 128, 0, 0.3)",
 			},
-		);
+			dark: {
+				backgroundColor: "rgba(0, 128, 0, 0.2)",
+				borderColor: "rgba(0, 128, 0, 0.5)",
+			},
+		});
 
 		this.riskyDecorationType = vscode.window.createTextEditorDecorationType({
-			backgroundColor: new vscode.ThemeColor(
-				"editor.wordHighlightStrongBackground",
-			),
+			backgroundColor: new vscode.ThemeColor("editor.wordHighlightStrongBackground"),
 			borderColor: new vscode.ThemeColor("editor.wordHighlightStrongBorder"),
 			borderStyle: "solid",
 			borderWidth: "1px",
-			overviewRulerColor: new vscode.ThemeColor(
-				"editor.wordHighlightStrongBackground",
-			),
+			overviewRulerColor: new vscode.ThemeColor("editor.wordHighlightStrongBackground"),
 			overviewRulerLane: vscode.OverviewRulerLane.Right,
 			light: {
 				backgroundColor: "rgba(255, 165, 0, 0.1)",
@@ -63,24 +53,22 @@ export class EditorDecorations {
 			},
 		});
 
-		this.sensitiveDecorationType = vscode.window.createTextEditorDecorationType(
-			{
-				backgroundColor: new vscode.ThemeColor("editor.findMatchBackground"),
-				borderColor: new vscode.ThemeColor("editor.findMatchBorder"),
-				borderStyle: "solid",
-				borderWidth: "1px",
-				overviewRulerColor: new vscode.ThemeColor("editor.findMatchBackground"),
-				overviewRulerLane: vscode.OverviewRulerLane.Right,
-				light: {
-					backgroundColor: "rgba(255, 0, 0, 0.1)",
-					borderColor: "rgba(255, 0, 0, 0.3)",
-				},
-				dark: {
-					backgroundColor: "rgba(255, 0, 0, 0.2)",
-					borderColor: "rgba(255, 0, 0, 0.5)",
-				},
+		this.sensitiveDecorationType = vscode.window.createTextEditorDecorationType({
+			backgroundColor: new vscode.ThemeColor("editor.findMatchBackground"),
+			borderColor: new vscode.ThemeColor("editor.findMatchBorder"),
+			borderStyle: "solid",
+			borderWidth: "1px",
+			overviewRulerColor: new vscode.ThemeColor("editor.findMatchBackground"),
+			overviewRulerLane: vscode.OverviewRulerLane.Right,
+			light: {
+				backgroundColor: "rgba(255, 0, 0, 0.1)",
+				borderColor: "rgba(255, 0, 0, 0.3)",
 			},
-		);
+			dark: {
+				backgroundColor: "rgba(255, 0, 0, 0.2)",
+				borderColor: "rgba(255, 0, 0, 0.5)",
+			},
+		});
 
 		// Track decoration types for disposal
 		this.disposables.push(this.protectedDecorationType);
@@ -151,10 +139,7 @@ export class EditorDecorations {
 			// Get RiskAnalyzer (loads on first access)
 			const RiskAnalyzerClass = await this.riskAnalyzerLoader.get();
 			const riskAnalyzer = new RiskAnalyzerClass();
-			const riskAnalysis = await riskAnalyzer.analyzeFileChanges(
-				fileChanges,
-				undefined,
-			);
+			const riskAnalysis = await riskAnalyzer.analyzeFileChanges(fileChanges, undefined);
 
 			// Collect decoration ranges
 			const protectedRanges: vscode.Range[] = [];
@@ -195,10 +180,7 @@ export class EditorDecorations {
 			editor.setDecorations(this.riskyDecorationType, riskyRanges);
 			editor.setDecorations(this.sensitiveDecorationType, sensitiveRanges);
 		} catch (error) {
-			logger.error(
-				"Error updating editor decorations:",
-				error instanceof Error ? error : undefined,
-			);
+			logger.error("Error updating editor decorations:", error instanceof Error ? error : undefined);
 		}
 	}
 

@@ -22,8 +22,7 @@ export class WorkspaceFolderResolver {
 	 *                          Defaults to vscode.workspace.workspaceFolders
 	 */
 	constructor(
-		workspaceFolders: readonly vscode.WorkspaceFolder[] = vscode.workspace
-			.workspaceFolders || [],
+		workspaceFolders: readonly vscode.WorkspaceFolder[] = vscode.workspace.workspaceFolders || [],
 		listenForChanges = true,
 	) {
 		// Sort by path depth (deepest first) for specificity in nested workspaces
@@ -37,21 +36,17 @@ export class WorkspaceFolderResolver {
 
 		// Listen for workspace folder changes to invalidate cache
 		if (listenForChanges) {
-			this.disposable = vscode.workspace.onDidChangeWorkspaceFolders(
-				(_event) => {
-					// Rebuild folder list with new folders
-					this.folders = [...(vscode.workspace.workspaceFolders || [])].sort(
-						(a, b) => {
-							const depthA = getDepth(a.uri.fsPath);
-							const depthB = getDepth(b.uri.fsPath);
-							return depthB - depthA;
-						},
-					);
+			this.disposable = vscode.workspace.onDidChangeWorkspaceFolders((_event) => {
+				// Rebuild folder list with new folders
+				this.folders = [...(vscode.workspace.workspaceFolders || [])].sort((a, b) => {
+					const depthA = getDepth(a.uri.fsPath);
+					const depthB = getDepth(b.uri.fsPath);
+					return depthB - depthA;
+				});
 
-					// Clear cache as folder mappings have changed
-					this.folderCache.clear();
-				},
-			);
+				// Clear cache as folder mappings have changed
+				this.folderCache.clear();
+			});
 		}
 	}
 
@@ -81,9 +76,7 @@ export class WorkspaceFolderResolver {
 	 * );
 	 * // folder.uri.fsPath === '/monorepo/packages/app' (more specific)
 	 */
-	getWorkspaceFolderForFile(
-		fileUri: vscode.Uri,
-	): vscode.WorkspaceFolder | null {
+	getWorkspaceFolderForFile(fileUri: vscode.Uri): vscode.WorkspaceFolder | null {
 		const filePath = fileUri.fsPath;
 
 		// Check cache first (performance optimization)
@@ -155,9 +148,7 @@ export class WorkspaceFolderResolver {
 	 *
 	 * @param workspaceFolders - New workspace folders array
 	 */
-	updateWorkspaceFolders(
-		workspaceFolders: readonly vscode.WorkspaceFolder[],
-	): void {
+	updateWorkspaceFolders(workspaceFolders: readonly vscode.WorkspaceFolder[]): void {
 		// Re-sort by depth
 		this.folders = [...workspaceFolders].sort((a, b) => {
 			const depthA = getDepth(a.uri.fsPath);

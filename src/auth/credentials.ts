@@ -84,9 +84,7 @@ export interface CredentialsManager {
  * }
  * ```
  */
-export function createCredentialsManager(
-	secrets: vscode.SecretStorage,
-): CredentialsManager {
+export function createCredentialsManager(secrets: vscode.SecretStorage): CredentialsManager {
 	const STORAGE_KEY = "snapback.extensionCredentials";
 
 	return {

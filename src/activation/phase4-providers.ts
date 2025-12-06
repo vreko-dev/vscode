@@ -63,17 +63,12 @@ export async function initializePhase4Providers(
 		}
 
 		t = Date.now();
-		const protectedFilesTreeProvider = new ProtectedFilesTreeProvider(
-			protectedFileRegistry,
-		);
+		const protectedFilesTreeProvider = new ProtectedFilesTreeProvider(protectedFileRegistry);
 		console.log("[PERF] ProtectedFilesTreeProvider", { ms: Date.now() - t });
 
 		// Initialize decoration providers
 		t = Date.now();
-		const protectionDecorationProvider = new ProtectionDecorationProvider(
-			protectedFileRegistry,
-			workspaceRoot,
-		);
+		const protectionDecorationProvider = new ProtectionDecorationProvider(protectedFileRegistry, workspaceRoot);
 		console.log("[PERF] ProtectionDecorationProvider", { ms: Date.now() - t });
 
 		// 🆕 Initialize file health decoration provider
@@ -97,11 +92,7 @@ export async function initializePhase4Providers(
 		const diagnosticTracker = telemetryProxy
 			? new DiagnosticEventTracker(telemetryProxy)
 			: new DiagnosticEventTracker({ trackEvent: () => {} } as any);
-		const welcomeView = new WelcomeView(
-			context.extensionUri,
-			context.globalState,
-			diagnosticTracker,
-		);
+		const welcomeView = new WelcomeView(context.extensionUri, context.globalState, diagnosticTracker);
 		console.log("[PERF] WelcomeView with DiagnosticEventTracker", {
 			ms: Date.now() - t,
 		});
@@ -118,19 +109,14 @@ export async function initializePhase4Providers(
 
 		// Initialize protection CodeLens provider
 		t = Date.now();
-		const protectionCodeLensProvider = new ProtectionCodeLensProvider(
-			protectedFileRegistry,
-		);
+		const protectionCodeLensProvider = new ProtectionCodeLensProvider(protectedFileRegistry);
 		console.log("[PERF] ProtectionCodeLensProvider", { ms: Date.now() - t });
 
 		// 🆕 Initialize sessions tree provider with storage manager
 		// Use SessionCoordinator from phase3 (already wired to SnapshotManager)
 		t = Date.now();
 		const storageManager = new ServiceStorageManager(workspaceRoot);
-		const sessionsTreeProvider = new SessionsTreeProvider(
-			phase3Result.sessionCoordinator,
-			storageManager,
-		);
+		const sessionsTreeProvider = new SessionsTreeProvider(phase3Result.sessionCoordinator, storageManager);
 		console.log("[PERF] SessionsTreeProvider", { ms: Date.now() - t });
 
 		// 🟢 Phase 2: Initialize SnapBack TreeView (replaces SafetyDashboard)
@@ -144,9 +130,7 @@ export async function initializePhase4Providers(
 
 		t = Date.now();
 		// Initialize WorkspaceSafetyService (still used by other components)
-		const workspaceSafetyService = new WorkspaceSafetyService(
-			phase3Result.snapshotSummaryProvider,
-		);
+		const workspaceSafetyService = new WorkspaceSafetyService(phase3Result.snapshotSummaryProvider);
 		workspaceSafetyService.startAutoRefresh(); // Auto-refresh every 60s
 		console.log("[PERF] WorkspaceSafetyService", { ms: Date.now() - t });
 
@@ -154,10 +138,7 @@ export async function initializePhase4Providers(
 		let explorerTreeProvider: SnapBackExplorerTreeProvider | undefined;
 		if (apiClient && credentialsManager) {
 			t = Date.now();
-			explorerTreeProvider = new SnapBackExplorerTreeProvider(
-				apiClient,
-				credentialsManager,
-			);
+			explorerTreeProvider = new SnapBackExplorerTreeProvider(apiClient, credentialsManager);
 			console.log("[PERF] SnapBackExplorerTreeProvider", {
 				ms: Date.now() - t,
 			});

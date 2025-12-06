@@ -26,18 +26,12 @@ export class DiagnosticEventTracker {
 	 * @param provider - "oauth" or "device_flow"
 	 * @param trigger - How the provider was selected ("user_selected" | "fallback" | "auto")
 	 */
-	trackAuthProviderSelected(
-		provider: "oauth" | "device_flow",
-		trigger: "user_selected" | "fallback" | "auto",
-	): void {
-		this.telemetryProxy.trackEvent(
-			CORE_TELEMETRY_EVENTS.AUTH_PROVIDER_SELECTED,
-			{
-				provider,
-				trigger,
-				timestamp_utc: Date.now(),
-			},
-		);
+	trackAuthProviderSelected(provider: "oauth" | "device_flow", trigger: "user_selected" | "fallback" | "auto"): void {
+		this.telemetryProxy.trackEvent(CORE_TELEMETRY_EVENTS.AUTH_PROVIDER_SELECTED, {
+			provider,
+			trigger,
+			timestamp_utc: Date.now(),
+		});
 	}
 
 	/**
@@ -47,11 +41,7 @@ export class DiagnosticEventTracker {
 	 * @param method - "external_command" | "clipboard" | "error"
 	 * @param error - Error message if failed
 	 */
-	trackAuthBrowserOpened(
-		success: boolean,
-		method: "external_command" | "clipboard" | "error",
-		error?: string,
-	): void {
+	trackAuthBrowserOpened(success: boolean, method: "external_command" | "clipboard" | "error", error?: string): void {
 		this.telemetryProxy.trackEvent(CORE_TELEMETRY_EVENTS.AUTH_BROWSER_OPENED, {
 			success,
 			method,
@@ -78,13 +68,10 @@ export class DiagnosticEventTracker {
 	 * @param approvalTimeMs - Time from request to approval in milliseconds
 	 */
 	trackAuthApprovalReceived(approvalTimeMs: number): void {
-		this.telemetryProxy.trackEvent(
-			CORE_TELEMETRY_EVENTS.AUTH_APPROVAL_RECEIVED,
-			{
-				approval_time_ms: approvalTimeMs,
-				timestamp_utc: Date.now(),
-			},
-		);
+		this.telemetryProxy.trackEvent(CORE_TELEMETRY_EVENTS.AUTH_APPROVAL_RECEIVED, {
+			approval_time_ms: approvalTimeMs,
+			timestamp_utc: Date.now(),
+		});
 	}
 
 	/**
@@ -93,10 +80,7 @@ export class DiagnosticEventTracker {
 	 *
 	 * @param eventData - Event object with 'event' name and 'properties'
 	 */
-	track(eventData: {
-		event: string;
-		properties: Record<string, unknown>;
-	}): void {
+	track(eventData: { event: string; properties: Record<string, unknown> }): void {
 		this.telemetryProxy.trackEvent(eventData.event, {
 			...eventData.properties,
 			timestamp_utc: Date.now(),
@@ -110,20 +94,13 @@ export class DiagnosticEventTracker {
 	 * @param position - Position in carousel (0-indexed)
 	 * @param trigger - How welcome panel was triggered ("onboarding" | "nudge" | "manual")
 	 */
-	trackWelcomeFeatureViewed(
-		feature: string,
-		position: number,
-		trigger: "onboarding" | "nudge" | "manual",
-	): void {
-		this.telemetryProxy.trackEvent(
-			CORE_TELEMETRY_EVENTS.WELCOME_FEATURE_VIEWED,
-			{
-				feature,
-				position,
-				trigger,
-				timestamp_utc: Date.now(),
-			},
-		);
+	trackWelcomeFeatureViewed(feature: string, position: number, trigger: "onboarding" | "nudge" | "manual"): void {
+		this.telemetryProxy.trackEvent(CORE_TELEMETRY_EVENTS.WELCOME_FEATURE_VIEWED, {
+			feature,
+			position,
+			trigger,
+			timestamp_utc: Date.now(),
+		});
 	}
 
 	/**
@@ -133,19 +110,12 @@ export class DiagnosticEventTracker {
 	 * @param feature - Associated feature
 	 * @param timeViewedMs - How long feature was viewed before action
 	 */
-	trackWelcomeActionTriggered(
-		action: string,
-		feature: string,
-		timeViewedMs: number,
-	): void {
-		this.telemetryProxy.trackEvent(
-			CORE_TELEMETRY_EVENTS.WELCOME_ACTION_TRIGGERED,
-			{
-				action,
-				feature,
-				time_viewed_ms: timeViewedMs,
-				timestamp_utc: Date.now(),
-			},
-		);
+	trackWelcomeActionTriggered(action: string, feature: string, timeViewedMs: number): void {
+		this.telemetryProxy.trackEvent(CORE_TELEMETRY_EVENTS.WELCOME_ACTION_TRIGGERED, {
+			action,
+			feature,
+			time_viewed_ms: timeViewedMs,
+			timestamp_utc: Date.now(),
+		});
 	}
 }

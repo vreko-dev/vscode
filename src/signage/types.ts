@@ -8,8 +8,7 @@ export const PROTECTION_LEVEL_CANONICAL = {
 	BLOCK: "block",
 } as const;
 
-export type ProtectionLevelCanonical =
-	(typeof PROTECTION_LEVEL_CANONICAL)[keyof typeof PROTECTION_LEVEL_CANONICAL];
+export type ProtectionLevelCanonical = (typeof PROTECTION_LEVEL_CANONICAL)[keyof typeof PROTECTION_LEVEL_CANONICAL];
 
 /**
  * Canonical repo protection status for workspace-level health.
@@ -21,8 +20,7 @@ export const REPO_STATUS_CANONICAL = {
 	ERROR: "error",
 } as const;
 
-export type RepoStatusCanonical =
-	(typeof REPO_STATUS_CANONICAL)[keyof typeof REPO_STATUS_CANONICAL];
+export type RepoStatusCanonical = (typeof REPO_STATUS_CANONICAL)[keyof typeof REPO_STATUS_CANONICAL];
 
 /**
  * Canonical file health states used by editor decorations.
@@ -34,8 +32,7 @@ export const FILE_HEALTH_CANONICAL = {
 	RISK: "risk",
 } as const;
 
-export type FileHealthCanonical =
-	(typeof FILE_HEALTH_CANONICAL)[keyof typeof FILE_HEALTH_CANONICAL];
+export type FileHealthCanonical = (typeof FILE_HEALTH_CANONICAL)[keyof typeof FILE_HEALTH_CANONICAL];
 
 /**
  * Basic signage config shared across categories.
@@ -72,12 +69,7 @@ export type BrandSignage = Readonly<{
 	fullLabel: string;
 }>;
 
-export type CoreConceptKey =
-	| "snapshot"
-	| "session"
-	| "protectedFiles"
-	| "blockingIssues"
-	| "watchItems";
+export type CoreConceptKey = "snapshot" | "session" | "protectedFiles" | "blockingIssues" | "watchItems";
 
 export type CoreConceptSignage = SignageBase &
 	Readonly<{

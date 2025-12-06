@@ -86,33 +86,25 @@ export function registerSnapshotCommands(
 	 * @see {@link SnapshotManager.deleteSnapshot} for implementation
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.deleteSnapshot",
-			async (item?: SnapshotTreeItem) => {
-				try {
-					if (!item || !item.id) {
-						vscode.window.showErrorMessage("No snapshot selected");
-						return;
-					}
-
-					// Delete with confirmation (handled by SnapshotManager)
-					const result = await snapshotManager.deleteSnapshot(item.id);
-
-					if (result.success) {
-						vscode.window.showInformationMessage(
-							`Snapshot "${item.label}" deleted successfully`,
-						);
-						refreshViews();
-					}
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
-					vscode.window.showErrorMessage(
-						`Failed to delete snapshot: ${message}`,
-					);
+		vscode.commands.registerCommand("snapback.deleteSnapshot", async (item?: SnapshotTreeItem) => {
+			try {
+				if (!item || !item.id) {
+					vscode.window.showErrorMessage("No snapshot selected");
+					return;
 				}
-			},
-		),
+
+				// Delete with confirmation (handled by SnapshotManager)
+				const result = await snapshotManager.deleteSnapshot(item.id);
+
+				if (result.success) {
+					vscode.window.showInformationMessage(`Snapshot "${item.label}" deleted successfully`);
+					refreshViews();
+				}
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				vscode.window.showErrorMessage(`Failed to delete snapshot: ${message}`);
+			}
+		}),
 	);
 
 	/**
@@ -145,60 +137,48 @@ export function registerSnapshotCommands(
 	 * @see {@link SnapshotManager.deleteOlderThan} for implementation
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.deleteOlderSnapshots",
-			async (_item?: SnapshotTreeItem) => {
-				try {
-					// Ask user for age threshold
-					const daysInput = await vscode.window.showInputBox({
-						prompt: "Delete snapshots older than how many days?",
-						value: "30",
-						validateInput: (value) => {
-							const num = Number.parseInt(value, 10);
-							if (Number.isNaN(num) || num <= 0) {
-								return "Please enter a positive number";
-							}
-							return null;
-						},
-					});
+		vscode.commands.registerCommand("snapback.deleteOlderSnapshots", async (_item?: SnapshotTreeItem) => {
+			try {
+				// Ask user for age threshold
+				const daysInput = await vscode.window.showInputBox({
+					prompt: "Delete snapshots older than how many days?",
+					value: "30",
+					validateInput: (value) => {
+						const num = Number.parseInt(value, 10);
+						if (Number.isNaN(num) || num <= 0) {
+							return "Please enter a positive number";
+						}
+						return null;
+					},
+				});
 
-					if (!daysInput) {
-						return; // User cancelled
-					}
-
-					const days = Number.parseInt(daysInput, 10);
-					const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
-
-					// Ask about keeping protected snapshots
-					const keepProtected = await vscode.window.showQuickPick(
-						["Yes", "No"],
-						{
-							placeHolder: "Keep protected snapshots?",
-						},
-					);
-
-					if (!keepProtected) {
-						return; // User cancelled
-					}
-
-					const result = await snapshotManager.deleteOlderThan(
-						cutoffTime,
-						keepProtected === "Yes",
-					);
-
-					vscode.window.showInformationMessage(
-						`Deleted ${result.deletedCount} snapshot(s) older than ${days} days`,
-					);
-					refreshViews();
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
-					vscode.window.showErrorMessage(
-						`Failed to delete snapshots: ${message}`,
-					);
+				if (!daysInput) {
+					return; // User cancelled
 				}
-			},
-		),
+
+				const days = Number.parseInt(daysInput, 10);
+				const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
+
+				// Ask about keeping protected snapshots
+				const keepProtected = await vscode.window.showQuickPick(["Yes", "No"], {
+					placeHolder: "Keep protected snapshots?",
+				});
+
+				if (!keepProtected) {
+					return; // User cancelled
+				}
+
+				const result = await snapshotManager.deleteOlderThan(cutoffTime, keepProtected === "Yes");
+
+				vscode.window.showInformationMessage(
+					`Deleted ${result.deletedCount} snapshot(s) older than ${days} days`,
+				);
+				refreshViews();
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				vscode.window.showErrorMessage(`Failed to delete snapshots: ${message}`);
+			}
+		}),
 	);
 
 	/**
@@ -230,35 +210,27 @@ export function registerSnapshotCommands(
 	 * @see {@link SnapshotManager.deleteSnapshot} with unprotectFirst option
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.unprotectAndDeleteSnapshot",
-			async (item?: SnapshotTreeItem) => {
-				try {
-					if (!item || !item.id) {
-						vscode.window.showErrorMessage("No snapshot selected");
-						return;
-					}
-
-					// Delete with unprotectFirst flag
-					const result = await snapshotManager.deleteSnapshot(item.id, {
-						unprotectFirst: true,
-					});
-
-					if (result.success) {
-						vscode.window.showInformationMessage(
-							`Protected snapshot "${item.label}" unprotected and deleted`,
-						);
-						refreshViews();
-					}
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
-					vscode.window.showErrorMessage(
-						`Failed to delete snapshot: ${message}`,
-					);
+		vscode.commands.registerCommand("snapback.unprotectAndDeleteSnapshot", async (item?: SnapshotTreeItem) => {
+			try {
+				if (!item || !item.id) {
+					vscode.window.showErrorMessage("No snapshot selected");
+					return;
 				}
-			},
-		),
+
+				// Delete with unprotectFirst flag
+				const result = await snapshotManager.deleteSnapshot(item.id, {
+					unprotectFirst: true,
+				});
+
+				if (result.success) {
+					vscode.window.showInformationMessage(`Protected snapshot "${item.label}" unprotected and deleted`);
+					refreshViews();
+				}
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				vscode.window.showErrorMessage(`Failed to delete snapshot: ${message}`);
+			}
+		}),
 	);
 
 	/**
@@ -291,49 +263,41 @@ export function registerSnapshotCommands(
 	 * @see {@link SnapshotManager.rename} for implementation
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.renameSnapshot",
-			async (item?: SnapshotTreeItem) => {
-				try {
-					if (!item || !item.id) {
-						vscode.window.showErrorMessage("No snapshot selected");
-						return;
-					}
-
-					// Get new name from user
-					const newName = await vscode.window.showInputBox({
-						prompt: "Enter new snapshot name",
-						value: item.label,
-						validateInput: (value) => {
-							if (!value || value.trim().length === 0) {
-								return "Snapshot name cannot be empty";
-							}
-							if (value.length > 100) {
-								return "Snapshot name is too long (max 100 characters)";
-							}
-							return null;
-						},
-					});
-
-					if (!newName) {
-						return; // User cancelled
-					}
-
-					await snapshotManager.rename(item.id, newName.trim());
-
-					vscode.window.showInformationMessage(
-						`Snapshot renamed to "${newName}"`,
-					);
-					refreshViews();
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
-					vscode.window.showErrorMessage(
-						`Failed to rename snapshot: ${message}`,
-					);
+		vscode.commands.registerCommand("snapback.renameSnapshot", async (item?: SnapshotTreeItem) => {
+			try {
+				if (!item || !item.id) {
+					vscode.window.showErrorMessage("No snapshot selected");
+					return;
 				}
-			},
-		),
+
+				// Get new name from user
+				const newName = await vscode.window.showInputBox({
+					prompt: "Enter new snapshot name",
+					value: item.label,
+					validateInput: (value) => {
+						if (!value || value.trim().length === 0) {
+							return "Snapshot name cannot be empty";
+						}
+						if (value.length > 100) {
+							return "Snapshot name is too long (max 100 characters)";
+						}
+						return null;
+					},
+				});
+
+				if (!newName) {
+					return; // User cancelled
+				}
+
+				await snapshotManager.rename(item.id, newName.trim());
+
+				vscode.window.showInformationMessage(`Snapshot renamed to "${newName}"`);
+				refreshViews();
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				vscode.window.showErrorMessage(`Failed to rename snapshot: ${message}`);
+			}
+		}),
 	);
 
 	/**
@@ -364,30 +328,22 @@ export function registerSnapshotCommands(
 	 * @see {@link SnapshotManager.protect} for implementation
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.protectSnapshot",
-			async (item?: SnapshotTreeItem) => {
-				try {
-					if (!item || !item.id) {
-						vscode.window.showErrorMessage("No snapshot selected");
-						return;
-					}
-
-					await snapshotManager.protect(item.id);
-
-					vscode.window.showInformationMessage(
-						`Snapshot "${item.label}" is now protected`,
-					);
-					refreshViews();
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
-					vscode.window.showErrorMessage(
-						`Failed to protect snapshot: ${message}`,
-					);
+		vscode.commands.registerCommand("snapback.protectSnapshot", async (item?: SnapshotTreeItem) => {
+			try {
+				if (!item || !item.id) {
+					vscode.window.showErrorMessage("No snapshot selected");
+					return;
 				}
-			},
-		),
+
+				await snapshotManager.protect(item.id);
+
+				vscode.window.showInformationMessage(`Snapshot "${item.label}" is now protected`);
+				refreshViews();
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				vscode.window.showErrorMessage(`Failed to protect snapshot: ${message}`);
+			}
+		}),
 	);
 
 	/**
@@ -417,66 +373,53 @@ export function registerSnapshotCommands(
 	 * @see {@link SnapshotManager.getAll} for fetching snapshots
 	 */
 	disposables.push(
-		vscode.commands.registerCommand(
-			"snapback.restoreLastSnapshot",
-			async () => {
-				try {
-					// Fetch all snapshots sorted by timestamp (newest first)
-					const allSnapshots = await snapshotManager.getAll();
+		vscode.commands.registerCommand("snapback.restoreLastSnapshot", async () => {
+			try {
+				// Fetch all snapshots sorted by timestamp (newest first)
+				const allSnapshots = await snapshotManager.getAll();
 
-					if (allSnapshots.length === 0) {
-						vscode.window.showInformationMessage(
-							"No snapshots found for this workspace",
-						);
-						return;
-					}
-
-					// Select the most recent snapshot (first in sorted array)
-					const latestSnapshot = allSnapshots[0];
-					const fileCount = (latestSnapshot.files || []).length;
-					const snapshotLabel = getSnapshotLabel(latestSnapshot);
-
-					logger.info("Restoring last snapshot", {
-						snapshotId: latestSnapshot.id,
-						fileCount,
-					});
-
-					// Show confirmation dialog
-					const answer = await vscode.window.showWarningMessage(
-						`Restore ${fileCount} file(s) from this snapshot?\n${snapshotLabel.short}`,
-						{ modal: true },
-						"Restore",
-						"Cancel",
-					);
-
-					if (answer !== "Restore") {
-						logger.debug("User cancelled restore last snapshot", {
-							snapshotId: latestSnapshot.id,
-						});
-						return;
-					}
-
-					vscode.window.showInformationMessage(
-						`Restoring snapshot: ${snapshotLabel.primary}...`,
-					);
-
-					// Trigger restore via command (will be handled by viewCommands.restoreSnapshot)
-					await vscode.commands.executeCommand(
-						"snapback.restoreSnapshot",
-						latestSnapshot.id,
-					);
-
-					refreshViews();
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
-					logger.error("Failed to restore last snapshot", error as Error);
-					vscode.window.showErrorMessage(
-						`Failed to restore snapshot: ${message}`,
-					);
+				if (allSnapshots.length === 0) {
+					vscode.window.showInformationMessage("No snapshots found for this workspace");
+					return;
 				}
-			},
-		),
+
+				// Select the most recent snapshot (first in sorted array)
+				const latestSnapshot = allSnapshots[0];
+				const fileCount = (latestSnapshot.files || []).length;
+				const snapshotLabel = getSnapshotLabel(latestSnapshot);
+
+				logger.info("Restoring last snapshot", {
+					snapshotId: latestSnapshot.id,
+					fileCount,
+				});
+
+				// Show confirmation dialog
+				const answer = await vscode.window.showWarningMessage(
+					`Restore ${fileCount} file(s) from this snapshot?\n${snapshotLabel.short}`,
+					{ modal: true },
+					"Restore",
+					"Cancel",
+				);
+
+				if (answer !== "Restore") {
+					logger.debug("User cancelled restore last snapshot", {
+						snapshotId: latestSnapshot.id,
+					});
+					return;
+				}
+
+				vscode.window.showInformationMessage(`Restoring snapshot: ${snapshotLabel.primary}...`);
+
+				// Trigger restore via command (will be handled by viewCommands.restoreSnapshot)
+				await vscode.commands.executeCommand("snapback.restoreSnapshot", latestSnapshot.id);
+
+				refreshViews();
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				logger.error("Failed to restore last snapshot", error as Error);
+				vscode.window.showErrorMessage(`Failed to restore snapshot: ${message}`);
+			}
+		}),
 	);
 
 	return disposables;

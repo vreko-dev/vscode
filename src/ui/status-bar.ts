@@ -24,19 +24,16 @@ export interface ProtectionState {
 export class StatusBarController {
 	private statusBarItem: vscode.StatusBarItem;
 	private _registry?: ProtectedFileRegistry;
-	private offlineMode: boolean = false;
+	private offlineMode = false;
 	private disposables: vscode.Disposable[] = [];
-	private isScanning: boolean = false;
-	private isBlocked: boolean = false;
-	private isPaused: boolean = false;
+	private isScanning = false;
+	private isBlocked = false;
+	private isPaused = false;
 	private pauseTimeout?: NodeJS.Timeout;
 
 	constructor(registry?: ProtectedFileRegistry) {
 		// Left alignment, high priority to appear near file info
-		this.statusBarItem = vscode.window.createStatusBarItem(
-			vscode.StatusBarAlignment.Left,
-			100,
-		);
+		this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 		this.statusBarItem.command = "snapback.showStatus";
 		this.statusBarItem.name = "SnapBack Protection Status";
 		this._registry = registry;
@@ -121,30 +118,20 @@ export class StatusBarController {
 			tooltip.appendMarkdown("**⏸️ Paused:** Background scans halted\n\n");
 			tooltip.appendMarkdown("### Resume Options\n\n");
 			tooltip.appendMarkdown("- [Resume now](command:snapback.resumeNow)\n");
-			tooltip.appendMarkdown(
-				"- [Resume in 15m](command:snapback.resumeIn15m)\n",
-			);
-			tooltip.appendMarkdown(
-				"- [Resume in 30m](command:snapback.resumeIn30m)\n",
-			);
-			tooltip.appendMarkdown(
-				"- [Resume in 60m](command:snapback.resumeIn60m)\n\n",
-			);
+			tooltip.appendMarkdown("- [Resume in 15m](command:snapback.resumeIn15m)\n");
+			tooltip.appendMarkdown("- [Resume in 30m](command:snapback.resumeIn30m)\n");
+			tooltip.appendMarkdown("- [Resume in 60m](command:snapback.resumeIn60m)\n\n");
 		}
 
 		if (this.offlineMode) {
 			tooltip.appendMarkdown("**Offline Mode:** Enabled\n\n");
 		}
 
-		tooltip.appendMarkdown(
-			"💡 *Tip: Right-click any file → SnapBack: Protect File*",
-		);
+		tooltip.appendMarkdown("💡 *Tip: Right-click any file → SnapBack: Protect File*");
 
 		this.statusBarItem.tooltip = tooltip;
 		this.statusBarItem.backgroundColor =
-			this.offlineMode || this.isBlocked
-				? new vscode.ThemeColor("statusBarItem.warningBackground")
-				: undefined;
+			this.offlineMode || this.isBlocked ? new vscode.ThemeColor("statusBarItem.warningBackground") : undefined;
 		this.statusBarItem.show();
 	}
 
@@ -182,14 +169,10 @@ export class StatusBarController {
 		// Brand green accent for critical state (Block level files) or offline mode
 		if (this.offlineMode || this.isBlocked) {
 			// Offline mode or blocked - warning background
-			this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-				"statusBarItem.warningBackground",
-			);
+			this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 		} else if (levels.block > 0) {
 			// Subtle warning state - files need attention
-			this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-				"statusBarItem.warningBackground",
-			);
+			this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 		} else {
 			// All good - clear background
 			this.statusBarItem.backgroundColor = undefined;
@@ -210,9 +193,7 @@ export class StatusBarController {
 		tooltip.isTrusted = true;
 
 		// Protection status overview
-		tooltip.appendMarkdown(
-			`## ${BRAND_SIGNAGE.logoEmoji} ${BRAND_SIGNAGE.fullLabel}\n\n`,
-		);
+		tooltip.appendMarkdown(`## ${BRAND_SIGNAGE.logoEmoji} ${BRAND_SIGNAGE.fullLabel}\n\n`);
 		tooltip.appendMarkdown("---\n\n");
 
 		// Show state indicators
@@ -226,15 +207,9 @@ export class StatusBarController {
 			tooltip.appendMarkdown("**⏸️ Paused:** Background scans halted\n\n");
 			tooltip.appendMarkdown("### Resume Options\n\n");
 			tooltip.appendMarkdown("- [Resume now](command:snapback.resumeNow)\n");
-			tooltip.appendMarkdown(
-				"- [Resume in 15m](command:snapback.resumeIn15m)\n",
-			);
-			tooltip.appendMarkdown(
-				"- [Resume in 30m](command:snapback.resumeIn30m)\n",
-			);
-			tooltip.appendMarkdown(
-				"- [Resume in 60m](command:snapback.resumeIn60m)\n\n",
-			);
+			tooltip.appendMarkdown("- [Resume in 15m](command:snapback.resumeIn15m)\n");
+			tooltip.appendMarkdown("- [Resume in 30m](command:snapback.resumeIn30m)\n");
+			tooltip.appendMarkdown("- [Resume in 60m](command:snapback.resumeIn60m)\n\n");
 		}
 
 		// Show offline mode status
@@ -243,9 +218,7 @@ export class StatusBarController {
 			tooltip.appendMarkdown("---\n\n");
 		}
 
-		tooltip.appendMarkdown(
-			`**Total Protected:** \`${count}\` ${count === 1 ? "file" : "files"}\n\n`,
-		);
+		tooltip.appendMarkdown(`**Total Protected:** \`${count}\` ${count === 1 ? "file" : "files"}\n\n`);
 
 		// Level breakdown with descriptions
 		tooltip.appendMarkdown("### Protection Levels\n\n");
@@ -279,9 +252,7 @@ export class StatusBarController {
 		block: number;
 	} {
 		return {
-			watch: files.filter(
-				(f) => f.protectionLevel === "watch" || !f.protectionLevel,
-			).length,
+			watch: files.filter((f) => f.protectionLevel === "watch" || !f.protectionLevel).length,
 			warn: files.filter((f) => f.protectionLevel === "warn").length,
 			block: files.filter((f) => f.protectionLevel === "block").length,
 		};
@@ -290,9 +261,7 @@ export class StatusBarController {
 	/**
 	 * Backward compatibility: Set protection status (old API)
 	 */
-	public setProtectionStatus(
-		status: "protected" | "atRisk" | "analyzing",
-	): void {
+	public setProtectionStatus(status: "protected" | "atRisk" | "analyzing"): void {
 		// Map old status to new design
 		if (status === "protected" && this._registry) {
 			// Update from registry to show accurate counts
@@ -348,15 +317,11 @@ export class StatusBarController {
 		];
 
 		if (state.warnings > 0) {
-			lines.push(
-				`${getProtectionLevelSignage("warn").emoji} ${state.warnings} warnings (high-risk changes)`,
-			);
+			lines.push(`${getProtectionLevelSignage("warn").emoji} ${state.warnings} warnings (high-risk changes)`);
 		}
 
 		if (state.protected > 0) {
-			lines.push(
-				`${getProtectionLevelSignage("block").emoji} ${state.protected} protected (requires approval)`,
-			);
+			lines.push(`${getProtectionLevelSignage("block").emoji} ${state.protected} protected (requires approval)`);
 		}
 
 		return lines.join("\n");
@@ -365,9 +330,7 @@ export class StatusBarController {
 	/**
 	 * Legacy method for backward compatibility
 	 */
-	private getStatusColor(
-		state: ProtectionState,
-	): vscode.ThemeColor | undefined {
+	private getStatusColor(state: ProtectionState): vscode.ThemeColor | undefined {
 		if (state.protected > 0) {
 			return new vscode.ThemeColor("statusBarItem.warningBackground");
 		}

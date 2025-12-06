@@ -5,11 +5,7 @@
  * the native fetch() API for making HTTP requests.
  */
 
-import type {
-	NetworkAdapter,
-	NetworkRequest,
-	NetworkResponse,
-} from "./NetworkAdapter";
+import type { NetworkAdapter, NetworkRequest, NetworkResponse } from "./NetworkAdapter";
 import { NetworkError, OfflineError, TimeoutError } from "./NetworkAdapter";
 
 /**
@@ -32,16 +28,8 @@ export class FetchNetworkAdapter implements NetworkAdapter {
 	 * @returns Promise<NetworkResponse>
 	 * @throws NetworkError if request fails
 	 */
-	async request<T = unknown>(
-		request: NetworkRequest,
-	): Promise<NetworkResponse<T>> {
-		const {
-			url,
-			method = "GET",
-			headers = {},
-			body,
-			timeout = 30000,
-		} = request;
+	async request<T = unknown>(request: NetworkRequest): Promise<NetworkResponse<T>> {
+		const { url, method = "GET", headers = {}, body, timeout = 30000 } = request;
 
 		// Check if offline
 		if (!(await this.isOnline())) {
@@ -65,8 +53,7 @@ export class FetchNetworkAdapter implements NetworkAdapter {
 
 			// Add body if present (stringify if object)
 			if (body !== undefined) {
-				fetchOptions.body =
-					typeof body === "string" ? body : JSON.stringify(body);
+				fetchOptions.body = typeof body === "string" ? body : JSON.stringify(body);
 			}
 
 			// Execute fetch
@@ -141,10 +128,7 @@ export class FetchNetworkAdapter implements NetworkAdapter {
 	 * @param headers - Optional headers
 	 * @returns Promise<NetworkResponse>
 	 */
-	async get<T = unknown>(
-		url: string,
-		headers?: Record<string, string>,
-	): Promise<NetworkResponse<T>> {
+	async get<T = unknown>(url: string, headers?: Record<string, string>): Promise<NetworkResponse<T>> {
 		return this.request<T>({ url, method: "GET", headers });
 	}
 
@@ -156,11 +140,7 @@ export class FetchNetworkAdapter implements NetworkAdapter {
 	 * @param headers - Optional headers
 	 * @returns Promise<NetworkResponse>
 	 */
-	async post<T = unknown>(
-		url: string,
-		body: unknown,
-		headers?: Record<string, string>,
-	): Promise<NetworkResponse<T>> {
+	async post<T = unknown>(url: string, body: unknown, headers?: Record<string, string>): Promise<NetworkResponse<T>> {
 		return this.request<T>({ url, method: "POST", body, headers });
 	}
 

@@ -33,11 +33,7 @@
 		"color": "#000000",
 		"theme": "dark"
 	},
-	"activationEvents": [
-		"onStartupFinished",
-		"onCommand:snapback.*",
-		"workspaceContains:.snapbackrc"
-	],
+	"activationEvents": ["onStartupFinished", "onCommand:snapback.*", "workspaceContains:.snapbackrc"],
 	"main": "./dist/extension.js",
 	"repository": {
 		"type": "git",

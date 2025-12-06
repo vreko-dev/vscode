@@ -1,9 +1,7 @@
 import * as vscode from "vscode";
 import type { SuppressionManager } from "./manager";
 
-export class SuppressionCodeActionsProvider
-	implements vscode.CodeActionProvider
-{
+export class SuppressionCodeActionsProvider implements vscode.CodeActionProvider {
 	constructor(readonly _suppressionManager: SuppressionManager) {}
 
 	provideCodeActions(
@@ -17,10 +15,7 @@ export class SuppressionCodeActionsProvider
 		// Only show suppressions if there are diagnostics in this range
 		if (context.diagnostics.length > 0) {
 			// Add line-level suppression
-			const lineAction = new vscode.CodeAction(
-				"Suppress this line (7 days)",
-				vscode.CodeActionKind.QuickFix,
-			);
+			const lineAction = new vscode.CodeAction("Suppress this line (7 days)", vscode.CodeActionKind.QuickFix);
 			lineAction.command = {
 				title: "Suppress this line",
 				command: "snapback.suppressLine",
@@ -29,10 +24,7 @@ export class SuppressionCodeActionsProvider
 			actions.push(lineAction);
 
 			// Add file-level suppression
-			const fileAction = new vscode.CodeAction(
-				"Suppress this file (30 days)",
-				vscode.CodeActionKind.QuickFix,
-			);
+			const fileAction = new vscode.CodeAction("Suppress this file (30 days)", vscode.CodeActionKind.QuickFix);
 			fileAction.command = {
 				title: "Suppress this file",
 				command: "snapback.suppressFile",
@@ -41,10 +33,7 @@ export class SuppressionCodeActionsProvider
 			actions.push(fileAction);
 
 			// Add repo-level suppression
-			const repoAction = new vscode.CodeAction(
-				"Suppress across repo (90 days)",
-				vscode.CodeActionKind.QuickFix,
-			);
+			const repoAction = new vscode.CodeAction("Suppress across repo (90 days)", vscode.CodeActionKind.QuickFix);
 			repoAction.command = {
 				title: "Suppress across repo",
 				command: "snapback.suppressRepo",

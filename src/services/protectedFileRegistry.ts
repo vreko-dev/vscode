@@ -4,11 +4,7 @@ import type { Disposable, Memento } from "vscode";
 import * as vscode from "vscode";
 import { EventEmitter, workspace } from "vscode";
 import { logger } from "../utils/logger";
-import type {
-	ProtectedFileEntry,
-	ProtectedFileProvider,
-	ProtectionLevel,
-} from "../views/types";
+import type { ProtectedFileEntry, ProtectedFileProvider, ProtectionLevel } from "../views/types";
 import { CooldownManager } from "./cooldownManager"; // 🆕 Import CooldownManager
 
 const STORAGE_KEY = "snapback:protected-files";
@@ -20,11 +16,7 @@ interface TemporaryAllowance {
 	expiresAt: number; // Timestamp when allowance expires
 	// 🆕 Add cooldown-related fields
 	cooldownExpiresAt?: number;
-	cooldownAction?:
-		| "snapshot_created"
-		| "save_allowed"
-		| "save_blocked"
-		| "user_override";
+	cooldownAction?: "snapshot_created" | "save_allowed" | "save_blocked" | "user_override";
 }
 
 type StoredProtectedFile = {
@@ -36,14 +28,10 @@ type StoredProtectedFile = {
 	protectionLevel?: ProtectionLevel;
 };
 
-export class ProtectedFileRegistry
-	implements ProtectedFileProvider, Disposable
-{
+export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable {
 	get(uri: vscode.Uri): ProtectedFileEntry | undefined {
 		const normalizedPath = this.normalize(uri.fsPath);
-		return this.cachedFiles.find(
-			(entry) => this.normalize(entry.path) === normalizedPath,
-		);
+		return this.cachedFiles.find((entry) => this.normalize(entry.path) === normalizedPath);
 	}
 	private _onDidChangeProtectedFiles = new EventEmitter<void>();
 	readonly onDidChangeProtectedFiles = this._onDidChangeProtectedFiles.event;
@@ -99,11 +87,7 @@ export class ProtectedFileRegistry
 				await this.cooldownManager.recordAudit(
 					filePath,
 					protectionLevel,
-					action as
-						| "save_attempt"
-						| "save_blocked"
-						| "snapshot_created"
-						| "user_override",
+					action as "save_attempt" | "save_blocked" | "snapshot_created" | "user_override",
 					details,
 					snapshotId,
 				);
@@ -114,16 +98,10 @@ export class ProtectedFileRegistry
 	}
 
 	// 🆕 Add method to check cooldown status
-	async isInCooldown(
-		filePath: string,
-		protectionLevel: ProtectionLevel,
-	): Promise<boolean> {
+	async isInCooldown(filePath: string, protectionLevel: ProtectionLevel): Promise<boolean> {
 		if (this.cooldownManager) {
 			try {
-				return await this.cooldownManager.isInCooldown(
-					filePath,
-					protectionLevel,
-				);
+				return await this.cooldownManager.isInCooldown(filePath, protectionLevel);
 			} catch (error) {
 				logger.warn("Failed to check cooldown status", { error });
 				return false; // Fail open
@@ -136,21 +114,12 @@ export class ProtectedFileRegistry
 	async setCooldown(
 		filePath: string,
 		protectionLevel: ProtectionLevel,
-		actionTaken:
-			| "snapshot_created"
-			| "save_allowed"
-			| "save_blocked"
-			| "user_override",
+		actionTaken: "snapshot_created" | "save_allowed" | "save_blocked" | "user_override",
 		snapshotId?: string,
 	): Promise<void> {
 		if (this.cooldownManager) {
 			try {
-				await this.cooldownManager.setCooldown(
-					filePath,
-					protectionLevel,
-					actionTaken,
-					snapshotId,
-				);
+				await this.cooldownManager.setCooldown(filePath, protectionLevel, actionTaken, snapshotId);
 			} catch (error) {
 				logger.warn("Failed to set cooldown", { error });
 			}
@@ -179,9 +148,7 @@ export class ProtectedFileRegistry
 		// Debug logging to identify potential issues with stored data
 		logger.debug("Loading protected files from storage", {
 			storedCount: stored.length,
-			hasInvalidEntries: stored.some(
-				(file) => !file || typeof file !== "object",
-			),
+			hasInvalidEntries: stored.some((file) => !file || typeof file !== "object"),
 		});
 
 		// Clear and rebuild the O(1) lookup index
@@ -202,10 +169,7 @@ export class ProtectedFileRegistry
 
 			// Validate required properties
 			if (!file.path || !file.label) {
-				logger.warn(
-					`Skipping entry with missing required properties at index ${index}`,
-					{ file },
-				);
+				logger.warn(`Skipping entry with missing required properties at index ${index}`, { file });
 				continue;
 			}
 
@@ -229,9 +193,7 @@ export class ProtectedFileRegistry
 	private getAbsolutePath(relativePath: string): string {
 		const folders = workspace.workspaceFolders;
 		const workspacePath = folders?.[0]?.uri.fsPath;
-		return workspacePath
-			? path.resolve(workspacePath, relativePath)
-			: relativePath;
+		return workspacePath ? path.resolve(workspacePath, relativePath) : relativePath;
 	}
 
 	async list(): Promise<ProtectedFileEntry[]> {
@@ -241,9 +203,7 @@ export class ProtectedFileRegistry
 		// Debug logging to identify potential issues with cached data
 		logger.debug("Returning protected files list", {
 			cachedCount: this.cachedFiles.length,
-			hasInvalidEntries: this.cachedFiles.some(
-				(file) => !file || typeof file !== "object",
-			),
+			hasInvalidEntries: this.cachedFiles.some((file) => !file || typeof file !== "object"),
 		});
 
 		// Return entries with absolute paths for display
@@ -270,9 +230,7 @@ export class ProtectedFileRegistry
 		// Debug logging to identify potential issues with cached data
 		logger.debug("Returning protected files sync list", {
 			cachedCount: this.cachedFiles.length,
-			hasInvalidEntries: this.cachedFiles.some(
-				(file) => !file || typeof file !== "object",
-			),
+			hasInvalidEntries: this.cachedFiles.some((file) => !file || typeof file !== "object"),
 		});
 
 		// Return entries with absolute paths for display
@@ -280,9 +238,7 @@ export class ProtectedFileRegistry
 			.map((file) => {
 				// Add defensive check for invalid entries
 				if (!file) {
-					logger.warn(
-						"Skipping invalid entry in getFilesSync() method mapping",
-					);
+					logger.warn("Skipping invalid entry in getFilesSync() method mapping");
 					return undefined;
 				}
 
@@ -343,25 +299,18 @@ export class ProtectedFileRegistry
 		return counts;
 	}
 
-	async add(
-		filePath: string,
-		options?: { snapshotId?: string; protectionLevel?: ProtectionLevel },
-	): Promise<void> {
+	async add(filePath: string, options?: { snapshotId?: string; protectionLevel?: ProtectionLevel }): Promise<void> {
 		const entries = await this.read();
 		const normalized = this.normalize(filePath);
 		const label = path.basename(normalized);
 
 		// 🛡️ CRITICAL: Validate before writing to prevent storage corruption
 		if (!normalized || normalized.trim().length === 0) {
-			logger.error(
-				`Cannot add file with empty path: ${filePath} (normalized: ${normalized})`,
-			);
+			logger.error(`Cannot add file with empty path: ${filePath} (normalized: ${normalized})`);
 			throw new Error(`Invalid file path: ${filePath}`);
 		}
 		if (!label || label.trim().length === 0) {
-			logger.error(
-				`Cannot add file with empty label: ${filePath} (normalized: ${normalized}, label: ${label})`,
-			);
+			logger.error(`Cannot add file with empty label: ${filePath} (normalized: ${normalized}, label: ${label})`);
 			throw new Error(`Invalid file label for path: ${filePath}`);
 		}
 
@@ -408,10 +357,7 @@ export class ProtectedFileRegistry
 			// REQUIRED: Fire decoration update event
 			logger.info("[SnapBack] Removing protected file:", filePath);
 			const uri = vscode.Uri.file(filePath);
-			logger.info(
-				"[SnapBack] Firing onProtectionChanged for removal:",
-				uri.fsPath,
-			);
+			logger.info("[SnapBack] Firing onProtectionChanged for removal:", uri.fsPath);
 			this._onProtectionChanged.fire([uri]);
 		}
 	}
@@ -439,13 +385,8 @@ export class ProtectedFileRegistry
 	}
 
 	// 🆕 Add method to update protection level
-	async updateProtectionLevel(
-		path: string,
-		level: ProtectionLevel,
-	): Promise<void> {
-		logger.info(
-			`[SnapBack] updateProtectionLevel called - path: ${path}, level: ${level}`,
-		);
+	async updateProtectionLevel(path: string, level: ProtectionLevel): Promise<void> {
+		logger.info(`[SnapBack] updateProtectionLevel called - path: ${path}, level: ${level}`);
 		const entries = await this.read();
 		const normalized = this.normalize(path);
 		logger.info(`[SnapBack] Normalized path: ${normalized}`);
@@ -457,11 +398,9 @@ export class ProtectedFileRegistry
 			);
 			entries[existingIndex].protectionLevel = level;
 			entries[existingIndex].lastProtectedAt = Date.now();
-			logger.info(
-				`[SnapBack] Updated entry protectionLevel to: ${entries[existingIndex].protectionLevel}`,
-			);
+			logger.info(`[SnapBack] Updated entry protectionLevel to: ${entries[existingIndex].protectionLevel}`);
 			await this.write(entries);
-			logger.info(`[SnapBack] Written to storage`);
+			logger.info("[SnapBack] Written to storage");
 			// Refresh cache immediately after update
 			this.cachedFiles = this.loadFilesFromStorage();
 			logger.info(
@@ -484,18 +423,14 @@ export class ProtectedFileRegistry
 	 */
 	clearAll(): void {
 		// REQUIRED: Fire decoration update event for all URIs
-		const allUris = this.cachedFiles.map((f) =>
-			vscode.Uri.file(this.getAbsolutePath(f.path)),
-		);
+		const allUris = this.cachedFiles.map((f) => vscode.Uri.file(this.getAbsolutePath(f.path)));
 		this.cachedFiles = [];
 		this.write([]);
 		this._onDidChangeProtectedFiles.fire();
 
 		// REQUIRED: Fire decoration update event
 		if (allUris.length > 0) {
-			logger.info(
-				"[SnapBack] Clearing all protected files, firing onProtectionChanged for all URIs",
-			);
+			logger.info("[SnapBack] Clearing all protected files, firing onProtectionChanged for all URIs");
 			this._onProtectionChanged.fire(allUris);
 		}
 	}
@@ -585,31 +520,15 @@ export class ProtectedFileRegistry
 		// 🛡️ CRITICAL: Validate and clean storage on read
 		const validated = existing.filter((entry): entry is StoredProtectedFile => {
 			if (!entry || typeof entry !== "object") {
-				logger.warn(
-					`⚠️ Removing invalid entry from storage (not an object): ${JSON.stringify(
-						entry,
-					)}`,
-				);
+				logger.warn(`⚠️ Removing invalid entry from storage (not an object): ${JSON.stringify(entry)}`);
 				return false;
 			}
-			if (
-				!entry.path ||
-				typeof entry.path !== "string" ||
-				entry.path.trim().length === 0
-			) {
-				logger.warn(
-					`⚠️ Removing entry with invalid path: ${JSON.stringify(entry)}`,
-				);
+			if (!entry.path || typeof entry.path !== "string" || entry.path.trim().length === 0) {
+				logger.warn(`⚠️ Removing entry with invalid path: ${JSON.stringify(entry)}`);
 				return false;
 			}
-			if (
-				!entry.label ||
-				typeof entry.label !== "string" ||
-				entry.label.trim().length === 0
-			) {
-				logger.warn(
-					`⚠️ Removing entry with invalid label: ${JSON.stringify(entry)}`,
-				);
+			if (!entry.label || typeof entry.label !== "string" || entry.label.trim().length === 0) {
+				logger.warn(`⚠️ Removing entry with invalid label: ${JSON.stringify(entry)}`);
 				return false;
 			}
 			return true;
@@ -629,35 +548,15 @@ export class ProtectedFileRegistry
 		// 🛡️ CRITICAL: Final validation before writing to prevent corruption
 		const validated = entries.filter((entry) => {
 			if (!entry || typeof entry !== "object") {
-				logger.error(
-					`🚨 Attempted to write invalid entry (not an object): ${JSON.stringify(
-						entry,
-					)}`,
-				);
+				logger.error(`🚨 Attempted to write invalid entry (not an object): ${JSON.stringify(entry)}`);
 				return false;
 			}
-			if (
-				!entry.path ||
-				typeof entry.path !== "string" ||
-				entry.path.trim().length === 0
-			) {
-				logger.error(
-					`🚨 Attempted to write entry with invalid path: ${JSON.stringify(
-						entry,
-					)}`,
-				);
+			if (!entry.path || typeof entry.path !== "string" || entry.path.trim().length === 0) {
+				logger.error(`🚨 Attempted to write entry with invalid path: ${JSON.stringify(entry)}`);
 				return false;
 			}
-			if (
-				!entry.label ||
-				typeof entry.label !== "string" ||
-				entry.label.trim().length === 0
-			) {
-				logger.error(
-					`🚨 Attempted to write entry with invalid label: ${JSON.stringify(
-						entry,
-					)}`,
-				);
+			if (!entry.label || typeof entry.label !== "string" || entry.label.trim().length === 0) {
+				logger.error(`🚨 Attempted to write entry with invalid label: ${JSON.stringify(entry)}`);
 				return false;
 			}
 			return true;
@@ -665,9 +564,7 @@ export class ProtectedFileRegistry
 
 		if (validated.length !== entries.length) {
 			const rejected = entries.length - validated.length;
-			logger.error(
-				`🚨 Prevented writing ${rejected} invalid entries to storage`,
-			);
+			logger.error(`🚨 Prevented writing ${rejected} invalid entries to storage`);
 		}
 
 		await this.state.update(STORAGE_KEY, validated);
@@ -688,10 +585,7 @@ export class ProtectedFileRegistry
 	 * @param filePath The file path to grant allowance for
 	 * @param durationMs Duration in milliseconds for which the allowance is valid (default: 5 minutes from SDK)
 	 */
-	grantTemporaryAllowance(
-		filePath: string,
-		durationMs: number = THRESHOLDS.protection.otherCooldown,
-	): void {
+	grantTemporaryAllowance(filePath: string, durationMs: number = THRESHOLDS.protection.otherCooldown): void {
 		const normalized = this.normalize(filePath);
 		const now = Date.now();
 
@@ -702,9 +596,7 @@ export class ProtectedFileRegistry
 		};
 
 		this.temporaryAllowances.set(normalized, allowance);
-		logger.info(
-			`[SnapBack] Granted temporary allowance for ${normalized} (expires in ${durationMs}ms)`,
-		);
+		logger.info(`[SnapBack] Granted temporary allowance for ${normalized} (expires in ${durationMs}ms)`);
 	}
 
 	/**
@@ -725,9 +617,7 @@ export class ProtectedFileRegistry
 		if (now > allowance.expiresAt) {
 			// Expired allowance, remove it
 			this.temporaryAllowances.delete(normalized);
-			logger.info(
-				`[SnapBack] Removed expired temporary allowance for ${normalized}`,
-			);
+			logger.info(`[SnapBack] Removed expired temporary allowance for ${normalized}`);
 			return false;
 		}
 
@@ -752,9 +642,7 @@ export class ProtectedFileRegistry
 		if (now > allowance.expiresAt) {
 			// Expired allowance, remove it
 			this.temporaryAllowances.delete(normalized);
-			logger.info(
-				`[SnapBack] Removed expired temporary allowance for ${normalized}`,
-			);
+			logger.info(`[SnapBack] Removed expired temporary allowance for ${normalized}`);
 			return false;
 		}
 

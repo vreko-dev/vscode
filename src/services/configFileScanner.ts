@@ -19,34 +19,16 @@ export interface FileBaseline {
 	size: number;
 }
 
-export type ConfigFileType =
-	| "package"
-	| "typescript"
-	| "linting"
-	| "build"
-	| "environment"
-	| "testing"
-	| "framework";
+export type ConfigFileType = "package" | "typescript" | "linting" | "build" | "environment" | "testing" | "framework";
 
 export type SupportedLanguage = "javascript" | "python" | "universal";
 
 const CONFIG_PATTERNS = {
 	javascript: {
-		package: [
-			"package.json",
-			"package-lock.json",
-			"yarn.lock",
-			"pnpm-lock.yaml",
-		],
+		package: ["package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml"],
 		typescript: ["tsconfig.json", "tsconfig.*.json", "jsconfig.json"],
 		linting: [".eslintrc.*", "eslint.config.js", ".prettierrc*", "biome.json"],
-		build: [
-			"webpack.config.*",
-			"vite.config.*",
-			"rollup.config.*",
-			"esbuild.config.*",
-			"rspack.config.*",
-		],
+		build: ["webpack.config.*", "vite.config.*", "rollup.config.*", "esbuild.config.*", "rspack.config.*"],
 		testing: ["jest.config.*", "vitest.config.*", "playwright.config.*"],
 	},
 	python: {
@@ -143,9 +125,7 @@ export class ConfigFileScanner {
 		};
 	}
 
-	async validateConfigFile(
-		filePath: string,
-	): Promise<{ valid: boolean; errors: string[] }> {
+	async validateConfigFile(filePath: string): Promise<{ valid: boolean; errors: string[] }> {
 		try {
 			const uri = vscode.Uri.file(filePath);
 			const content = await vscode.workspace.fs.readFile(uri);
@@ -160,11 +140,7 @@ export class ConfigFileScanner {
 		} catch (error) {
 			return {
 				valid: false,
-				errors: [
-					`Invalid JSON: ${
-						error instanceof Error ? error.message : "Unknown error"
-					}`,
-				],
+				errors: [`Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`],
 			};
 		}
 	}
@@ -187,11 +163,7 @@ export class ConfigFileScanner {
 		} catch (error) {
 			return {
 				valid: false,
-				errors: [
-					`Invalid JSON: ${
-						error instanceof Error ? error.message : "Parse error"
-					}`,
-				],
+				errors: [`Invalid JSON: ${error instanceof Error ? error.message : "Parse error"}`],
 			};
 		}
 	}

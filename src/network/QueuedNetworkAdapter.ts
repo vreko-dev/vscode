@@ -8,11 +8,7 @@
 import { logger } from "../utils/logger";
 import { FetchNetworkAdapter } from "./FetchNetworkAdapter";
 // import PQueue from "p-queue"; // Not currently used but kept for future implementation
-import type {
-	NetworkAdapter,
-	NetworkRequest,
-	NetworkResponse,
-} from "./NetworkAdapter";
+import type { NetworkAdapter, NetworkRequest, NetworkResponse } from "./NetworkAdapter";
 import { NetworkError, TimeoutError } from "./NetworkAdapter";
 
 /**
@@ -24,10 +20,10 @@ import { NetworkError, TimeoutError } from "./NetworkAdapter";
 export class QueuedNetworkAdapter implements NetworkAdapter {
 	protected fetchAdapter: FetchNetworkAdapter;
 	// private requestQueue: PQueue; // Not currently used but kept for future implementation
-	private isOnlineCached: boolean = true;
+	private isOnlineCached = true;
 	private onlineCheckPromise: Promise<boolean> | null = null;
 	private offlineQueue: Array<() => Promise<unknown>> = [];
-	private isProcessingOfflineQueue: boolean = false;
+	private isProcessingOfflineQueue = false;
 
 	constructor(_options?: { concurrency?: number }) {
 		this.fetchAdapter = new FetchNetworkAdapter();
@@ -92,9 +88,7 @@ export class QueuedNetworkAdapter implements NetworkAdapter {
 	 * @returns Promise<NetworkResponse>
 	 * @throws NetworkError if request fails
 	 */
-	async request<T = unknown>(
-		request: NetworkRequest,
-	): Promise<NetworkResponse<T>> {
+	async request<T = unknown>(request: NetworkRequest): Promise<NetworkResponse<T>> {
 		// If we're online, execute the request immediately
 		if (await this.isOnline()) {
 			try {
@@ -102,10 +96,7 @@ export class QueuedNetworkAdapter implements NetworkAdapter {
 			} catch (error) {
 				// If it's a network error that might be temporary, queue it
 				if (error instanceof NetworkError && !(error instanceof TimeoutError)) {
-					logger.warn(
-						`Network error for ${request.url}, queuing request`,
-						error,
-					);
+					logger.warn(`Network error for ${request.url}, queuing request`, error);
 					return this.queueOfflineRequest<T>(request);
 				}
 				throw error;
@@ -122,9 +113,7 @@ export class QueuedNetworkAdapter implements NetworkAdapter {
 	 * @param request - Request configuration
 	 * @returns Promise<NetworkResponse>
 	 */
-	private queueOfflineRequest<T = unknown>(
-		request: NetworkRequest,
-	): Promise<NetworkResponse<T>> {
+	private queueOfflineRequest<T = unknown>(request: NetworkRequest): Promise<NetworkResponse<T>> {
 		return new Promise((resolve, reject) => {
 			// Add the request to our offline queue
 			this.offlineQueue.push(async () => {
@@ -145,10 +134,7 @@ export class QueuedNetworkAdapter implements NetworkAdapter {
 	 * @param headers - Optional headers
 	 * @returns Promise<NetworkResponse>
 	 */
-	async get<T = unknown>(
-		url: string,
-		headers?: Record<string, string>,
-	): Promise<NetworkResponse<T>> {
+	async get<T = unknown>(url: string, headers?: Record<string, string>): Promise<NetworkResponse<T>> {
 		return this.request<T>({ url, method: "GET", headers });
 	}
 
@@ -160,11 +146,7 @@ export class QueuedNetworkAdapter implements NetworkAdapter {
 	 * @param headers - Optional headers
 	 * @returns Promise<NetworkResponse>
 	 */
-	async post<T = unknown>(
-		url: string,
-		body: unknown,
-		headers?: Record<string, string>,
-	): Promise<NetworkResponse<T>> {
+	async post<T = unknown>(url: string, body: unknown, headers?: Record<string, string>): Promise<NetworkResponse<T>> {
 		return this.request<T>({ url, method: "POST", body, headers });
 	}
 

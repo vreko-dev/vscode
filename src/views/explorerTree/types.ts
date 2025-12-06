@@ -126,26 +126,20 @@ export interface SnapBackTreeNode {
 /**
  * Type guard for section nodes
  */
-export function isSection(
-	node: SnapBackTreeNode,
-): node is SnapBackTreeNode & { section: SnapBackSection } {
+export function isSection(node: SnapBackTreeNode): node is SnapBackTreeNode & { section: SnapBackSection } {
 	return node.kind === "section" && node.section !== undefined;
 }
 
 /**
  * Type guard for snapshot nodes
  */
-export function isSnapshot(
-	node: SnapBackTreeNode,
-): node is SnapBackTreeNode & { snapshotId: string } {
+export function isSnapshot(node: SnapBackTreeNode): node is SnapBackTreeNode & { snapshotId: string } {
 	return node.kind === "snapshot" && node.snapshotId !== undefined;
 }
 
 /**
  * Type guard for blocking issue nodes
  */
-export function isBlockingIssue(
-	node: SnapBackTreeNode,
-): node is SnapBackTreeNode & { filePath: string } {
+export function isBlockingIssue(node: SnapBackTreeNode): node is SnapBackTreeNode & { filePath: string } {
 	return node.kind === "blockingIssue" && node.filePath !== undefined;
 }

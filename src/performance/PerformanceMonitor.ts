@@ -117,19 +117,14 @@ export class PerformanceMonitor {
 		// Capture end memory usage
 		if (timing.memoryUsage) {
 			timing.memoryUsage.end = process.memoryUsage();
-			timing.memoryUsage.diff = this.calculateMemoryDiff(
-				timing.memoryUsage.start,
-				timing.memoryUsage.end,
-			);
+			timing.memoryUsage.diff = this.calculateMemoryDiff(timing.memoryUsage.start, timing.memoryUsage.end);
 		}
 
 		this.timings.set(operationId, timing);
 
 		// Output timing if configured
 		if (this.config.outputFormat === "console") {
-			logger.info(
-				`[PERF] ${timing.operationName}: ${timing.duration.toFixed(2)}ms`,
-			);
+			logger.info(`[PERF] ${timing.operationName}: ${timing.duration.toFixed(2)}ms`);
 			if (timing.memoryUsage?.diff) {
 				logger.info(`[MEM] ${timing.operationName}:`, timing.memoryUsage.diff);
 			}
@@ -158,11 +153,7 @@ export class PerformanceMonitor {
 	 * @param value Metric value
 	 * @param tags Optional tags for the metric
 	 */
-	recordMetric(
-		name: string,
-		value: number,
-		tags?: Record<string, string | number>,
-	): void {
+	recordMetric(name: string, value: number, tags?: Record<string, string | number>): void {
 		if (!this.config.enabled || Math.random() > this.config.samplingRate) {
 			return;
 		}
@@ -177,10 +168,7 @@ export class PerformanceMonitor {
 		this.metrics.push(metric);
 
 		// Apply maxMetrics limit if configured
-		if (
-			this.config.maxMetrics > 0 &&
-			this.metrics.length > this.config.maxMetrics
-		) {
+		if (this.config.maxMetrics > 0 && this.metrics.length > this.config.maxMetrics) {
 			// Remove oldest metrics to maintain the limit
 			const itemsToRemove = this.metrics.length - this.config.maxMetrics;
 			this.metrics.splice(0, itemsToRemove);
@@ -249,10 +237,7 @@ export class PerformanceMonitor {
 	/**
 	 * Calculate memory usage difference
 	 */
-	private calculateMemoryDiff(
-		start: NodeJS.MemoryUsage,
-		end: NodeJS.MemoryUsage,
-	): Partial<NodeJS.MemoryUsage> {
+	private calculateMemoryDiff(start: NodeJS.MemoryUsage, end: NodeJS.MemoryUsage): Partial<NodeJS.MemoryUsage> {
 		const diff: Partial<NodeJS.MemoryUsage> = {};
 
 		for (const key in start) {

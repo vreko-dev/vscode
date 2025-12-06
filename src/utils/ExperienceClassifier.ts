@@ -83,10 +83,7 @@ export class ExperienceClassifier {
 	 * @param activity - Type of activity to record
 	 * @param count - Number of activities to record (default: 1)
 	 */
-	updateExperienceMetrics(
-		activity: keyof ExperienceMetrics,
-		count: number = 1,
-	): Promise<void> {
+	updateExperienceMetrics(activity: keyof ExperienceMetrics, count = 1): Promise<void> {
 		return this.sdkClassifier.updateExperienceMetrics(activity, count);
 	}
 

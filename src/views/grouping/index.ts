@@ -8,9 +8,7 @@ export * from "./types";
 /**
  * Factory to get the appropriate grouping strategy
  */
-export function getGroupingStrategy(
-	mode: GroupingMode,
-): GroupingStrategy<unknown> {
+export function getGroupingStrategy(mode: GroupingMode): GroupingStrategy<unknown> {
 	switch (mode) {
 		case "time":
 			return new TimeGroupingStrategy();

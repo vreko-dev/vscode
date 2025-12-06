@@ -7,13 +7,9 @@ import type { FileHealthLevel, FileHealthStatus } from "./types";
  * Main provider class implementing vscode.FileDecorationProvider
  * Provides visual indicators for file protection and risk status.
  */
-export class FileHealthDecorationProvider
-	implements vscode.FileDecorationProvider
-{
+export class FileHealthDecorationProvider implements vscode.FileDecorationProvider {
 	// Event emitter for VS Code to listen to decoration changes
-	private readonly _onDidChangeFileDecorations = new vscode.EventEmitter<
-		vscode.Uri | vscode.Uri[] | undefined
-	>();
+	private readonly _onDidChangeFileDecorations = new vscode.EventEmitter<vscode.Uri | vscode.Uri[] | undefined>();
 	readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
 
 	// In-memory cache: Map<fsPath, FileHealthStatus> - Using Map for true LRU behavior
@@ -30,10 +26,7 @@ export class FileHealthDecorationProvider
 	/**
 	 * Provide decoration to VS Code when it needs to render a file
 	 */
-	provideFileDecoration(
-		uri: vscode.Uri,
-		_token: vscode.CancellationToken,
-	): vscode.FileDecoration | undefined {
+	provideFileDecoration(uri: vscode.Uri, _token: vscode.CancellationToken): vscode.FileDecoration | undefined {
 		// 1. Get status from cache (access updates LRU order)
 		const healthStatus = this.healthCache.get(uri.fsPath);
 
@@ -57,11 +50,7 @@ export class FileHealthDecorationProvider
 			: config.tooltip;
 
 		// 5. Return FileDecoration with propagate: false
-		const decoration = new vscode.FileDecoration(
-			config.badge,
-			tooltip,
-			config.color,
-		);
+		const decoration = new vscode.FileDecoration(config.badge, tooltip, config.color);
 		decoration.propagate = false;
 		return decoration;
 	}
@@ -69,11 +58,7 @@ export class FileHealthDecorationProvider
 	/**
 	 * Called by SaveHandler after risk analysis
 	 */
-	updateFileHealth(
-		uri: vscode.Uri,
-		level: FileHealthLevel,
-		protectionLevel?: "watch" | "warn" | "block",
-	): void {
+	updateFileHealth(uri: vscode.Uri, level: FileHealthLevel, protectionLevel?: "watch" | "warn" | "block"): void {
 		// 1. Create FileHealthStatus object with current timestamp
 		const healthStatus: FileHealthStatus = {
 			uri: uri.fsPath, // Use fsPath for consistency with cache key
@@ -131,9 +116,7 @@ export class FileHealthDecorationProvider
 		}
 
 		// Convert pending updates to URIs
-		const uris = Array.from(this.pendingUpdates).map((fsPath) =>
-			vscode.Uri.file(fsPath),
-		);
+		const uris = Array.from(this.pendingUpdates).map((fsPath) => vscode.Uri.file(fsPath));
 
 		// Fire single event with all URIs
 		if (uris.length === 1) {

@@ -105,9 +105,7 @@ export function isAnalysisResult(value: unknown): value is AnalysisResult {
 }
 
 /** Type guard for BasicAnalysisResult */
-export function isBasicAnalysisResult(
-	value: unknown,
-): value is BasicAnalysisResult {
+export function isBasicAnalysisResult(value: unknown): value is BasicAnalysisResult {
 	return (
 		typeof value === "object" &&
 		value !== null &&

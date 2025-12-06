@@ -17,12 +17,7 @@ import {
 	type WorkspaceSafetyResponse,
 	type WorkspaceSnapshotsResponse,
 } from "./types";
-import {
-	branchStatusLabel,
-	formatAge,
-	formatAgeFromSeconds,
-	formatBytes,
-} from "./utils";
+import { branchStatusLabel, formatAge, formatAgeFromSeconds, formatBytes } from "./utils";
 
 /**
  * Section configurations using const assertion for type safety
@@ -52,12 +47,8 @@ const SECTION_CONFIGS = [
  * Implements TreeDataProvider interface to display workspace safety
  * and snapshot data in VS Code's Explorer sidebar.
  */
-export class SnapBackExplorerTreeProvider
-	implements vscode.TreeDataProvider<SnapBackTreeNode>, vscode.Disposable
-{
-	private readonly _onDidChangeTreeData = new vscode.EventEmitter<
-		SnapBackTreeNode | undefined
-	>();
+export class SnapBackExplorerTreeProvider implements vscode.TreeDataProvider<SnapBackTreeNode>, vscode.Disposable {
+	private readonly _onDidChangeTreeData = new vscode.EventEmitter<SnapBackTreeNode | undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
 	// Cached API responses
@@ -200,9 +191,7 @@ export class SnapBackExplorerTreeProvider
 	/**
 	 * Create section node from configuration
 	 */
-	private createSectionNode(
-		config: (typeof SECTION_CONFIGS)[number],
-	): SnapBackTreeNode {
+	private createSectionNode(config: (typeof SECTION_CONFIGS)[number]): SnapBackTreeNode {
 		return {
 			id: config.id,
 			kind: "section",
@@ -219,9 +208,7 @@ export class SnapBackExplorerTreeProvider
 	 * @param element - Section node
 	 * @returns Child nodes for the section
 	 */
-	private async getSectionChildren(
-		element: SnapBackTreeNode,
-	): Promise<SnapBackTreeNode[]> {
+	private async getSectionChildren(element: SnapBackTreeNode): Promise<SnapBackTreeNode[]> {
 		if (!isSection(element)) {
 			return [];
 		}
@@ -251,9 +238,7 @@ export class SnapBackExplorerTreeProvider
 		}
 
 		try {
-			const safety = await this.apiClient.fetch<WorkspaceSafetyResponse>(
-				"/api/v1/workspace/safety",
-			);
+			const safety = await this.apiClient.fetch<WorkspaceSafetyResponse>("/api/v1/workspace/safety");
 
 			this.safetyCache = safety;
 			this.lastUpdatedAt = new Date();
@@ -276,9 +261,7 @@ export class SnapBackExplorerTreeProvider
 		}
 
 		try {
-			const snapshots = await this.apiClient.fetch<WorkspaceSnapshotsResponse>(
-				"/api/v1/workspace/snapshots",
-			);
+			const snapshots = await this.apiClient.fetch<WorkspaceSnapshotsResponse>("/api/v1/workspace/snapshots");
 
 			this.snapshotsCache = snapshots;
 			this.lastUpdatedAt = new Date();
@@ -292,9 +275,7 @@ export class SnapBackExplorerTreeProvider
 	/**
 	 * Build safety section nodes from API response
 	 */
-	private buildSafetyNodes(
-		safety: WorkspaceSafetyResponse,
-	): SnapBackTreeNode[] {
+	private buildSafetyNodes(safety: WorkspaceSafetyResponse): SnapBackTreeNode[] {
 		const nodes: SnapBackTreeNode[] = [];
 
 		// Blocking Issues group
@@ -305,9 +286,7 @@ export class SnapBackExplorerTreeProvider
 			label: `Blocking Issues (${blockingCount})`,
 			icon: blockingCount > 0 ? "error" : "pass",
 			collapsibleState:
-				blockingCount > 0
-					? vscode.TreeItemCollapsibleState.Expanded
-					: vscode.TreeItemCollapsibleState.None,
+				blockingCount > 0 ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
 		});
 
 		// Add blocking issue nodes
@@ -331,9 +310,7 @@ export class SnapBackExplorerTreeProvider
 			label: `Watch Items (${watchCount})`,
 			icon: "eye",
 			collapsibleState:
-				watchCount > 0
-					? vscode.TreeItemCollapsibleState.Expanded
-					: vscode.TreeItemCollapsibleState.None,
+				watchCount > 0 ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
 		});
 
 		// Add watch item nodes
@@ -354,9 +331,7 @@ export class SnapBackExplorerTreeProvider
 	/**
 	 * Build snapshots section nodes from API response
 	 */
-	private buildSnapshotsNodes(
-		snapshots: WorkspaceSnapshotsResponse,
-	): SnapBackTreeNode[] {
+	private buildSnapshotsNodes(snapshots: WorkspaceSnapshotsResponse): SnapBackTreeNode[] {
 		const nodes: SnapBackTreeNode[] = [];
 
 		// Total snapshots node
@@ -376,9 +351,7 @@ export class SnapBackExplorerTreeProvider
 			label: `⭐ Recommended Recovery Points (${recoveryCount})`,
 			icon: "star-full",
 			collapsibleState:
-				recoveryCount > 0
-					? vscode.TreeItemCollapsibleState.Expanded
-					: vscode.TreeItemCollapsibleState.None,
+				recoveryCount > 0 ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
 		});
 
 		// Add recovery point nodes
@@ -403,9 +376,7 @@ export class SnapBackExplorerTreeProvider
 			label: `🔄 Active Branches (${branchCount})`,
 			icon: "git-branch",
 			collapsibleState:
-				branchCount > 0
-					? vscode.TreeItemCollapsibleState.Expanded
-					: vscode.TreeItemCollapsibleState.None,
+				branchCount > 0 ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
 		});
 
 		// Add branch nodes
@@ -430,9 +401,7 @@ export class SnapBackExplorerTreeProvider
 			label: `🗑️ Cleanup Candidates (${cleanupCount})`,
 			icon: "trash",
 			collapsibleState:
-				cleanupCount > 0
-					? vscode.TreeItemCollapsibleState.Expanded
-					: vscode.TreeItemCollapsibleState.None,
+				cleanupCount > 0 ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
 		});
 
 		// Add cleanup candidate nodes
@@ -460,10 +429,7 @@ export class SnapBackExplorerTreeProvider
 	 * @param section - Section name for logging
 	 * @returns Error node array
 	 */
-	private async handleError(
-		error: unknown,
-		section: string,
-	): Promise<SnapBackTreeNode[]> {
+	private async handleError(error: unknown, section: string): Promise<SnapBackTreeNode[]> {
 		const errorMsg = error instanceof Error ? error.message : String(error);
 
 		// Check for session expiry

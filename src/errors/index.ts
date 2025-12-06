@@ -296,10 +296,7 @@ export class ProtectionBlockedError extends ProtectionError {
 		public readonly reason: string,
 		public readonly protectionLevel?: string,
 	) {
-		super(
-			`Save blocked for protected file: ${filePath}. Reason: ${reason}`,
-			"PROTECTION_BLOCKED",
-		);
+		super(`Save blocked for protected file: ${filePath}. Reason: ${reason}`, "PROTECTION_BLOCKED");
 		this.name = "ProtectionBlockedError";
 	}
 }
@@ -347,7 +344,7 @@ export class PolicyEvaluationError extends ProtectionError {
 export class ValidationError extends SnapBackError {
 	constructor(
 		message: string,
-		code: string = "VALIDATION_ERROR",
+		code = "VALIDATION_ERROR",
 		public readonly field?: string,
 		public readonly value?: unknown,
 		cause?: Error,
@@ -384,7 +381,7 @@ export class SchemaValidationError extends ValidationError {
 export class ConfigurationError extends SnapBackError {
 	constructor(
 		message: string,
-		code: string = "CONFIGURATION_ERROR",
+		code = "CONFIGURATION_ERROR",
 		public readonly configKey?: string,
 		cause?: Error,
 	) {
@@ -402,12 +399,7 @@ export class ConfigurationFileNotFoundError extends ConfigurationError {
 		public readonly filePath: string,
 		cause?: Error,
 	) {
-		super(
-			`Configuration file not found: ${filePath}`,
-			"CONFIGURATION_FILE_NOT_FOUND",
-			filePath,
-			cause,
-		);
+		super(`Configuration file not found: ${filePath}`, "CONFIGURATION_FILE_NOT_FOUND", filePath, cause);
 		this.name = "ConfigurationFileNotFoundError";
 	}
 }
@@ -421,12 +413,7 @@ export class ConfigurationParseError extends ConfigurationError {
 		public readonly filePath: string,
 		cause?: Error,
 	) {
-		super(
-			`Failed to parse configuration file: ${filePath}`,
-			"CONFIGURATION_PARSE_ERROR",
-			filePath,
-			cause,
-		);
+		super(`Failed to parse configuration file: ${filePath}`, "CONFIGURATION_PARSE_ERROR", filePath, cause);
 		this.name = "ConfigurationParseError";
 	}
 }
@@ -498,11 +485,7 @@ export class FilePermissionError extends FileSystemError {
 		public readonly operation: string,
 		cause?: Error,
 	) {
-		super(
-			`Permission denied for ${operation} operation on: ${filePath}`,
-			"FILE_PERMISSION_ERROR",
-			cause,
-		);
+		super(`Permission denied for ${operation} operation on: ${filePath}`, "FILE_PERMISSION_ERROR", cause);
 		this.name = "FilePermissionError";
 	}
 }
@@ -540,10 +523,7 @@ export type SaveError =
 	| {
 			/** User cancelled save operation */
 			type: "user_cancelled";
-			reason:
-				| "user_cancelled_protection"
-				| "user_cancelled_ai_warning"
-				| "user_cancelled_other";
+			reason: "user_cancelled_protection" | "user_cancelled_ai_warning" | "user_cancelled_other";
 	  };
 
 /**
@@ -652,9 +632,7 @@ export function isValidationError(error: unknown): error is ValidationError {
 /**
  * Type guard to check if error is a ConfigurationError
  */
-export function isConfigurationError(
-	error: unknown,
-): error is ConfigurationError {
+export function isConfigurationError(error: unknown): error is ConfigurationError {
 	return error instanceof ConfigurationError;
 }
 
@@ -686,10 +664,7 @@ export function toError(error: unknown): Error {
  * Wraps error in SnapBackError if not already one
  * Useful for ensuring all errors thrown are SnapBackError instances
  */
-export function ensureSnapBackError(
-	error: unknown,
-	defaultCode = "UNKNOWN_ERROR",
-): SnapBackError {
+export function ensureSnapBackError(error: unknown, defaultCode = "UNKNOWN_ERROR"): SnapBackError {
 	if (isSnapBackError(error)) {
 		return error;
 	}
@@ -715,19 +690,13 @@ export enum ErrorSeverity {
  * Maps error types to severity levels
  */
 export function getErrorSeverity(error: unknown): ErrorSeverity {
-	if (
-		error instanceof DatabaseConnectionError ||
-		error instanceof DatabaseInitializationError
-	) {
+	if (error instanceof DatabaseConnectionError || error instanceof DatabaseInitializationError) {
 		return ErrorSeverity.CRITICAL;
 	}
 	if (error instanceof StorageCorruptionError) {
 		return ErrorSeverity.CRITICAL;
 	}
-	if (
-		error instanceof SessionFinalizationError ||
-		error instanceof SnapshotCreationError
-	) {
+	if (error instanceof SessionFinalizationError || error instanceof SnapshotCreationError) {
 		return ErrorSeverity.HIGH;
 	}
 	if (error instanceof ValidationError || error instanceof ConfigurationError) {

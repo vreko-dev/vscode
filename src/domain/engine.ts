@@ -1,9 +1,4 @@
-import type {
-	AutoDecisionConfig,
-	DecisionReason,
-	ProtectionDecision,
-	SaveContext,
-} from "./types";
+import type { AutoDecisionConfig, DecisionReason, ProtectionDecision, SaveContext } from "./types";
 import { DEFAULT_CONFIG } from "./types";
 
 /**
@@ -106,18 +101,12 @@ export class AutoDecisionEngine {
 			return true;
 		}
 
-		if (
-			signals.criticalSignal.detected &&
-			signals.criticalSignal.fileCount > 0
-		) {
+		if (signals.criticalSignal.detected && signals.criticalSignal.fileCount > 0) {
 			return true;
 		}
 
 		// Snapshot: Burst with multiple files
-		if (
-			signals.burstSignal.detected &&
-			signals.burstSignal.fileCount >= this.config.minFilesForBurst
-		) {
+		if (signals.burstSignal.detected && signals.burstSignal.fileCount >= this.config.minFilesForBurst) {
 			return true;
 		}
 
@@ -172,8 +161,7 @@ export class AutoDecisionEngine {
 			{
 				type: "ai_detected",
 				priority: 1,
-				triggered:
-					signals.aiSignal.detected && signals.aiSignal.confidence >= 0.8,
+				triggered: signals.aiSignal.detected && signals.aiSignal.confidence >= 0.8,
 			},
 			{
 				type: "risk_threshold",
@@ -183,16 +171,13 @@ export class AutoDecisionEngine {
 			{
 				type: "critical_file",
 				priority: 1,
-				triggered:
-					signals.criticalSignal.detected &&
-					signals.criticalSignal.fileCount > 0,
+				triggered: signals.criticalSignal.detected && signals.criticalSignal.fileCount > 0,
 			},
 			{
 				type: "burst_pattern",
 				priority: 2,
 				triggered:
-					signals.burstSignal.detected &&
-					signals.burstSignal.fileCount >= this.config.minFilesForBurst,
+					signals.burstSignal.detected && signals.burstSignal.fileCount >= this.config.minFilesForBurst,
 			},
 		];
 
@@ -272,9 +257,7 @@ export class AutoDecisionEngine {
 		const parts: string[] = [];
 
 		if (reasons.includes("ai_detected")) {
-			parts.push(
-				`AI detected (${Math.round(signals.aiSignal.confidence * 100)}%)`,
-			);
+			parts.push(`AI detected (${Math.round(signals.aiSignal.confidence * 100)}%)`);
 		}
 
 		if (reasons.includes("risk_threshold")) {
@@ -282,15 +265,11 @@ export class AutoDecisionEngine {
 		}
 
 		if (reasons.includes("critical_file")) {
-			parts.push(
-				`${signals.criticalSignal.fileCount} critical file(s) modified`,
-			);
+			parts.push(`${signals.criticalSignal.fileCount} critical file(s) modified`);
 		}
 
 		if (reasons.includes("burst_pattern")) {
-			parts.push(
-				`Rapid changes detected (${signals.burstSignal.fileCount} files)`,
-			);
+			parts.push(`Rapid changes detected (${signals.burstSignal.fileCount} files)`);
 		}
 
 		return parts.join(", ");
@@ -314,10 +293,7 @@ export class AutoDecisionEngine {
 			throw new Error("SaveContext files must be an array");
 		}
 
-		if (
-			context.aiConfidence !== undefined &&
-			(context.aiConfidence < 0 || context.aiConfidence > 1)
-		) {
+		if (context.aiConfidence !== undefined && (context.aiConfidence < 0 || context.aiConfidence > 1)) {
 			throw new Error("SaveContext aiConfidence must be between 0 and 1");
 		}
 
@@ -359,11 +335,7 @@ export class AutoDecisionEngine {
 /**
  * Factory function to create an engine with default config
  */
-export function createAutoDecisionEngine(
-	config?: Partial<AutoDecisionConfig>,
-): AutoDecisionEngine {
-	const finalConfig = config
-		? { ...DEFAULT_CONFIG, ...config }
-		: DEFAULT_CONFIG;
+export function createAutoDecisionEngine(config?: Partial<AutoDecisionConfig>): AutoDecisionEngine {
+	const finalConfig = config ? { ...DEFAULT_CONFIG, ...config } : DEFAULT_CONFIG;
 	return new AutoDecisionEngine(finalConfig);
 }

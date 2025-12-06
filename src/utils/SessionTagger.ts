@@ -39,10 +39,7 @@ const vscodeSessionTagger = new SDKSessionTagger({
  * @param burstResult Optional burst detection result
  * @returns Session tagging result with tags and confidence levels
  */
-export function tagSession(
-	manifest: SessionManifest,
-	burstResult?: BurstDetectionResult,
-): SessionTaggingResult {
+export function tagSession(manifest: SessionManifest, burstResult?: BurstDetectionResult): SessionTaggingResult {
 	return vscodeSessionTagger.tagSession(manifest, burstResult);
 }
 
@@ -53,9 +50,6 @@ export function tagSession(
  * @param burstResult Optional burst detection result
  * @returns Updated session manifest with tags
  */
-export function updateSessionWithTags(
-	manifest: SessionManifest,
-	burstResult?: BurstDetectionResult,
-): SessionManifest {
+export function updateSessionWithTags(manifest: SessionManifest, burstResult?: BurstDetectionResult): SessionManifest {
 	return vscodeSessionTagger.updateSessionWithTags(manifest, burstResult);
 }

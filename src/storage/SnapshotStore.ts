@@ -2,18 +2,8 @@
 
 import * as vscode from "vscode";
 import type { BlobStore } from "./BlobStore";
-import type {
-	SnapshotFileRef,
-	SnapshotFilters,
-	SnapshotManifest,
-	SnapshotWithContent,
-} from "./types";
-import {
-	ensureDirectory,
-	fileExists,
-	readJsonFile,
-	writeJsonFile,
-} from "./utils/atomicWrite";
+import type { SnapshotFileRef, SnapshotFilters, SnapshotManifest, SnapshotWithContent } from "./types";
+import { ensureDirectory, fileExists, readJsonFile, writeJsonFile } from "./utils/atomicWrite";
 import { generateSnapshotId, parseTimestampFromId } from "./utils/fileId";
 
 /**
@@ -104,9 +94,7 @@ export class SnapshotStore {
 			if (content !== null) {
 				contents[filePath] = content;
 			} else {
-				console.warn(
-					`[SnapshotStore] Missing blob ${ref.blob} for ${filePath} in snapshot ${id}`,
-				);
+				console.warn(`[SnapshotStore] Missing blob ${ref.blob} for ${filePath} in snapshot ${id}`);
 			}
 		}
 
@@ -132,10 +120,7 @@ export class SnapshotStore {
 
 		// Sort by timestamp from ID (faster than reading each file)
 		const jsonFiles = entries
-			.filter(
-				([name, type]) =>
-					type === vscode.FileType.File && name.endsWith(".json"),
-			)
+			.filter(([name, type]) => type === vscode.FileType.File && name.endsWith(".json"))
 			.map(([name]) => name.replace(".json", ""))
 			.sort((a, b) => {
 				const tsA = parseTimestampFromId(a) ?? 0;
@@ -147,9 +132,7 @@ export class SnapshotStore {
 		const limit = filters?.limit ?? 100;
 		const filesToRead = jsonFiles.slice(
 			0,
-			filters?.after || filters?.before || filters?.trigger
-				? jsonFiles.length
-				: limit,
+			filters?.after || filters?.before || filters?.trigger ? jsonFiles.length : limit,
 		);
 
 		// Read manifests
@@ -198,13 +181,8 @@ export class SnapshotStore {
 	 */
 	async count(): Promise<number> {
 		try {
-			const entries = await vscode.workspace.fs.readDirectory(
-				this.snapshotsUri,
-			);
-			return entries.filter(
-				([name, type]) =>
-					type === vscode.FileType.File && name.endsWith(".json"),
-			).length;
+			const entries = await vscode.workspace.fs.readDirectory(this.snapshotsUri);
+			return entries.filter(([name, type]) => type === vscode.FileType.File && name.endsWith(".json")).length;
 		} catch {
 			return 0;
 		}
@@ -213,10 +191,7 @@ export class SnapshotStore {
 	/**
 	 * Get snapshots for a specific file path
 	 */
-	async getForFile(
-		filePath: string,
-		limit: number = 10,
-	): Promise<SnapshotManifest[]> {
+	async getForFile(filePath: string, limit = 10): Promise<SnapshotManifest[]> {
 		const all = await this.list({ limit: 500 }); // Read more to filter
 		return all.filter((m) => filePath in m.files).slice(0, limit);
 	}
@@ -232,10 +207,7 @@ export class SnapshotStore {
 	/**
 	 * Get snapshots by trigger type
 	 */
-	async getByTrigger(
-		trigger: SnapshotManifest["trigger"],
-		limit: number = 50,
-	): Promise<SnapshotManifest[]> {
+	async getByTrigger(trigger: SnapshotManifest["trigger"], limit = 50): Promise<SnapshotManifest[]> {
 		return this.list({ trigger, limit });
 	}
 }

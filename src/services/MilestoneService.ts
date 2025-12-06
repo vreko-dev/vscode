@@ -36,47 +36,25 @@ export class MilestoneService {
 	 * Increment the count of protected files and check for milestones
 	 * @param count Number of new files protected (default 1)
 	 */
-	async incrementProtectedFiles(count: number = 1): Promise<void> {
-		const current = this.context.globalState.get<number>(
-			MilestoneService.KEYS.TOTAL_FILES_PROTECTED,
-			0,
-		);
+	async incrementProtectedFiles(count = 1): Promise<void> {
+		const current = this.context.globalState.get<number>(MilestoneService.KEYS.TOTAL_FILES_PROTECTED, 0);
 		const newValue = current + count;
 
-		await this.context.globalState.update(
-			MilestoneService.KEYS.TOTAL_FILES_PROTECTED,
-			newValue,
-		);
+		await this.context.globalState.update(MilestoneService.KEYS.TOTAL_FILES_PROTECTED, newValue);
 
-		this.checkThresholds(
-			current,
-			newValue,
-			MilestoneService.THRESHOLDS.FILES_PROTECTED,
-			"files_protected",
-		);
+		this.checkThresholds(current, newValue, MilestoneService.THRESHOLDS.FILES_PROTECTED, "files_protected");
 	}
 
 	/**
 	 * Increment the count of recoveries (restores) and check for milestones
 	 */
 	async incrementRecoveries(): Promise<void> {
-		const current = this.context.globalState.get<number>(
-			MilestoneService.KEYS.TOTAL_RECOVERIES,
-			0,
-		);
+		const current = this.context.globalState.get<number>(MilestoneService.KEYS.TOTAL_RECOVERIES, 0);
 		const newValue = current + 1;
 
-		await this.context.globalState.update(
-			MilestoneService.KEYS.TOTAL_RECOVERIES,
-			newValue,
-		);
+		await this.context.globalState.update(MilestoneService.KEYS.TOTAL_RECOVERIES, newValue);
 
-		this.checkThresholds(
-			current,
-			newValue,
-			MilestoneService.THRESHOLDS.RECOVERIES,
-			"recoveries",
-		);
+		this.checkThresholds(current, newValue, MilestoneService.THRESHOLDS.RECOVERIES, "recoveries");
 	}
 
 	/**
@@ -84,14 +62,8 @@ export class MilestoneService {
 	 */
 	getStats(): { filesProtected: number; recoveries: number } {
 		return {
-			filesProtected: this.context.globalState.get<number>(
-				MilestoneService.KEYS.TOTAL_FILES_PROTECTED,
-				0,
-			),
-			recoveries: this.context.globalState.get<number>(
-				MilestoneService.KEYS.TOTAL_RECOVERIES,
-				0,
-			),
+			filesProtected: this.context.globalState.get<number>(MilestoneService.KEYS.TOTAL_FILES_PROTECTED, 0),
+			recoveries: this.context.globalState.get<number>(MilestoneService.KEYS.TOTAL_RECOVERIES, 0),
 		};
 	}
 
@@ -108,10 +80,7 @@ export class MilestoneService {
 		}
 	}
 
-	private triggerMilestone(
-		metricType: "files_protected" | "recoveries",
-		value: number,
-	): void {
+	private triggerMilestone(metricType: "files_protected" | "recoveries", value: number): void {
 		// Track the milestone event
 		this.telemetryProxy.trackEvent("value:milestone_reached", {
 			milestone_type: metricType,
@@ -140,11 +109,7 @@ export class MilestoneService {
 	 * @param title Notification title
 	 * @param detail Notification detail
 	 */
-	async triggerFirstTimeEvent(
-		key: string,
-		title: string,
-		detail: string,
-	): Promise<void> {
+	async triggerFirstTimeEvent(key: string, title: string, detail: string): Promise<void> {
 		const fullKey = `snapback.events.${key}`;
 		const hasOccurred = this.context.globalState.get<boolean>(fullKey, false);
 
@@ -175,11 +140,10 @@ export class MilestoneService {
 				title: `${value} Files Protected!`,
 				detail: `You've protected ${value} files with SnapBack. That's a lot of code safe from accidental loss.`,
 			};
-		} else {
-			return {
-				title: `${value} Recovery Performed`, // Fixed grammar: "Recoveries" -> "Recovery" for 1, but "Recoveries" for others? Logic below handles pluralization if needed, but singular "1 Recovery" is better
-				detail: `SnapBack has helped you recover from ${value} potential disasters. Keep coding fearlessly!`,
-			};
 		}
+		return {
+			title: `${value} Recovery Performed`, // Fixed grammar: "Recoveries" -> "Recovery" for 1, but "Recoveries" for others? Logic below handles pluralization if needed, but singular "1 Recovery" is better
+			detail: `SnapBack has helped you recover from ${value} potential disasters. Keep coding fearlessly!`,
+		};
 	}
 }

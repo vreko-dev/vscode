@@ -32,17 +32,10 @@ import {
 	PROTECTION_LEVEL_SIGNAGE as _PROTECTION_LEVEL_SIGNAGE,
 	REPO_STATUS_SIGNAGE as _REPO_STATUS_SIGNAGE,
 } from "./constants";
-import type {
-	FileHealthCanonical,
-	ProtectionLevelCanonical,
-	RepoStatusCanonical,
-} from "./types";
+import type { FileHealthCanonical, ProtectionLevelCanonical, RepoStatusCanonical } from "./types";
 
-export const getProtectionLevelSignage = (level: ProtectionLevelCanonical) =>
-	_PROTECTION_LEVEL_SIGNAGE[level];
+export const getProtectionLevelSignage = (level: ProtectionLevelCanonical) => _PROTECTION_LEVEL_SIGNAGE[level];
 
-export const getRepoStatusSignage = (status: RepoStatusCanonical) =>
-	_REPO_STATUS_SIGNAGE[status];
+export const getRepoStatusSignage = (status: RepoStatusCanonical) => _REPO_STATUS_SIGNAGE[status];
 
-export const getFileHealthDecoration = (state: FileHealthCanonical) =>
-	_FILE_HEALTH_DECORATIONS[state];
+export const getFileHealthDecoration = (state: FileHealthCanonical) => _FILE_HEALTH_DECORATIONS[state];
