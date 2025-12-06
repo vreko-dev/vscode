@@ -32,11 +32,11 @@ import { logger } from "./utils/logger";
 /**
  * Represents an AI-generated workflow suggestion with confidence metrics and priority classification.
  *
- * The suggestion system employs a multi-dimensional analysis approach:
- * - Behavioral prediction algorithms analyze user patterns
- * - Risk assessment engines evaluate potential workflow hazards
- * - Confidence scoring combines multiple reliability factors
- * - Priority classification ensures urgent suggestions surface first
+ * The suggestion system analyzes your workflow to provide helpful recommendations based on:
+ * - Patterns detected in your recent actions
+ * - Risk assessment of potential workflow hazards
+ * - Confidence scoring for each suggestion
+ * - Priority ranking to surface urgent suggestions first
  *
  * @interface WorkflowSuggestion
  * @since 1.0.0
@@ -58,12 +58,8 @@ export interface WorkflowSuggestion {
 	action: string;
 
 	/**
-	 * AI confidence score (0-100) calculated using multi-factor analysis:
-	 * - Pattern recognition accuracy (30%)
-	 * - Historical success rate (25%)
-	 * - Context completeness (20%)
-	 * - Risk assessment certainty (15%)
-	 * - User behavior consistency (10%)
+	 * Confidence score (0-100) indicating how reliable this suggestion is based on pattern analysis.
+	 * Higher scores indicate suggestions based on well-established patterns in your workflow.
 	 */
 	confidence: number;
 
