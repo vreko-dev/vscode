@@ -214,7 +214,7 @@ test.describe("Session Analytics Privacy", () => {
 
 		// Privacy guarantee:
 		// - Free tier: No transmission (local-only)
-		// - Solo tier: Requires consent + only aggregates
+		// - Pro tier: Requires consent + only aggregates
 
 		// Placeholder
 		expect(true).toBe(true);
