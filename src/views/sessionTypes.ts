@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { CORE_CONCEPT_SIGNAGE } from "../signage/index.js";
-import type { SessionManifest } from "../snapshot/sessionTypes.js";
+import { CORE_CONCEPT_SIGNAGE } from "../signage/index";
+import type { SessionManifest } from "../snapshot/sessionTypes";
 
 /**
  * Tree item for a session

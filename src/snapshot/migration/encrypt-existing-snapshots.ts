@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { logger } from "../../utils/logger.js";
-import { EncryptionService } from "../EncryptionService.js";
+import { logger } from "../../utils/logger";
+import { EncryptionService } from "../EncryptionService";
 
 /**
  * One-time migration: Encrypt existing plaintext snapshots

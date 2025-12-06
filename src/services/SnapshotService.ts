@@ -1,9 +1,9 @@
 import { EventEmitter } from "node:events";
 import { generateSnapshotId } from "@snapback/contracts";
 import * as vscode from "vscode";
-import { toError } from "../errors/index.js";
-import type { Snapshot } from "../types/snapshot.js";
-import { logger } from "../utils/logger.js";
+import { toError } from "../errors/index";
+import type { Snapshot } from "../types/snapshot";
+import { logger } from "../utils/logger";
 
 export interface SnapshotServiceEvents {
 	"snapshot-created": (snapshot: Snapshot) => void;

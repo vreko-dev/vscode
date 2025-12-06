@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ConfigDetector } from "../../src/config-detector.js";
+import { ConfigDetector } from "../../src/config-detector";
 
 // Mock fast-glob
 vi.mock("fast-glob", () => ({

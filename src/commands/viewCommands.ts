@@ -1,9 +1,9 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { COMMANDS } from "../constants/index.js";
-import type { SnapshotFileNode } from "../views/snapshotNavigatorProvider.js";
-import { compareWithSnapshot } from "./compareWithSnapshot.js";
-import type { CommandContext } from "./index.js";
+import { COMMANDS } from "../constants/index";
+import type { SnapshotFileNode } from "../views/snapshotNavigatorProvider";
+import { compareWithSnapshot } from "./compareWithSnapshot";
+import type { CommandContext } from "./index";
 
 export function registerViewCommands(
 	_context: vscode.ExtensionContext,

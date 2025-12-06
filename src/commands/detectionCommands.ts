@@ -15,8 +15,8 @@
  */
 
 import * as vscode from "vscode";
-import type { AnalysisResult } from "../types/api.js";
-import type { CommandContext } from "./index.js";
+import type { AnalysisResult } from "../types/api";
+import type { CommandContext } from "./index";
 
 /**
  * Register all risk detection and remediation commands.

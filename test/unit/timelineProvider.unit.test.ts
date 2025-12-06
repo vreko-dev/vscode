@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CheckpointTimelineProvider } from "../../src/views/checkpointTimelineProvider.js";
+import { CheckpointTimelineProvider } from "../../src/views/checkpointTimelineProvider";
 
 // Mock vscode module
 vi.mock("vscode", async (importOriginal) => {

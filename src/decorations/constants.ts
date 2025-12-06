@@ -6,8 +6,8 @@
  */
 
 import * as vscode from "vscode";
-import { FILE_HEALTH_DECORATIONS } from "../signage/index.js";
-import type { FileHealthLevel } from "./types.js";
+import { FILE_HEALTH_DECORATIONS } from "../signage/index";
+import type { FileHealthLevel } from "./types";
 
 /**
  * Decoration configuration for a specific health level.

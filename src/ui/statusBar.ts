@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import type { ProtectedFileEntry } from "../views/types.js";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { ProtectedFileEntry } from "../views/types";
 
 export interface ProtectionState {
 	watched: number;

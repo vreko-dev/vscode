@@ -1,9 +1,9 @@
-import type { GroupingMode } from "../types.js";
-import { TimeGroupingStrategy } from "./TimeGroupingStrategy.js";
-import type { GroupingStrategy } from "./types.js";
+import type { GroupingMode } from "../types";
+import { TimeGroupingStrategy } from "./TimeGroupingStrategy";
+import type { GroupingStrategy } from "./types";
 
-export { TimeGroupingStrategy } from "./TimeGroupingStrategy.js";
-export * from "./types.js";
+export { TimeGroupingStrategy } from "./TimeGroupingStrategy";
+export * from "./types";
 
 /**
  * Factory to get the appropriate grouping strategy

@@ -15,9 +15,9 @@
 import { logger } from "@snapback/infrastructure";
 import type { BurstDetectionResult } from "@snapback/sdk";
 import * as vscode from "vscode";
-import { SNAPBACK_ICONS } from "../constants/index.js";
-import type { Result } from "../types/result.js";
-import { Ok } from "../types/result.js";
+import { SNAPBACK_ICONS } from "../constants/index";
+import type { Result } from "../types/result";
+import { Ok } from "../types/result";
 
 /**
  * AI detection data passed to warning manager

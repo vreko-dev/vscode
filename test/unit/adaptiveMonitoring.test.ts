@@ -1,11 +1,11 @@
 import * as assert from "node:assert";
 import { vi } from "vitest";
 import * as vscode from "vscode";
-import { AdaptiveMonitoringService } from "../../src/adaptiveMonitoring.js";
+import { AdaptiveMonitoringService } from "../../src/adaptiveMonitoring";
 // @ts-expect-error
-import type { NotificationManager } from "../../src/notificationManager.js";
+import type { NotificationManager } from "../../src/notificationManager";
 // @ts-expect-error
-import type { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import type { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 suite("AdaptiveMonitoringService Test Suite", () => {
 	vscode.window.showInformationMessage("Start all tests.");

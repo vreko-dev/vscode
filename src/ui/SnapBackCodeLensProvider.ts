@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import type { OperationCoordinator } from "../operationCoordinator.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { logger } from "../utils/logger.js";
+import type { OperationCoordinator } from "../operationCoordinator";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { logger } from "../utils/logger";
 
 /**
  * CodeLens provider for SnapBack inline UI elements

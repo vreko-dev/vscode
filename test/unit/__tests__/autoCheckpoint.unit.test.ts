@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { SaveHandler } from "../../../src/handlers/SaveHandler.js";
-import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry.js";
+import { SaveHandler } from "../../../src/handlers/SaveHandler";
+import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
 
 describe("Auto-Checkpoint on Save Tests", () => {
 	let registry: ProtectedFileRegistry;

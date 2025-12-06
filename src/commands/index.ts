@@ -1,50 +1,50 @@
 import type { ServiceFederation } from "@snapback/core";
 import type * as vscodeType from "vscode";
 import * as vscode from "vscode";
-import type { ConflictResolver } from "../conflictResolver.js";
-import type { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider.js"; // 🆕 Import FileHealthDecorationProvider
-import type { NotificationManager } from "../notificationManager.js";
-import type { OperationCoordinator } from "../operationCoordinator.js";
-import type { ConfigFileManager } from "../protection/ConfigFileManager.js";
-import type { FileSystemWatcher } from "../protection/FileSystemWatcher.js";
-import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader.js";
-import type { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider.js";
-import type { FeatureFlagService } from "../services/feature-flag-service.js"; // 🆕 Import FeatureFlagService type
-import type { MCPLifecycleManager } from "../services/MCPLifecycleManager.js"; // 🆕 Import MCPLifecycleManager
+import type { ConflictResolver } from "../conflictResolver";
+import type { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider"; // 🆕 Import FileHealthDecorationProvider
+import type { NotificationManager } from "../notificationManager";
+import type { OperationCoordinator } from "../operationCoordinator";
+import type { ConfigFileManager } from "../protection/ConfigFileManager";
+import type { FileSystemWatcher } from "../protection/FileSystemWatcher";
+import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
+import type { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
+import type { FeatureFlagService } from "../services/feature-flag-service"; // 🆕 Import FeatureFlagService type
+import type { MCPLifecycleManager } from "../services/MCPLifecycleManager"; // 🆕 Import MCPLifecycleManager
 // Import proper types
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import type { StorageSnapshotSummaryProvider } from "../services/snapshotSummaryProvider.js";
-import type { WorkspaceManager } from "../services/WorkspaceManager.js"; // 🆕 Import WorkspaceManager
-import type { SnapshotManager } from "../snapshot/SnapshotManager.js";
-import type { StorageManager } from "../storage/StorageManager.js";
-import type { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider.js";
-import type { SnapshotRestoreUI } from "../ui/SnapshotRestoreUI.js";
-import type { StatusBarController } from "../ui/statusBar.js";
-import type { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider.js";
-import type { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider.js";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { StorageSnapshotSummaryProvider } from "../services/snapshotSummaryProvider";
+import type { WorkspaceManager } from "../services/WorkspaceManager"; // 🆕 Import WorkspaceManager
+import type { SnapshotManager } from "../snapshot/SnapshotManager";
+import type { StorageManager } from "../storage/StorageManager";
+import type { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
+import type { SnapshotRestoreUI } from "../ui/SnapshotRestoreUI";
+import type { StatusBarController } from "../ui/statusBar";
+import type { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider";
+import type { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
 
-import type { WelcomeView } from "../welcomeView.js";
-import type { WorkflowIntegration } from "../workflowIntegration.js";
-import type { WorkspaceMemoryManager } from "../workspaceMemory.js";
-import { registerAuthCommands } from "./authCommands.js";
-import { registerDecorationCommands } from "./decorationCommands.js"; // 🆕 Import decoration commands
-import { registerDetectionCommands } from "./detectionCommands.js";
+import type { WelcomeView } from "../welcomeView";
+import type { WorkflowIntegration } from "../workflowIntegration";
+import type { WorkspaceMemoryManager } from "../workspaceMemory";
+import { registerAuthCommands } from "./authCommands";
+import { registerDecorationCommands } from "./decorationCommands"; // 🆕 Import decoration commands
+import { registerDetectionCommands } from "./detectionCommands";
 import {
 	registerConnectCommand,
 	registerOpenSnapshotInWebCommand,
 	registerRefreshTreeCommand,
-} from "./explorerTree.js";
-import { registerMcpCommands } from "./mcpCommands.js"; // 🆕 Import MCP commands
-import { registerOfflineModeCommands } from "./offlineModeCommands.js";
-import { registerPolicyOverrideCommands } from "./policyOverrideCommands.js";
-import { registerProtectionCommands } from "./protectionCommands.js";
-import { registerSessionCommands } from "./sessionCommands.js";
-import { registerSnapshotCommands } from "./snapshotCommands.js";
-import { registerSnapshotCreationCommands } from "./snapshotCreationCommands.js";
-import { registerStatusBarCommands } from "./statusBarCommands.js";
-import { registerUtilityCommands } from "./utilityCommands.js";
-import { registerViewCommands } from "./viewCommands.js";
-import { registerWorkflowCommands } from "./workflowCommands.js";
+} from "./explorerTree";
+import { registerMcpCommands } from "./mcpCommands"; // 🆕 Import MCP commands
+import { registerOfflineModeCommands } from "./offlineModeCommands";
+import { registerPolicyOverrideCommands } from "./policyOverrideCommands";
+import { registerProtectionCommands } from "./protectionCommands";
+import { registerSessionCommands } from "./sessionCommands";
+import { registerSnapshotCommands } from "./snapshotCommands";
+import { registerSnapshotCreationCommands } from "./snapshotCreationCommands";
+import { registerStatusBarCommands } from "./statusBarCommands";
+import { registerUtilityCommands } from "./utilityCommands";
+import { registerViewCommands } from "./viewCommands";
+import { registerWorkflowCommands } from "./workflowCommands";
 
 /**
  * Helper to safely register a command with deduplication

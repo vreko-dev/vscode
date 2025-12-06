@@ -2,10 +2,10 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { minimatch } from "minimatch";
 import * as vscode from "vscode";
-import type { ConfigDetector } from "../config-detector.js";
+import type { ConfigDetector } from "../config-detector";
 import type { SnapBackRC } from "../types/snapbackrc.types";
-import { logger } from "../utils/logger.js";
-import type { ProtectionLevel } from "../views/types.js";
+import { logger } from "../utils/logger";
+import type { ProtectionLevel } from "../views/types";
 
 interface FileProtectionStatus {
 	filePath: string;

@@ -1,8 +1,8 @@
 // API hook if available; else watch Copilot staging; score/block via backend API with override reason
 
 import * as vscode from "vscode";
-import { ApiClient } from "../../services/api-client.js";
-import { logger } from "../../utils/logger.js";
+import { ApiClient } from "../../services/api-client";
+import { logger } from "../../utils/logger";
 
 // Define a type for the Copilot solution object
 interface CopilotSolution {

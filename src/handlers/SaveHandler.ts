@@ -1,18 +1,18 @@
 import * as vscode from "vscode";
-import { type AIDetection, AIWarningManager } from "../ai/AIWarningManager.js";
-import type { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider.js";
-import type { OperationCoordinator } from "../operationCoordinator.js";
-import type { AIRiskService } from "../services/aiRiskService.js";
-import { NoopAIRiskService } from "../services/aiRiskService.js";
-import type { MilestoneService } from "../services/MilestoneService.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import type { AnalysisResult, BasicAnalysisResult } from "../types/api.js";
-import type { CooldownIndicator } from "../ui/cooldownIndicator.js";
-import { logger } from "../utils/logger.js";
-import { AnalysisCoordinator } from "./AnalysisCoordinator.js";
-import { AuditLogger } from "./AuditLogger.js";
-import { CooldownService } from "./CooldownService.js";
-import { ProtectionLevelHandler } from "./ProtectionLevelHandler.js";
+import { type AIDetection, AIWarningManager } from "../ai/AIWarningManager";
+import type { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider";
+import type { OperationCoordinator } from "../operationCoordinator";
+import type { AIRiskService } from "../services/aiRiskService";
+import { NoopAIRiskService } from "../services/aiRiskService";
+import type { MilestoneService } from "../services/MilestoneService";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { AnalysisResult, BasicAnalysisResult } from "../types/api";
+import type { CooldownIndicator } from "../ui/cooldownIndicator";
+import { logger } from "../utils/logger";
+import { AnalysisCoordinator } from "./AnalysisCoordinator";
+import { AuditLogger } from "./AuditLogger";
+import { CooldownService } from "./CooldownService";
+import { ProtectionLevelHandler } from "./ProtectionLevelHandler";
 
 // Interface for iteration tracking data
 interface IterationData {

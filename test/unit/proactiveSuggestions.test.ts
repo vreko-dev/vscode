@@ -2,7 +2,7 @@ import * as assert from "node:assert";
 // @ts-expect-error
 import sinon from "sinon";
 import * as vscode from "vscode";
-import { ProactiveSuggestionsService } from "../../src/proactiveSuggestions.js";
+import { ProactiveSuggestionsService } from "../../src/proactiveSuggestions";
 
 suite("ProactiveSuggestionsService Test Suite", () => {
 	vscode.window.showInformationMessage("Start all tests.");

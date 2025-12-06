@@ -1,24 +1,24 @@
 import * as vscode from "vscode";
-import { ConflictResolver } from "../conflictResolver.js";
-import { NotificationManager } from "../notificationManager.js";
-import { OperationCoordinator } from "../operationCoordinator.js";
-import { NoopAIRiskService } from "../services/aiRiskService.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { ProtectionManager } from "../services/protectionPolicy.js";
-import { ProtectionService } from "../services/protectionService.js";
-import { StorageSnapshotSummaryProvider } from "../services/snapshotSummaryProvider.js";
-import { SmartContextDetector } from "../smartContext.js";
-import { SessionCoordinator } from "../snapshot/SessionCoordinator.js";
-import { SnapshotManager } from "../snapshot/SnapshotManager.js";
-import { SnapshotStorageAdapter } from "../snapshot/SnapshotStorageAdapter.js";
-import { VSCodeConfirmationService } from "../snapshot/VSCodeConfirmationService.js";
-import type { StorageManager } from "../storage/StorageManager.js";
-import type { IEventEmitter } from "../types/snapshot.js";
-import { StatusBarController } from "../ui/statusBar.js";
-import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider.js";
-import { WorkflowIntegration } from "../workflowIntegration.js";
-import { WorkspaceMemoryManager } from "../workspaceMemory.js";
-import { PhaseLogger } from "./phaseLogger.js";
+import { ConflictResolver } from "../conflictResolver";
+import { NotificationManager } from "../notificationManager";
+import { OperationCoordinator } from "../operationCoordinator";
+import { NoopAIRiskService } from "../services/aiRiskService";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { ProtectionManager } from "../services/protectionPolicy";
+import { ProtectionService } from "../services/protectionService";
+import { StorageSnapshotSummaryProvider } from "../services/snapshotSummaryProvider";
+import { SmartContextDetector } from "../smartContext";
+import { SessionCoordinator } from "../snapshot/SessionCoordinator";
+import { SnapshotManager } from "../snapshot/SnapshotManager";
+import { SnapshotStorageAdapter } from "../snapshot/SnapshotStorageAdapter";
+import { VSCodeConfirmationService } from "../snapshot/VSCodeConfirmationService";
+import type { StorageManager } from "../storage/StorageManager";
+import type { IEventEmitter } from "../types/snapshot";
+import { StatusBarController } from "../ui/statusBar";
+import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
+import { WorkflowIntegration } from "../workflowIntegration";
+import { WorkspaceMemoryManager } from "../workspaceMemory";
+import { PhaseLogger } from "./phaseLogger";
 
 export interface Phase3Result {
 	workspaceMemoryManager: WorkspaceMemoryManager;
@@ -37,8 +37,8 @@ export interface Phase3Result {
 	milestoneService: MilestoneService;
 }
 
-import { MilestoneService } from "../services/MilestoneService.js";
-import type { TelemetryProxy } from "../services/telemetry-proxy.js";
+import { MilestoneService } from "../services/MilestoneService";
+import type { TelemetryProxy } from "../services/telemetry-proxy";
 // ... imports ...
 
 export async function initializePhase3Managers(

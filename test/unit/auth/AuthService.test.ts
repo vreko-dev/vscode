@@ -9,11 +9,11 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthService } from "../../../src/auth/AuthService.js";
+import { AuthService } from "../../../src/auth/AuthService";
 import type {
 	CredentialsManager,
 	ExtensionCredentials,
-} from "../../../src/auth/credentials.js";
+} from "../../../src/auth/credentials";
 
 // Mock logger
 vi.mock("@snapback/infrastructure", () => ({

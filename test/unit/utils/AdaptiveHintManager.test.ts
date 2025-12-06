@@ -7,7 +7,7 @@ import * as vscode from "vscode";
 import {
 	AdaptiveHintManager,
 	type Hint,
-} from "../../../src/utils/AdaptiveHintManager.js";
+} from "../../../src/utils/AdaptiveHintManager";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

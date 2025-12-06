@@ -1,4 +1,4 @@
-import type { ProtectionLevel } from "../types/protection.js";
+import type { ProtectionLevel } from "../types/protection";
 import type {
 	ProtectionRule,
 	SnapBackRC,

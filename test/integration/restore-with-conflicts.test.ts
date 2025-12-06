@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { ConflictResolver } from "../../src/conflictResolver.js";
-import { NotificationManager } from "../../src/notificationManager.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import { ConflictResolver } from "../../src/conflictResolver";
+import { NotificationManager } from "../../src/notificationManager";
+import { OperationCoordinator } from "../../src/operationCoordinator";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 // Mock the storage dependency
 vi.mock("@snapback/storage", () => ({

@@ -1,12 +1,12 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import {
 	CORE_CONCEPT_SIGNAGE,
 	PROTECTION_LEVEL_SIGNAGE,
-} from "../signage/index.js";
-import type { ProtectionLevelCanonical } from "../signage/types.js";
-import { logger } from "../utils/logger.js";
+} from "../signage/index";
+import type { ProtectionLevelCanonical } from "../signage/types";
+import { logger } from "../utils/logger";
 import type { ProtectedFileEntry } from "./types";
 
 /**

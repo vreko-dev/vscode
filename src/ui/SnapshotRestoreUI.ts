@@ -7,13 +7,13 @@
  */
 
 import * as vscode from "vscode";
-import type { OperationCoordinator } from "../operationCoordinator.js";
-import type { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider.js";
+import type { OperationCoordinator } from "../operationCoordinator";
+import type { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
 import {
 	analyzeSnapshot,
 	type FileChange,
-} from "../utils/FileChangeAnalyzer.js";
-import { logger } from "../utils/logger.js";
+} from "../utils/FileChangeAnalyzer";
+import { logger } from "../utils/logger";
 
 /**
  * Snapshot restore UI orchestrator

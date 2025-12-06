@@ -4,29 +4,28 @@
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/snapback.snapback)](https://marketplace.visualstudio.com/items?itemName=snapback.snapback)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-> Automated file protection and snapshot management for VS Code
+> Your AI safety net. SnapBack watches what breaks, remembers the patterns, and catches the next disaster before it ships.
 
-Never lose critical work again. SnapBack automatically protects your important files and creates snapshots before risky changes.
+Every save, SnapBack learns. Day 1: 94% accurate. Day 30: It knows YOUR codebase. Month 3: It catches patterns you didn't know existed.
 
-## Features
+## What It Does
 
 ### 🆓 Always Free
 
-- ✅ **Auto-Protection**: Automatically protect config files, credentials, schemas
-- ✅ **Local Snapshots**: Create unlimited snapshots stored locally
-- ✅ **Secret Detection**: Prevent committing API keys and passwords
-- ✅ **Risk Analysis**: Detect dangerous code patterns
-- ✅ **File History**: Track changes to protected files
-- ✅ **Works Offline**: No account or internet required
+- ✅ **Pattern Memory**: Learns what AI tools break in YOUR codebase
+- ✅ **Auto-snapshots**: One-click restore to any point—no commands to remember
+- ✅ **Per-Tool Learning**: Learns that Cursor is reckless with configs but careful with tests
+- ✅ **Secrets Detection**: Prevents committing API keys and passwords
+- ✅ **Works Offline**: 100% local, no account required
 
-### ☁️ Cloud Features (Optional - Free API Key)
+### ☁️ Cloud Features (Pro & Team Plans)
 
-Get a free API key from [snapback.dev](https://snapback.dev) to unlock:
+Upgrade at [snapback.dev](https://snapback.dev) to unlock:
 
+- 🔐 **Learn from Everyone**: Get warnings about patterns that broke in 1,000+ other repos
 - 🔐 **Cross-Device Sync**: Access snapshots on any computer
-- 🔐 **Team Sharing**: Share protection rules with your team
-- 🔐 **Advanced Analytics**: ML-powered risk detection
-- 🔐 **Cloud Backup**: Never lose snapshots
+- 🔐 **Team Learning**: Share what your team learns about AI safety
+- 🔐 **Cloud Backup**: Snapshots backed up automatically
 
 ## Installation
 

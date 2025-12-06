@@ -5,17 +5,17 @@
 
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
-import { COMMANDS } from "../constants/index.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import type { AttentionItem } from "../services/protectionPolicy.js";
-import type { ProtectionService } from "../services/protectionService.js";
-import type { StorageSnapshotSummaryProvider } from "../services/snapshotSummaryProvider.js";
+import { COMMANDS } from "../constants/index";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { AttentionItem } from "../services/protectionPolicy";
+import type { ProtectionService } from "../services/protectionService";
+import type { StorageSnapshotSummaryProvider } from "../services/snapshotSummaryProvider";
 import type {
 	BlockingIssue,
 	WatchItem,
 	WorkspaceSafetyService,
 } from "../services/WorkspaceSafetyService";
-import { CORE_CONCEPT_SIGNAGE, REPO_STATUS_SIGNAGE } from "../signage/index.js";
+import { CORE_CONCEPT_SIGNAGE, REPO_STATUS_SIGNAGE } from "../signage/index";
 
 type SafetyTreeNode =
 	| SectionNode

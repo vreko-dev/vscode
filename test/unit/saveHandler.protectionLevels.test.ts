@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { SaveHandler } from "../../src/handlers/SaveHandler.js";
+import { SaveHandler } from "../../src/handlers/SaveHandler";
 import {
 	createMockDocument,
 	createMockSaveEvent,

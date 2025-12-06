@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { NotificationManager } from "../../src/notificationManager.js";
-import type { OperationCoordinator } from "../../src/operationCoordinator.js";
-import { SmartContextDetector } from "../../src/smartContext.js";
-import type { FileSystemStorage } from "../../src/storage/types.js";
-import { WorkflowIntegration } from "../../src/workflowIntegration.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import type { NotificationManager } from "../../src/notificationManager";
+import type { OperationCoordinator } from "../../src/operationCoordinator";
+import { SmartContextDetector } from "../../src/smartContext";
+import type { FileSystemStorage } from "../../src/storage/types";
+import { WorkflowIntegration } from "../../src/workflowIntegration";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 // Mock FileSystemStorage methods
 const mockStorage = {

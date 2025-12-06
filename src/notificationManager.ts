@@ -25,8 +25,8 @@
  */
 
 import * as vscode from "vscode";
-import { SNAPBACK_ICONS } from "./constants/index.js";
-import { logger } from "./utils/logger.js";
+import { SNAPBACK_ICONS } from "./constants/index";
+import { logger } from "./utils/logger";
 
 /**
  * Represents a structured notification within the SnapBack ecosystem.

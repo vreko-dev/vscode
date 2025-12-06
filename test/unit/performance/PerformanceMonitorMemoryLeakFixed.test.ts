@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { PerformanceMonitor } from "../../../src/performance/PerformanceMonitor.js";
+import { PerformanceMonitor } from "../../../src/performance/PerformanceMonitor";
 
 describe("PerformanceMonitor Memory Leak Fixed", () => {
 	let _monitor: PerformanceMonitor;

@@ -16,15 +16,15 @@ import {
 	fileExists,
 	readJsonFile,
 	writeJsonFile,
-} from "../../../src/storage/utils/atomicWrite.js";
+} from "../../../src/storage/utils/atomicWrite";
 import {
 	generateAuditId,
 	generateSessionId,
 	generateSnapshotId,
 	parseTimestampFromId,
 	randomId,
-} from "../../../src/storage/utils/fileId.js";
-import { getBlobPath, hashContent } from "../../../src/storage/utils/hash.js";
+} from "../../../src/storage/utils/fileId";
+import { getBlobPath, hashContent } from "../../../src/storage/utils/hash";
 
 describe("Storage Utilities", () => {
 	let tempDir: string;

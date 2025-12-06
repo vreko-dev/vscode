@@ -1,6 +1,6 @@
 import { StorageBroker, THRESHOLDS } from "@snapback/sdk"; // Import StorageBroker directly from main export
-import { logger } from "../utils/logger.js";
-import type { ProtectionLevel } from "../views/types.js";
+import { logger } from "../utils/logger";
+import type { ProtectionLevel } from "../views/types";
 
 /**
  * Interface for cooldown entry in storage

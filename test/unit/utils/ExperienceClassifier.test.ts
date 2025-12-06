@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ExperienceClassifier } from "../../../src/utils/ExperienceClassifier.js";
+import { ExperienceClassifier } from "../../../src/utils/ExperienceClassifier";
 
 describe("ExperienceClassifier", () => {
 	let experienceClassifier: ExperienceClassifier;

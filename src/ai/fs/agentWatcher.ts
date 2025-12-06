@@ -4,9 +4,9 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as chokidar from "chokidar";
 import * as vscode from "vscode";
-import { ApiClient } from "../../services/api-client.js";
-import type { AnalysisResult, BasicAnalysisResult } from "../../types/api.js";
-import { logger } from "../../utils/logger.js";
+import { ApiClient } from "../../services/api-client";
+import type { AnalysisResult, BasicAnalysisResult } from "../../types/api";
+import { logger } from "../../utils/logger";
 
 export class AgentWatcher {
 	private watchers: chokidar.FSWatcher[] = [];

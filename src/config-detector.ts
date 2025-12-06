@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { glob } from "fast-glob";
-import { logger } from "./utils/logger.js";
+import { logger } from "./utils/logger";
 
 interface ConfigFile {
 	type: string;

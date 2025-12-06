@@ -13,8 +13,8 @@ import {
 	ExperienceClassifier as SDKExperienceClassifier,
 } from "@snapback/sdk";
 import type * as vscode from "vscode";
-import { GlobalStateStorageAdapter } from "../adapters/GlobalStateStorageAdapter.js";
-import { logger } from "./logger.js";
+import { GlobalStateStorageAdapter } from "../adapters/GlobalStateStorageAdapter";
+import { logger } from "./logger";
 
 /**
  * VSCode-specific logger adapter

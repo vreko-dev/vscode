@@ -13,7 +13,7 @@ import {
 	type SessionTag,
 	type SessionTaggingResult,
 } from "@snapback/sdk";
-import { detectAIPresence } from "./AIPresenceDetector.js";
+import { detectAIPresence } from "./AIPresenceDetector";
 
 // Re-export types for backward compatibility
 export type { SessionTag, SessionTaggingResult };

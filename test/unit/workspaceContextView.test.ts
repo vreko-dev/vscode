@@ -1,6 +1,6 @@
 import * as assert from "node:assert";
 import * as vscode from "vscode";
-import { WorkspaceContextView } from "../../src/workspaceContextView.js";
+import { WorkspaceContextView } from "../../src/workspaceContextView";
 import type {
 	WorkspaceContext,
 	WorkspaceMemoryManager,

@@ -2,7 +2,7 @@ import type * as vscode from "vscode";
 import { ApiClient } from "../services/api-client";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { type BlockDialogOptions, SnapBackDialogs } from "../ui/dialogs";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 // Define the ProtectionDecision interface based on how it's used
 interface ProtectionDecision {

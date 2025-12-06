@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type {
 	FileHealthLevel,
 	FileHealthStatus,
-} from "../../../src/decorations/types.js";
+} from "../../../src/decorations/types";
 
 describe("FileHealth Types", () => {
 	describe("FileHealthLevel", () => {

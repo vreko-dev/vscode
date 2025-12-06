@@ -9,7 +9,7 @@ import {
 	disposeNotificationRateLimiter,
 	getNotificationRateLimiter,
 	NotificationRateLimiter,
-} from "../../../src/notifications/rateLimiter.js";
+} from "../../../src/notifications/rateLimiter";
 
 describe("NotificationRateLimiter", () => {
 	let limiter: NotificationRateLimiter;

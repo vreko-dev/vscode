@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import type { StorageManager } from "../services/StorageManager.js";
-import type { SessionCoordinator } from "../snapshot/SessionCoordinator.js";
-import type { SessionManifest } from "../snapshot/sessionTypes.js";
-import { SessionFileTreeItem, SessionTreeItem } from "./sessionTypes.js";
+import type { StorageManager } from "../services/StorageManager";
+import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
+import type { SessionManifest } from "../snapshot/sessionTypes";
+import { SessionFileTreeItem, SessionTreeItem } from "./sessionTypes";
 
 /**
  * Tree provider for displaying sessions in the SnapBack view

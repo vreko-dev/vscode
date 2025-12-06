@@ -1,6 +1,6 @@
 import type * as vscode from "vscode";
-import { QueuedNetworkAdapter } from "../network/QueuedNetworkAdapter.js";
-import { logger } from "../utils/logger.js";
+import { QueuedNetworkAdapter } from "../network/QueuedNetworkAdapter";
+import { logger } from "../utils/logger";
 
 export interface RemoteMCPOptions {
 	/**

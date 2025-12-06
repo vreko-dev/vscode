@@ -11,10 +11,10 @@
  * 4. RepoProtectionStatus - Status enumeration for repo-level protection
  */
 
-import type { ProtectionLevel } from "../types/protection.js";
+import type { ProtectionLevel } from "../types/protection";
 import type { SnapBackRC } from "../types/snapbackrc.types";
-import { logger } from "../utils/logger.js";
-import type { ProtectedFileRegistry } from "./protectedFileRegistry.js";
+import { logger } from "../utils/logger";
+import type { ProtectedFileRegistry } from "./protectedFileRegistry";
 
 /**
  * Individual protection rule definition

@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
 	createRiskEnrichment,
 	hasRiskEnrichment,
-} from "../../src/services/TelemetryRiskEnricher.js";
+} from "../../src/services/TelemetryRiskEnricher";
 
 /**
  * E2E Scenario 1: Risk Detection → Enrichment → Telemetry

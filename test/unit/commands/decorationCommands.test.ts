@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { registerDecorationCommands } from "../../../src/commands/decorationCommands.js";
-import { FileHealthDecorationProvider } from "../../../src/decorations/FileHealthDecorationProvider.js";
-import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry.js";
+import { registerDecorationCommands } from "../../../src/commands/decorationCommands";
+import { FileHealthDecorationProvider } from "../../../src/decorations/FileHealthDecorationProvider";
+import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
 
 describe("Decoration Commands", () => {
 	let context: vscode.ExtensionContext;

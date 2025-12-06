@@ -2,11 +2,11 @@ import * as path from "node:path";
 import { glob } from "fast-glob";
 import { minimatch } from "minimatch";
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "./services/protectedFileRegistry.js";
+import type { ProtectedFileRegistry } from "./services/protectedFileRegistry";
 import type { SnapBackRC } from "./types/snapbackrc.types";
-import { toError } from "./utils/errorHelpers.js";
-import { logger } from "./utils/logger.js";
-import type { ProtectionLevel } from "./views/types.js";
+import { toError } from "./utils/errorHelpers";
+import { logger } from "./utils/logger";
+import type { ProtectionLevel } from "./views/types";
 
 interface FileProtectionRecommendation {
 	filePath: string;

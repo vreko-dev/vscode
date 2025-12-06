@@ -7,9 +7,9 @@ import type {
 	PolicyConfig,
 	PolicyOverride,
 	PolicyRule,
-} from "../types/policy.types.js";
-import type { ProtectionLevel } from "../types/protection.js";
-import { logger } from "../utils/logger.js";
+} from "../types/policy.types";
+import type { ProtectionLevel } from "../types/protection";
+import { logger } from "../utils/logger";
 
 /**
  * PolicyManager handles loading and applying policies from .snapback/policy.json

@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { toError } from "./errorHelpers.js";
-import { logger } from "./logger.js";
+import { toError } from "./errorHelpers";
+import { logger } from "./logger";
 
 // Define the session data structure
 interface ExtensionSessionData {

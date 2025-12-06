@@ -13,7 +13,7 @@ import {
 	type IKeyValueStorage,
 } from "@snapback/sdk";
 import * as vscode from "vscode";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 /**
  * User experience levels for progressive disclosure

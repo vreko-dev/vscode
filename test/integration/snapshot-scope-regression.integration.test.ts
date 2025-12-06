@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ProtectionLevelHandler } from "../../src/handlers/ProtectionLevelHandler.js";
+import { ProtectionLevelHandler } from "../../src/handlers/ProtectionLevelHandler";
 import {
 	createMockDocument,
 	createMockOperationCoordinator,
-} from "../__mocks__/factories.js";
+} from "../__mocks__/factories";
 
 describe("Snapshot Scope Regression Test", () => {
 	let _protectionHandler: ProtectionLevelHandler;

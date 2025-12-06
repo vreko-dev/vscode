@@ -9,8 +9,8 @@ import * as vscode from "vscode";
 import {
 	ExperienceLevel,
 	type UserExperienceService,
-} from "../services/UserExperienceService.js";
-import { logger } from "../utils/logger.js";
+} from "../services/UserExperienceService";
+import { logger } from "../utils/logger";
 
 /**
  * Feature definitions with required experience levels

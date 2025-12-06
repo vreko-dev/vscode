@@ -8,8 +8,8 @@
  */
 
 import * as vscode from "vscode";
-import { logger } from "../utils/logger.js";
-import { STACK_PROFILES, type StackProfile } from "./stackProfiles.js";
+import { logger } from "../utils/logger";
+import { STACK_PROFILES, type StackProfile } from "./stackProfiles";
 
 /**
  * Detect active stacks in the workspace

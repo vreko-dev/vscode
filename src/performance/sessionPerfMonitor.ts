@@ -11,8 +11,8 @@
  * - Manifest creation: avg < 20ms, p95 < 40ms
  */
 
-import { logger } from "../utils/logger.js";
-import { PerformanceMonitor } from "./PerformanceMonitor.js";
+import { logger } from "../utils/logger";
+import { PerformanceMonitor } from "./PerformanceMonitor";
 
 // Performance budgets in milliseconds
 export const SESSION_PERF_BUDGETS = {

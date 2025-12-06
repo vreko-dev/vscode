@@ -7,8 +7,8 @@
 
 import * as path from "node:path";
 import * as vscode from "vscode";
-import type { ProtectionLevel } from "../views/types.js";
-import { NotificationAcknowledgment } from "./acknowledgment.js";
+import type { ProtectionLevel } from "../views/types";
+import { NotificationAcknowledgment } from "./acknowledgment";
 
 /**
  * Map from extension's protection level names to notification emoji

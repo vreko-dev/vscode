@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { FileHealthDecorationProvider } from "../../../src/decorations/FileHealthDecorationProvider.js";
-import type { FileHealthLevel } from "../../../src/decorations/types.js";
+import { FileHealthDecorationProvider } from "../../../src/decorations/FileHealthDecorationProvider";
+import type { FileHealthLevel } from "../../../src/decorations/types";
 
 // Mock VS Code APIs
 vi.mock("vscode", () => ({

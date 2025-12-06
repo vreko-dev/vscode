@@ -3,13 +3,13 @@ import {
 	registerConnectCommand,
 	registerOpenSnapshotInWebCommand,
 	registerRefreshTreeCommand,
-} from "../commands/explorerTree.js";
-import { registerToggleGroupingModeCommand } from "../commands/toggleGroupingMode.js";
-import { COMMANDS } from "../constants/index.js";
-import type { SessionCoordinator } from "../snapshot/SessionCoordinator.js";
-import { VIEW_IDS } from "../views/ViewRegistry.js";
-import type { Phase4Result } from "./phase4-providers.js";
-import { PhaseLogger } from "./phaseLogger.js";
+} from "../commands/explorerTree";
+import { registerToggleGroupingModeCommand } from "../commands/toggleGroupingMode";
+import { COMMANDS } from "../constants/index";
+import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
+import { VIEW_IDS } from "../views/ViewRegistry";
+import type { Phase4Result } from "./phase4-providers";
+import { PhaseLogger } from "./phaseLogger";
 
 export type Phase5Result = Record<string, never>;
 

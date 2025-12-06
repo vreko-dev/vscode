@@ -1,12 +1,12 @@
 import * as vscode from "vscode";
-import type { AIRiskService } from "../services/aiRiskService.js";
-import { ApiClient } from "../services/api-client.js";
-import type { MilestoneService } from "../services/MilestoneService.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import type { AnalysisResult, BasicAnalysisResult } from "../types/api.js";
-import { logger } from "../utils/logger.js";
-import type { ProtectionLevel } from "../views/types.js";
-import type { AuditLogger } from "./AuditLogger.js";
+import type { AIRiskService } from "../services/aiRiskService";
+import { ApiClient } from "../services/api-client";
+import type { MilestoneService } from "../services/MilestoneService";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { AnalysisResult, BasicAnalysisResult } from "../types/api";
+import { logger } from "../utils/logger";
+import type { ProtectionLevel } from "../views/types";
+import type { AuditLogger } from "./AuditLogger";
 
 /**
  * Result of risk analysis with blocking decision

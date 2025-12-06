@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { SaveHandler } from "../../src/handlers/SaveHandler.js";
-import { patchRegistryMockWithProtectionLevel } from "../helpers/mockPatches.js";
+import { SaveHandler } from "../../src/handlers/SaveHandler";
+import { patchRegistryMockWithProtectionLevel } from "../helpers/mockPatches";
 
 vi.mock("../../src/utils/logger", () => ({
 	logger: {

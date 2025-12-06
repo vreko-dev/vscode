@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Logger, LogLevel } from "../../src/utils/logger.js";
+import { Logger, LogLevel } from "../../src/utils/logger";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

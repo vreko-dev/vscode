@@ -6,7 +6,7 @@
 import * as path from "node:path";
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
-import type { StorageSnapshotSummaryProvider } from "./snapshotSummaryProvider.js";
+import type { StorageSnapshotSummaryProvider } from "./snapshotSummaryProvider";
 
 export interface BlockingIssue {
 	id: string;

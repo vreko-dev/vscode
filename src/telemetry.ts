@@ -18,7 +18,7 @@ import { LEGACY_TELEMETRY_EVENTS } from "@snapback/contracts";
 import { SnapBackEventBus } from "@snapback/events";
 import { TelemetryClient } from "@snapback/infrastructure/tracing";
 import * as vscode from "vscode";
-import { FeatureFlagService } from "./services/feature-flag-service.js"; // 🆕 Import FeatureFlagService
+import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService
 import { TelemetryProxy } from "./services/telemetry-proxy";
 
 /**

@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 /**
  * Feature Flag Service with Caching

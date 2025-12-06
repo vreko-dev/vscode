@@ -2,13 +2,13 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { SaveHandler } from "../../src/handlers/SaveHandler.js";
-import { NotificationManager } from "../../src/notificationManager.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
-import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry.js";
-import { FileSystemStorage } from "../../src/storage/types.js";
-import { ProtectionDecorationProvider } from "../../src/ui/ProtectionDecorationProvider.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import { SaveHandler } from "../../src/handlers/SaveHandler";
+import { NotificationManager } from "../../src/notificationManager";
+import { OperationCoordinator } from "../../src/operationCoordinator";
+import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry";
+import { FileSystemStorage } from "../../src/storage/types";
+import { ProtectionDecorationProvider } from "../../src/ui/ProtectionDecorationProvider";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 describe("Critical Bugs Regression Tests", () => {
 	let operationCoordinator: OperationCoordinator;

@@ -11,7 +11,7 @@
  * @package apps/vscode/src/auth
  */
 
-import type { CredentialsManager } from "./credentials.js";
+import type { CredentialsManager } from "./credentials";
 
 /**
  * Simple credentials view

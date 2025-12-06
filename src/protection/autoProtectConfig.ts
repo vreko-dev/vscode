@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
-import type { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
+import type { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 
 export class AutoProtectConfig implements vscode.Disposable {
 	private readonly configFileName = ".snapbackrc";

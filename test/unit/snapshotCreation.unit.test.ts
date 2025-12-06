@@ -27,10 +27,10 @@ import {
 	stat,
 	writeFile,
 } from "node:fs/promises";
-import { NotificationManager } from "../../src/notificationManager.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
-import { FileSystemStorage } from "../../src/storage/types.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import { NotificationManager } from "../../src/notificationManager";
+import { OperationCoordinator } from "../../src/operationCoordinator";
+import { FileSystemStorage } from "../../src/storage/types";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 describe("Checkpoint Creation", () => {
 	let tempDir: string;

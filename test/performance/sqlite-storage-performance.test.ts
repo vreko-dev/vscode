@@ -2,9 +2,9 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { rimraf } from "rimraf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { PerformanceMonitor } from "../../src/performance/PerformanceMonitor.js";
-import { setPerformanceMonitor } from "../../src/performance/timingDecorators.js";
-import { SqliteSnapshotStorage } from "../../src/storage/SqliteSnapshotStorage.js";
+import { PerformanceMonitor } from "../../src/performance/PerformanceMonitor";
+import { setPerformanceMonitor } from "../../src/performance/timingDecorators";
+import { SqliteSnapshotStorage } from "../../src/storage/SqliteSnapshotStorage";
 
 describe("SqliteSnapshotStorage Performance Monitoring Integration", () => {
 	let storage: SqliteSnapshotStorage;

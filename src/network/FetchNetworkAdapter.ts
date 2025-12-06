@@ -9,8 +9,8 @@ import type {
 	NetworkAdapter,
 	NetworkRequest,
 	NetworkResponse,
-} from "./NetworkAdapter.js";
-import { NetworkError, OfflineError, TimeoutError } from "./NetworkAdapter.js";
+} from "./NetworkAdapter";
+import { NetworkError, OfflineError, TimeoutError } from "./NetworkAdapter";
 
 /**
  * Production network adapter using fetch()

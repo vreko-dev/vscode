@@ -12,9 +12,9 @@
  */
 
 import * as vscode from "vscode";
-import { RulesManager } from "../rules/RulesManager.js";
-import { logger } from "../utils/logger.js";
-import type { CommandContext } from "./index.js";
+import { RulesManager } from "../rules/RulesManager";
+import { logger } from "../utils/logger";
+import type { CommandContext } from "./index";
 
 /**
  * Register all offline mode management commands.

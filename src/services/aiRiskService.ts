@@ -9,7 +9,7 @@
  * and pluggable risk backends
  */
 
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 /**
  * AI risk level classification

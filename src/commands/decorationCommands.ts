@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { logger } from "../utils/logger.js";
-import type { CommandContext } from "./index.js";
+import { logger } from "../utils/logger";
+import type { CommandContext } from "./index";
 
 /**
  * Register decoration-related commands for controlling file health decorations.

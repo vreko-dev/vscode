@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ProtectionLevelHandler } from "../../src/handlers/ProtectionLevelHandler.js";
+import { ProtectionLevelHandler } from "../../src/handlers/ProtectionLevelHandler";
 import {
 	createMockDocument,
 	createMockOperationCoordinator,
-} from "../__mocks__/factories.js";
+} from "../__mocks__/factories";
 
 describe("Block Dialog - No Bypass via Cooldown", () => {
 	let protectionHandler: ProtectionLevelHandler;

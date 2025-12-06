@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { NotificationManager } from "../../src/notificationManager.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
-import { StorageSnapshotSummaryProvider } from "../../src/services/snapshotSummaryProvider.js";
+import { NotificationManager } from "../../src/notificationManager";
+import { OperationCoordinator } from "../../src/operationCoordinator";
+import { StorageSnapshotSummaryProvider } from "../../src/services/snapshotSummaryProvider";
 import {
 	confirmRestoration,
 	showSnapshotSelection,
 } from "../../src/snapshotSelector";
-import { SnapBackTreeProvider } from "../../src/views/snapBackTreeProvider.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
-import { createMockStorage } from "../helpers/mockStorage.js";
-import { createMockProtectedFileRegistry } from "../helpers/protectionLevelHelpers.js";
+import { SnapBackTreeProvider } from "../../src/views/snapBackTreeProvider";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
+import { createMockStorage } from "../helpers/mockStorage";
+import { createMockProtectedFileRegistry } from "../helpers/protectionLevelHelpers";
 
 vi.mock("@snapback/storage", () => ({
 	FileSystemStorage: vi.fn().mockImplementation(() => ({

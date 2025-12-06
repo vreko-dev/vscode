@@ -1,7 +1,7 @@
 import * as assert from "node:assert";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { ConfigFileScanner } from "../../src/services/configFileScanner.js";
+import { ConfigFileScanner } from "../../src/services/configFileScanner";
 
 suite("ConfigFileScanner Integration Tests", () => {
 	let scanner: ConfigFileScanner;

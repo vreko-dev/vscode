@@ -24,10 +24,10 @@
  * @since 1.0.0
  */
 
-import type { NotificationManager } from "./notificationManager.js";
-import type { OperationCoordinator } from "./operationCoordinator.js";
-import type { SmartContextDetector } from "./smartContext.js";
-import { logger } from "./utils/logger.js";
+import type { NotificationManager } from "./notificationManager";
+import type { OperationCoordinator } from "./operationCoordinator";
+import type { SmartContextDetector } from "./smartContext";
+import { logger } from "./utils/logger";
 
 /**
  * Represents an AI-generated workflow suggestion with confidence metrics and priority classification.

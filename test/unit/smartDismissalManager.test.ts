@@ -1,6 +1,6 @@
 import * as assert from "node:assert";
 import * as vscode from "vscode";
-import { SmartDismissalManager } from "../../src/smartDismissalManager.js";
+import { SmartDismissalManager } from "../../src/smartDismissalManager";
 
 suite("SmartDismissalManager Test Suite", () => {
 	vscode.window.showInformationMessage("Start all tests.");

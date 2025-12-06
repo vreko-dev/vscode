@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SnapBackStatusBar } from "../../src/protectionStatusBar.js";
-import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry.js";
+import { SnapBackStatusBar } from "../../src/protectionStatusBar";
+import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry";
 import {
 	BRAND_SIGNAGE,
 	getProtectionLevelSignage,
-} from "../../src/signage/index.js";
-import type { ProtectionLevel } from "../../src/views/types.js";
+} from "../../src/signage/index";
+import type { ProtectionLevel } from "../../src/views/types";
 
 describe("ProtectionStatusBar", () => {
 	let statusBar: SnapBackStatusBar;

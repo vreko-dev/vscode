@@ -1,5 +1,5 @@
 import { expect, vi } from "vitest";
-import type { ProtectionLevel } from "../../src/views/types.js";
+import type { ProtectionLevel } from "../../src/views/types";
 
 /**
  * Test helper utilities for Protection Level feature testing

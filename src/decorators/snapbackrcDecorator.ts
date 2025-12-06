@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
-import type { ProtectionLevel } from "../types/protection.js";
+import type { ProtectionLevel } from "../types/protection";
 
 type HatLevel = ProtectionLevel;
 

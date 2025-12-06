@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NotificationManager } from "../../src/notificationManager.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
+import { NotificationManager } from "../../src/notificationManager";
+import { OperationCoordinator } from "../../src/operationCoordinator";
 import {
 	confirmRestoration,
 	type SnapshotItem,
 	showSnapshotSelection,
 } from "../../src/snapshotSelector";
-import { FileSystemStorage } from "../../src/storage/types.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import { FileSystemStorage } from "../../src/storage/types";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 // Create a mock VS Code module
 const mockVscode = {

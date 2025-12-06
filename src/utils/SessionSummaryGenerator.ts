@@ -11,8 +11,8 @@ import {
 	SessionSummaryGenerator as SDKSessionSummaryGenerator,
 	type SessionManifest,
 } from "@snapback/sdk";
-import type { SnapshotManager } from "../snapshot/SnapshotManager.js";
-import { logger } from "./logger.js";
+import type { SnapshotManager } from "../snapshot/SnapshotManager";
+import { logger } from "./logger";
 
 /**
  * VSCode-specific snapshot provider adapter

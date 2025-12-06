@@ -1,5 +1,5 @@
-import type { StorageManager } from "../storage/StorageManager.js";
-import type { IStorage, Snapshot } from "./SnapshotManager.js";
+import type { StorageManager } from "../storage/StorageManager";
+import type { IStorage, Snapshot } from "./SnapshotManager";
 
 /**
  * SnapshotStorageAdapter - Adapts StorageManager to IStorage interface

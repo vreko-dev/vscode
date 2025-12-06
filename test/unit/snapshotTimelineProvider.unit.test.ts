@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
-import { CheckpointTimelineProvider } from "../../src/views/checkpointTimelineProvider.js";
-import type { CheckpointSummaryProvider } from "../../src/views/types.js";
-import { PROTECTION_LEVELS } from "../../src/views/types.js";
+import { CheckpointTimelineProvider } from "../../src/views/checkpointTimelineProvider";
+import type { CheckpointSummaryProvider } from "../../src/views/types";
+import { PROTECTION_LEVELS } from "../../src/views/types";
 
 // Simple mock for VS Code Uri
 const mockUri = {

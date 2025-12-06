@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FileSystemStorage } from "../../src/storage/types.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import { FileSystemStorage } from "../../src/storage/types";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 // Mock storage by extending FileSystemStorage
 class MockFileSystemStorage extends FileSystemStorage {

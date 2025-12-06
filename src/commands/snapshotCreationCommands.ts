@@ -11,8 +11,8 @@
  */
 
 import * as vscode from "vscode";
-import { COMMANDS } from "../constants/index.js";
-import type { CommandContext } from "./index.js";
+import { COMMANDS } from "../constants/index";
+import type { CommandContext } from "./index";
 
 /**
  * Register all snapshot creation and restoration commands

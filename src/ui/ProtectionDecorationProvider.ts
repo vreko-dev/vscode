@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
-import { PolicyManager } from "../policy/PolicyManager.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { logger } from "../utils/logger.js";
-import type { ProtectionLevelMetadata } from "../views/types.js";
-import { PROTECTION_LEVELS } from "../views/types.js";
+import { PolicyManager } from "../policy/PolicyManager";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { logger } from "../utils/logger";
+import type { ProtectionLevelMetadata } from "../views/types";
+import { PROTECTION_LEVELS } from "../views/types";
 
 export class ProtectionDecorationProvider
 	implements vscode.FileDecorationProvider

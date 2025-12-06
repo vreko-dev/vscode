@@ -3,13 +3,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ConfigurationManager } from "../../src/config/configurationManager.js";
+import { ConfigurationManager } from "../../src/config/configurationManager";
 import {
 	getProtectionLevelForFile,
 	mergeConfigs,
 } from "../../src/config/merge";
-import type { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry.js";
-import type { ProtectionLevel } from "../../src/types/protection.js";
+import type { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry";
+import type { ProtectionLevel } from "../../src/types/protection";
 import type {
 	ProtectionRule,
 	SnapBackRC,

@@ -11,44 +11,44 @@
 // Import real EventBus from @snapback/events
 import { SnapBackEvent, SnapBackEventBus } from "@snapback/events";
 import * as vscode from "vscode";
-import { initializePhase1Services } from "./activation/phase1-services.js";
-import { initializePhase2Storage } from "./activation/phase2-storage.js";
-import { initializePhase3Managers } from "./activation/phase3-managers.js";
-import { initializePhase4Providers } from "./activation/phase4-providers.js";
-import { initializePhase5Registration } from "./activation/phase5-registration.js";
-import { createAuthedApiClient } from "./api/authedApiClient.js";
-import { AnonymousIdManager } from "./auth/AnonymousIdManager.js";
-import { AuthState } from "./auth/AuthState.js";
-import { createCredentialsManager } from "./auth/credentials.js";
-import { SnapBackOAuthProvider } from "./auth/OAuthProvider.js"; // 🆕 Import OAuth provider
-import { registerAllCommands } from "./commands/index.js";
-import { initializeProtectionNotifications } from "./commands/protectionCommands.js";
-import { ContextManager } from "./contextManager.js";
-import { FileHealthDecorationProvider } from "./decorations/FileHealthDecorationProvider.js"; // 🆕 Import FileHealthDecorationProvider
-import { SaveHandler } from "./handlers/SaveHandler.js";
-import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration.js"; // 🆕 Import AutoDecisionIntegration
-import { FileSystemWatcher } from "./protection/FileSystemWatcher.js";
-import { RulesManager } from "./rules/RulesManager.js";
+import { initializePhase1Services } from "./activation/phase1-services";
+import { initializePhase2Storage } from "./activation/phase2-storage";
+import { initializePhase3Managers } from "./activation/phase3-managers";
+import { initializePhase4Providers } from "./activation/phase4-providers";
+import { initializePhase5Registration } from "./activation/phase5-registration";
+import { createAuthedApiClient } from "./api/authedApiClient";
+import { AnonymousIdManager } from "./auth/AnonymousIdManager";
+import { AuthState } from "./auth/AuthState";
+import { createCredentialsManager } from "./auth/credentials";
+import { SnapBackOAuthProvider } from "./auth/OAuthProvider"; // 🆕 Import OAuth provider
+import { registerAllCommands } from "./commands/index";
+import { initializeProtectionNotifications } from "./commands/protectionCommands";
+import { ContextManager } from "./contextManager";
+import { FileHealthDecorationProvider } from "./decorations/FileHealthDecorationProvider"; // 🆕 Import FileHealthDecorationProvider
+import { SaveHandler } from "./handlers/SaveHandler";
+import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration"; // 🆕 Import AutoDecisionIntegration
+import { FileSystemWatcher } from "./protection/FileSystemWatcher";
+import { RulesManager } from "./rules/RulesManager";
 import {
 	NoopAIRiskService,
 	RemoteAIRiskService,
-} from "./services/aiRiskService.js";
-import { ApiClient } from "./services/api-client.js";
-import { FeatureFlagService } from "./services/feature-flag-service.js"; // 🆕 Import FeatureFlagService
-import { ProtectionManager } from "./services/protectionPolicy.js";
-import { ProtectionService } from "./services/protectionService.js";
-import { TelemetryProxy } from "./services/telemetry-proxy.js";
-import { UserIdentityService } from "./services/UserIdentityService.js";
-import { WorkspaceManager } from "./services/WorkspaceManager.js"; // 🆕 Import WorkspaceManager
-import type { StorageManager } from "./storage/StorageManager.js";
-import type { ProtectionChangedPayload } from "./types/api.js";
-import { CooldownIndicator } from "./ui/cooldownIndicator.js"; // 🆕 Import CooldownIndicator
-import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider.js";
-import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI.js";
-import { logger } from "./utils/logger.js";
-import { findProjectRoot } from "./utils/projectRoot.js";
-import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver.js"; // 🆕 Import WorkspaceFolderResolver
-import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry.js";
+} from "./services/aiRiskService";
+import { ApiClient } from "./services/api-client";
+import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService
+import { ProtectionManager } from "./services/protectionPolicy";
+import { ProtectionService } from "./services/protectionService";
+import { TelemetryProxy } from "./services/telemetry-proxy";
+import { UserIdentityService } from "./services/UserIdentityService";
+import { WorkspaceManager } from "./services/WorkspaceManager"; // 🆕 Import WorkspaceManager
+import type { StorageManager } from "./storage/StorageManager";
+import type { ProtectionChangedPayload } from "./types/api";
+import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
+import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
+import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
+import { logger } from "./utils/logger";
+import { findProjectRoot } from "./utils/projectRoot";
+import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver"; // 🆕 Import WorkspaceFolderResolver
+import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry";
 
 // Import the new EventBus and feature flag
 

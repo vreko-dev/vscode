@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
-import { VSCodeTelemetry } from "../../src/telemetry.js";
+import { VSCodeTelemetry } from "../../src/telemetry";
 
 interface CapturedEvent {
 	event: string;

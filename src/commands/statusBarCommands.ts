@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { COMMANDS } from "../constants/index.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { BRAND_SIGNAGE, getProtectionLevelSignage } from "../signage/index.js";
-import type { CommandContext } from "./index.js";
+import { COMMANDS } from "../constants/index";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { BRAND_SIGNAGE, getProtectionLevelSignage } from "../signage/index";
+import type { CommandContext } from "./index";
 
 interface EnhancedQuickPickItem extends vscode.QuickPickItem {
 	action?: () => void | Promise<void>;

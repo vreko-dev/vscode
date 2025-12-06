@@ -6,8 +6,8 @@
  */
 
 import * as vscode from "vscode";
-import type { ProtectionLevel } from "../types/protection.js";
-import { PROTECTION_LEVELS } from "../types/protection.js";
+import type { ProtectionLevel } from "../types/protection";
+import { PROTECTION_LEVELS } from "../types/protection";
 
 /**
  * Show quick pick to select protection level

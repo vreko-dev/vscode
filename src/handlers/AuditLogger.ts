@@ -1,6 +1,6 @@
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { logger } from "../utils/logger.js";
-import type { ProtectionLevel } from "../views/types.js";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { logger } from "../utils/logger";
+import type { ProtectionLevel } from "../views/types";
 
 /**
  * Handles audit trail logging for protection-related events.

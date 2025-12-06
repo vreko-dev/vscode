@@ -20,7 +20,7 @@
  * - net from 'node:net'
  * - path from 'node:path'
  * - vscode
- * - logger from '../utils/logger.js'
+ * - logger from '../utils/logger'
  *
  * Interfaces:
  * - MCPStartOptions { extensionPath, dbPath, socketPath?, timeout? }

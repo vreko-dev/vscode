@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { WorkflowIntegration } from "../../src/workflowIntegration.js";
+import { WorkflowIntegration } from "../../src/workflowIntegration";
 
 // Define interfaces for the mock dependencies
 interface MockSmartContextDetector {

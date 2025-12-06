@@ -3,13 +3,13 @@ import { THRESHOLDS } from "@snapback/sdk";
 import type { Disposable, Memento } from "vscode";
 import * as vscode from "vscode";
 import { EventEmitter, workspace } from "vscode";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 import type {
 	ProtectedFileEntry,
 	ProtectedFileProvider,
 	ProtectionLevel,
 } from "../views/types";
-import { CooldownManager } from "./cooldownManager.js"; // 🆕 Import CooldownManager
+import { CooldownManager } from "./cooldownManager"; // 🆕 Import CooldownManager
 
 const STORAGE_KEY = "snapback:protected-files";
 

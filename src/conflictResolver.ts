@@ -27,9 +27,9 @@
  */
 
 import * as vscode from "vscode";
-import type { SnapshotDocumentProvider } from "./providers/SnapshotDocumentProvider.js";
-import type { Snapshot } from "./types/snapshot.js";
-import { logger } from "./utils/logger.js";
+import type { SnapshotDocumentProvider } from "./providers/SnapshotDocumentProvider";
+import type { Snapshot } from "./types/snapshot";
+import { logger } from "./utils/logger";
 
 /**
  * File conflict information structure

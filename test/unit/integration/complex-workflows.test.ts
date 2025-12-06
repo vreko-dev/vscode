@@ -3,18 +3,18 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { CheckpointManager } from "../../../src/checkpoint/CheckpointManager.js";
-import { CheckpointStorageAdapter } from "../../../src/checkpoint/CheckpointStorageAdapter.js";
-import { VSCodeConfirmationService } from "../../../src/checkpoint/VSCodeConfirmationService.js";
-import { SaveHandler } from "../../../src/handlers/SaveHandler.js";
-import { NotificationManager } from "../../../src/notificationManager.js";
-import { OperationCoordinator } from "../../../src/operationCoordinator.js";
-import { StorageCheckpointSummaryProvider } from "../../../src/services/checkpointSummaryProvider.js";
-import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry.js";
-import { isBetterSqlite3Available } from "../../../src/storage/SqliteCheckpointStorage.js";
-import { SqliteStorageAdapter } from "../../../src/storage/SqliteStorageAdapter.js";
-import { ProtectionDecorationProvider } from "../../../src/ui/ProtectionDecorationProvider.js";
-import { WorkspaceMemoryManager } from "../../../src/workspaceMemory.js";
+import { CheckpointManager } from "../../../src/checkpoint/CheckpointManager";
+import { CheckpointStorageAdapter } from "../../../src/checkpoint/CheckpointStorageAdapter";
+import { VSCodeConfirmationService } from "../../../src/checkpoint/VSCodeConfirmationService";
+import { SaveHandler } from "../../../src/handlers/SaveHandler";
+import { NotificationManager } from "../../../src/notificationManager";
+import { OperationCoordinator } from "../../../src/operationCoordinator";
+import { StorageCheckpointSummaryProvider } from "../../../src/services/checkpointSummaryProvider";
+import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
+import { isBetterSqlite3Available } from "../../../src/storage/SqliteCheckpointStorage";
+import { SqliteStorageAdapter } from "../../../src/storage/SqliteStorageAdapter";
+import { ProtectionDecorationProvider } from "../../../src/ui/ProtectionDecorationProvider";
+import { WorkspaceMemoryManager } from "../../../src/workspaceMemory";
 
 // Mock VS Code API
 vi.mock("vscode", () => {

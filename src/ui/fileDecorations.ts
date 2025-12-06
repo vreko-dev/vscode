@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { DesignTokens, type ProtectionLevel } from "../styles/designTokens.js";
+import { DesignTokens, type ProtectionLevel } from "../styles/designTokens";
 
 export class FileDecorationProvider
 	implements vscode.FileDecorationProvider, vscode.Disposable

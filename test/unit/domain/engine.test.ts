@@ -4,9 +4,9 @@ import type {
   ProtectionDecision,
   AutoDecisionConfig,
   DecisionReason,
-} from "../../../src/domain/types.js";
-import { DEFAULT_CONFIG } from "../../../src/domain/types.js";
-import { AutoDecisionEngine } from "../../../src/domain/engine.js";
+} from "../../../src/domain/types";
+import { DEFAULT_CONFIG } from "../../../src/domain/types";
+import { AutoDecisionEngine } from "../../../src/domain/engine";
 
 /**
  * AutoDecisionEngine Tests

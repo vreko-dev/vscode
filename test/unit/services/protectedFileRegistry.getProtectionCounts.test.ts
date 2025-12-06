@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry.js";
+import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
 
 /**
  * Test suite for ProtectedFileRegistry.getProtectionCounts()

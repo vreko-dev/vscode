@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
-import { VSCodeTelemetry } from "../../src/telemetry.js";
+import { VSCodeTelemetry } from "../../src/telemetry";
 
 // Simple integration test to verify telemetry can be instantiated and initialized
 describe("Extension Telemetry Integration", () => {

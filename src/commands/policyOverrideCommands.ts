@@ -11,11 +11,11 @@
  */
 
 import * as vscode from "vscode";
-import { PolicyManager } from "../policy/PolicyManager.js";
-import { getProtectionLevelSignage } from "../signage/index.js";
-import type { OverrideRationale } from "../types/policy.types.js";
-import { logger } from "../utils/logger.js";
-import type { CommandContext } from "./index.js";
+import { PolicyManager } from "../policy/PolicyManager";
+import { getProtectionLevelSignage } from "../signage/index";
+import type { OverrideRationale } from "../types/policy.types";
+import { logger } from "../utils/logger";
+import type { CommandContext } from "./index";
 
 /**
  * Register all policy override management commands.

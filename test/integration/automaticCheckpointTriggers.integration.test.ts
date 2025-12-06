@@ -1,7 +1,7 @@
 import type { RiskAnalyzer } from "@snapback/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OperationCoordinator } from "../../src/operationCoordinator.js";
-import type { FileSystemStorage } from "../../src/storage/types.js";
+import type { OperationCoordinator } from "../../src/operationCoordinator";
+import type { FileSystemStorage } from "../../src/storage/types";
 
 // Mock implementations
 const _mockStorage: Partial<FileSystemStorage> = {

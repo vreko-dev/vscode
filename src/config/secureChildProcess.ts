@@ -1,4 +1,4 @@
-import { executeSandboxedScript } from "./sandboxExecutor.js";
+import { executeSandboxedScript } from "./sandboxExecutor";
 
 // Constants for sandbox limits
 // const _SANDBOX_TIMEOUT_MS = 250;

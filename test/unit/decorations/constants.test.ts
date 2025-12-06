@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DECORATION_CONFIG } from "../../../src/decorations/constants.js";
+import { DECORATION_CONFIG } from "../../../src/decorations/constants";
 
 describe("Decoration Constants", () => {
 	describe("DECORATION_CONFIG", () => {

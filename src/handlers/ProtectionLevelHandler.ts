@@ -1,13 +1,13 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
-import type { OperationCoordinator } from "../operationCoordinator.js";
-import type { MilestoneService } from "../services/MilestoneService.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { SnapshotNamingStrategy } from "../snapshot/SnapshotNamingStrategy.js";
-import { logger } from "../utils/logger.js";
-import type { ProtectionLevel } from "../views/types.js";
-import type { AuditLogger } from "./AuditLogger.js";
-import type { CooldownService } from "./CooldownService.js";
+import type { OperationCoordinator } from "../operationCoordinator";
+import type { MilestoneService } from "../services/MilestoneService";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { SnapshotNamingStrategy } from "../snapshot/SnapshotNamingStrategy";
+import { logger } from "../utils/logger";
+import type { ProtectionLevel } from "../views/types";
+import type { AuditLogger } from "./AuditLogger";
+import type { CooldownService } from "./CooldownService";
 
 /**
  * Result of protection level handling

@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { minimatch } from "minimatch";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 export class ConfigFileManager {
 	private static readonly MAX_PATTERN_LENGTH = 512;

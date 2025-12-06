@@ -5,15 +5,15 @@
  * by adding offline request queuing capabilities using p-queue.
  */
 
-import { logger } from "../utils/logger.js";
-import { FetchNetworkAdapter } from "./FetchNetworkAdapter.js";
+import { logger } from "../utils/logger";
+import { FetchNetworkAdapter } from "./FetchNetworkAdapter";
 // import PQueue from "p-queue"; // Not currently used but kept for future implementation
 import type {
 	NetworkAdapter,
 	NetworkRequest,
 	NetworkResponse,
-} from "./NetworkAdapter.js";
-import { NetworkError, TimeoutError } from "./NetworkAdapter.js";
+} from "./NetworkAdapter";
+import { NetworkError, TimeoutError } from "./NetworkAdapter";
 
 /**
  * Network adapter with offline request queuing

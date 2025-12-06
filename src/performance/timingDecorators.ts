@@ -31,7 +31,7 @@
  * ```
  */
 
-import type { PerformanceMonitor } from "./PerformanceMonitor.js";
+import type { PerformanceMonitor } from "./PerformanceMonitor";
 
 // Global performance monitor instance
 let globalMonitor: PerformanceMonitor | null = null;

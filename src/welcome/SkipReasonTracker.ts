@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker.js";
+import type { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 
 /**
  * Tracks user skip behavior in welcome panel with semantic distinction:

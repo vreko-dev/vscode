@@ -12,7 +12,7 @@ import { logger } from "@snapback/infrastructure";
 import type {
 	CredentialsManager,
 	ExtensionCredentials,
-} from "./credentials.js";
+} from "./credentials";
 
 /**
  * Authentication token with metadata

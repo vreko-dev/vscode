@@ -1,7 +1,7 @@
 import { RiskAnalyzer } from "@snapback/core/risk";
 import * as vscode from "vscode";
-import { LazyLoader } from "./services/LazyLoader.js";
-import { logger } from "./utils/logger.js";
+import { LazyLoader } from "./services/LazyLoader";
+import { logger } from "./utils/logger";
 
 export class EditorDecorations {
 	private riskAnalyzerLoader: LazyLoader<typeof RiskAnalyzer>;

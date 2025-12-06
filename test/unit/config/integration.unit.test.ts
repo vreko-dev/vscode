@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SNAPBACKRC } from "../../../src/config/defaults.js";
+import { DEFAULT_SNAPBACKRC } from "../../../src/config/defaults";
 import {
 	getProtectionLevelForFile,
 	mergeConfigs,

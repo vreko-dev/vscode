@@ -1,4 +1,4 @@
-import type { EncryptedData } from "../snapshot/EncryptionService.js";
+import type { EncryptedData } from "../snapshot/EncryptionService";
 
 /**
  * Base Snapshot interface matching the canonical contract from @snapback/contracts

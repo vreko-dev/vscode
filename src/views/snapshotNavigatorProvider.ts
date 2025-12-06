@@ -1,7 +1,7 @@
 import type { Snapshot } from "@snapback/contracts";
 import * as vscode from "vscode";
 import type { SnapshotStorage } from "../storage/types";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 /**
  * SnapshotFileNode represents a file in a snapshot in the tree view

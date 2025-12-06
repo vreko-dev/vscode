@@ -1,5 +1,5 @@
 import type { FileSystemStorage } from "./storage/types";
-import { logger } from "./utils/logger.js";
+import { logger } from "./utils/logger";
 
 export interface WorkspaceContext {
 	lastActiveFile: string | null;

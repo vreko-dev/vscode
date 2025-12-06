@@ -10,17 +10,17 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
-import { AnonymousIdManager } from "./AnonymousIdManager.js";
-import { AuthState } from "./AuthState.js";
+import { AnonymousIdManager } from "./AnonymousIdManager";
+import { AuthState } from "./AuthState";
 import type {
 	CredentialsManager,
 	ExtensionCredentials,
-} from "./credentials.js";
+} from "./credentials";
 import {
 	canAccessFeature,
 	isAnonymousContext,
 	isAuthenticatedContext,
-} from "./UserContext.js";
+} from "./UserContext";
 
 /**
  * Test AuthState class - Single responsibility: auth status checking

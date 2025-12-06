@@ -1,7 +1,7 @@
 import { createTwoFilesPatch, parsePatch } from "diff";
 import * as vscode from "vscode";
 import type { SnapshotStorage } from "../storage/types";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 /**
  * SnapshotDecorations provides inline annotations for files showing changes since the last snapshot

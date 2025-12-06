@@ -31,10 +31,10 @@ vi.mock("vscode", () => {
 	};
 });
 
-import { NotificationManager } from "../../src/notificationManager.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
-import { FileSystemStorage } from "../../src/storage/types.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import { NotificationManager } from "../../src/notificationManager";
+import { OperationCoordinator } from "../../src/operationCoordinator";
+import { FileSystemStorage } from "../../src/storage/types";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 describe("OperationCoordinator - Ignore Patterns", () => {
 	let tempDir: string;

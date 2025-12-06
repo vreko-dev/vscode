@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	USER_BEHAVIOR_KEYS,
 	UserBehaviorTracker,
-} from "../../../src/utils/UserBehaviorTracker.js";
+} from "../../../src/utils/UserBehaviorTracker";
 
 describe("UserBehaviorTracker", () => {
 	let userBehaviorTracker: UserBehaviorTracker;

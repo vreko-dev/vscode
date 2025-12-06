@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { CooldownManager } from "../../src/services/cooldownManager.js";
-import type { ProtectionLevel } from "../../src/views/types.js";
+import { CooldownManager } from "../../src/services/cooldownManager";
+import type { ProtectionLevel } from "../../src/views/types";
 
 describe("CooldownManager", () => {
 	let cooldownManager: CooldownManager;

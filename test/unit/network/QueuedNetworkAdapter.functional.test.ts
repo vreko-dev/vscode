@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { QueuedNetworkAdapter } from "../../../src/network/QueuedNetworkAdapter.js";
+import { QueuedNetworkAdapter } from "../../../src/network/QueuedNetworkAdapter";
 
 describe("QueuedNetworkAdapter Functional Test", () => {
 	let adapter: QueuedNetworkAdapter;

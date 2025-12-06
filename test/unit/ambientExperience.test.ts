@@ -2,11 +2,11 @@ import * as assert from "node:assert";
 import { RiskAnalyzer } from "@snapback/core";
 import { vi } from "vitest";
 import * as vscode from "vscode";
-import type { NotificationManager as NotificationManagerInterface } from "../../src/notificationManager.js";
-import { NotificationManager } from "../../src/notificationManager.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
-import type { FileSystemStorage } from "../../src/storage/types.js";
-import type { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import type { NotificationManager as NotificationManagerInterface } from "../../src/notificationManager";
+import { NotificationManager } from "../../src/notificationManager";
+import { OperationCoordinator } from "../../src/operationCoordinator";
+import type { FileSystemStorage } from "../../src/storage/types";
+import type { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 suite("Ambient Experience Integration Test Suite", () => {
 	vscode.window.showInformationMessage("Start all tests.");

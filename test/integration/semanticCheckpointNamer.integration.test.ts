@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NotificationManager } from "../../src/notificationManager.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
-import { SemanticSnapshotNamer } from "../../src/semanticSnapshotNamer.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
-import { createMockStorage } from "../helpers/mockStorage.js";
+import { NotificationManager } from "../../src/notificationManager";
+import { OperationCoordinator } from "../../src/operationCoordinator";
+import { SemanticSnapshotNamer } from "../../src/semanticSnapshotNamer";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
+import { createMockStorage } from "../helpers/mockStorage";
 
 // Mock the storage dependency
 vi.mock("@snapback/storage", () => ({

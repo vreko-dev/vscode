@@ -12,5 +12,5 @@
  * ```
  */
 
-export * from "./FetchNetworkAdapter.js";
-export * from "./NetworkAdapter.js";
+export * from "./FetchNetworkAdapter";
+export * from "./NetworkAdapter";

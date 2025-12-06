@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { ApiClient } from "../services/api-client.js";
-import { logger } from "../utils/logger.js";
+import { ApiClient } from "../services/api-client";
+import { logger } from "../utils/logger";
 
 export class DetectionCodeActionProvider implements vscode.CodeActionProvider {
 	private apiClient: ApiClient;

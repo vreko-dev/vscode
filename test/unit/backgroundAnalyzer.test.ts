@@ -1,10 +1,10 @@
 import * as assert from "node:assert";
 import { vi } from "vitest";
 import * as vscode from "vscode";
-import { BackgroundAnalyzer } from "../../backgroundAnalyzer.js";
-import type { NotificationManager } from "../../notificationManager.js";
-import type { SmartContextDetector } from "../../smartContext.js";
-import type { WorkspaceMemoryManager } from "../../workspaceMemory.js";
+import { BackgroundAnalyzer } from "../../backgroundAnalyzer";
+import type { NotificationManager } from "../../notificationManager";
+import type { SmartContextDetector } from "../../smartContext";
+import type { WorkspaceMemoryManager } from "../../workspaceMemory";
 
 suite("BackgroundAnalyzer Test Suite", () => {
 	vscode.window.showInformationMessage("Start all tests.");

@@ -12,8 +12,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type {
 	SessionId,
 	SessionManifest,
-} from "../../src/snapshot/sessionTypes.js";
-import { SqliteStorageAdapter } from "../../src/storage/SqliteStorageAdapter.js";
+} from "../../src/snapshot/sessionTypes";
+import { SqliteStorageAdapter } from "../../src/storage/SqliteStorageAdapter";
 
 describe("Session Restore E2E", () => {
 	let tempDir: string;

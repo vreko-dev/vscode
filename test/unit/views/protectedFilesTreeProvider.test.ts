@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { ProtectedFilesTreeProvider } from "../../../src/views/ProtectedFilesTreeProvider.js";
+import { ProtectedFilesTreeProvider } from "../../../src/views/ProtectedFilesTreeProvider";
 import type {
 	ProtectedFileEntry,
 	ProtectedFileProvider,

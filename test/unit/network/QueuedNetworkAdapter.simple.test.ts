@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { QueuedNetworkAdapter } from "../../../src/network/QueuedNetworkAdapter.js";
+import { QueuedNetworkAdapter } from "../../../src/network/QueuedNetworkAdapter";
 
 describe("QueuedNetworkAdapter Simple Test", () => {
 	it("should create an instance", () => {

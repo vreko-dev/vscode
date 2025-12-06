@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import type { NetworkAdapter } from "../network/NetworkAdapter.js";
-import { QueuedNetworkAdapter } from "../network/QueuedNetworkAdapter.js";
-import { logger } from "../utils/logger.js";
+import type { NetworkAdapter } from "../network/NetworkAdapter";
+import { QueuedNetworkAdapter } from "../network/QueuedNetworkAdapter";
+import { logger } from "../utils/logger";
 
 // API client for SnapBack backend
 export class ApiClient {

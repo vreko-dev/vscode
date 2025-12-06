@@ -1,4 +1,4 @@
-import type { GitFileChange } from "./fileChanges.js";
+import type { GitFileChange } from "./fileChanges";
 
 /**
  * Snapshot information for name generation

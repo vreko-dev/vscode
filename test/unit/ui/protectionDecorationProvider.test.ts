@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { ProtectionDecorationProvider } from "../../../src/ui/ProtectionDecorationProvider.js";
+import { ProtectionDecorationProvider } from "../../../src/ui/ProtectionDecorationProvider";
 
 // Mock VS Code APIs
 vi.mock("vscode", () => ({

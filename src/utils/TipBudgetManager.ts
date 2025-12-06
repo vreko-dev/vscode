@@ -7,7 +7,7 @@
  */
 
 import type * as vscode from "vscode";
-import { logger } from "./logger.js";
+import { logger } from "./logger";
 
 /**
  * Tip budget configuration

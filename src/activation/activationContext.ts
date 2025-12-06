@@ -1,5 +1,5 @@
 import type * as vscode from "vscode";
-import type { StorageManager } from "../storage/StorageManager.js";
+import type { StorageManager } from "../storage/StorageManager";
 
 export interface ActivationContext {
 	context: vscode.ExtensionContext;

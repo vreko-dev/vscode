@@ -6,8 +6,8 @@ import {
 	recordSessionMetric,
 	resetSessionPerfData,
 	SESSION_PERF_BUDGETS,
-} from "../../../src/performance/sessionPerfMonitor.js";
-import { logger } from "../../../src/utils/logger.js";
+} from "../../../src/performance/sessionPerfMonitor";
+import { logger } from "../../../src/utils/logger";
 
 // Mock the logger
 vi.mock("../../../src/utils/logger.js", () => {

@@ -6,8 +6,8 @@ import { glob } from "fast-glob";
 import * as JSON5 from "json5";
 import { minimatch } from "minimatch";
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import type { ProtectionLevel } from "../types/protection.js";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { ProtectionLevel } from "../types/protection";
 import type {
 	SnapBackHooks,
 	SnapBackPolicies,
@@ -16,7 +16,7 @@ import type {
 	SnapshotTemplate,
 } from "../types/snapbackrc.types";
 import { SNAPBACKRC_SCHEMA } from "../types/snapbackrc.types";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 import {
 	DEFAULT_IGNORE_PATTERNS,
 	DEFAULT_SNAPBACK_CONFIG,

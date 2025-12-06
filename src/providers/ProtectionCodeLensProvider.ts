@@ -10,8 +10,8 @@
  */
 
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { getProtectionLevelSignage } from "../signage/index.js";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { getProtectionLevelSignage } from "../signage/index";
 
 export class ProtectionCodeLensProvider implements vscode.CodeLensProvider {
 	private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();

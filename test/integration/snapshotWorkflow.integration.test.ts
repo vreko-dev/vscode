@@ -1,13 +1,13 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { NotificationManager } from "../../src/notificationManager.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
-import { StorageSnapshotSummaryProvider } from "../../src/services/snapshotSummaryProvider.js";
-import { FileSystemStorage } from "../../src/storage/types.js";
-import { SnapBackTreeProvider } from "../../src/views/snapBackTreeProvider.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
-import { createMockProtectedFileRegistry } from "../helpers/protectionLevelHelpers.js";
+import { NotificationManager } from "../../src/notificationManager";
+import { OperationCoordinator } from "../../src/operationCoordinator";
+import { StorageSnapshotSummaryProvider } from "../../src/services/snapshotSummaryProvider";
+import { FileSystemStorage } from "../../src/storage/types";
+import { SnapBackTreeProvider } from "../../src/views/snapBackTreeProvider";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
+import { createMockProtectedFileRegistry } from "../helpers/protectionLevelHelpers";
 
 describe("Complete Snapshot Workflow", () => {
 	let tempDir: string;

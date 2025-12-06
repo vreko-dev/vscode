@@ -2,13 +2,13 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { rimraf } from "rimraf";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SqliteSnapshotStorage } from "../../src/storage/SqliteSnapshotStorage.js";
+import { SqliteSnapshotStorage } from "../../src/storage/SqliteSnapshotStorage";
 import {
 	DatabaseConnectionError,
 	DatabaseError,
 	SnapshotNotFoundError,
 } from "../../src/storage/StorageErrors";
-import { describeSqlite } from "../helpers/sqliteTestUtils.js";
+import { describeSqlite } from "../helpers/sqliteTestUtils";
 
 describeSqlite("SqliteSnapshotStorage Error Paths", () => {
 	let storage: SqliteSnapshotStorage;

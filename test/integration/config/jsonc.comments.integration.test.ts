@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { loadJson5Config } from "../../src/config/loaders.js";
+import { loadJson5Config } from "../../src/config/loaders";
 
 // Since jsonc-parser is not in dependencies, we'll test the round-trip behavior
 // by ensuring comments are preserved in the parsed result

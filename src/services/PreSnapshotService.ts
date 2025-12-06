@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
-import type { SnapshotQuickDiffProvider } from "../providers/SnapshotQuickDiffProvider.js";
-import type { SessionCoordinator } from "../snapshot/SessionCoordinator.js";
-import type { SnapshotManager } from "../snapshot/SnapshotManager.js";
-import { detectAIPresence } from "../utils/AIPresenceDetector.js";
-import { logger } from "../utils/logger.js";
+import type { SnapshotQuickDiffProvider } from "../providers/SnapshotQuickDiffProvider";
+import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
+import type { SnapshotManager } from "../snapshot/SnapshotManager";
+import { detectAIPresence } from "../utils/AIPresenceDetector";
+import { logger } from "../utils/logger";
 
 /**
  * Debounce state for a file

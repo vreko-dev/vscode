@@ -1,5 +1,5 @@
-import { toError } from "../utils/errorHelpers.js";
-import { logger } from "../utils/logger.js";
+import { toError } from "../utils/errorHelpers";
+import { logger } from "../utils/logger";
 /**
  * SnapshotDeletionService - Safe snapshot deletion with confirmation and auto-cleanup
  *

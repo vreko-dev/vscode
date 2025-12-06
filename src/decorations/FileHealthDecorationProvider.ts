@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { logger } from "../utils/logger.js";
-import { DECORATION_CONFIG } from "./constants.js";
-import type { FileHealthLevel, FileHealthStatus } from "./types.js";
+import { logger } from "../utils/logger";
+import { DECORATION_CONFIG } from "./constants";
+import type { FileHealthLevel, FileHealthStatus } from "./types";
 
 /**
  * Main provider class implementing vscode.FileDecorationProvider

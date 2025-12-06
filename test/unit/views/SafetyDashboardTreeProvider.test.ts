@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry.js";
-import type { StorageSnapshotSummaryProvider } from "../../../src/services/snapshotSummaryProvider.js";
-import type { WorkspaceSafetyService } from "../../../src/services/WorkspaceSafetyService.js";
-import { SafetyDashboardTreeProvider } from "../../../src/views/SafetyDashboardTreeProvider.js";
+import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
+import type { StorageSnapshotSummaryProvider } from "../../../src/services/snapshotSummaryProvider";
+import type { WorkspaceSafetyService } from "../../../src/services/WorkspaceSafetyService";
+import { SafetyDashboardTreeProvider } from "../../../src/views/SafetyDashboardTreeProvider";
 
 describe("SafetyDashboardTreeProvider - Unified View", () => {
 	let provider: SafetyDashboardTreeProvider;

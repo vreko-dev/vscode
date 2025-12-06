@@ -21,10 +21,10 @@ import {
 	type SessionManifest,
 } from "@snapback/sdk";
 import type * as vscode from "vscode";
-import { VscodeEventEmitterAdapter } from "../adapters/VscodeEventEmitterAdapter.js";
-import { getSessionPerfMonitor } from "../performance/sessionPerfMonitor.js";
-import type { StorageManager } from "../storage/StorageManager.js";
-import { logger } from "../utils/logger.js";
+import { VscodeEventEmitterAdapter } from "../adapters/VscodeEventEmitterAdapter";
+import { getSessionPerfMonitor } from "../performance/sessionPerfMonitor";
+import type { StorageManager } from "../storage/StorageManager";
+import { logger } from "../utils/logger";
 
 /**
  * VSCode-specific logger adapter

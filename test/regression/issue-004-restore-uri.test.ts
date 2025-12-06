@@ -19,7 +19,7 @@
 
 import * as assert from "node:assert";
 import * as vscode from "vscode";
-import { ConflictResolver, type FileConflict } from "../../conflictResolver.js";
+import { ConflictResolver, type FileConflict } from "../../conflictResolver";
 
 suite("Bug #4: Restore URI Construction", () => {
 	let _conflictResolver: ConflictResolver;

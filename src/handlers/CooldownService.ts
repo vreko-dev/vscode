@@ -1,9 +1,9 @@
 import { THRESHOLDS } from "@snapback/sdk";
-import { TIMING_CONSTANTS } from "../constants.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import type { CooldownIndicator } from "../ui/cooldownIndicator.js";
-import { logger } from "../utils/logger.js";
-import type { ProtectionLevel } from "../views/types.js";
+import { TIMING_CONSTANTS } from "../constants";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { CooldownIndicator } from "../ui/cooldownIndicator";
+import { logger } from "../utils/logger";
+import type { ProtectionLevel } from "../views/types";
 
 /**
  * Manages cooldown periods and debouncing for protected file saves.

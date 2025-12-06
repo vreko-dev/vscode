@@ -15,7 +15,7 @@
  */
 
 import type * as vscode from "vscode";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 /**
  * Extension credentials structure

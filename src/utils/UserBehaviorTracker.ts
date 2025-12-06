@@ -6,7 +6,7 @@
  */
 
 import type * as vscode from "vscode";
-import { logger } from "./logger.js";
+import { logger } from "./logger";
 
 /**
  * Keys for tracking user behavior in global state

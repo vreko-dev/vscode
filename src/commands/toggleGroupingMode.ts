@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { getAvailableGroupingModes } from "../views/grouping/index.js";
-import type { SnapBackTreeProvider } from "../views/SnapBackTreeProvider.js";
+import { getAvailableGroupingModes } from "../views/grouping/index";
+import type { SnapBackTreeProvider } from "../views/SnapBackTreeProvider";
 
 export function registerToggleGroupingModeCommand(
 	context: vscode.ExtensionContext,

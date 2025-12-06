@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { CommandContext } from "./index.js";
+import type { CommandContext } from "./index";
 
 export function registerWorkflowCommands(
 	_context: vscode.ExtensionContext,

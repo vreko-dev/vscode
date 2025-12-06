@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { BRAND_SIGNAGE, getProtectionLevelSignage } from "../signage/index.js";
-import type { ProtectedFileEntry } from "../views/types.js";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { BRAND_SIGNAGE, getProtectionLevelSignage } from "../signage/index";
+import type { ProtectedFileEntry } from "../views/types";
 
 export interface ProtectionState {
 	watched: number;

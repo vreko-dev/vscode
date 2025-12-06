@@ -14,7 +14,7 @@ vi.mock("vscode", () => ({
 }));
 
 import * as vscode from "vscode";
-import { ProtectionNotifications } from "../../../src/notifications/protectionNotifications.js";
+import { ProtectionNotifications } from "../../../src/notifications/protectionNotifications";
 
 describe("ProtectionNotifications", () => {
 	let mockGlobalState: any;

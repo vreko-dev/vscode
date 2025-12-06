@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { FileSystemStorage } from "../../src/storage/types.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import type { FileSystemStorage } from "../../src/storage/types";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 // Mock FileSystemStorage methods
 const mockStorage = {

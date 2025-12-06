@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { MCPStatusBar, MCPToolsView } from "../../src/mcpView.js";
+import { MCPStatusBar, MCPToolsView } from "../../src/mcpView";
 
 // Mock status bar item factory
 let mockStatusBarItem: any;

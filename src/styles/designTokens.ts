@@ -1,5 +1,5 @@
 import type { ProtectionLevel } from "@snapback/contracts";
-import { PROTECTION_LEVEL_SIGNAGE } from "../signage/index.js";
+import { PROTECTION_LEVEL_SIGNAGE } from "../signage/index";
 
 export type { ProtectionLevel };
 

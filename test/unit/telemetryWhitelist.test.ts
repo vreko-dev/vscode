@@ -1,7 +1,7 @@
 import type { LegacyTelemetryEvent } from "@snapback/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { VSCodeTelemetry } from "../../src/telemetry.js";
+import { VSCodeTelemetry } from "../../src/telemetry";
 
 // Mock VS Code API
 vi.mock("vscode", () => {

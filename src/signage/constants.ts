@@ -12,7 +12,7 @@ import {
 	REPO_STATUS_CANONICAL,
 	type RepoStatusCanonical,
 	type RepoStatusSignage,
-} from "./types.js";
+} from "./types";
 
 /**
  * Single source of truth for protection level signage.

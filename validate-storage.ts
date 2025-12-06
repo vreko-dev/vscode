@@ -3,7 +3,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { rimraf } from "rimraf";
-import { SqliteSnapshotStorage } from "./src/storage/SqliteSnapshotStorage.js";
+import { SqliteSnapshotStorage } from "./src/storage/SqliteSnapshotStorage";
 
 async function validateStorage() {
 	console.log("Validating SqliteSnapshotStorage...");

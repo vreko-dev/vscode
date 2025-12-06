@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { FileSystemStorage } from "../../src/storage/types.js";
+import type { FileSystemStorage } from "../../src/storage/types";
 
 /**
  * Create a mock FileSystemStorage for testing

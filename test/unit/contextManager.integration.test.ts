@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ContextManager } from "../../src/contextManager.js";
-import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry.js";
+import { ContextManager } from "../../src/contextManager";
+import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry";
 
 // Use the global mock from setup.ts
 declare const vscode: any;

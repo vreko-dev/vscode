@@ -18,11 +18,11 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
-import * as mockGuardian from "../__mocks__/guardian.js";
-import * as mockStorage from "../__mocks__/storage.js";
-import * as mockCommands from "../__mocks__/vscode/commands.js";
-import * as mockWindow from "../__mocks__/vscode/window.js";
-import * as mockWorkspace from "../__mocks__/vscode/workspace.js";
+import * as mockGuardian from "../__mocks__/guardian";
+import * as mockStorage from "../__mocks__/storage";
+import * as mockCommands from "../__mocks__/vscode/commands";
+import * as mockWindow from "../__mocks__/vscode/window";
+import * as mockWorkspace from "../__mocks__/vscode/workspace";
 
 // Legacy integration coverage relied on the previous guardian-based plumbing.
 // The production extension now triggers risk workflows differently and these

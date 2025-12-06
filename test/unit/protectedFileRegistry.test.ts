@@ -10,7 +10,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProtectedFileRegistry } from "@/services/protectedFileRegistry";
-import { waitForEvent } from "../helpers/eventHelpers.js";
+import { waitForEvent } from "../helpers/eventHelpers";
 
 describe("ProtectedFileRegistry", () => {
 	let registry: ProtectedFileRegistry;

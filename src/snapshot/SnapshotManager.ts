@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import type { GitFileChange as FileChange } from "../types/fileChanges.js";
+import type { GitFileChange as FileChange } from "../types/fileChanges";
 import type {
 	CreateSnapshotOptions,
 	FileInput,
@@ -13,18 +13,18 @@ import type {
 	SnapshotNamingInfo as SnapshotInfo,
 	SnapshotIconMetadata as SnapshotMetadata,
 } from "../types/snapshotInfo";
-import { EncryptionService } from "./EncryptionService.js";
-import type { SessionCoordinator } from "./SessionCoordinator.js";
-import type { FileState, SnapshotState } from "./SnapshotDeduplicator.js";
-import { SnapshotDeduplicator } from "./SnapshotDeduplicator.js";
+import { EncryptionService } from "./EncryptionService";
+import type { SessionCoordinator } from "./SessionCoordinator";
+import type { FileState, SnapshotState } from "./SnapshotDeduplicator";
+import { SnapshotDeduplicator } from "./SnapshotDeduplicator";
 import type {
 	AutoCleanupConfig,
 	DeletionOptions,
 	DeletionResult,
 } from "./SnapshotDeletionService";
-import { SnapshotDeletionService } from "./SnapshotDeletionService.js";
-import { SnapshotIconStrategy } from "./SnapshotIconStrategy.js";
-import { SnapshotNamingStrategy } from "./SnapshotNamingStrategy.js";
+import { SnapshotDeletionService } from "./SnapshotDeletionService";
+import { SnapshotIconStrategy } from "./SnapshotIconStrategy";
+import { SnapshotNamingStrategy } from "./SnapshotNamingStrategy";
 
 /**
  * SnapshotManager - Central orchestrator for snapshot intelligence system

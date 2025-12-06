@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { WelcomeView } from "../../src/welcomeView.js";
+import { WelcomeView } from "../../src/welcomeView";
 
 describe("WelcomeView", () => {
 	let welcomeView: WelcomeView;

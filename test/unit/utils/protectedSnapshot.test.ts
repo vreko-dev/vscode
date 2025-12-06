@@ -3,7 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ProtectedFileEntry } from "../../../src/views/types.js";
+import type { ProtectedFileEntry } from "../../../src/views/types";
 
 vi.mock("../../../src/utils/logger", () => ({
 	logger: {

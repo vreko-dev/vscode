@@ -10,7 +10,7 @@ import {
 	getSnapshotDisplayLabel,
 	getSnapshotLabel,
 	getSnapshotShortLabel,
-} from "../../../src/utils/snapshotLabeling.js";
+} from "../../../src/utils/snapshotLabeling";
 
 describe("Snapshot Semantic Labeling", () => {
 	describe("getSnapshotLabel", () => {

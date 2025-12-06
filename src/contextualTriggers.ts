@@ -1,8 +1,8 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { SNAPBACK_ICONS } from "./constants/index.js";
-import type { ProtectedFileRegistry } from "./services/protectedFileRegistry.js";
-import type { ProtectionLevel } from "./views/types.js";
+import { SNAPBACK_ICONS } from "./constants/index";
+import type { ProtectedFileRegistry } from "./services/protectedFileRegistry";
+import type { ProtectionLevel } from "./views/types";
 
 export class ContextualTriggers {
 	constructor(private readonly protectedFileRegistry: ProtectedFileRegistry) {}

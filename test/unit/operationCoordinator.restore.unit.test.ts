@@ -1,7 +1,7 @@
 import * as assert from "node:assert";
 import type { SnapshotRestoreResult } from "@snapback/contracts";
 import { vi } from "vitest";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
+import { OperationCoordinator } from "../../src/operationCoordinator";
 
 describe("OperationCoordinator - Restore Functionality", () => {
 	let coordinator: OperationCoordinator;

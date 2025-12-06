@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { ProtectedFilesTreeProvider } from "../../src/views/ProtectedFilesTreeProvider.js";
-import type { ProtectedFileProvider } from "../../src/views/types.js";
+import { ProtectedFilesTreeProvider } from "../../src/views/ProtectedFilesTreeProvider";
+import type { ProtectedFileProvider } from "../../src/views/types";
 
 /**
  * Integration tests for Explorer view integration

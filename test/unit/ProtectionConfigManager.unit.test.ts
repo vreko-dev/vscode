@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { ProtectionConfigManager } from "../../src/protection/ProtectionConfigManager.js";
+import { ProtectionConfigManager } from "../../src/protection/ProtectionConfigManager";
 
 // Create a mock ConfigFileManager instance
 const mockConfigFileManager = {

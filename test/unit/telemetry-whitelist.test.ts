@@ -1,4 +1,4 @@
-import { TELEMETRY_EVENTS } from "@snapback/contracts/src/telemetry/events.js";
+import { TELEMETRY_EVENTS } from "@snapback/contracts/src/telemetry/events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VSCodeTelemetry } from "../../src/telemetry";
 

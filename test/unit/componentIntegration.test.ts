@@ -1,19 +1,19 @@
 import * as assert from "node:assert";
 import * as sinon from "sinon";
 import * as vscode from "vscode";
-import { AdaptiveMonitoringService } from "../../adaptiveMonitoring.js";
-import { BackgroundAnalyzer } from "../../backgroundAnalyzer.js";
-import { EditorDecorations } from "../../editorDecorations.js";
+import { AdaptiveMonitoringService } from "../../adaptiveMonitoring";
+import { BackgroundAnalyzer } from "../../backgroundAnalyzer";
+import { EditorDecorations } from "../../editorDecorations";
 import {
 	NotificationManager,
 	type SnapBackNotification,
 } from "../../notificationManager";
-import { OperationCoordinator } from "../../operationCoordinator.js";
-import { PredictiveRiskAssessmentService } from "../../predictiveRiskAssessment.js";
-import { ProactiveSuggestionsService } from "../../proactiveSuggestions.js";
-import type { SmartContextDetector } from "../../smartContext.js";
-import type { FileSystemStorage } from "../../src/storage/types.js";
-import type { WorkspaceMemoryManager } from "../../workspaceMemory.js";
+import { OperationCoordinator } from "../../operationCoordinator";
+import { PredictiveRiskAssessmentService } from "../../predictiveRiskAssessment";
+import { ProactiveSuggestionsService } from "../../proactiveSuggestions";
+import type { SmartContextDetector } from "../../smartContext";
+import type { FileSystemStorage } from "../../src/storage/types";
+import type { WorkspaceMemoryManager } from "../../workspaceMemory";
 
 suite("Component Integration Test Suite", () => {
 	vscode.window.showInformationMessage("Start all tests.");

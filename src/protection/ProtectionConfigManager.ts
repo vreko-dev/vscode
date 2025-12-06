@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { toError } from "../utils/errorHelpers.js";
-import { logger } from "../utils/logger.js";
-import { showStatusBarMessage } from "../utils/notifications.js";
-import { ConfigFileManager } from "./ConfigFileManager.js";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { toError } from "../utils/errorHelpers";
+import { logger } from "../utils/logger";
+import { showStatusBarMessage } from "../utils/notifications";
+import { ConfigFileManager } from "./ConfigFileManager";
 
 export class ProtectionConfigManager {
 	private configManager: ConfigFileManager;

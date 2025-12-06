@@ -16,7 +16,7 @@
 import * as path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { SaveHandler } from "../../src/handlers/SaveHandler.js";
+import { SaveHandler } from "../../src/handlers/SaveHandler";
 
 describe("CRITICAL BUGS: Regression Test Suite", () => {
 	describe("BUG #1: Save Interception Timing (CRITICAL)", () => {

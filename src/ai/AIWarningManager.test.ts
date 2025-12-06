@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { isOk } from "../types/result.js";
-import { logger } from "../utils/logger.js";
-import { type AIDetection, AIWarningManager } from "./AIWarningManager.js";
+import { isOk } from "../types/result";
+import { logger } from "../utils/logger";
+import { type AIDetection, AIWarningManager } from "./AIWarningManager";
 
 // Mock vscode module
 vi.mock("vscode");

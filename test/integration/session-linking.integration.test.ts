@@ -1,10 +1,10 @@
 import type { SessionManager } from "@snapback/sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ProtectionLevelHandler } from "../../src/handlers/ProtectionLevelHandler.js";
+import { ProtectionLevelHandler } from "../../src/handlers/ProtectionLevelHandler";
 import {
 	createMockDocument,
 	createMockOperationCoordinator,
-} from "../__mocks__/factories.js";
+} from "../__mocks__/factories";
 
 /**
  * Session Linking Test

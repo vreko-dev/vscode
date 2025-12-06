@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AIRiskService } from "../../../src/services/aiRiskService.js";
-import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry.js";
-import type { ProtectionManager } from "../../../src/services/protectionPolicy.js";
-import { ProtectionService } from "../../../src/services/protectionService.js";
+import type { AIRiskService } from "../../../src/services/aiRiskService";
+import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
+import type { ProtectionManager } from "../../../src/services/protectionPolicy";
+import { ProtectionService } from "../../../src/services/protectionService";
 
 describe("ProtectionService - Enhanced Audit Features", () => {
 	let protectionService: ProtectionService;

@@ -1,4 +1,4 @@
-import type { ProtectionLevel } from "./protection.js";
+import type { ProtectionLevel } from "./protection";
 
 /**
  * Main configuration schema for .snapbackrc

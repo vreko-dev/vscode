@@ -2,15 +2,15 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type * as vscode from "vscode";
-import { SnapBackTreeProvider } from "../../src/views/snapBackTreeProvider.js";
+import { SnapBackTreeProvider } from "../../src/views/snapBackTreeProvider";
 import type {
 	CheckpointSummary,
 	CheckpointSummaryProvider,
 	ProtectedFileEntry,
 	ProtectedFileProvider,
 } from "../../src/views/types";
-import { PROTECTION_LEVELS } from "../../src/views/types.js";
-import { waitForEvent } from "../helpers/eventHelpers.js";
+import { PROTECTION_LEVELS } from "../../src/views/types";
+import { waitForEvent } from "../helpers/eventHelpers";
 
 const createProvider = (
 	checkpoints: CheckpointSummary[] = [],

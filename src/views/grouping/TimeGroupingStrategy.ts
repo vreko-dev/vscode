@@ -2,8 +2,8 @@ import type {
 	SnapshotDisplayItem,
 	TimeGroup,
 	TimeGroupedSnapshots,
-} from "../types.js";
-import type { GroupingStrategy } from "./types.js";
+} from "../types";
+import type { GroupingStrategy } from "./types";
 
 /**
  * Groups snapshots by time (Today, Yesterday, This Week, Older)

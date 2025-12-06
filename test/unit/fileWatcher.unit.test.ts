@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { FileSystemWatcher } from "../../src/protection/FileSystemWatcher.js";
+import { FileSystemWatcher } from "../../src/protection/FileSystemWatcher";
 
 // Store event handlers
 const eventHandlers = {

@@ -7,6 +7,6 @@
  * ```
  */
 
-export * from "./colors.js";
-export * from "./commands.js";
-export * from "./icons.js";
+export * from "./colors";
+export * from "./commands";
+export * from "./icons";

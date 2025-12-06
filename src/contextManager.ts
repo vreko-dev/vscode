@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "./services/protectedFileRegistry.js";
-import { logger } from "./utils/logger.js";
+import type { ProtectedFileRegistry } from "./services/protectedFileRegistry";
+import { logger } from "./utils/logger";
 
 /**
  * ContextManager handles setting VS Code context variables for menu visibility

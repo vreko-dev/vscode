@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SmartContextDetector } from "../../src/smartContext.js";
-import type { FileSystemStorage } from "../../src/storage/types.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import { SmartContextDetector } from "../../src/smartContext";
+import type { FileSystemStorage } from "../../src/storage/types";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 // Mock FileSystemStorage methods
 const mockStorage = {

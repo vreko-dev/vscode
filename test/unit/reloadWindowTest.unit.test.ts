@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry.js";
+import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry";
 
 describe("Reload Window Test", () => {
 	beforeEach(() => {

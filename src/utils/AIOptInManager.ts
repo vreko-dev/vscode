@@ -7,7 +7,7 @@
  */
 
 import * as vscode from "vscode";
-import { logger } from "./logger.js";
+import { logger } from "./logger";
 
 /**
  * Keys for storing AI opt-in preferences

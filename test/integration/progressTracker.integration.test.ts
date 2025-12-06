@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { ProgressTracker } from "../../src/progressTracker.js";
+import { ProgressTracker } from "../../src/progressTracker";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

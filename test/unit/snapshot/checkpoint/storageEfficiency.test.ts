@@ -3,10 +3,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { NotificationManager } from "../../../src/notificationManager.js";
-import { OperationCoordinator } from "../../../src/operationCoordinator.js";
-import { FileSystemStorage } from "../../../src/storage/types.js";
-import { WorkspaceMemoryManager } from "../../../src/workspaceMemory.js";
+import { NotificationManager } from "../../../src/notificationManager";
+import { OperationCoordinator } from "../../../src/operationCoordinator";
+import { FileSystemStorage } from "../../../src/storage/types";
+import { WorkspaceMemoryManager } from "../../../src/workspaceMemory";
 
 describe("Checkpoint Storage Efficiency Tests", () => {
 	let operationCoordinator: OperationCoordinator;

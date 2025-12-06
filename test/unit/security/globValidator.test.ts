@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { GlobValidator } from "../../../src/security/globValidator.js";
+import { GlobValidator } from "../../../src/security/globValidator";
 
 describe("GlobValidator - Safe Glob Pattern Validation", () => {
 	let validator: GlobValidator;

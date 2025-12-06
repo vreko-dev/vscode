@@ -2,7 +2,7 @@ import * as assert from "node:assert";
 // @ts-expect-error
 import sinon from "sinon";
 import * as vscode from "vscode";
-import { PredictiveRiskAssessmentService } from "../../src/predictiveRiskAssessment.js";
+import { PredictiveRiskAssessmentService } from "../../src/predictiveRiskAssessment";
 
 suite("PredictiveRiskAssessmentService Test Suite", () => {
 	vscode.window.showInformationMessage("Start all tests.");

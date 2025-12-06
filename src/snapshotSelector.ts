@@ -7,7 +7,7 @@
  */
 
 import * as vscode from "vscode";
-import type { OperationCoordinator } from "./operationCoordinator.js";
+import type { OperationCoordinator } from "./operationCoordinator";
 
 /**
  * Represents a snapshot item in the selection UI

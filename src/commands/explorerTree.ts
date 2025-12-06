@@ -9,9 +9,9 @@
 
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
-import { COMMANDS } from "../constants/index.js";
-import type { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider.js";
-import type { SnapBackTreeNode } from "../views/explorerTree/types.js";
+import { COMMANDS } from "../constants/index";
+import type { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider";
+import type { SnapBackTreeNode } from "../views/explorerTree/types";
 
 /**
  * Command: snapback.connect

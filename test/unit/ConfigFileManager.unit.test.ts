@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ConfigFileManager } from "../../src/protection/ConfigFileManager.js";
+import { ConfigFileManager } from "../../src/protection/ConfigFileManager";
 
 // Mock fs module
 vi.mock("fs/promises", () => {

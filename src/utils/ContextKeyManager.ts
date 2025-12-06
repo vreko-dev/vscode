@@ -7,8 +7,8 @@
  */
 
 import * as vscode from "vscode";
-import type { ExperienceTier } from "./ExperienceClassifier.js";
-import { logger } from "./logger.js";
+import type { ExperienceTier } from "./ExperienceClassifier";
+import { logger } from "./logger";
 
 /**
  * Context key names used by SnapBack

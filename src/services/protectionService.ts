@@ -11,14 +11,14 @@
  */
 
 import type * as vscode from "vscode";
-import { logger } from "../utils/logger.js";
-import type { ProtectionLevel } from "../views/types.js";
-import type { AIRiskService } from "./aiRiskService.js";
-import type { ProtectedFileRegistry } from "./protectedFileRegistry.js";
+import { logger } from "../utils/logger";
+import type { ProtectionLevel } from "../views/types";
+import type { AIRiskService } from "./aiRiskService";
+import type { ProtectedFileRegistry } from "./protectedFileRegistry";
 import type {
 	ProtectionManager,
 	RepoProtectionAudit,
-} from "./protectionPolicy.js";
+} from "./protectionPolicy";
 
 /**
  * Save permission check result

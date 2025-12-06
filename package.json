@@ -1058,11 +1058,11 @@
     ]
   },
   "dependencies": {
-    "@snapback/contracts": "^0.1.4",
+    "@snapback/contracts": "workspace:*",
     "@snapback/core": "workspace:*",
     "@snapback/events": "^0.1.1",
-    "@snapback/infrastructure": "^0.1.2",
-    "@snapback/sdk": "^0.1.1",
+    "@snapback/infrastructure": "workspace:*",
+    "@snapback/sdk": "workspace:*",
     "ajv": "catalog:",
     "async-lock": "catalog:",
     "base64url": "catalog:",

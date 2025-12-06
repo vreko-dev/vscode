@@ -19,8 +19,8 @@ import type {
 	TimeGroup,
 	TimeGroupedSnapshots,
 	TreeViewConfig,
-} from "../../../src/views/types.js";
-import { DEFAULT_TREE_CONFIG } from "../../../src/views/types.js";
+} from "../../../src/views/types";
+import { DEFAULT_TREE_CONFIG } from "../../../src/views/types";
 
 describe("TreeView Types (TDD RED)", () => {
 	describe("GroupingMode type", () => {

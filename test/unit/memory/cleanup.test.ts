@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { CheckpointDocumentProvider } from "../../../src/providers/CheckpointDocumentProvider.js";
-import { CheckpointRestoreUI } from "../../../src/ui/CheckpointRestoreUI.js";
+import { CheckpointDocumentProvider } from "../../../src/providers/CheckpointDocumentProvider";
+import { CheckpointRestoreUI } from "../../../src/ui/CheckpointRestoreUI";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

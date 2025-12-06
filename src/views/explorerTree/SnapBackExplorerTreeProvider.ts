@@ -9,20 +9,20 @@
 
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
-import type { AuthedApiClient } from "../../api/authedApiClient.js";
-import type { CredentialsManager } from "../../auth/credentials.js";
+import type { AuthedApiClient } from "../../api/authedApiClient";
+import type { CredentialsManager } from "../../auth/credentials";
 import {
 	isSection,
 	type SnapBackTreeNode,
 	type WorkspaceSafetyResponse,
 	type WorkspaceSnapshotsResponse,
-} from "./types.js";
+} from "./types";
 import {
 	branchStatusLabel,
 	formatAge,
 	formatAgeFromSeconds,
 	formatBytes,
-} from "./utils.js";
+} from "./utils";
 
 /**
  * Section configurations using const assertion for type safety

@@ -1,8 +1,8 @@
 import { logger } from "@snapback/infrastructure";
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
-import { TelemetryProxy } from "../services/telemetry-proxy.js";
-import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker.js";
+import { TelemetryProxy } from "../services/telemetry-proxy";
+import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 
 /**
  * Device Authorization Flow (RFC 8628)

@@ -4,7 +4,7 @@
  * @see Design: .qoder/quests/snapback-explorer-tree.md
  */
 
-import type { SnapshotBranchStatus } from "./types.js";
+import type { SnapshotBranchStatus } from "./types";
 
 /**
  * Format ISO 8601 timestamp to relative age string

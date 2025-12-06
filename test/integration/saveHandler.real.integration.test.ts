@@ -21,7 +21,7 @@ import * as assert from "node:assert";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry.js";
+import type { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry";
 
 suite("Save Handler - Real Integration Tests (Bug #1 Detection)", () => {
 	let workspaceRoot: string;

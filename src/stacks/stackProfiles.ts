@@ -10,7 +10,7 @@
  * - Default protection rules for stack-specific files
  */
 
-import type { ProtectionRule } from "../services/protectionPolicy.js";
+import type { ProtectionRule } from "../services/protectionPolicy";
 
 /**
  * Stack detection criteria

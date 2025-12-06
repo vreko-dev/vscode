@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { SemanticCheckpointNamer } from "../../src/semanticCheckpointNamer.js";
+import { SemanticCheckpointNamer } from "../../src/semanticCheckpointNamer";
 
 describe("SemanticCheckpointNamer", () => {
 	let namer: SemanticCheckpointNamer;

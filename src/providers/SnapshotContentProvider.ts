@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import type { FileState } from "../snapshot/SnapshotDeduplicator.js";
-import type { SnapshotManager } from "../snapshot/SnapshotManager.js";
-import { logger } from "../utils/logger.js";
+import type { FileState } from "../snapshot/SnapshotDeduplicator";
+import type { SnapshotManager } from "../snapshot/SnapshotManager";
+import { logger } from "../utils/logger";
 
 /**
  * Cache entry for snapshot content

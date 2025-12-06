@@ -7,7 +7,7 @@ import * as vscode from "vscode";
 import {
 	CONTEXT_KEYS,
 	ContextKeyManager,
-} from "../../../src/utils/ContextKeyManager.js";
+} from "../../../src/utils/ContextKeyManager";
 
 // Mock VS Code commands
 vi.mock("vscode", () => ({

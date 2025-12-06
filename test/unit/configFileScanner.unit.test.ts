@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ConfigFileScanner } from "../../src/services/configFileScanner.js";
+import { ConfigFileScanner } from "../../src/services/configFileScanner";
 
 // Mock fast-glob
 vi.mock("fast-glob", () => {

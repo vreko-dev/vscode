@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import type { DiagnosticEventTracker } from "./telemetry/diagnostic-event-tracker.js";
-import { SkipReasonTracker } from "./welcome/SkipReasonTracker.js";
+import type { DiagnosticEventTracker } from "./telemetry/diagnostic-event-tracker";
+import { SkipReasonTracker } from "./welcome/SkipReasonTracker";
 
 export class WelcomeView
 	implements vscode.WebviewViewProvider, vscode.Disposable

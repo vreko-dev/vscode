@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { ProtectedFileEntry } from "../views/types.js";
-import { logger } from "./logger.js";
+import type { ProtectedFileEntry } from "../views/types";
+import { logger } from "./logger";
 
 export interface ProtectedSnapshotInput {
 	files: string[];

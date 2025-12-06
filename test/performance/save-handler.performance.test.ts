@@ -4,9 +4,9 @@ import * as path from "node:path";
 import { performance } from "node:perf_hooks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
-import { SaveHandler } from "../../src/handlers/SaveHandler.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
-import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry.js";
+import { SaveHandler } from "../../src/handlers/SaveHandler";
+import { OperationCoordinator } from "../../src/operationCoordinator";
+import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry";
 
 // Mock vscode
 vi.mock("vscode", () => {

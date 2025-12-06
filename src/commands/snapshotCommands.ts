@@ -16,8 +16,8 @@
 
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
-import type { SnapshotManager } from "../snapshot/SnapshotManager.js";
-import { getSnapshotLabel } from "../utils/snapshotLabeling.js";
+import type { SnapshotManager } from "../snapshot/SnapshotManager";
+import { getSnapshotLabel } from "../utils/snapshotLabeling";
 
 /**
  * Snapshot tree item interface (matches the tree view item structure)

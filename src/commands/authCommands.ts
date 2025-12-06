@@ -5,8 +5,8 @@
  */
 
 import * as vscode from "vscode";
-import { COMMANDS } from "../constants/index.js";
-import { logger } from "../utils/logger.js";
+import { COMMANDS } from "../constants/index";
+import { logger } from "../utils/logger";
 
 /**
  * Register authentication-related commands

@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "./services/protectedFileRegistry.js";
-import { BRAND_SIGNAGE, getProtectionLevelSignage } from "./signage/index.js";
-import { toError } from "./utils/errorHelpers.js";
-import { logger } from "./utils/logger.js";
-import type { ProtectionLevel } from "./views/types.js";
-import { PROTECTION_LEVELS } from "./views/types.js";
+import type { ProtectedFileRegistry } from "./services/protectedFileRegistry";
+import { BRAND_SIGNAGE, getProtectionLevelSignage } from "./signage/index";
+import { toError } from "./utils/errorHelpers";
+import { logger } from "./utils/logger";
+import type { ProtectionLevel } from "./views/types";
+import { PROTECTION_LEVELS } from "./views/types";
 
 interface ProtectionStats {
 	watched: number;

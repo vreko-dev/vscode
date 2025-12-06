@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { OperationCache } from "../../../src/performance/operationCache.js";
+import { OperationCache } from "../../../src/performance/operationCache";
 
 describe("OperationCache - Memory Leak Prevention", () => {
 	beforeEach(() => {

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import type { IStorageManager, SnapshotManifest } from "../storage/types.js";
-import { SnapBackTreeProvider } from "./SnapBackTreeProvider.js";
+import type { IStorageManager, SnapshotManifest } from "../storage/types";
+import { SnapBackTreeProvider } from "./SnapBackTreeProvider";
 
 // Mock vscode module
 vi.mock("vscode", () => ({

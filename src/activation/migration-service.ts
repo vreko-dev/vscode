@@ -1,8 +1,8 @@
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
-import { SNAPBACK_ICONS } from "../constants/index.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { logger } from "../utils/logger.js";
+import { SNAPBACK_ICONS } from "../constants/index";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { logger } from "../utils/logger";
 
 /**
  * Migration Service for users upgrading from auto-protection version

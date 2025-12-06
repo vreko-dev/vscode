@@ -1,7 +1,7 @@
 import { ServiceFederation } from "@snapback/core/mcp";
-import { LazyLoader } from "../services/LazyLoader.js";
-import { logger } from "../utils/logger.js";
-import { PhaseLogger } from "./phaseLogger.js";
+import { LazyLoader } from "../services/LazyLoader";
+import { logger } from "../utils/logger";
+import { PhaseLogger } from "./phaseLogger";
 
 /**
  * Initialize Phase 1 services with lazy loading

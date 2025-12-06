@@ -2,16 +2,16 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { minimatch } from "minimatch";
 import * as vscode from "vscode";
-import { DEFAULT_SNAPBACK_CONFIG } from "../config/defaultConfig.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
+import { DEFAULT_SNAPBACK_CONFIG } from "../config/defaultConfig";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 // Phase 2: Import protection policy infrastructure
 import {
 	ProtectionManager,
 	type ProtectionPolicy,
-} from "../services/protectionPolicy.js";
-import type { ProtectionLevel } from "../types/protection.js";
+} from "../services/protectionPolicy";
+import type { ProtectionLevel } from "../types/protection";
 import type { SnapBackRC } from "../types/snapbackrc.types";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 /**
  * Loads and applies .snapbackrc configuration to the protected file registry

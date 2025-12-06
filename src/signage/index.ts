@@ -6,7 +6,7 @@ export {
 	legacyProtectionLevelToCanonical,
 	PROTECTION_LEVEL_SIGNAGE,
 	REPO_STATUS_SIGNAGE,
-} from "./constants.js";
+} from "./constants";
 export {
 	type BrandSignage,
 	type CoreConceptKey,
@@ -21,7 +21,7 @@ export {
 	REPO_STATUS_CANONICAL,
 	type RepoStatusCanonical,
 	type RepoStatusSignage,
-} from "./types.js";
+} from "./types";
 
 /**
  * Convenience helpers so call sites read cleanly.
@@ -31,12 +31,12 @@ import {
 	FILE_HEALTH_DECORATIONS as _FILE_HEALTH_DECORATIONS,
 	PROTECTION_LEVEL_SIGNAGE as _PROTECTION_LEVEL_SIGNAGE,
 	REPO_STATUS_SIGNAGE as _REPO_STATUS_SIGNAGE,
-} from "./constants.js";
+} from "./constants";
 import type {
 	FileHealthCanonical,
 	ProtectionLevelCanonical,
 	RepoStatusCanonical,
-} from "./types.js";
+} from "./types";
 
 export const getProtectionLevelSignage = (level: ProtectionLevelCanonical) =>
 	_PROTECTION_LEVEL_SIGNAGE[level];

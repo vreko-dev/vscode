@@ -1,7 +1,7 @@
 import * as assert from "node:assert";
 import * as vscode from "vscode";
-import type { WorkflowIntegration } from "../../src/workflowIntegration.js";
-import { WorkflowView } from "../../src/workflowView.js";
+import type { WorkflowIntegration } from "../../src/workflowIntegration";
+import { WorkflowView } from "../../src/workflowView";
 
 suite("WorkflowView Test Suite", () => {
 	vscode.window.showInformationMessage("Start all tests.");

@@ -1,4 +1,4 @@
-import type { IConfirmationService } from "../types/snapshot.js";
+import type { IConfirmationService } from "../types/snapshot";
 
 /**
  * VSCodeConfirmationService - Adapts VS Code dialog APIs to IConfirmationService interface

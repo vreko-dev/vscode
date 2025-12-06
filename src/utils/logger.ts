@@ -23,7 +23,7 @@ export enum LogLevel {
  *
  * @example
  * ```typescript
- * import { logger } from './utils/logger.js';
+ * import { logger } from './utils/logger';
  *
  * logger.info('File protected', { filePath: '/path/to/file' });
  * logger.error('Operation failed', error, { operation: 'snapshot' });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getProtectionLevelForFile } from "../../../src/config/merge.js";
+import { getProtectionLevelForFile } from "../../../src/config/merge";
 import type { SnapBackRC } from "../../../src/types/snapbackrc.types";
 
 describe("Precedence Torture Tests", () => {

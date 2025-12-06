@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { NotificationManager } from "../../src/notificationManager.js";
-import { OperationCoordinator } from "../../src/operationCoordinator.js";
-import { WorkspaceMemoryManager } from "../../src/workspaceMemory.js";
+import { NotificationManager } from "../../src/notificationManager";
+import { OperationCoordinator } from "../../src/operationCoordinator";
+import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

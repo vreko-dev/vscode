@@ -1,4 +1,4 @@
-import type { GroupingMode, SnapshotDisplayItem } from "../types.js";
+import type { GroupingMode, SnapshotDisplayItem } from "../types";
 
 /**
  * Strategy interface for grouping snapshots

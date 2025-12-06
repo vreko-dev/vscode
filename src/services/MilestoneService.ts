@@ -1,6 +1,6 @@
 import type * as vscode from "vscode";
-import type { NotificationManager } from "../notificationManager.js";
-import type { TelemetryProxy } from "./telemetry-proxy.js";
+import type { NotificationManager } from "../notificationManager";
+import type { TelemetryProxy } from "./telemetry-proxy";
 
 /**
  * Milestone Service

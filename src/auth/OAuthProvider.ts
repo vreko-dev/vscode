@@ -6,7 +6,7 @@
  */
 
 import * as vscode from "vscode";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 export interface SnapBackSession extends vscode.AuthenticationSession {
 	/** OAuth access token */

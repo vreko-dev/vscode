@@ -1,19 +1,19 @@
 import * as path from "node:path";
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
-import { SNAPBACK_ICONS } from "../constants/index.js";
-import { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator.js";
-import { AutoProtectConfig } from "../protection/autoProtectConfig.js";
-import { ConfigFileManager } from "../protection/ConfigFileManager.js";
-import { SnapBackRCLoader } from "../protection/SnapBackRCLoader.js";
-import { MCPLifecycleManager } from "../services/MCPLifecycleManager.js";
-import { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { migrateExistingSnapshots } from "../snapshot/migration/encrypt-existing-snapshots.js";
-import { StorageManager } from "../storage/StorageManager.js";
-import { logger } from "../utils/logger.js";
-import { directoryExists, findProjectRoot } from "../utils/projectRoot.js";
-import { MigrationService } from "./migration-service.js";
-import { PhaseLogger } from "./phaseLogger.js";
+import { SNAPBACK_ICONS } from "../constants/index";
+import { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator";
+import { AutoProtectConfig } from "../protection/autoProtectConfig";
+import { ConfigFileManager } from "../protection/ConfigFileManager";
+import { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
+import { MCPLifecycleManager } from "../services/MCPLifecycleManager";
+import { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { migrateExistingSnapshots } from "../snapshot/migration/encrypt-existing-snapshots";
+import { StorageManager } from "../storage/StorageManager";
+import { logger } from "../utils/logger";
+import { directoryExists, findProjectRoot } from "../utils/projectRoot";
+import { MigrationService } from "./migration-service";
+import { PhaseLogger } from "./phaseLogger";
 
 export interface Phase2Result {
 	storage: StorageManager;

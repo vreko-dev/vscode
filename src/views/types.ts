@@ -1,5 +1,5 @@
 import type { Uri } from "vscode";
-import { PROTECTION_LEVEL_SIGNAGE } from "../signage/index.js";
+import { PROTECTION_LEVEL_SIGNAGE } from "../signage/index";
 
 // ============================================
 // GROUPING MODES (Future-Proof Architecture)

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { NotificationFrequencyTuner } from "../../src/notificationFrequencyTuner.js";
+import { NotificationFrequencyTuner } from "../../src/notificationFrequencyTuner";
 
 describe("NotificationFrequencyTuner", () => {
 	let tuner: NotificationFrequencyTuner;

@@ -3,8 +3,8 @@ import {
 	getSessionPerfMonitor,
 	initializeSessionPerfMonitor,
 	resetSessionPerfData,
-} from "../../../src/performance/sessionPerfMonitor.js";
-import { SessionCoordinator } from "../../../src/snapshot/SessionCoordinator.js";
+} from "../../../src/performance/sessionPerfMonitor";
+import { SessionCoordinator } from "../../../src/snapshot/SessionCoordinator";
 
 // Mock SqliteStorageAdapter
 const mockStorageAdapter = {

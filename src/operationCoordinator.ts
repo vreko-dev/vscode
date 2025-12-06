@@ -72,13 +72,13 @@ import { THRESHOLDS } from "@snapback/sdk";
 import { chunk } from "es-toolkit";
 import ignore from "ignore";
 import * as vscode from "vscode";
-import type { ConflictResolver } from "./conflictResolver.js";
-import type { NotificationManager } from "./notificationManager.js";
-import type { MilestoneService } from "./services/MilestoneService.js";
-import type { TelemetryProxy } from "./services/telemetry-proxy.js";
-import type { StorageManager } from "./storage/StorageManager.js";
-import { logger } from "./utils/logger.js";
-import type { WorkspaceMemoryManager } from "./workspaceMemory.js";
+import type { ConflictResolver } from "./conflictResolver";
+import type { NotificationManager } from "./notificationManager";
+import type { MilestoneService } from "./services/MilestoneService";
+import type { TelemetryProxy } from "./services/telemetry-proxy";
+import type { StorageManager } from "./storage/StorageManager";
+import { logger } from "./utils/logger";
+import type { WorkspaceMemoryManager } from "./workspaceMemory";
 
 /**
  * Get current snapshot limits from runtime thresholds

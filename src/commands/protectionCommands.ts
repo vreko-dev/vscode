@@ -18,13 +18,13 @@
  */
 
 import * as vscode from "vscode";
-import { ProtectionNotifications } from "../notifications/protectionNotifications.js";
-import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader.js";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry.js";
-import { logger } from "../utils/logger.js";
-import type { ProtectionLevel } from "../views/types.js";
-import { PROTECTION_LEVELS } from "../views/types.js";
-import type { CommandContext } from "./index.js";
+import { ProtectionNotifications } from "../notifications/protectionNotifications";
+import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { logger } from "../utils/logger";
+import type { ProtectionLevel } from "../views/types";
+import { PROTECTION_LEVELS } from "../views/types";
+import type { CommandContext } from "./index";
 
 /**
  * Module-level ProtectionNotifications instance

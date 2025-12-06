@@ -1,4 +1,4 @@
-import type { WorkspaceMemoryManager } from "./workspaceMemory.js";
+import type { WorkspaceMemoryManager } from "./workspaceMemory";
 
 export interface SmartContext {
 	projectType: "javascript" | "typescript" | "python" | "java" | "unknown";

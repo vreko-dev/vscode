@@ -21,9 +21,9 @@
 
 import type { ServiceFederation } from "@snapback/core";
 import * as vscode from "vscode";
-import type { OperationCoordinator } from "../operationCoordinator.js";
-import type { StatusBarController } from "../ui/statusBar.js";
-import type { WorkflowIntegration } from "../workflowIntegration.js";
+import type { OperationCoordinator } from "../operationCoordinator";
+import type { StatusBarController } from "../ui/statusBar";
+import type { WorkflowIntegration } from "../workflowIntegration";
 
 /**
  * Register all MCP and AI-related commands

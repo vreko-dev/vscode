@@ -11,10 +11,10 @@
 
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
-import { COMMANDS } from "../constants/commands.js";
-import { SNAPBACK_ICONS } from "../constants/icons.js";
-import type { IStorageManager, SnapshotManifest } from "../storage/types.js";
-import { TimeGroupingStrategy } from "./grouping/TimeGroupingStrategy.js";
+import { COMMANDS } from "../constants/commands";
+import { SNAPBACK_ICONS } from "../constants/icons";
+import type { IStorageManager, SnapshotManifest } from "../storage/types";
+import { TimeGroupingStrategy } from "./grouping/TimeGroupingStrategy";
 import type {
 	GroupingMode,
 	ProblemItem,
@@ -22,8 +22,8 @@ import type {
 	SnapshotDisplayItem,
 	TimeGroup,
 	TreeViewConfig,
-} from "./types.js";
-import { DEFAULT_TREE_CONFIG } from "./types.js";
+} from "./types";
+import { DEFAULT_TREE_CONFIG } from "./types";
 
 // ============================================
 // MINIMAL SERVICE INTERFACES

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MCPToolsView } from "../../src/mcpView.js";
+import { MCPToolsView } from "../../src/mcpView";
 
 // Mock VS Code API
 vi.mock("vscode", () => {

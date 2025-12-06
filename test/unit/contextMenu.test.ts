@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry.js";
-import type { ProtectionLevel } from "../../src/views/types.js";
+import { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry";
+import type { ProtectionLevel } from "../../src/views/types";
 
 describe("Context Menu Protection Levels", () => {
 	let registry: ProtectedFileRegistry;
