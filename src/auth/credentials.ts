@@ -31,7 +31,7 @@ export interface ExtensionCredentials {
 	workspace?: {
 		id: string;
 		name: string;
-		plan: "free" | "solo" | "team" | "enterprise";
+		plan: "free" | "pro" | "team" | "enterprise";
 	};
 	accessToken: string; // JWT access token (15 min expiry)
 	refreshToken: string; // Opaque refresh token (90 day expiry)

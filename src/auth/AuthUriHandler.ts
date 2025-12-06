@@ -114,7 +114,7 @@ export class AuthUriHandler implements vscode.UriHandler {
 				workspace?: {
 					id: string;
 					name: string;
-					plan: "free" | "solo" | "team" | "enterprise";
+					plan: "free" | "pro" | "team" | "enterprise";
 				};
 			};
 

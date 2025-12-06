@@ -34,7 +34,7 @@ export interface AuthToken {
 	workspace?: {
 		id: string;
 		name: string;
-		plan: "free" | "solo" | "team" | "enterprise";
+		plan: "free" | "pro" | "team" | "enterprise";
 	};
 }
 
@@ -228,7 +228,7 @@ export class AuthService {
 	async getCurrentWorkspace(): Promise<{
 		id: string;
 		name: string;
-		plan: "free" | "solo" | "team" | "enterprise";
+		plan: "free" | "pro" | "team" | "enterprise";
 	} | null> {
 		const token = await this.getToken();
 		return token?.workspace ?? null;

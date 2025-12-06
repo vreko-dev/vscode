@@ -209,7 +209,7 @@ test.describe("Session Analytics Privacy", () => {
 		// 3. Verify payload contains only:
 		//    - changeCount: number
 		//    - durationMs: number
-		//    - tier: "free" | "solo"
+		//    - tier: "free" | "pro"
 		// 4. Verify NO file paths, content, or workspace IDs transmitted
 
 		// Privacy guarantee:
