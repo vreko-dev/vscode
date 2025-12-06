@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.4.0
+
+### Minor Changes
+
+- Feature release including:
+  - Web: Shareable moments dashboard.
+  - API: Unified OpenAPI documentation and linting fixes.
+  - VSCode: User Identity Service and consolidated telemetry.
+
+### Patch Changes
+
+- Updated dependencies
+  - @snapback/core@0.1.2
+
 ## 1.3.0
 
 ### Minor Changes
