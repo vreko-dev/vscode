@@ -38,7 +38,7 @@ Be respectful, inclusive, and professional. We're building a welcoming community
 
 ```bash
 git clone https://github.com/snapback-dev/snapback.dev.git
-cd snapback
+cd snapback.dev
 pnpm install
 ```
 

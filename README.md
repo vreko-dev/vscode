@@ -250,7 +250,7 @@ pnpm dev
 - **Documentation**: [docs.snapback.dev](https://docs.snapback.dev)
 - **Get API Key**: [snapback.dev](https://snapback.dev)
 - **Report Issues**: [github.com/snapback-dev/vscode/issues](https://github.com/snapback-dev/vscode/issues)
-- **Main Repository**: [Marcelle-Labs/snapback.dev](https://github.com/Marcelle-Labs/snapback.dev)
+- **Main Repository**: [snapback-dev/snapback.dev](https://github.com/snapback-dev/snapback.dev)
 
 ## Related
 
