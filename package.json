@@ -1060,7 +1060,7 @@
   "dependencies": {
     "@snapback/contracts": "workspace:*",
     "@snapback/core": "workspace:*",
-    "@snapback/events": "^0.1.1",
+    "@snapback/events": "workspace:*",
     "@snapback/infrastructure": "workspace:*",
     "@snapback/sdk": "workspace:*",
     "ajv": "catalog:",
