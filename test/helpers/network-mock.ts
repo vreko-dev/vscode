@@ -24,6 +24,8 @@
  * ```
  */
 
+import { withRetry, RetryPresets } from "@snapback-oss/sdk";
+
 export interface NetworkResponse<T = unknown> {
 	data: T;
 	status: number;
@@ -326,26 +328,11 @@ export class RetryableNetworkAdapter extends MockNetworkAdapter {
 	private async withRetry<T>(
 		fn: () => Promise<NetworkResponse<T>>,
 	): Promise<NetworkResponse<T>> {
-		let lastError: Error | null = null;
-
-		for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-			try {
-				return await fn();
-			} catch (error) {
-				lastError = error as Error;
-
-				// Don't retry on last attempt
-				if (attempt === this.maxRetries) {
-					break;
-				}
-
-				// Exponential backoff
-				const delay = this.retryDelay * 2 ** attempt;
-				await new Promise((resolve) => setTimeout(resolve, delay));
-			}
-		}
-
-		throw lastError;
+		return withRetry(fn, {
+			...RetryPresets.network,
+			maxAttempts: this.maxRetries + 1, // Convert to attempts (retries + initial)
+			baseDelayMs: this.retryDelay,
+		});
 	}
 }
 

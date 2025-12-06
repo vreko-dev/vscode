@@ -12,6 +12,7 @@
  */
 
 import { logger } from "@snapback/infrastructure";
+import { RetryPresets, withRetry } from "@snapback-oss/sdk";
 
 export type ErrorSeverity = "info" | "warning" | "error" | "critical";
 
@@ -279,46 +280,25 @@ export class WelcomeErrorRecovery {
 		action: () => Promise<T>,
 		errorCode: string,
 	): Promise<T | null> {
-		let recovery = this.recoveryInProgress.get(errorCode);
-
-		if (!recovery) {
-			recovery = {
-				type: "retry",
-				delayMs: this.RETRY_DELAY_MS,
-				maxAttempts: this.MAX_RECOVERY_ATTEMPTS,
-				currentAttempt: 1,
-			};
+		try {
+			const result = await withRetry(action, {
+				...RetryPresets.network,
+				onRetry: (attempt, error) => {
+					logger.debug("Attempting retry", {
+						errorCode,
+						attempt,
+						error: error.message,
+					});
+				},
+			});
+			return result;
+		} catch (error) {
+			logger.warn("All retries exhausted", {
+				errorCode,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return null;
 		}
-
-		while (recovery.currentAttempt <= recovery.maxAttempts) {
-			try {
-				logger.debug("Attempting retry", {
-					errorCode,
-					attempt: recovery.currentAttempt,
-					delayMs: recovery.delayMs,
-				});
-
-				// Wait before retry (with exponential backoff)
-				await this.delay(recovery.delayMs);
-
-				// Execute action
-				const result = await action();
-				this.recoveryInProgress.delete(errorCode);
-				return result;
-			} catch (error) {
-				recovery.currentAttempt++;
-				recovery.delayMs *= 2; // Exponential backoff
-				logger.warn("Retry failed", {
-					errorCode,
-					attempt: recovery.currentAttempt,
-					error: error instanceof Error ? error.message : String(error),
-				});
-			}
-		}
-
-		// All retries exhausted
-		this.recoveryInProgress.set(errorCode, recovery);
-		return null;
 	}
 
 	/**
@@ -404,12 +384,5 @@ export class WelcomeErrorRecovery {
 		if (this.errorHistory.length > 20) {
 			this.errorHistory = this.errorHistory.slice(-20);
 		}
-	}
-
-	/**
-	 * Helper: delay for specified milliseconds
-	 */
-	private delay(ms: number): Promise<void> {
-		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 }

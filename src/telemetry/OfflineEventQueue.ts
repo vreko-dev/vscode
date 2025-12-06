@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { calculateBackoff } from "@snapback-oss/sdk";
 import type * as vscode from "vscode";
 
 /**
@@ -224,11 +225,15 @@ export class OfflineEventQueue {
 
 	/**
 	 * Calculate retry delay with exponential backoff
-	 * Formula: min(baseDelay * 2^retryCount, maxDelay)
+	 * Uses centralized SDK algorithm: min(baseDelay * 2^retryCount, maxDelay)
 	 */
 	getRetryDelay(retryCount: number): number {
-		const delay = this.baseRetryDelay * 2 ** retryCount;
-		return Math.min(delay, this.maxRetryDelay);
+		return calculateBackoff(
+			retryCount + 1, // Convert to 1-based
+			this.baseRetryDelay,
+			this.maxRetryDelay,
+			false, // No jitter for telemetry
+		);
 	}
 
 	/**
