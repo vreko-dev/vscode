@@ -23,32 +23,44 @@ export function registerConnectCommand(
 	_context: vscode.ExtensionContext,
 	explorerTreeProvider: SnapBackExplorerTreeProvider,
 ): vscode.Disposable {
-	return vscode.commands.registerCommand(COMMANDS.ACCOUNT.CONNECT, async () => {
-		try {
-			logger.info("Starting SnapBack OAuth connection");
+	try {
+		return vscode.commands.registerCommand(COMMANDS.ACCOUNT.CONNECT, async () => {
+			try {
+				logger.info("Starting SnapBack OAuth connection");
 
-			// Use VS Code's authentication API with SnapBack provider
-			const session = await vscode.authentication.getSession("snapback", ["workspace:read", "snapshots:read"], {
-				createIfNone: true,
-			});
+				// Use VS Code's authentication API with SnapBack provider
+				const session = await vscode.authentication.getSession(
+					"snapback",
+					["workspace:read", "snapshots:read"],
+					{
+						createIfNone: true,
+					},
+				);
 
-			if (session) {
-				logger.info("OAuth connection successful", {
-					userId: session.account.id,
-				});
+				if (session) {
+					logger.info("OAuth connection successful", {
+						userId: session.account.id,
+					});
 
-				vscode.window.showInformationMessage(`Connected to SnapBack as ${session.account.label}`);
+					vscode.window.showInformationMessage(`Connected to SnapBack as ${session.account.label}`);
 
-				// Refresh tree to show authenticated state
-				explorerTreeProvider.refresh();
+					// Refresh tree to show authenticated state
+					explorerTreeProvider.refresh();
+				}
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : String(error);
+				logger.error("OAuth connection failed", error as Error);
+
+				vscode.window.showErrorMessage(`Failed to connect to SnapBack: ${errorMsg}`);
 			}
-		} catch (error) {
-			const errorMsg = error instanceof Error ? error.message : String(error);
-			logger.error("OAuth connection failed", error as Error);
-
-			vscode.window.showErrorMessage(`Failed to connect to SnapBack: ${errorMsg}`);
+		});
+	} catch (error) {
+		if (error instanceof Error && error.message.includes("already exists")) {
+			// Command already exists, return no-op disposable
+			return { dispose: () => {} };
 		}
-	});
+		throw error;
+	}
 }
 
 /**
@@ -61,11 +73,18 @@ export function registerRefreshTreeCommand(
 	_context: vscode.ExtensionContext,
 	explorerTreeProvider: SnapBackExplorerTreeProvider,
 ): vscode.Disposable {
-	return vscode.commands.registerCommand(COMMANDS.UTILITY.REFRESH_TREE, () => {
-		logger.info("Manually refreshing SnapBack Explorer tree");
-		explorerTreeProvider.refresh();
-		vscode.window.showInformationMessage("SnapBack Explorer refreshed");
-	});
+	try {
+		return vscode.commands.registerCommand(COMMANDS.UTILITY.REFRESH_TREE, () => {
+			logger.info("Manually refreshing SnapBack Explorer tree");
+			explorerTreeProvider.refresh();
+			vscode.window.showInformationMessage("SnapBack Explorer refreshed");
+		});
+	} catch (error) {
+		if (error instanceof Error && error.message.includes("already exists")) {
+			return { dispose: () => {} };
+		}
+		throw error;
+	}
 }
 
 /**
@@ -75,27 +94,34 @@ export function registerRefreshTreeCommand(
  * Context menu action for snapshot nodes
  */
 export function registerOpenSnapshotInWebCommand(_context: vscode.ExtensionContext): vscode.Disposable {
-	return vscode.commands.registerCommand("snapback.openSnapshotInWeb", async (node: SnapBackTreeNode) => {
-		if (node.kind !== "snapshot" || !node.snapshotId) {
-			logger.warn("openSnapshotInWeb called on non-snapshot node", {
-				kind: node.kind,
+	try {
+		return vscode.commands.registerCommand("snapback.openSnapshotInWeb", async (node: SnapBackTreeNode) => {
+			if (node.kind !== "snapshot" || !node.snapshotId) {
+				logger.warn("openSnapshotInWeb called on non-snapshot node", {
+					kind: node.kind,
+				});
+				return;
+			}
+
+			// Get API base URL from configuration
+			const config = vscode.workspace.getConfiguration("snapback");
+			const webBaseUrl = config.get<string>("webBaseUrl", "https://app.snapback.dev");
+
+			const url = `${webBaseUrl}/snapshots/${node.snapshotId}`;
+
+			logger.info("Opening snapshot in web browser", {
+				snapshotId: node.snapshotId,
+				url,
 			});
-			return;
-		}
 
-		// Get API base URL from configuration
-		const config = vscode.workspace.getConfiguration("snapback");
-		const webBaseUrl = config.get<string>("webBaseUrl", "https://app.snapback.dev");
-
-		const url = `${webBaseUrl}/snapshots/${node.snapshotId}`;
-
-		logger.info("Opening snapshot in web browser", {
-			snapshotId: node.snapshotId,
-			url,
+			await vscode.env.openExternal(vscode.Uri.parse(url));
 		});
-
-		await vscode.env.openExternal(vscode.Uri.parse(url));
-	});
+	} catch (error) {
+		if (error instanceof Error && error.message.includes("already exists")) {
+			return { dispose: () => {} };
+		}
+		throw error;
+	}
 }
 
 /**

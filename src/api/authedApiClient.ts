@@ -38,6 +38,29 @@ export interface AuthedApiClient {
  * @returns AuthedApiClient instance
  */
 export function createAuthedApiClient(_context: vscode.ExtensionContext): AuthedApiClient {
+	// MOCK IMPLEMENTATION FOR E2E TESTS
+	if (process.env.VSCODE_SNAPSHOT_TEST_MODE === "true") {
+		return {
+			async fetch<T>(path: string, _init?: RequestInit): Promise<T> {
+				if (path === "/api/v1/workspace/safety") {
+					return {
+						blockingIssues: [],
+						watchItems: [],
+					} as unknown as T;
+				}
+				if (path === "/api/v1/workspace/snapshots") {
+					return {
+						total: 0,
+						recommendedRecoveryPoints: [],
+						activeBranches: [],
+						cleanupCandidates: [],
+					} as unknown as T;
+				}
+				return {} as T;
+			},
+		};
+	}
+
 	return {
 		async fetch<T>(_path: string, _init?: RequestInit): Promise<T> {
 			// TODO: Implement actual authenticated fetch with token refresh

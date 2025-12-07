@@ -89,6 +89,10 @@ export class SnapBackExplorerTreeProvider implements vscode.TreeDataProvider<Sna
 			item.iconPath = new vscode.ThemeIcon(element.icon);
 		}
 
+		if (element.command) {
+			item.command = element.command;
+		}
+
 		// Set contextValue for menu contributions
 		if (element.kind === "blockingIssue" && element.filePath) {
 			item.contextValue = "blockingIssue";
@@ -168,6 +172,10 @@ export class SnapBackExplorerTreeProvider implements vscode.TreeDataProvider<Sna
 			description: "Link VS Code to your SnapBack workspace",
 			icon: "account",
 			collapsibleState: vscode.TreeItemCollapsibleState.None,
+			command: {
+				command: "snapback.connect",
+				title: "Sign In",
+			},
 		};
 	}
 

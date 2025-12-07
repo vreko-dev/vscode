@@ -320,6 +320,21 @@
         "title": "Clear File Health Decorations",
         "category": "SnapBack",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "snapback.getAuthState",
+        "title": "Test: Get Auth State",
+        "category": "SnapBack Test"
+      },
+      {
+        "command": "snapback.test.getSnapshots",
+        "title": "Test: Get Snapshots",
+        "category": "SnapBack Test"
+      },
+      {
+        "command": "snapback.test.restoreSnapshot",
+        "title": "Test: Restore Snapshot",
+        "category": "SnapBack Test"
       }
     ],
     "viewsContainers": {
@@ -353,7 +368,7 @@
         {
           "id": "snapback.explorer",
           "name": "SnapBack Cloud",
-          "when": "snapback.isActive && snapback:connected",
+          "when": "snapback.isActive",
           "icon": "$(cloud)"
         }
       ]

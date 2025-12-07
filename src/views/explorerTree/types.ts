@@ -113,6 +113,7 @@ export interface SnapBackTreeNode {
 	section?: SnapBackSection; // Only for section nodes
 	kind: SnapBackNodeKind; // Discriminator
 	collapsibleState: vscode.TreeItemCollapsibleState;
+	command?: vscode.Command; // Optional command to execute on click
 
 	// Optional data for specific node types
 	snapshotId?: string; // For snapshot nodes

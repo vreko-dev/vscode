@@ -249,12 +249,10 @@ This will overwrite current files.`,
 			await vscode.commands.executeCommand("snapback.viewSnapshot");
 		}),
 
-	vscode.commands.registerCommand(COMMANDS.SNAPSHOT.VIEW, async () => {
+		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.VIEW, async () => {
 			// Focus the SnapBack view
 			await vscode.commands.executeCommand("workbench.view.extension.snapback");
 		}),
-
-
 
 		// Add other view commands here
 	];

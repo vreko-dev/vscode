@@ -114,7 +114,7 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 				vscode.window.showErrorMessage("Failed to check authentication status");
 			}
 		}),
-	// Test: Get Auth State
+		// Test: Get Auth State
 		vscode.commands.registerCommand(COMMANDS.ACCOUNT.GET_AUTH_STATE, async () => {
 			const session = await vscode.authentication.getSession("snapback", ["read", "write"], {
 				createIfNone: false,

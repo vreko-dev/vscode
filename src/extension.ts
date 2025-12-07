@@ -66,6 +66,11 @@ let autoDecisionIntegration: AutoDecisionIntegration | null = null;
 // 🆕 Global reference to UserIdentityService
 let userIdentityService: UserIdentityService | null = null;
 
+// 🆕 Global reference to refresh views function
+let refreshViews = () => {};
+
+// (Removed unused credentialsManagerGetter)
+
 export async function activate(context: vscode.ExtensionContext) {
 	const startTime = Date.now();
 	const phaseTimings: Record<string, number> = {};
@@ -83,9 +88,16 @@ export async function activate(context: vscode.ExtensionContext) {
 	outputChannel.appendLine("🚀 SnapBack Extension Activating...");
 	outputChannel.appendLine("[PERF] Measuring activation phases...");
 
-	// 🆕 Register OAuth authentication provider
-	SnapBackOAuthProvider.register(context);
-	logger.info("OAuth authentication provider registered");
+	// 🆕 Register Authentication Provider (Mock or Real)
+	if (process.env.VSCODE_SNAPSHOT_TEST_MODE === "true") {
+		const { MockAuthProvider } = await import("./auth/MockAuthProvider");
+		MockAuthProvider.register(context);
+		logger.info("⚠️ RUNNING IN TEST MODE: Registered MockAuthProvider");
+	} else {
+		// 🆕 Register OAuth authentication provider
+		SnapBackOAuthProvider.register(context);
+		logger.info("OAuth authentication provider registered");
+	}
 
 	// 🆕 Initialize feature flag service
 	featureFlagService = new FeatureFlagService();
@@ -114,6 +126,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
+	// 🆕 Initialize CredentialsManager early
+	const credentialsManager = createCredentialsManager(context.secrets);
+
 	// 🆕 Track authentication events
 	// Listen for session changes to track when user successfully authenticates
 	context.subscriptions.push(
@@ -128,6 +143,24 @@ export async function activate(context: vscode.ExtensionContext) {
 
 					// Update global state
 					await context.globalState.update("snapback.hasAuthenticated", true);
+
+					// SYNC CREDENTIALS FOR TEST MODE
+					if (process.env.VSCODE_SNAPSHOT_TEST_MODE === "true") {
+						await credentialsManager.setCredentials({
+							accessToken: sessions.accessToken,
+							refreshToken: "mock-refresh-token",
+							expiresAt: Date.now() + 3600 * 1000,
+							user: {
+								id: sessions.account.id,
+								email: sessions.account.label,
+								name: sessions.account.label,
+							},
+						});
+						logger.info("Synced mock credentials to CredentialsManager");
+					}
+
+					// Refresh views to show authenticated state
+					refreshViews();
 				}
 			}
 		}),
@@ -271,7 +304,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Phase 4: UI providers
 		const phase4Start = Date.now();
-		const credentialsManager = createCredentialsManager(context.secrets);
+		// credentialsManager is already initialized
 		const apiClient = createAuthedApiClient(context);
 
 		// 🆕 Initialize AuthState (authentication status checker)
@@ -391,10 +424,12 @@ export async function activate(context: vscode.ExtensionContext) {
 				});
 		}, 50); // Run early but after UI is responsive
 
-		// Create refreshViews function
-		const refreshViews = () => {
+		// Create refreshViews function and assign to global ref
+		refreshViews = () => {
 			phase4Result.protectedFilesTreeProvider.refresh();
 			phase4Result.snapshotNavigatorProvider.refresh();
+			phase4Result.snapBackTreeProvider.refresh();
+			phase4Result.explorerTreeProvider?.refresh(); // Also refresh the main tree!
 		};
 
 		// Register RPC handlers for MCP requests
