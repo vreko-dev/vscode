@@ -18,8 +18,6 @@ export class MockAuthProvider implements vscode.AuthenticationProvider {
 
 	private _currentSession: SnapBackSession | undefined;
 
-	constructor(_context: vscode.ExtensionContext) {}
-
 	async getSessions(
 		_scopes?: readonly string[],
 		_options?: vscode.AuthenticationProviderSessionOptions,

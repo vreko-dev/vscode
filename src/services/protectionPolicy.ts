@@ -350,7 +350,9 @@ export class ProtectionManager {
 
 			// Sort items: errors first, then warnings
 			items.sort((a, b) => {
-				if (a.severity === b.severity) return 0;
+				if (a.severity === b.severity) {
+					return 0;
+				}
 				return a.severity === "error" ? -1 : 1;
 			});
 

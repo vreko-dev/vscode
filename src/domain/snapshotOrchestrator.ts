@@ -75,7 +75,9 @@ export class SnapshotOrchestrator {
 	 * Load snapshots from persistent storage
 	 */
 	private async loadFromStorage(): Promise<void> {
-		if (!this.storage) return;
+		if (!this.storage) {
+			return;
+		}
 		try {
 			const stored = await this.storage.get<PersistedSnapshot[]>("snapback.snapshots");
 			if (stored && Array.isArray(stored)) {
@@ -93,7 +95,9 @@ export class SnapshotOrchestrator {
 	 * Persist snapshots to storage
 	 */
 	private async persistSnapshots(): Promise<void> {
-		if (!this.storage) return;
+		if (!this.storage) {
+			return;
+		}
 		try {
 			const snapshots = Array.from(this.snapshots.values());
 			await this.storage.set("snapback.snapshots", snapshots);

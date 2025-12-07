@@ -108,16 +108,36 @@ export class ConfigDetector {
 	}
 
 	private determineConfigType(fileName: string): string {
-		if (fileName.includes(".env")) return "env";
-		if (fileName.includes("package.json")) return "package.json";
-		if (fileName.includes("tsconfig")) return "tsconfig";
-		if (fileName.includes(".eslintrc")) return "eslint";
-		if (fileName.includes(".prettierrc")) return "prettier";
-		if (fileName.includes("jest.config")) return "jest";
-		if (fileName.includes("vitest.config")) return "vitest";
-		if (fileName.includes("webpack.config")) return "webpack";
-		if (fileName.includes("next.config")) return "next";
-		if (fileName.includes("vite.config")) return "vite";
+		if (fileName.includes(".env")) {
+			return "env";
+		}
+		if (fileName.includes("package.json")) {
+			return "package.json";
+		}
+		if (fileName.includes("tsconfig")) {
+			return "tsconfig";
+		}
+		if (fileName.includes(".eslintrc")) {
+			return "eslint";
+		}
+		if (fileName.includes(".prettierrc")) {
+			return "prettier";
+		}
+		if (fileName.includes("jest.config")) {
+			return "jest";
+		}
+		if (fileName.includes("vitest.config")) {
+			return "vitest";
+		}
+		if (fileName.includes("webpack.config")) {
+			return "webpack";
+		}
+		if (fileName.includes("next.config")) {
+			return "next";
+		}
+		if (fileName.includes("vite.config")) {
+			return "vite";
+		}
 		return "unknown";
 	}
 

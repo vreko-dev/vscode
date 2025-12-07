@@ -198,8 +198,12 @@ export class SemanticSnapshotNamer {
 	 */
 	private nameConfigChange(analysis: { configFiles: string[] }): string {
 		const configs = analysis.configFiles;
-		if (configs.find((f: string) => f.includes("tsconfig.json"))) return "typescript-config-update";
-		if (configs.some((f: string) => f.includes(".env"))) return "environment-config-change";
+		if (configs.find((f: string) => f.includes("tsconfig.json"))) {
+			return "typescript-config-update";
+		}
+		if (configs.some((f: string) => f.includes(".env"))) {
+			return "environment-config-change";
+		}
 		return "config-update";
 	}
 
@@ -214,10 +218,14 @@ export class SemanticSnapshotNamer {
 		const hasNewTS = files.some((f) => f.endsWith(".ts") || f.endsWith(".tsx"));
 		const hasDeletedJS = diff.includes("deleted file") && diff.includes(".js");
 
-		if (hasNewTS && hasDeletedJS) return true;
+		if (hasNewTS && hasDeletedJS) {
+			return true;
+		}
 
 		// Check for React migration patterns
-		if (diff.includes("useState") && diff.includes("useEffect")) return true;
+		if (diff.includes("useState") && diff.includes("useEffect")) {
+			return true;
+		}
 
 		return false;
 	}
@@ -228,7 +236,9 @@ export class SemanticSnapshotNamer {
 	 * @returns Semantic name for migration
 	 */
 	private nameMigration(analysis: ChangeAnalysis): string {
-		if (analysis.newFiles > 10) return "large-scale-migration";
+		if (analysis.newFiles > 10) {
+			return "large-scale-migration";
+		}
 		return "code-migration";
 	}
 
@@ -501,7 +511,9 @@ export class SemanticSnapshotNamer {
 	 * @returns Semantic name for refactoring
 	 */
 	private nameRefactoring(analysis: ChangeAnalysis): string {
-		if (analysis.filesAffected && analysis.filesAffected.length > 10) return "large-refactoring";
+		if (analysis.filesAffected && analysis.filesAffected.length > 10) {
+			return "large-refactoring";
+		}
 
 		// Check for common refactoring patterns
 		if (analysis.diff.includes("rename from") && analysis.diff.includes("rename to")) {
@@ -525,7 +537,9 @@ export class SemanticSnapshotNamer {
 			}
 		}
 
-		if (analysis.diff.includes("move")) return "restructured-code";
+		if (analysis.diff.includes("move")) {
+			return "restructured-code";
+		}
 
 		return "refactoring";
 	}

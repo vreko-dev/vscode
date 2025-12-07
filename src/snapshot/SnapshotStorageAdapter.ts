@@ -35,7 +35,9 @@ export class SnapshotStorageAdapter implements IStorage {
 	 */
 	async get(id: string): Promise<Snapshot | undefined> {
 		const snapshot = await this.storage.getSnapshot(id);
-		if (!snapshot) return undefined;
+		if (!snapshot) {
+			return undefined;
+		}
 
 		// Convert new SnapshotManifest to old Snapshot type
 		return {

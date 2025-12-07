@@ -84,7 +84,9 @@ export function checkSessionPerfBudgets(): boolean {
 	// Check each operation against its budget
 	let allBudgetsMet = true;
 	for (const [operationName, durations] of Object.entries(timingGroups)) {
-		if (durations.length === 0) continue;
+		if (durations.length === 0) {
+			continue;
+		}
 
 		// Calculate average and 95th percentile
 		const avg = durations.reduce((sum, d) => sum + d, 0) / durations.length;

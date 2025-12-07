@@ -149,7 +149,9 @@ export class AuditLog {
 	 */
 	async rotateIfNeeded(maxSizeBytes: number = 10 * 1024 * 1024): Promise<boolean> {
 		const size = await this.getSize();
-		if (size <= maxSizeBytes) return false;
+		if (size <= maxSizeBytes) {
+			return false;
+		}
 
 		// Archive current log
 		const archiveUri = vscode.Uri.joinPath(this.auditUri, "..", `audit-${Date.now()}.jsonl.archive`);

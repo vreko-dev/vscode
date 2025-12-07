@@ -228,10 +228,18 @@ export class AutoDecisionEngine {
 
 		// Signal count weight (20%)
 		let signalCount = 0;
-		if (signals.aiSignal.detected) signalCount++;
-		if (signals.riskSignal.score >= this.config.notifyThreshold) signalCount++;
-		if (signals.burstSignal.detected) signalCount++;
-		if (signals.criticalSignal.detected) signalCount++;
+		if (signals.aiSignal.detected) {
+			signalCount++;
+		}
+		if (signals.riskSignal.score >= this.config.notifyThreshold) {
+			signalCount++;
+		}
+		if (signals.burstSignal.detected) {
+			signalCount++;
+		}
+		if (signals.criticalSignal.detected) {
+			signalCount++;
+		}
 
 		confidence += Math.min(1, signalCount / 4) * 0.2;
 

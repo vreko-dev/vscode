@@ -48,7 +48,9 @@ export async function migrateExistingSnapshots(snapshotsDir: string): Promise<vo
 		});
 
 		for (const file of snapshotFiles) {
-			if (!file.endsWith(".json")) continue;
+			if (!file.endsWith(".json")) {
+				continue;
+			}
 
 			try {
 				const snapshotPath = path.join(snapshotsDir, file);

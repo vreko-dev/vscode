@@ -84,7 +84,9 @@ export class SnapshotStore {
 	 */
 	async getWithContent(id: string): Promise<SnapshotWithContent | null> {
 		const manifest = await this.getManifest(id);
-		if (!manifest) return null;
+		if (!manifest) {
+			return null;
+		}
 
 		// Resolve all blob references to content
 		const contents: Record<string, string> = {};
@@ -138,17 +140,27 @@ export class SnapshotStore {
 		// Read manifests
 		for (const id of filesToRead) {
 			const manifest = await this.getManifest(id);
-			if (!manifest) continue;
+			if (!manifest) {
+				continue;
+			}
 
 			// Apply filters
-			if (filters?.after && manifest.timestamp < filters.after) continue;
-			if (filters?.before && manifest.timestamp > filters.before) continue;
-			if (filters?.trigger && manifest.trigger !== filters.trigger) continue;
+			if (filters?.after && manifest.timestamp < filters.after) {
+				continue;
+			}
+			if (filters?.before && manifest.timestamp > filters.before) {
+				continue;
+			}
+			if (filters?.trigger && manifest.trigger !== filters.trigger) {
+				continue;
+			}
 
 			manifests.push(manifest);
 
 			// Check limit after filtering
-			if (manifests.length >= limit) break;
+			if (manifests.length >= limit) {
+				break;
+			}
 		}
 
 		return manifests;

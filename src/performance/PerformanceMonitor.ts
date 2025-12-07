@@ -110,7 +110,9 @@ export class PerformanceMonitor {
 		}
 
 		const timing = this.timings.get(operationId);
-		if (!timing) return null;
+		if (!timing) {
+			return null;
+		}
 		timing.endTime = performance.now();
 		timing.duration = timing.endTime - timing.startTime;
 

@@ -153,8 +153,12 @@ export class ConfigFileScanner {
 			const pkg = JSON.parse(content);
 			const errors: string[] = [];
 
-			if (!pkg.name) errors.push("Missing required field: name");
-			if (!pkg.version) errors.push("Missing required field: version");
+			if (!pkg.name) {
+				errors.push("Missing required field: name");
+			}
+			if (!pkg.version) {
+				errors.push("Missing required field: version");
+			}
 
 			return {
 				valid: errors.length === 0,

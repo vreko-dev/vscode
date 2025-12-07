@@ -289,18 +289,21 @@ export class UpdateConfigurationCommand {
 		const watchFiles = differences.filter((d) => d.suggestedProtection === "watch");
 
 		let _message = `Found ${differences.length} files with suggested protection levels:\n`;
-		if (blockFiles.length > 0)
+		if (blockFiles.length > 0) {
 			_message += `\nBlock (${blockFiles.length} files): ${blockFiles
 				.map((f) => path.basename(f.filePath))
 				.join(", ")}`;
-		if (warnFiles.length > 0)
+		}
+		if (warnFiles.length > 0) {
 			_message += `\nWarn (${warnFiles.length} files): ${warnFiles
 				.map((f) => path.basename(f.filePath))
 				.join(", ")}`;
-		if (watchFiles.length > 0)
+		}
+		if (watchFiles.length > 0) {
 			_message += `\nWatch (${watchFiles.length} files): ${watchFiles
 				.map((f) => path.basename(f.filePath))
 				.join(", ")}`;
+		}
 
 		/**
 		 * MVP Note: Configuration update modal has been commented out for MVP and will be replaced with

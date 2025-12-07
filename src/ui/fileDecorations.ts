@@ -37,7 +37,9 @@ export class FileDecorationProvider implements vscode.FileDecorationProvider, vs
 	provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
 		// Integration with your protection registry
 		const level = this.getProtectionLevel(uri);
-		if (!level) return undefined;
+		if (!level) {
+			return undefined;
+		}
 
 		return FileDecorationProvider.getDecoration(level);
 	}

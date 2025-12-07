@@ -170,7 +170,7 @@ export function registerDetectionCommands(
 		vscode.commands.registerCommand("snapback.removeSecret", async (_uri: vscode.Uri, factor: string) => {
 			// This would ideally find and remove the secret from the file
 			await vscode.window.showInformationMessage(
-				"To remove the secret related to: " + factor + "\\n\\nPlease manually remove the secret from the file.",
+				`To remove the secret related to: ${factor}\\n\\nPlease manually remove the secret from the file.`,
 			);
 		}),
 	);
@@ -207,7 +207,7 @@ export function registerDetectionCommands(
 		vscode.commands.registerCommand("snapback.removeMock", async (_uri: vscode.Uri, factor: string) => {
 			// This would ideally find and remove the mock from the file
 			await vscode.window.showInformationMessage(
-				"To remove the mock related to: " + factor + "\\n\\nPlease manually remove the mock from the file.",
+				`To remove the mock related to: ${factor}\\n\\nPlease manually remove the mock from the file.`,
 			);
 		}),
 	);

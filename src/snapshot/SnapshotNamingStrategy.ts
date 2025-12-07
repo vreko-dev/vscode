@@ -293,9 +293,15 @@ export class SnapshotNamingStrategy {
 
 		// Build status summary (e.g., "3A 2M 1D")
 		const parts: string[] = [];
-		if (added > 0) parts.push(`${added}A`);
-		if (modified > 0) parts.push(`${modified}M`);
-		if (deleted > 0) parts.push(`${deleted}D`);
+		if (added > 0) {
+			parts.push(`${added}A`);
+		}
+		if (modified > 0) {
+			parts.push(`${modified}M`);
+		}
+		if (deleted > 0) {
+			parts.push(`${deleted}D`);
+		}
 
 		const statusSummary = parts.join(" ");
 
@@ -314,8 +320,12 @@ export class SnapshotNamingStrategy {
 	 * @returns Common directory path or empty string if no common path
 	 */
 	private findCommonDirectory(files: FileChange[]): string {
-		if (files.length === 0) return "";
-		if (files.length === 1) return path.dirname(files[0].path);
+		if (files.length === 0) {
+			return "";
+		}
+		if (files.length === 1) {
+			return path.dirname(files[0].path);
+		}
 
 		// Get directory paths and split into segments
 		const dirPaths = files.map((f) => path.dirname(f.path));

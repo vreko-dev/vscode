@@ -211,9 +211,15 @@ export class AIWarningManager {
 	 * Get formatted AI confidence for UI display
 	 */
 	static getConfidenceLabel(confidence: number): string {
-		if (confidence >= 0.9) return "Very High";
-		if (confidence >= 0.7) return "High";
-		if (confidence >= 0.5) return "Medium";
+		if (confidence >= 0.9) {
+			return "Very High";
+		}
+		if (confidence >= 0.7) {
+			return "High";
+		}
+		if (confidence >= 0.5) {
+			return "Medium";
+		}
 		return "Low";
 	}
 

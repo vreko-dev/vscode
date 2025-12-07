@@ -59,7 +59,9 @@ export class StorageManager implements IStorageManager {
 	// ============================================
 
 	async initialize(): Promise<void> {
-		if (this.initialized) return;
+		if (this.initialized) {
+			return;
+		}
 
 		// ⚡ CRITICAL PERF: Skip directory check on activation
 		// VS Code FS API can be slow. Directory will be created on first use if needed.
@@ -98,7 +100,9 @@ export class StorageManager implements IStorageManager {
 	 * @private
 	 */
 	private async ensureComponentsInitialized(): Promise<void> {
-		if (this._componentsInitialized) return;
+		if (this._componentsInitialized) {
+			return;
+		}
 
 		// Initialize all heavy components on first use
 		await this.blobStore.initialize();

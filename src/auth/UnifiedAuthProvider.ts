@@ -15,14 +15,15 @@
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";
 import { MockAuthProvider } from "./MockAuthProvider";
-import { SnapBackOAuthProvider } from "./OAuthProvider";
 import type { SnapBackSession } from "./OAuthProvider";
+import { SnapBackOAuthProvider } from "./OAuthProvider";
 
 export class UnifiedAuthProvider implements vscode.AuthenticationProvider {
 	private _delegate: vscode.AuthenticationProvider;
 
 	// The "Main" emitter that VS Code listens to
-	private _onDidChangeSessions = new vscode.EventEmitter<vscode.AuthenticationProviderAuthenticationSessionsChangeEvent>();
+	private _onDidChangeSessions =
+		new vscode.EventEmitter<vscode.AuthenticationProviderAuthenticationSessionsChangeEvent>();
 
 	// Track the delegate's event listener for cleanup when swapping
 	private _delegateDisposable: vscode.Disposable | undefined;
@@ -30,7 +31,10 @@ export class UnifiedAuthProvider implements vscode.AuthenticationProvider {
 	// Track current mode for logging
 	private _isTestMode: boolean;
 
-	constructor(private readonly context: vscode.ExtensionContext, initialTestMode: boolean = false) {
+	constructor(
+		private readonly context: vscode.ExtensionContext,
+		initialTestMode = false,
+	) {
 		// DECIDE IMMEDIATELY at construction - no "default and switch later" race condition
 		this._isTestMode = initialTestMode;
 
@@ -121,7 +125,10 @@ export class UnifiedAuthProvider implements vscode.AuthenticationProvider {
 		return this._delegate.getSessions(scopes, options ?? {}) as Thenable<vscode.AuthenticationSession[]>;
 	}
 
-	createSession(scopes: readonly string[], options: vscode.AuthenticationProviderSessionOptions): Thenable<SnapBackSession> {
+	createSession(
+		scopes: readonly string[],
+		options: vscode.AuthenticationProviderSessionOptions,
+	): Thenable<SnapBackSession> {
 		logger.info("🔍 UnifiedProxy: createSession called", { isTestMode: this._isTestMode });
 		return (this._delegate.createSession(scopes, options) as Promise<SnapBackSession>).then((session) => {
 			logger.info("✅ UnifiedProxy: Delegate created session", { sessionId: session.id });

@@ -279,7 +279,9 @@ export class OnWillSaveHandler {
 	 * Calculate Shannon entropy of a string
 	 */
 	private calculateShannonEntropy(str: string): number {
-		if (str.length === 0) return 0;
+		if (str.length === 0) {
+			return 0;
+		}
 
 		// Build a frequency map from the string
 		const frequencies: Record<string, number> = {};

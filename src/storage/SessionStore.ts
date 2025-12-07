@@ -161,16 +161,26 @@ export class SessionStore {
 
 		for (const id of jsonFiles) {
 			const manifest = await this.get(id);
-			if (!manifest) continue;
+			if (!manifest) {
+				continue;
+			}
 
 			// Apply filters
-			if (filters?.after && manifest.endedAt < filters.after) continue;
-			if (filters?.before && manifest.endedAt > filters.before) continue;
-			if (filters?.reason && manifest.reason !== filters.reason) continue;
+			if (filters?.after && manifest.endedAt < filters.after) {
+				continue;
+			}
+			if (filters?.before && manifest.endedAt > filters.before) {
+				continue;
+			}
+			if (filters?.reason && manifest.reason !== filters.reason) {
+				continue;
+			}
 
 			manifests.push(manifest);
 
-			if (manifests.length >= limit) break;
+			if (manifests.length >= limit) {
+				break;
+			}
 		}
 
 		return manifests;

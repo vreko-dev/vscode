@@ -106,10 +106,15 @@ export class SnapBackStatusBar {
 				stats[level]++;
 			} else {
 				// Fallback or legacy mapping if somehow still present
-				if (level === "Protected") stats.block++;
-				else if (level === "Warning") stats.warn++;
-				else if (level === "Watched") stats.watch++;
-				else stats.watch++; // Default
+				if (level === "Protected") {
+					stats.block++;
+				} else if (level === "Warning") {
+					stats.warn++;
+				} else if (level === "Watched") {
+					stats.watch++;
+				} else {
+					stats.watch++; // Default
+				}
 			}
 		});
 

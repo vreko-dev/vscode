@@ -21,10 +21,18 @@ export function setRisk(uri: vscode.Uri, score: number, label: string) {
 }
 
 function getRiskLevel(score: number): string {
-	if (score >= 8) return "CRITICAL";
-	if (score >= 6) return "HIGH";
-	if (score >= 4) return "MEDIUM";
-	if (score >= 2) return "LOW";
+	if (score >= 8) {
+		return "CRITICAL";
+	}
+	if (score >= 6) {
+		return "HIGH";
+	}
+	if (score >= 4) {
+		return "MEDIUM";
+	}
+	if (score >= 2) {
+		return "LOW";
+	}
 	return "MINIMAL";
 }
 

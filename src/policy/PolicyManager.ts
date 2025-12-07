@@ -459,7 +459,7 @@ export class PolicyManager {
 	 * Notify user of expired override
 	 */
 	private async notifyExpiredOverride(override: PolicyOverride): Promise<void> {
-		const message = `Policy override expired for "${override.pattern}". ` + "Original protection rules now apply.";
+		const message = `Policy override expired for "${override.pattern}". Original protection rules now apply.`;
 
 		const action = await vscode.window.showWarningMessage(message, "Renew Override", "Remove Override", "Dismiss");
 

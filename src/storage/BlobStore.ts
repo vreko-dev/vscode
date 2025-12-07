@@ -115,19 +115,25 @@ export class BlobStore {
 			const level1Entries = await vscode.workspace.fs.readDirectory(this.blobsUri);
 
 			for (const [l1Name, l1Type] of level1Entries) {
-				if (l1Type !== vscode.FileType.Directory) continue;
+				if (l1Type !== vscode.FileType.Directory) {
+					continue;
+				}
 
 				const l1Uri = vscode.Uri.joinPath(this.blobsUri, l1Name);
 				const level2Entries = await vscode.workspace.fs.readDirectory(l1Uri);
 
 				for (const [l2Name, l2Type] of level2Entries) {
-					if (l2Type !== vscode.FileType.Directory) continue;
+					if (l2Type !== vscode.FileType.Directory) {
+						continue;
+					}
 
 					const l2Uri = vscode.Uri.joinPath(l1Uri, l2Name);
 					const blobEntries = await vscode.workspace.fs.readDirectory(l2Uri);
 
 					for (const [blobName, blobType] of blobEntries) {
-						if (blobType !== vscode.FileType.File) continue;
+						if (blobType !== vscode.FileType.File) {
+							continue;
+						}
 
 						const blobUri = vscode.Uri.joinPath(l2Uri, blobName);
 						const stat = await vscode.workspace.fs.stat(blobUri);
@@ -152,13 +158,17 @@ export class BlobStore {
 			const level1Entries = await vscode.workspace.fs.readDirectory(this.blobsUri);
 
 			for (const [l1Name, l1Type] of level1Entries) {
-				if (l1Type !== vscode.FileType.Directory) continue;
+				if (l1Type !== vscode.FileType.Directory) {
+					continue;
+				}
 
 				const l1Uri = vscode.Uri.joinPath(this.blobsUri, l1Name);
 				const level2Entries = await vscode.workspace.fs.readDirectory(l1Uri);
 
 				for (const [l2Name, l2Type] of level2Entries) {
-					if (l2Type !== vscode.FileType.Directory) continue;
+					if (l2Type !== vscode.FileType.Directory) {
+						continue;
+					}
 
 					const l2Uri = vscode.Uri.joinPath(l1Uri, l2Name);
 					const blobEntries = await vscode.workspace.fs.readDirectory(l2Uri);

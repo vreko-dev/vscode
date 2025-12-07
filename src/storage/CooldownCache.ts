@@ -19,7 +19,9 @@ export class CooldownCache {
 	 * Start periodic cleanup of expired entries
 	 */
 	start(): void {
-		if (this.cleanupInterval) return;
+		if (this.cleanupInterval) {
+			return;
+		}
 
 		this.cleanupInterval = setInterval(() => {
 			this.removeExpired();
@@ -59,7 +61,9 @@ export class CooldownCache {
 		const key = this.getKey(filePath, protectionLevel);
 		const entry = this.cache.get(key);
 
-		if (!entry) return null;
+		if (!entry) {
+			return null;
+		}
 
 		// Check expiration
 		if (Date.now() > entry.expiresAt) {
@@ -82,7 +86,9 @@ export class CooldownCache {
 	 */
 	getRemainingTime(filePath: string, protectionLevel: string): number {
 		const entry = this.get(filePath, protectionLevel);
-		if (!entry) return 0;
+		if (!entry) {
+			return 0;
+		}
 		return Math.max(0, entry.expiresAt - Date.now());
 	}
 
