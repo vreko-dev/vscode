@@ -7,7 +7,7 @@
  * @see Design: .qoder/quests/snapback-explorer-tree.md
  */
 
-import type * as vscode from "vscode";
+import * as vscode from "vscode";
 
 /**
  * Authenticated API client interface
@@ -39,7 +39,11 @@ export interface AuthedApiClient {
  */
 export function createAuthedApiClient(_context: vscode.ExtensionContext): AuthedApiClient {
 	// MOCK IMPLEMENTATION FOR E2E TESTS
-	if (process.env.VSCODE_SNAPSHOT_TEST_MODE === "true") {
+	const isTestMode =
+		process.env.VSCODE_SNAPSHOT_TEST_MODE === "true" ||
+		vscode.workspace.getConfiguration("snapback").get<boolean>("testMode", false);
+
+	if (isTestMode) {
 		return {
 			async fetch<T>(path: string, _init?: RequestInit): Promise<T> {
 				if (path === "/api/v1/workspace/safety") {

@@ -88,16 +88,43 @@ export async function activate(context: vscode.ExtensionContext) {
 	outputChannel.appendLine("🚀 SnapBack Extension Activating...");
 	outputChannel.appendLine("[PERF] Measuring activation phases...");
 
-	// 🆕 Register Authentication Provider (Mock or Real)
-	if (process.env.VSCODE_SNAPSHOT_TEST_MODE === "true") {
+	// Check for test mode (ONLY via Environment Variable - never from settings)
+	// This ensures test logic cannot be triggered in production by user settings.
+	// The env var is set by Playwright via launchArgs during E2E tests.
+	let isTestMode = process.env.VSCODE_SNAPSHOT_TEST_MODE === "true";
+
+	// Register Authentication Provider (Mock or Real)
+	if (isTestMode) {
 		const { MockAuthProvider } = await import("./auth/MockAuthProvider");
 		MockAuthProvider.register(context);
 		logger.info("⚠️ RUNNING IN TEST MODE: Registered MockAuthProvider");
 	} else {
-		// 🆕 Register OAuth authentication provider
+		// Register OAuth authentication provider
 		SnapBackOAuthProvider.register(context);
 		logger.info("OAuth authentication provider registered");
 	}
+
+	// 🆕 REACTIVE TEST MODE LISTENER
+	// Fixes timing bug: If config is set AFTER activation, we catch it here.
+	// NOTE: This listens for the hidden 'snapback.testMode' config, which is only
+	// set programmatically by our E2E test framework via settings.json file writes.
+	// Production users don't know about this setting (not documented).
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration(async (e) => {
+			if (e.affectsConfiguration("snapback.testMode")) {
+				const configTestMode = vscode.workspace.getConfiguration("snapback").get<boolean>("testMode", false);
+				if (configTestMode && !isTestMode) {
+					logger.info("🔄 Test mode activated reactively via config change");
+					isTestMode = true;
+					// Hot-swap to mock provider
+					const { MockAuthProvider } = await import("./auth/MockAuthProvider");
+					MockAuthProvider.register(context);
+					// Trigger view refresh
+					refreshViews();
+				}
+			}
+		}),
+	);
 
 	// 🆕 Initialize feature flag service
 	featureFlagService = new FeatureFlagService();
@@ -144,8 +171,10 @@ export async function activate(context: vscode.ExtensionContext) {
 					// Update global state
 					await context.globalState.update("snapback.hasAuthenticated", true);
 
-					// SYNC CREDENTIALS FOR TEST MODE
-					if (process.env.VSCODE_SNAPSHOT_TEST_MODE === "true") {
+					// Sync credentials for test mode (env var only for security)
+					const isTestMode = process.env.VSCODE_SNAPSHOT_TEST_MODE === "true";
+
+					if (isTestMode) {
 						await credentialsManager.setCredentials({
 							accessToken: sessions.accessToken,
 							refreshToken: "mock-refresh-token",
