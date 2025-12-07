@@ -20,7 +20,7 @@ import { createAuthedApiClient } from "./api/authedApiClient";
 import { AnonymousIdManager } from "./auth/AnonymousIdManager";
 import { AuthState } from "./auth/AuthState";
 import { createCredentialsManager } from "./auth/credentials";
-import { SnapBackOAuthProvider } from "./auth/OAuthProvider"; // 🆕 Import OAuth provider
+// SnapBackOAuthProvider is now used by UnifiedAuthProvider internally
 import { registerAllCommands } from "./commands/index";
 import { initializeProtectionNotifications } from "./commands/protectionCommands";
 import { ContextManager } from "./contextManager";
@@ -88,41 +88,56 @@ export async function activate(context: vscode.ExtensionContext) {
 	outputChannel.appendLine("🚀 SnapBack Extension Activating...");
 	outputChannel.appendLine("[PERF] Measuring activation phases...");
 
-	// Check for test mode (ONLY via Environment Variable - never from settings)
-	// This ensures test logic cannot be triggered in production by user settings.
-	// The env var is set by Playwright via launchArgs during E2E tests.
-	let isTestMode = process.env.VSCODE_SNAPSHOT_TEST_MODE === "true";
+	// 🔐 UNIFIED AUTH PROVIDER (Proxy Pattern)
+	// Registers ONCE with VS Code, delegates to Real or Mock based on test mode.
+	// This solves the "Provider Locking" limitation where VS Code doesn't allow
+	// re-registering providers with the same ID.
 
-	// Register Authentication Provider (Mock or Real)
+	// 1. SYNCHRONOUS CHECK: Determine test mode BEFORE constructing the provider
+	// This eliminates the race condition where provider defaults to Real mode
+	const isTestMode =
+		process.env.VSCODE_SNAPSHOT_TEST_MODE === "true" ||
+		vscode.workspace.getConfiguration("snapback").get<boolean>("testMode", false);
+
+	console.log(`🚀 Activation: Initializing with Test Mode = ${isTestMode}`);
+	logger.info(`Extension activation: isTestMode = ${isTestMode}`);
+
+	// 2. Construct provider WITH the correct mode immediately
+	const { UnifiedAuthProvider } = await import("./auth/UnifiedAuthProvider");
+	const authProvider = new UnifiedAuthProvider(context, isTestMode);
+
+	// 3. Register the unified provider (claims 'snapback' ID permanently)
+	context.subscriptions.push(
+		vscode.authentication.registerAuthenticationProvider("snapback", "SnapBack Auth", authProvider, {
+			supportsMultipleAccounts: false,
+		}),
+	);
+	logger.info("UnifiedAuthProvider registered");
+
 	if (isTestMode) {
-		const { MockAuthProvider } = await import("./auth/MockAuthProvider");
-		MockAuthProvider.register(context);
-		logger.info("⚠️ RUNNING IN TEST MODE: Registered MockAuthProvider");
-	} else {
-		// Register OAuth authentication provider
-		SnapBackOAuthProvider.register(context);
-		logger.info("OAuth authentication provider registered");
+		logger.info("⚠️ RUNNING IN TEST MODE: Using MockAuthProvider delegate");
 	}
 
 	// 🆕 REACTIVE TEST MODE LISTENER
-	// Fixes timing bug: If config is set AFTER activation, we catch it here.
-	// NOTE: This listens for the hidden 'snapback.testMode' config, which is only
-	// set programmatically by our E2E test framework via settings.json file writes.
-	// Production users don't know about this setting (not documented).
+	// When 'snapback.testMode' changes, swap the auth delegate dynamically.
 	context.subscriptions.push(
-		vscode.workspace.onDidChangeConfiguration(async (e) => {
+		vscode.workspace.onDidChangeConfiguration((e) => {
 			if (e.affectsConfiguration("snapback.testMode")) {
 				const configTestMode = vscode.workspace.getConfiguration("snapback").get<boolean>("testMode", false);
-				if (configTestMode && !isTestMode) {
-					logger.info("🔄 Test mode activated reactively via config change");
-					isTestMode = true;
-					// Hot-swap to mock provider
-					const { MockAuthProvider } = await import("./auth/MockAuthProvider");
-					MockAuthProvider.register(context);
-					// Trigger view refresh
-					refreshViews();
-				}
+				console.log(`🔄 Config changed: testMode = ${configTestMode}, calling setTestMode...`);
+				authProvider.setTestMode(configTestMode);
+				console.log("✅ setTestMode completed");
 			}
+		}),
+	);
+
+	// 🛠️ TEST HOOK: Explicitly force the provider mode from tests
+	// This bypasses config listeners and provides synchronous control
+	context.subscriptions.push(
+		vscode.commands.registerCommand("snapback.__setTestMode", async (enable: boolean) => {
+			console.log(`🧪 COMMAND: snapback.__setTestMode called with ${enable}`);
+			authProvider.setTestMode(enable);
+			return { success: true, mode: enable ? "MOCK" : "REAL" };
 		}),
 	);
 
@@ -160,9 +175,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Listen for session changes to track when user successfully authenticates
 	context.subscriptions.push(
 		vscode.authentication.onDidChangeSessions(async (e) => {
+			logger.info(`📨 Extension: Heard Auth Change for provider: ${e.provider.id}`);
+
 			if (e.provider.id === "snapback") {
 				// Check if we have a valid session
 				const sessions = await vscode.authentication.getSession("snapback", [], { createIfNone: false });
+				logger.info(`👤 Extension: Current Session: ${sessions ? sessions.account.label : "None"}`);
 
 				if (sessions && userIdentityService) {
 					// Use unified identity service to handle login
@@ -171,8 +189,13 @@ export async function activate(context: vscode.ExtensionContext) {
 					// Update global state
 					await context.globalState.update("snapback.hasAuthenticated", true);
 
-					// Sync credentials for test mode (env var only for security)
-					const isTestMode = process.env.VSCODE_SNAPSHOT_TEST_MODE === "true";
+					// Sync credentials for test mode
+					// Check config since env var may not propagate to extension host
+					const isTestMode =
+						process.env.VSCODE_SNAPSHOT_TEST_MODE === "true" ||
+						vscode.workspace.getConfiguration("snapback").get<boolean>("testMode", false);
+
+					logger.info(`🔧 Extension: isTestMode = ${isTestMode}`);
 
 					if (isTestMode) {
 						await credentialsManager.setCredentials({
@@ -185,11 +208,15 @@ export async function activate(context: vscode.ExtensionContext) {
 								name: sessions.account.label,
 							},
 						});
-						logger.info("Synced mock credentials to CredentialsManager");
+						logger.info("✅ Synced mock credentials to CredentialsManager");
 					}
 
 					// Refresh views to show authenticated state
+					logger.info("🔄 Extension: Triggering View Refresh...");
 					refreshViews();
+					logger.info("✅ Extension: View Refresh triggered");
+				} else {
+					logger.info("⚠️ Extension: No session or userIdentityService not ready");
 				}
 			}
 		}),

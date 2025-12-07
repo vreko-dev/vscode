@@ -26,9 +26,11 @@ export function registerConnectCommand(
 	try {
 		return vscode.commands.registerCommand(COMMANDS.ACCOUNT.CONNECT, async () => {
 			try {
+				console.log("🐞 COMMAND: snapback.connect triggered");
 				logger.info("Starting SnapBack OAuth connection");
 
 				// Use VS Code's authentication API with SnapBack provider
+				console.log("🐞 COMMAND: Calling getSession...");
 				const session = await vscode.authentication.getSession(
 					"snapback",
 					["workspace:read", "snapshots:read"],
@@ -36,6 +38,7 @@ export function registerConnectCommand(
 						createIfNone: true,
 					},
 				);
+				console.log("🐞 COMMAND: getSession returned:", session?.id ?? "null");
 
 				if (session) {
 					logger.info("OAuth connection successful", {
@@ -45,6 +48,7 @@ export function registerConnectCommand(
 					vscode.window.showInformationMessage(`Connected to SnapBack as ${session.account.label}`);
 
 					// Refresh tree to show authenticated state
+					console.log("🐞 COMMAND: Refreshing tree...");
 					explorerTreeProvider.refresh();
 				}
 			} catch (error) {

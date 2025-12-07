@@ -976,6 +976,35 @@
 					"default": false,
 					"description": "Enable test mode (uses mock auth and API)",
 					"scope": "resource"
+				},
+				"comment28": "═══════════════════════════════════════════════════════════════════════════",
+				"comment29": "Telemetry & Observability - Runtime instrumentation settings",
+				"comment30": "═══════════════════════════════════════════════════════════════════════════",
+				"snapback.telemetry.endpoint": {
+					"type": "string",
+					"default": "http://localhost:4318/v1/traces",
+					"description": "OpenTelemetry OTLP trace collector endpoint (e.g., Jaeger, Grafana, Datadog)",
+					"order": 90
+				},
+				"snapback.telemetry.enabled": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable telemetry and distributed tracing",
+					"order": 91
+				},
+				"snapback.telemetry.console": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable console trace output for debugging (logs to Output panel)",
+					"order": 92
+				},
+				"snapback.telemetry.sampleRate": {
+					"type": "number",
+					"default": 1.0,
+					"minimum": 0.0,
+					"maximum": 1.0,
+					"description": "Sampling rate for traces (0.0 = disabled, 1.0 = all traces)",
+					"order": 93
 				}
 			}
 		},

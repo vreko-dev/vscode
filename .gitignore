@@ -27,3 +27,4 @@ package.json.tmp
 *.bak
 *.tmp
 *.orig
+test-workspace/.vscode/settings.json

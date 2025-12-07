@@ -29,14 +29,16 @@ function copySqlJsWasm() {
 		if (fs.existsSync(wasmSrc)) {
 			fs.copyFileSync(wasmSrc, wasmDest);
 			const sizeKB = Math.round(fs.statSync(wasmDest).size / 1024);
-			console.log(`✅ Copied sql.js WASM file to ${wasmDest} (~${sizeKB}KB)`);
+			console.log(
+				`✅ Copied sql.js WASM file to ${wasmDest} (~${sizeKB}KB)`
+			);
 		} else {
 			console.warn(`⚠️  WASM file not found at ${wasmSrc}`);
 		}
 	} catch (error) {
 		console.warn(
 			"⚠️  Failed to copy sql.js WASM file. Extension will attempt to locate it at runtime.",
-			error instanceof Error ? error.message : String(error),
+			error instanceof Error ? error.message : String(error)
 		);
 	}
 }
@@ -50,12 +52,11 @@ async function main() {
 		target: "node20",
 		outfile: "dist/extension.js",
 
-		// External dependencies
+		// External dependencies - only vscode API is truly external
+		// All other dependencies are bundled into extension.js
 		external: [
 			"vscode",
-			"better-sqlite3", // Native module
-			"bindings", // Required by better-sqlite3 to load native addon
-			// NOTE: sql.js JS module is bundled, but WASM files are copied manually to dist/sql.js/
+			// NOTE: sql.js JS module is bundled, but WASM files are copied manually to dist/
 		],
 
 		// Minification (production only)
@@ -90,7 +91,9 @@ async function main() {
 
 		// Environment
 		define: {
-			"process.env.NODE_ENV": production ? '"production"' : '"development"',
+			"process.env.NODE_ENV": production
+				? '"production"'
+				: '"development"',
 			"process.env.VSCODE_EXTENSION": '"true"',
 		},
 
@@ -110,10 +113,18 @@ async function main() {
 									title: "SnapBack VSCode Bundle Analysis",
 									template: "treemap",
 								});
-								fs.writeFileSync("dist/bundle-analysis.html", html);
-								console.log("📊 Bundle analysis: dist/bundle-analysis.html");
+								fs.writeFileSync(
+									"dist/bundle-analysis.html",
+									html
+								);
+								console.log(
+									"📊 Bundle analysis: dist/bundle-analysis.html"
+								);
 							} catch (err) {
-								console.warn("⚠️  Failed to generate bundle analysis", err);
+								console.warn(
+									"⚠️  Failed to generate bundle analysis",
+									err
+								);
 							}
 						}
 					});
@@ -128,9 +139,12 @@ async function main() {
 						return { external: true, path: args.path };
 					});
 
-					build.onResolve({ filter: /^better-sqlite3\/.*/ }, (args) => {
-						return { external: true, path: args.path };
-					});
+					build.onResolve(
+						{ filter: /^better-sqlite3\/.*/ },
+						(args) => {
+							return { external: true, path: args.path };
+						}
+					);
 
 					// Handle bindings (required by better-sqlite3)
 					build.onResolve({ filter: /^bindings$/ }, (args) => {
@@ -155,12 +169,15 @@ async function main() {
 					});
 
 					// Provide stub for worker thread dependencies
-					build.onLoad({ filter: /.*/, namespace: "worker-stub" }, () => {
-						return {
-							contents: "module.exports = {}",
-							loader: "js",
-						};
-					});
+					build.onLoad(
+						{ filter: /.*/, namespace: "worker-stub" },
+						() => {
+							return {
+								contents: "module.exports = {}",
+								loader: "js",
+							};
+						}
+					);
 				},
 			},
 		],
