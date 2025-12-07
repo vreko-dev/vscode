@@ -62,6 +62,10 @@ export const COMMANDS = {
 	},
 
 	// Account Commands
+	TEST: {
+		GET_SNAPSHOTS: "snapback.test.getSnapshots",
+		RESTORE_SNAPSHOT: "snapback.test.restoreSnapshot",
+	},
 	ACCOUNT: {
 		SIGN_IN: "snapback.account.signIn",
 		SIGN_OUT: "snapback.account.signOut",
@@ -69,8 +73,12 @@ export const COMMANDS = {
 		// Legacy commands
 		SIGN_IN_LEGACY: "snapback.signIn",
 		SIGN_OUT_LEGACY: "snapback.signOut",
+
 		SHOW_STATUS_LEGACY: "snapback.showAuthStatus",
 		CONNECT: "snapback.connect",
+		// Test commands
+		AUTHENTICATE: "snapback.authenticate",
+		GET_AUTH_STATE: "snapback.getAuthState",
 	},
 
 	// Utility Commands

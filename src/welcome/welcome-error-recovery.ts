@@ -12,7 +12,7 @@
  */
 
 import { logger } from "@snapback/infrastructure";
-import { RetryPresets, withRetry } from "@snapback-oss/sdk";
+import { RetryPresets, withRetry } from "@snapback/sdk";
 
 export type ErrorSeverity = "info" | "warning" | "error" | "critical";
 
@@ -272,11 +272,11 @@ export class WelcomeErrorRecovery {
 		try {
 			const result = await withRetry(action, {
 				...RetryPresets.network,
-				onRetry: (attempt, error) => {
+				onRetry: (attempt: number, error: any) => {
 					logger.debug("Attempting retry", {
 						errorCode,
 						attempt,
-						error: error.message,
+						error: error?.message || String(error),
 					});
 				},
 			});

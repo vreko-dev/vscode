@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { calculateBackoff } from "@snapback-oss/sdk";
+import { calculateBackoff } from "@snapback/sdk";
 import type * as vscode from "vscode";
 
 /**

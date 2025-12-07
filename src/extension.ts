@@ -295,7 +295,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		userIdentityService = new UserIdentityService(anonymousIdManager, authService, telemetryProxy);
 		// Configure TelemetryProxy to use UserIdentityService
-		telemetryProxy.setIdentityProvider(() => userIdentityService?.getCurrentId());
+		telemetryProxy.setIdentityProvider(() => userIdentityService?.getCurrentId() ?? Promise.resolve("unknown"));
 		logger.info("UserIdentityService initialized");
 
 		const phase4Result = await initializePhase4Providers(

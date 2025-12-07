@@ -16,7 +16,7 @@ import type { StatusBarController } from "../ui/statusBar";
 import { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider";
 import { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
 import { SessionsTreeProvider } from "../views/SessionsTreeProvider";
-import { SnapBackTreeProvider } from "../views/SnapBackTreeProvider";
+import { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
 import { WelcomeView } from "../welcomeView";
 import type { Phase3Result } from "./phase3-managers";

@@ -422,5 +422,41 @@ export function registerSnapshotCommands(
 		}),
 	);
 
+	/*
+	 * Test Commands (Internal use for E2E testing)
+	 */
+	disposables.push(
+		vscode.commands.registerCommand("snapback.test.getSnapshots", async () => {
+			return await snapshotManager.getAll();
+		}),
+	);
+
+	disposables.push(
+		vscode.commands.registerCommand("snapback.test.restoreSnapshot", async (snapshotId: string) => {
+			if (!snapshotId) {
+				throw new Error("Snapshot ID required");
+			}
+			const snapshot = await snapshotManager.get(snapshotId);
+			if (!snapshot) {
+				throw new Error(`Snapshot ${snapshotId} not found`);
+			}
+
+			// Restore all files in snapshot
+			const filesToRestore = snapshot.fileStates || [];
+			if (filesToRestore.length === 0) {
+				// Fallback to legacy structure if needed or log warning
+				console.warn(`Snapshot ${snapshotId} has no fileStates`);
+			}
+
+			for (const file of filesToRestore) {
+				// File path is usually stored absolute or relative to workspace
+				const uri = vscode.Uri.file(file.path);
+				const data = new TextEncoder().encode(file.content);
+				await vscode.workspace.fs.writeFile(uri, data);
+			}
+			return true;
+		}),
+	);
+
 	return disposables;
 }

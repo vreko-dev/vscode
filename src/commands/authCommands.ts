@@ -114,5 +114,20 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 				vscode.window.showErrorMessage("Failed to check authentication status");
 			}
 		}),
+	// Test: Get Auth State
+		vscode.commands.registerCommand(COMMANDS.ACCOUNT.GET_AUTH_STATE, async () => {
+			const session = await vscode.authentication.getSession("snapback", ["read", "write"], {
+				createIfNone: false,
+			});
+			return { authenticated: !!session };
+		}),
+
+		// Test: Authenticate (Mock/Trigger)
+		vscode.commands.registerCommand(COMMANDS.ACCOUNT.AUTHENTICATE, async () => {
+			// In E2E, we might want to bypass real auth or trigger the flow
+			// For now, let's trigger the real flow which might be intercepted by tests
+			await vscode.commands.executeCommand(COMMANDS.ACCOUNT.SIGN_IN_LEGACY);
+			return true;
+		}),
 	];
 }
