@@ -134,15 +134,24 @@ const mockVscode = {
 			get: vi.fn((key, defaultValue) => {
 				// Return default values for configuration
 				if (key === "logLevel") return "info";
+				if (key === "preSnapshot.debounceMs") return 500;
+				if (key === "preSnapshot.enabled") return true;
 				return defaultValue;
 			}),
 			update: vi.fn(),
 			has: vi.fn(),
 		})),
 		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
+		getWorkspaceFolder: vi.fn((uri: any) => {
+			// Return workspace folder for any file URI
+			if (uri && uri.scheme === "file") {
+				return { uri: { fsPath: "/test/workspace" } };
+			}
+			return undefined;
+		}),
 		asRelativePath: vi.fn((pathOrUri: any) => {
 			const path = typeof pathOrUri === "string" ? pathOrUri : pathOrUri.fsPath;
-			return path.replace(/^.*\\/, "");
+			return path.replace(/^.*workspace\//, "");
 		}),
 		findFiles: vi.fn(async () => []),
 		fs: {
@@ -192,6 +201,7 @@ const mockVscode = {
 			validatePosition: vi.fn(),
 		})),
 		onDidChangeTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
+		onDidCloseTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
 	},
 	languages: {
 		registerHoverProvider: vi.fn(() => ({ dispose: vi.fn() })),
@@ -211,12 +221,45 @@ const mockVscode = {
 			fsPath: path,
 			path,
 			scheme: "file",
+			authority: "",
+			query: "",
+			fragment: "",
+			toString: () => `file://${path}`,
 		})),
-		parse: vi.fn(),
+		parse: vi.fn((value: string) => {
+			// Parse URI string into components
+			const match = value.match(/^([a-z][a-z0-9+.-]*):\/\/([^/]*)(.*)$/i);
+			if (match) {
+				const [, scheme, authority, path] = match;
+				return {
+					scheme,
+					authority,
+					path: path || "/",
+					query: "",
+					fragment: "",
+					fsPath: path || "/",
+					toString: () => value,
+				};
+			}
+			// Fallback for invalid URIs
+			return {
+				scheme: "",
+				authority: "",
+				path: value,
+				query: "",
+				fragment: "",
+				fsPath: value,
+				toString: () => value,
+			};
+		}),
 		joinPath: vi.fn((base, ...pathSegments) => ({
 			fsPath: [base.fsPath, ...pathSegments].join("/"),
 			path: [base.path, ...pathSegments].join("/"),
-			scheme: "file",
+			scheme: base.scheme || "file",
+			authority: base.authority || "",
+			query: "",
+			fragment: "",
+			toString: () => `${base.scheme}://${base.authority}/${[base.path, ...pathSegments].join("/")}`,
 		})),
 	},
 	FileType: {
