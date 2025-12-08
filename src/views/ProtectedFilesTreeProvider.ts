@@ -66,11 +66,6 @@ export class ProtectedFilesTreeProvider implements vscode.TreeDataProvider<vscod
 					logger.info(`📦 Found ${validFiles.length} valid protected files out of ${files.length} total`);
 				}
 
-				// 🛡️ Verify state consistency for all files
-				for (const file of validFiles) {
-					await this.protectedFiles.verifyProtectionState(file.path);
-				}
-
 				// Group files by canonical protection level (block > warn > watch)
 				const blockFiles = validFiles.filter((f) => f.protectionLevel === "block");
 				const warnFiles = validFiles.filter((f) => f.protectionLevel === "warn");

@@ -1,4 +1,6 @@
 import * as path from "node:path";
+import type { ProtectionConfig } from "@snapback/contracts";
+import { ProtectionManager as SDKProtectionManager } from "@snapback/sdk";
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
 import { SNAPBACK_ICONS } from "../constants/index";
@@ -23,6 +25,8 @@ export interface Phase2Result {
 	snapbackrcDecorator: SnapBackRCDecorator;
 	snapbackrcLoader: SnapBackRCLoader;
 	mcpManager?: MCPLifecycleManager;
+	/** SDK ProtectionManager - Single Source of Truth for protection decisions */
+	sdkProtectionManager: SDKProtectionManager;
 }
 
 export async function initializePhase2Storage(workspaceRoot: string, context: ExtensionContext): Promise<Phase2Result> {
@@ -82,17 +86,34 @@ export async function initializePhase2Storage(workspaceRoot: string, context: Ex
 			ms: Date.now() - regStart,
 		});
 
-		// 🆕 Initialize CooldownManager via storage manager
-		// TODO: Update protectedFileRegistry.initializeCooldownManager to accept StorageManager
-		// For now, cooldown caching is managed directly by StorageManager.CooldownCache
+		/**
+		 * Initialize SDK ProtectionManager - Single Source of Truth for protection decisions.
+		 * Per arch_remediation.md Task 1.2: SDK owns the "whether" decisions.
+		 * VSCode's ProtectedFileRegistry delegates isProtected() and getProtectionLevel() to SDK.
+		 */
+		const sdkStart = Date.now();
+		const defaultProtectionConfig: ProtectionConfig = {
+			patterns: [],
+			defaultLevel: "watch",
+			enabled: true,
+			autoProtectConfigs: true,
+		};
+		const sdkProtectionManager = new SDKProtectionManager(defaultProtectionConfig);
+		protectedFileRegistry.initializeSDKProtectionManager(sdkProtectionManager);
+		console.log("[PERF] SDK ProtectionManager initialized", {
+			ms: Date.now() - sdkStart,
+		});
+
+		// 🆕 Initialize StorageManager for ProtectedFileRegistry
+		// Per arch_remediation.md Task 2.3: CooldownCache is single source for cooldowns
 		try {
-			// CooldownCache is now part of StorageManager initialization
-			logger.info("CooldownManager initialized via StorageManager");
+			protectedFileRegistry.initializeStorageManager(storage);
+			logger.info("StorageManager wired to ProtectedFileRegistry (cooldowns, audit)");
 		} catch (cooldownError) {
 			const err = cooldownError instanceof Error ? cooldownError : new Error(String(cooldownError));
-			logger.error("[CooldownManager] Initialization failed", err);
-			// CooldownManager is optional - don't show user error, just warn
-			logger.warn("[WARN] CooldownManager not available - rate-limiting and audit features disabled");
+			logger.error("[StorageManager] Failed to wire to ProtectedFileRegistry", err);
+			// CooldownCache is optional - don't show user error, just warn
+			logger.warn("[WARN] Cooldown features not available");
 		}
 
 		const cfgStart = Date.now();
@@ -192,6 +213,7 @@ export async function initializePhase2Storage(workspaceRoot: string, context: Ex
 			mcpManager,
 			snapbackrcDecorator,
 			snapbackrcLoader,
+			sdkProtectionManager,
 		};
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -212,6 +234,16 @@ export async function initializePhase2Storage(workspaceRoot: string, context: Ex
 
 		// Create minimal fallback objects
 		const protectedFileRegistry = new ProtectedFileRegistry(context.workspaceState);
+
+		// Initialize SDK ProtectionManager even in fallback mode
+		const fallbackProtectionConfig: ProtectionConfig = {
+			patterns: [],
+			defaultLevel: "watch",
+			enabled: true,
+			autoProtectConfigs: true,
+		};
+		const fallbackSdkManager = new SDKProtectionManager(fallbackProtectionConfig);
+		protectedFileRegistry.initializeSDKProtectionManager(fallbackSdkManager);
 
 		const configManager = new ConfigFileManager(workspaceRoot);
 		const snapbackrcDecorator = new SnapBackRCDecorator();
@@ -245,6 +277,7 @@ export async function initializePhase2Storage(workspaceRoot: string, context: Ex
 			mcpManager: undefined,
 			snapbackrcDecorator,
 			snapbackrcLoader,
+			sdkProtectionManager: fallbackSdkManager,
 		};
 	}
 }

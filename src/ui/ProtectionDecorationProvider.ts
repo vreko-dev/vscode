@@ -40,10 +40,30 @@ export class ProtectionDecorationProvider implements vscode.FileDecorationProvid
 	}
 
 	/**
+	 * Force immediate decoration update for specific URIs
+	 * Used for user-initiated actions (protect file, change level) to provide instant visual feedback
+	 *
+	 * @param uris - URIs to update decorations for
+	 */
+	forceUpdate(uris: vscode.Uri[]): void {
+		this.debounceDecorationUpdate(uris, true);
+	}
+
+	/**
 	 * Debounces decoration updates to prevent UI thrashing on rapid changes
 	 * Batches multiple rapid changes into a single update after 200ms
+	 *
+	 * @param uris - URIs that need decoration updates
+	 * @param immediate - If true, fire immediately without debounce (for user-initiated actions)
 	 */
-	private debounceDecorationUpdate(uris: vscode.Uri[]): void {
+	private debounceDecorationUpdate(uris: vscode.Uri[], immediate = false): void {
+		// For immediate updates (user-initiated), bypass debounce
+		if (immediate) {
+			logger.info(`[SnapBack] Firing immediate decoration update for ${uris.length} URIs`);
+			this._onDidChangeFileDecorations.fire(uris);
+			return;
+		}
+
 		// Add new URIs to pending queue
 		this.pendingUris.push(...uris);
 

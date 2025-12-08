@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
-import { logger } from "../utils/logger";
 import type { ProtectionLevel } from "../views/types";
 
 /**
@@ -37,17 +36,19 @@ export class CooldownIndicator {
 
 	/**
 	 * Set a file in cooldown state
+	 * Per arch_remediation.md Task 2.3: CooldownCache is single source (via StorageManager)
+	 * This UI component maintains its own map for status bar display only.
 	 * @param filePath The file path
 	 * @param protectionLevel The protection level
 	 * @param durationMs Cooldown duration in milliseconds
 	 */
-	public async setCooldown(filePath: string, protectionLevel: ProtectionLevel, durationMs: number): Promise<void> {
+	public setCooldown(filePath: string, protectionLevel: ProtectionLevel, durationMs: number): void {
 		const expiresAt = Date.now() + durationMs;
 
-		// Store the cooldown information in memory
+		// Store the cooldown information in memory for UI display
 		this.activeCooldowns.set(filePath, { level: protectionLevel, expiresAt });
 
-		// Set a timer to clear the cooldown when it expires
+		// Set a timer to clear the UI cooldown when it expires
 		const timer = setTimeout(() => {
 			this.clearCooldown(filePath);
 		}, durationMs);
@@ -55,24 +56,8 @@ export class CooldownIndicator {
 		// Store the timer so we can clear it if needed
 		this.cooldownTimers.set(filePath, timer);
 
-		// Also store in persistent storage using CooldownManager
-		const cooldownManager = this.protectedFileRegistry.getCooldownManager();
-		if (cooldownManager) {
-			try {
-				await cooldownManager.setCooldown(
-					filePath,
-					protectionLevel,
-					"snapshot_created", // Default action
-					undefined, // No snapshot ID for now
-					durationMs,
-				);
-			} catch (error) {
-				logger.warn(
-					"Failed to store cooldown in persistent storage",
-					error instanceof Error ? error : undefined,
-				);
-			}
-		}
+		// Note: Actual cooldown storage is handled by StorageManager.CooldownCache
+		// via ProtectedFileRegistry.setCooldown() - this is UI-only
 
 		// Update the status bar
 		this.updateStatusBar();
@@ -99,38 +84,29 @@ export class CooldownIndicator {
 
 	/**
 	 * Check if a file is currently in cooldown
+	 * Per arch_remediation.md Task 2.3: Uses registry which delegates to StorageManager.CooldownCache
 	 * @param filePath The file path
 	 * @returns True if the file is in cooldown, false otherwise
 	 */
-	public async isInCooldown(filePath: string): Promise<boolean> {
+	public isInCooldown(filePath: string): boolean {
+		// First check local UI cache
 		const cooldown = this.activeCooldowns.get(filePath);
-		if (!cooldown) {
-			// Check persistent storage as fallback
-			const cooldownManager = this.protectedFileRegistry.getCooldownManager();
-			if (cooldownManager) {
-				try {
-					// We need to check all protection levels since we don't know which one was used
-					const watchedInCooldown = await cooldownManager.isInCooldown(filePath, "watch");
-					const warningInCooldown = await cooldownManager.isInCooldown(filePath, "warn");
-					const protectedInCooldown = await cooldownManager.isInCooldown(filePath, "block");
-					return watchedInCooldown || warningInCooldown || protectedInCooldown;
-				} catch (error) {
-					logger.warn(
-						"Failed to check cooldown in persistent storage",
-						error instanceof Error ? error : undefined,
-					);
-				}
+		if (cooldown) {
+			// Check if cooldown has expired
+			if (Date.now() > cooldown.expiresAt) {
+				this.clearCooldown(filePath);
+				return false;
 			}
-			return false;
+			return true;
 		}
 
-		// Check if cooldown has expired
-		if (Date.now() > cooldown.expiresAt) {
-			this.clearCooldown(filePath);
-			return false;
-		}
-
-		return true;
+		// Fall back to registry (which uses StorageManager.CooldownCache)
+		// Check all protection levels since we don't know which one was used
+		return (
+			this.protectedFileRegistry.isInCooldown(filePath, "watch") ||
+			this.protectedFileRegistry.isInCooldown(filePath, "warn") ||
+			this.protectedFileRegistry.isInCooldown(filePath, "block")
+		);
 	}
 
 	/**

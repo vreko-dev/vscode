@@ -346,6 +346,21 @@ export async function activate(context: vscode.ExtensionContext) {
 		);
 		saveHandler.register(context);
 
+		/**
+		 * Initialize SDK ProtectionDecisionEngine for centralized protection decisions.
+		 * Per arch_remediation.md Task 1.3: SDK owns the "whether" decisions.
+		 */
+		try {
+			const { ProtectionDecisionEngine } = await import("@snapback/sdk");
+			const decisionEngine = new ProtectionDecisionEngine(phase2Result.sdkProtectionManager);
+			saveHandler.initializeDecisionEngine(decisionEngine);
+			logger.info("SDK ProtectionDecisionEngine initialized successfully");
+		} catch (error) {
+			logger.warn("Failed to initialize SDK ProtectionDecisionEngine, using legacy decisions", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+
 		// 🆕 Check if file health decorations are enabled
 		const showFileHealthDecorations = config.get<boolean>("showFileHealthDecorations", true);
 		if (showFileHealthDecorations) {

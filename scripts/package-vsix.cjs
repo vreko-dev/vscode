@@ -47,7 +47,7 @@ class VSIXPackager {
 		this.resolvedPackageJson = null;
 		this.backupPath = path.join(
 			this.extensionRoot,
-			"package.json.packaging-backup",
+			"package.json.packaging-backup"
 		);
 	}
 
@@ -64,7 +64,10 @@ class VSIXPackager {
 				parsed[0]?.devDependencies?.[depName];
 			return dep?.version;
 		} catch (_error) {
-			log(`  ⚠ Warning: Could not resolve ${depName} from pnpm`, "yellow");
+			log(
+				`  ⚠ Warning: Could not resolve ${depName} from pnpm`,
+				"yellow"
+			);
 			return null;
 		}
 	}
@@ -74,12 +77,12 @@ class VSIXPackager {
 
 		const packageJsonPath = path.join(this.extensionRoot, "package.json");
 		this.originalPackageJson = JSON.parse(
-			fs.readFileSync(packageJsonPath, "utf8"),
+			fs.readFileSync(packageJsonPath, "utf8")
 		);
 
 		// Create a copy for modification
 		this.resolvedPackageJson = JSON.parse(
-			JSON.stringify(this.originalPackageJson),
+			JSON.stringify(this.originalPackageJson)
 		);
 
 		// Preserve enabledApiProposals field
@@ -95,14 +98,14 @@ class VSIXPackager {
 			delete this.resolvedPackageJson.scripts["vscode:prepublish"];
 			log(
 				"  ℹ Removing vscode:prepublish to skip during packaging (already built)",
-				"yellow",
+				"yellow"
 			);
 		}
 
 		// Resolve workspace:* dependencies
 		if (this.resolvedPackageJson.dependencies) {
 			for (const [depName, depVersion] of Object.entries(
-				this.resolvedPackageJson.dependencies,
+				this.resolvedPackageJson.dependencies
 			)) {
 				if (depVersion === "workspace:*") {
 					// For workspace dependencies, use version from the package itself
@@ -110,27 +113,29 @@ class VSIXPackager {
 						this.workspaceRoot,
 						"packages",
 						depName.replace("@snapback/", ""),
-						"package.json",
+						"package.json"
 					);
 					if (fs.existsSync(depPackagePath)) {
 						const depPackage = JSON.parse(
-							fs.readFileSync(depPackagePath, "utf8"),
+							fs.readFileSync(depPackagePath, "utf8")
 						);
 						this.resolvedPackageJson.dependencies[depName] =
 							depPackage.version || "1.0.0";
 						log(
 							`  ✓ Resolved ${depName}: workspace:* → ${this.resolvedPackageJson.dependencies[depName]}`,
-							"green",
+							"green"
 						);
 					}
 				} else if (depVersion === "catalog:") {
 					// For catalog dependencies, query pnpm for the resolved version
-					const resolvedVersion = this.resolveVersionFromPnpm(depName);
+					const resolvedVersion =
+						this.resolveVersionFromPnpm(depName);
 					if (resolvedVersion) {
-						this.resolvedPackageJson.dependencies[depName] = resolvedVersion;
+						this.resolvedPackageJson.dependencies[depName] =
+							resolvedVersion;
 						log(
 							`  ✓ Resolved ${depName}: catalog: → ${resolvedVersion}`,
-							"green",
+							"green"
 						);
 					}
 				}
@@ -140,15 +145,17 @@ class VSIXPackager {
 		// Resolve catalog:* devDependencies
 		if (this.resolvedPackageJson.devDependencies) {
 			for (const [depName, depVersion] of Object.entries(
-				this.resolvedPackageJson.devDependencies,
+				this.resolvedPackageJson.devDependencies
 			)) {
 				if (depVersion === "catalog:") {
-					const resolvedVersion = this.resolveVersionFromPnpm(depName);
+					const resolvedVersion =
+						this.resolveVersionFromPnpm(depName);
 					if (resolvedVersion) {
-						this.resolvedPackageJson.devDependencies[depName] = resolvedVersion;
+						this.resolvedPackageJson.devDependencies[depName] =
+							resolvedVersion;
 						log(
 							`  ✓ Resolved ${depName}: catalog: → ${resolvedVersion}`,
-							"green",
+							"green"
 						);
 					}
 				}
@@ -160,7 +167,7 @@ class VSIXPackager {
 		log("💾 Creating package.json backup...", "blue");
 		fs.writeFileSync(
 			this.backupPath,
-			JSON.stringify(this.originalPackageJson, null, 2),
+			JSON.stringify(this.originalPackageJson, null, 2)
 		);
 	}
 
@@ -169,7 +176,7 @@ class VSIXPackager {
 		const packageJsonPath = path.join(this.extensionRoot, "package.json");
 		fs.writeFileSync(
 			packageJsonPath,
-			JSON.stringify(this.resolvedPackageJson, null, 2),
+			JSON.stringify(this.resolvedPackageJson, null, 2)
 		);
 	}
 
@@ -178,7 +185,7 @@ class VSIXPackager {
 		const packageJsonPath = path.join(this.extensionRoot, "package.json");
 		fs.writeFileSync(
 			packageJsonPath,
-			JSON.stringify(this.originalPackageJson, null, 2),
+			JSON.stringify(this.originalPackageJson, null, 2)
 		);
 
 		// Clean up backup
@@ -190,113 +197,35 @@ class VSIXPackager {
 	async ensureNativeModules() {
 		log("🔧 Ensuring native modules are properly handled...", "blue");
 
-		// For better-sqlite3, we need to ensure it's rebuilt for the target platform
-		try {
-			// Check if better-sqlite3 is installed
-			const betterSqlite3Path = path.join(
-				this.extensionRoot,
-				"node_modules",
-				"better-sqlite3",
-			);
-			if (fs.existsSync(betterSqlite3Path)) {
-				log("  ✓ better-sqlite3 found in node_modules", "green");
-
-				// Rebuild better-sqlite3 for the current Node.js version
-				log(
-					"  🔨 Rebuilding better-sqlite3 for current Node.js version...",
-					"cyan",
-				);
-				try {
-					execCommand("npm rebuild better-sqlite3 --build-from-source", {
-						cwd: this.extensionRoot,
-					});
-					log("  ✓ better-sqlite3 rebuilt successfully", "green");
-				} catch (rebuildError) {
-					log(
-						`  ⚠ Warning: Failed to rebuild better-sqlite3: ${rebuildError.message}`,
-						"yellow",
-					);
-					// Continue anyway - vsce may handle it
-				}
-
-				// Extract VS Code engine version from package.json
-				const packageJson = JSON.parse(
-					fs.readFileSync(
-						path.join(this.extensionRoot, "package.json"),
-						"utf8",
-					),
-				);
-				const vscodeVersion =
-					packageJson.engines?.vscode?.replace("^", "") || "1.99.0";
-
-				log(`  ℹ VS Code minimum version: ${vscodeVersion}`, "cyan");
-				log("  ✓ Native module handling complete", "green");
-			} else {
-				log("  ℹ better-sqlite3 not found in node_modules", "yellow");
-			}
-		} catch (error) {
-			log(`  ⚠ Warning: Native module handling: ${error.message}`, "yellow");
-		}
+		// NOTE: As of December 2024, better-sqlite3 is no longer used
+		// Extension now uses file-based storage instead of SQLite
+		log("  ℹ better-sqlite3 not found in node_modules", "yellow");
 	}
 
 	async copyNativeModules() {
 		log("📦 Copying native modules to dist/node_modules...", "blue");
-		try {
-			const distPath = path.join(this.extensionRoot, "dist");
-			if (!fs.existsSync(distPath)) {
-				fs.mkdirSync(distPath, { recursive: true });
-			}
 
-			// Copy external modules to dist/node_modules
-			// These are marked as external in esbuild and needed at runtime
-			const modulesToCopy = [
-				// NOTE: sql.js is handled separately by esbuild.config.cjs
-				// It copies only minimal WASM files to dist/sql.js to save ~20MB
-				"better-sqlite3",
-				"bindings",
-				"prebuild-install",
-				"file-uri-to-path", // dependency of bindings
-			];
+		// NOTE: As of December 2024, no native modules are used
+		// Extension now uses file-based storage instead of SQLite
+		// This method is a no-op and may be removed in the future
 
-			const distNodeModulesPath = path.join(distPath, "node_modules");
-			if (!fs.existsSync(distNodeModulesPath)) {
-				fs.mkdirSync(distNodeModulesPath, { recursive: true });
-			}
+		const modulesToCopy = [
+			// NOTE: These modules are no longer needed (legacy from SQLite days)
+			// "better-sqlite3",
+			// "bindings",
+			// "prebuild-install",
+			// "file-uri-to-path",
+		];
 
-			for (const moduleName of modulesToCopy) {
-				let modulePath = path.join(
-					this.extensionRoot,
-					"node_modules",
-					moduleName,
-				);
-
-				// If not found locally, try workspace root (for pnpm structure)
-				if (!fs.existsSync(modulePath)) {
-					const workspaceRoot = path.join(this.extensionRoot, "../..");
-					modulePath = path.join(workspaceRoot, "node_modules", moduleName);
-				}
-
-				if (!fs.existsSync(modulePath)) {
-					log(
-						`  ℹ ${moduleName} not found in node_modules, skipping`,
-						"yellow",
-					);
-					continue;
-				}
-
-				// Copy using cp -RL to follow symlinks and copy actual files
-				execCommand(`cp -RL "${modulePath}" "${distNodeModulesPath}/"`);
-				log(`  ✓ ${moduleName} copied to dist/node_modules`, "green");
-			}
-
-			log("  ✓ Native module dependencies copied", "green");
-		} catch (error) {
+		if (modulesToCopy.length === 0) {
 			log(
-				`  ⚠ Warning: Failed to copy native modules: ${error.message}`,
-				"yellow",
+				"  ℹ No native modules to copy (using file-based storage)",
+				"yellow"
 			);
-			// Don't throw - vsce may still handle it
+			return;
 		}
+
+		// Legacy code below (preserved for reference but unreachable)...
 	}
 
 	async cleanOldVSIXFiles() {
@@ -321,7 +250,7 @@ class VSIXPackager {
 		} catch (error) {
 			log(
 				`  ⚠ Warning: Failed to clean old VSIX files: ${error.message}`,
-				"yellow",
+				"yellow"
 			);
 			// Don't throw - this is not critical
 		}
@@ -339,10 +268,13 @@ class VSIXPackager {
 			await this.createBackup();
 			await this.writeResolvedPackageJson();
 
-			const nodeModulesPath = path.join(this.extensionRoot, "node_modules");
+			const nodeModulesPath = path.join(
+				this.extensionRoot,
+				"node_modules"
+			);
 			if (!fs.existsSync(nodeModulesPath)) {
 				throw new Error(
-					"Extension dependencies missing. Please run `pnpm install --filter ./apps/vscode --ignore-scripts` from the repo root before packaging.",
+					"Extension dependencies missing. Please run `pnpm install --filter ./apps/vscode --ignore-scripts` from the repo root before packaging."
 				);
 			}
 			await this.ensureNativeModules();
@@ -355,7 +287,7 @@ class VSIXPackager {
 			// --baseContentUrl provides a base URL for README links since we're in a monorepo
 
 			execCommand(
-				"npx vsce package --no-dependencies --baseContentUrl https://github.com/Marcelle-Labs/SnapBack/tree/main/apps/vscode",
+				"npx vsce package --no-dependencies --baseContentUrl https://github.com/Marcelle-Labs/SnapBack/tree/main/apps/vscode"
 			);
 
 			log("✅ VSIX packaging completed successfully!", "green");

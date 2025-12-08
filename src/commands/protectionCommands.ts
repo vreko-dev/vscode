@@ -74,7 +74,7 @@ export function registerProtectionCommands(
 	const disposables: vscode.Disposable[] = [];
 
 	// Extract needed services from context
-	const { protectedFileRegistry, refreshViews, snapbackrcLoader } = ctx;
+	const { protectedFileRegistry, refreshViews, snapbackrcLoader, protectionDecorationProvider } = ctx;
 
 	/**
 	 * Extract URI from VS Code command arguments.
@@ -445,6 +445,7 @@ export function registerProtectionCommands(
 				protectedFileRegistry,
 				refreshViews,
 				snapbackrcLoader,
+				protectionDecorationProvider,
 			);
 		}),
 	);
@@ -458,19 +459,21 @@ export function registerProtectionCommands(
 				protectedFileRegistry,
 				refreshViews,
 				snapbackrcLoader,
+				protectionDecorationProvider,
 			);
 		}),
 	);
 
 	// Command: Set Block Level (Quick)
 	disposables.push(
-		vscode.commands.registerCommand("snapback.setBlockLevel", async (uriOrItem?: vscode.Uri | vscode.Uri) => {
+		vscode.commands.registerCommand("snapback.setBlockLevel", async (uriOrItem?: vscode.Uri | TreeItemLike) => {
 			await setProtectionLevelQuick(
 				getUriFromArg(uriOrItem),
 				"block",
 				protectedFileRegistry,
 				refreshViews,
 				snapbackrcLoader,
+				protectionDecorationProvider,
 			);
 		}),
 	);
@@ -479,7 +482,7 @@ export function registerProtectionCommands(
 	disposables.push(
 		vscode.commands.registerCommand(
 			"snapback.changeProtectionLevel",
-			async (uriOrItem?: vscode.Uri | vscode.Uri) => {
+			async (uriOrItem?: vscode.Uri | TreeItemLike) => {
 				const fileUri = getUriFromArg(uriOrItem);
 				if (!fileUri) {
 					vscode.window.showWarningMessage("No file selected");
@@ -569,6 +572,14 @@ export function registerProtectionCommands(
 			if (pick?.entry) {
 				await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(pick.entry.path));
 			}
+		}),
+	);
+
+	// Command: Configure Protection (Opens Settings)
+	disposables.push(
+		vscode.commands.registerCommand("snapback.protection.workspace", async () => {
+			// Open VSCode settings to SnapBack protection section
+			await vscode.commands.executeCommand("workbench.action.openSettings", "@ext:snapback.snapback protection");
 		}),
 	);
 
@@ -714,6 +725,7 @@ async function setProtectionLevelQuick(
 	protectedFileRegistry: ProtectedFileRegistry,
 	refreshViews: () => void,
 	snapbackrcLoader?: SnapBackRCLoader,
+	protectionDecorationProvider?: any,
 ) {
 	const fileUri = uri || vscode.window.activeTextEditor?.document.uri;
 	if (!fileUri) {
@@ -739,6 +751,11 @@ async function setProtectionLevelQuick(
 				await protectedFileRegistry.updateProtectionLevel(fileUri.fsPath, level);
 			}
 			refreshViews();
+
+			// Force immediate decoration update for instant visual feedback
+			if (protectionDecorationProvider) {
+				protectionDecorationProvider.forceUpdate([fileUri]);
+			}
 		}
 
 		const levelMetadata = PROTECTION_LEVELS[level];

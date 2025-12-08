@@ -101,6 +101,35 @@ export class CooldownCache {
 	}
 
 	/**
+	 * Remove a cooldown by file path (any protection level)
+	 * Useful for consuming temporary allowances
+	 */
+	removeByPath(filePath: string): boolean {
+		let removed = false;
+		for (const key of this.cache.keys()) {
+			if (key.startsWith(`${filePath}::`)) {
+				this.cache.delete(key);
+				removed = true;
+			}
+		}
+		return removed;
+	}
+
+	/**
+	 * Get any cooldown for a file path (regardless of protection level)
+	 * Useful for checking temporary allowances
+	 */
+	getByPath(filePath: string): CooldownEntry | null {
+		const now = Date.now();
+		for (const [key, entry] of this.cache.entries()) {
+			if (key.startsWith(`${filePath}::`) && now <= entry.expiresAt) {
+				return entry;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Clear all cooldowns
 	 */
 	clear(): void {

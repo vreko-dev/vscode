@@ -187,6 +187,22 @@ export class StorageManager implements IStorageManager {
 		return this.cooldownCache.getAll();
 	}
 
+	/**
+	 * Remove a cooldown by file path (any protection level)
+	 * Used for consuming temporary allowances
+	 */
+	removeCooldownByPath(filePath: string): boolean {
+		return this.cooldownCache.removeByPath(filePath);
+	}
+
+	/**
+	 * Get any cooldown for a file path (regardless of protection level)
+	 * Used for checking temporary allowances
+	 */
+	getCooldownByPath(filePath: string): CooldownEntry | null {
+		return this.cooldownCache.getByPath(filePath);
+	}
+
 	// ============================================
 	// Snapshots
 	// ============================================

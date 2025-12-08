@@ -113,7 +113,7 @@ export class TelemetryProxy {
 		const result = await this.sendEventWithRetry(eventData);
 
 		if (!result.success) {
-			logger.warn(`Telemetry failed: ${result.message || "Unknown error"}`, result.error);
+			logger.debug(`Telemetry event queued: ${result.message || "Service unavailable"}`, result.error);
 			return false;
 		}
 
@@ -134,7 +134,9 @@ export class TelemetryProxy {
 			});
 
 			if (!response.ok) {
-				logger.warn(`Telemetry HTTP ${response.status}: ${response.statusText}`);
+				logger.debug(
+					`Telemetry endpoint unavailable (${response.status}): ${response.statusText} - Telemetry will be queued`,
+				);
 				return { success: false, message: response.statusText };
 			}
 
@@ -143,7 +145,7 @@ export class TelemetryProxy {
 				message?: string;
 			};
 			if (!result.success) {
-				logger.warn(`Telemetry failed: ${result.message || "Unknown error"}`);
+				logger.debug(`Telemetry event queued: ${result.message || "Service unavailable"}`);
 				return result;
 			}
 
@@ -160,7 +162,7 @@ export class TelemetryProxy {
 			};
 
 			if (!result.success) {
-				logger.warn(`Telemetry failed: ${result.message || "Unknown error"}`, error as Error);
+				logger.debug(`Telemetry event queued: ${result.message || "Service unavailable"}`, error as Error);
 			}
 
 			return Promise.resolve(result);

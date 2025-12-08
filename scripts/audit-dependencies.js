@@ -16,7 +16,7 @@ const { execSync } = require("node:child_process");
 
 const PROBLEMATIC_PATTERNS = {
 	native_modules: [
-		"better-sqlite3",
+		// NOTE: better-sqlite3 removed - extension now uses file-based storage
 		"fsevents",
 		"@parcel/watcher",
 		"node-gyp",
@@ -44,7 +44,7 @@ const allDeps = { ...pkg.dependencies };
 
 // Get workspace dependencies
 const workspaceDeps = Object.keys(allDeps).filter((dep) =>
-	dep.startsWith("@snapback/"),
+	dep.startsWith("@snapback/")
 );
 
 console.log("📦 Workspace packages:", workspaceDeps.length);
@@ -53,7 +53,7 @@ workspaceDeps.forEach((dep) => {
 		__dirname,
 		"../../../packages",
 		dep.replace("@snapback/", ""),
-		"package.json",
+		"package.json"
 	);
 	if (fs.existsSync(depPath)) {
 		const depPkg = JSON.parse(fs.readFileSync(depPath, "utf8"));
@@ -65,7 +65,7 @@ workspaceDeps.forEach((dep) => {
 
 console.log(
 	"📊 Total dependencies (including transitive):",
-	Object.keys(allDeps).length,
+	Object.keys(allDeps).length
 );
 console.log("");
 
@@ -88,10 +88,10 @@ for (const [category, patterns] of Object.entries(PROBLEMATIC_PATTERNS)) {
 				category === "native_modules"
 					? "native"
 					: category === "worker_threads"
-						? "workers"
-						: category === "dynamic_requires"
-							? "dynamic"
-							: "platform";
+					? "workers"
+					: category === "dynamic_requires"
+					? "dynamic"
+					: "platform";
 			findings[key].push(pattern);
 		}
 	}
@@ -129,22 +129,26 @@ console.log("📝 Checking esbuild.config.cjs...\n");
 
 const esbuildConfig = fs.readFileSync(
 	path.join(__dirname, "../esbuild.config.cjs"),
-	"utf8",
+	"utf8"
 );
 
 const externalDeps = [...findings.native, ...findings.workers];
 const missingExternal = externalDeps.filter((dep) => {
-	return !esbuildConfig.includes(dep) && !esbuildConfig.includes(`${dep}-stub`);
+	return (
+		!esbuildConfig.includes(dep) && !esbuildConfig.includes(`${dep}-stub`)
+	);
 });
 
 if (missingExternal.length > 0) {
-	console.log("❌ Dependencies that should be external or stubbed but aren't:");
+	console.log(
+		"❌ Dependencies that should be external or stubbed but aren't:"
+	);
 	missingExternal.forEach((dep) => console.log(`  - ${dep}`));
 	console.log("");
 	process.exit(1);
 } else {
 	console.log(
-		"✅ All problematic dependencies are properly handled in esbuild.config.cjs",
+		"✅ All problematic dependencies are properly handled in esbuild.config.cjs"
 	);
 }
 

@@ -49,14 +49,23 @@ class VscodeLoggerAdapter implements ILogger {
 class VscodeStorageAdapter implements ISessionStorage {
 	constructor(private storage: StorageManager) {}
 
+	/**
+	 * Store session manifest - TRUST SDK DECISION COMPLETELY
+	 *
+	 * Per arch_remediation.md Task 1.1: The adapter must trust the SDK's
+	 * session finalization decision. The SDK owns the "whether" decision,
+	 * the adapter only handles "how" to store.
+	 *
+	 * DO NOT add conditional logic based on manifest content (e.g., files.length).
+	 * If the SDK decided to create a session, we store it without question.
+	 */
 	async storeSessionManifest(manifest: SessionManifest): Promise<void> {
+		const files = (manifest as any).files || [];
+
 		console.log("[VscodeStorageAdapter] storeSessionManifest() called", {
 			manifestId: manifest.id,
-			filesCount: (manifest as any).files?.length,
+			filesCount: files.length,
 		});
-		// Map to new StorageManager API
-		const reason = (manifest as any).reason || "manual";
-		const files = (manifest as any).files || [];
 
 		// Ensure SessionStore has an active session before finalizing
 		// Note: SDK SessionCoordinator uses its own session IDs (session-XXX)
@@ -70,10 +79,10 @@ class VscodeStorageAdapter implements ISessionStorage {
 
 		console.log("[VscodeStorageAdapter] Calling storage.finalizeSession()", {
 			manifestId: manifest.id,
-			reason,
+			reason: (manifest as any).reason || "manual",
 			filesCount: files.length,
 		});
-		await this.storage.finalizeSession(manifest.id, manifest.endedAt, reason, files);
+		await this.storage.finalizeSession(manifest.id, manifest.endedAt, (manifest as any).reason || "manual", files);
 		console.log("[VscodeStorageAdapter] storage.finalizeSession() completed");
 	}
 

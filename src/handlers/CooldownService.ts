@@ -40,15 +40,16 @@ export class CooldownService {
 	/**
 	 * Check if a file is currently in cooldown period.
 	 * Uses cooldown indicator if available, otherwise returns false.
+	 * Per arch_remediation.md Task 2.3: Now synchronous (CooldownCache is in-memory)
 	 *
 	 * @param filePath - Absolute path to the file
-	 * @returns Promise<boolean> - true if file is in cooldown
+	 * @returns boolean - true if file is in cooldown
 	 */
-	async isInCooldown(filePath: string): Promise<boolean> {
+	isInCooldown(filePath: string): boolean {
 		if (!this.cooldownIndicator) {
 			return false;
 		}
-		return await this.cooldownIndicator.isInCooldown(filePath);
+		return this.cooldownIndicator.isInCooldown(filePath);
 	}
 
 	/**
@@ -98,19 +99,19 @@ export class CooldownService {
 	 *
 	 * Updates both:
 	 * 1. Cooldown indicator (UI component)
-	 * 2. Registry (persistent storage)
+	 * 2. Registry (via StorageManager.CooldownCache - per Task 2.3)
 	 *
 	 * @param filePath - Absolute path to the file
 	 * @param protectionLevel - Protection level of the file
 	 * @param action - Type of action that triggered cooldown
 	 * @param snapshotId - Optional snapshot ID if snapshot was created
 	 */
-	async setCooldown(
+	setCooldown(
 		filePath: string,
 		protectionLevel: ProtectionLevel,
 		action: "snapshot_created" | "save_allowed" | "save_blocked" | "user_override",
 		snapshotId?: string,
-	): Promise<void> {
+	): void {
 		// Set cooldown duration based on protection level (from SDK centralized thresholds)
 		const cooldownPeriod =
 			protectionLevel === "block" ? THRESHOLDS.protection.protectedCooldown : THRESHOLDS.protection.otherCooldown;
@@ -120,9 +121,9 @@ export class CooldownService {
 			this.cooldownIndicator.setCooldown(filePath, protectionLevel, cooldownPeriod);
 		}
 
-		// Set cooldown in registry (persistent storage)
+		// Set cooldown in registry (via StorageManager.CooldownCache)
 		try {
-			await this.registry.setCooldown(filePath, protectionLevel, action, snapshotId);
+			this.registry.setCooldown(filePath, protectionLevel, action, snapshotId);
 		} catch (error) {
 			logger.warn("Failed to set cooldown in registry", { error });
 		}

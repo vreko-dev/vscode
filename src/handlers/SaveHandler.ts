@@ -1,3 +1,4 @@
+import type { ProtectionDecisionEngine } from "@snapback/sdk";
 import * as vscode from "vscode";
 import { type AIDetection, AIWarningManager } from "../ai/AIWarningManager";
 import type { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider";
@@ -87,6 +88,17 @@ export class SaveHandler {
 	 */
 	public setCooldownIndicator(cooldownIndicator: CooldownIndicator): void {
 		this.cooldownService.setCooldownIndicator(cooldownIndicator);
+	}
+
+	/**
+	 * Initialize SDK ProtectionDecisionEngine.
+	 * Per arch_remediation.md Task 1.3: SDK is the Single Source of Truth for protection decisions.
+	 *
+	 * @param engine - SDK ProtectionDecisionEngine instance
+	 */
+	public initializeDecisionEngine(engine: ProtectionDecisionEngine): void {
+		this.protectionLevelHandler.initializeDecisionEngine(engine);
+		logger.info("[SnapBack] SDK ProtectionDecisionEngine initialized in SaveHandler");
 	}
 
 	/**

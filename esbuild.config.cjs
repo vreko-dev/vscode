@@ -6,41 +6,6 @@ const { visualizer } = require("esbuild-visualizer");
 const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
 
-/**
- * Copy sql.js WASM file to dist directory
- * The JS module is bundled, but the WASM binary needs to be available at runtime
- */
-function copySqlJsWasm() {
-	try {
-		const sqlJsPath = require.resolve("sql.js");
-		const sqlJsDir = path.dirname(sqlJsPath);
-		const sqlJsDistDir = path.join(sqlJsDir, "..", "dist");
-
-		// Create dist directory if it doesn't exist
-		const destDir = "./dist";
-		if (!fs.existsSync(destDir)) {
-			fs.mkdirSync(destDir, { recursive: true });
-		}
-
-		// Copy only the WASM file (JS module is bundled by esbuild)
-		const wasmSrc = path.join(sqlJsDistDir, "sql-wasm.wasm");
-		const wasmDest = path.join(destDir, "sql-wasm.wasm");
-
-		if (fs.existsSync(wasmSrc)) {
-			fs.copyFileSync(wasmSrc, wasmDest);
-			const sizeKB = Math.round(fs.statSync(wasmDest).size / 1024);
-			console.log(`✅ Copied sql.js WASM file to ${wasmDest} (~${sizeKB}KB)`);
-		} else {
-			console.warn(`⚠️  WASM file not found at ${wasmSrc}`);
-		}
-	} catch (error) {
-		console.warn(
-			"⚠️  Failed to copy sql.js WASM file. Extension will attempt to locate it at runtime.",
-			error instanceof Error ? error.message : String(error),
-		);
-	}
-}
-
 async function main() {
 	const ctx = await esbuild.context({
 		entryPoints: ["./src/extension.ts"],
@@ -54,7 +19,7 @@ async function main() {
 		// All other dependencies are bundled into extension.js
 		external: [
 			"vscode",
-			// NOTE: sql.js JS module is bundled, but WASM files are copied manually to dist/
+			// NOTE: sql.js and better-sqlite3 are no longer used (file-based storage now)
 		],
 
 		// Minification (production only)
@@ -89,7 +54,9 @@ async function main() {
 
 		// Environment
 		define: {
-			"process.env.NODE_ENV": production ? '"production"' : '"development"',
+			"process.env.NODE_ENV": production
+				? '"production"'
+				: '"development"',
 			"process.env.VSCODE_EXTENSION": '"true"',
 		},
 
@@ -109,34 +76,31 @@ async function main() {
 									title: "SnapBack VSCode Bundle Analysis",
 									template: "treemap",
 								});
-								fs.writeFileSync("dist/bundle-analysis.html", html);
-								console.log("📊 Bundle analysis: dist/bundle-analysis.html");
+								fs.writeFileSync(
+									"dist/bundle-analysis.html",
+									html
+								);
+								console.log(
+									"📊 Bundle analysis: dist/bundle-analysis.html"
+								);
 							} catch (err) {
-								console.warn("⚠️  Failed to generate bundle analysis", err);
+								console.warn(
+									"⚠️  Failed to generate bundle analysis",
+									err
+								);
 							}
 						}
 					});
 				},
 			},
-			// Handle native modules and problematic dependencies
+			// Handle problematic dependencies
 			{
 				name: "native-module-handler",
 				setup(build) {
-					// Handle better-sqlite3 (native module)
-					build.onResolve({ filter: /^better-sqlite3$/ }, (args) => {
-						return { external: true, path: args.path };
-					});
+					// NOTE: better-sqlite3 and bindings are no longer used
+					// (Extension now uses file-based storage instead of SQLite)
 
-					build.onResolve({ filter: /^better-sqlite3\/.*/ }, (args) => {
-						return { external: true, path: args.path };
-					});
-
-					// Handle bindings (required by better-sqlite3)
-					build.onResolve({ filter: /^bindings$/ }, (args) => {
-						return { external: true, path: args.path };
-					});
-
-					// Handle pino-pretty (pino transport that won't be used in production)
+					// Handle pino-pretty (pino transport that won't be used in extension)
 					// This prevents "unable to determine transport target" errors
 					build.onResolve({ filter: /^pino-pretty$/ }, (args) => {
 						return {
@@ -154,12 +118,15 @@ async function main() {
 					});
 
 					// Provide stub for worker thread dependencies
-					build.onLoad({ filter: /.*/, namespace: "worker-stub" }, () => {
-						return {
-							contents: "module.exports = {}",
-							loader: "js",
-						};
-					});
+					build.onLoad(
+						{ filter: /.*/, namespace: "worker-stub" },
+						() => {
+							return {
+								contents: "module.exports = {}",
+								loader: "js",
+							};
+						}
+					);
 				},
 			},
 		],
@@ -168,14 +135,9 @@ async function main() {
 	if (watch) {
 		await ctx.watch();
 		console.log("👀 Watching for changes...");
-		// Copy WASM in watch mode too
-		copySqlJsWasm();
 	} else {
 		await ctx.rebuild();
 		await ctx.dispose();
-
-		// Copy sql.js WASM file after bundling
-		copySqlJsWasm();
 
 		// Log bundle size
 		const stats = fs.statSync("./dist/extension.js");

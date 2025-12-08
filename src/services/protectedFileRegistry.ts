@@ -1,22 +1,37 @@
 import * as path from "node:path";
+import type { ProtectionLevel as SDKProtectionLevel } from "@snapback/contracts";
 import { THRESHOLDS } from "@snapback/sdk";
 import type { Disposable, Memento } from "vscode";
 import * as vscode from "vscode";
 import { EventEmitter, workspace } from "vscode";
+import type { StorageManager } from "../storage/StorageManager";
 import { logger } from "../utils/logger";
 import type { ProtectedFileEntry, ProtectedFileProvider, ProtectionLevel } from "../views/types";
-import { CooldownManager } from "./cooldownManager"; // 🆕 Import CooldownManager
+
+/**
+ * Interface for SDK ProtectionManager - defines the contract for protection decisions.
+ * Per arch_remediation.md Task 1.2: SDK owns the "whether" decisions.
+ */
+export interface IProtectionManager {
+	// DECISIONS (SDK owns)
+	isProtected(filePath: string): boolean;
+	getLevel(filePath: string): SDKProtectionLevel | null;
+	// STATE MANAGEMENT (SDK owns)
+	protect(filePath: string, level: SDKProtectionLevel, reason?: string): void;
+	unprotect(filePath: string): void;
+	listProtected(): Array<{ path: string; level: SDKProtectionLevel; reason?: string; addedAt: Date }>;
+}
 
 const STORAGE_KEY = "snapback:protected-files";
 
-// Add interface for temporary allowances
-interface TemporaryAllowance {
+/**
+ * @deprecated TemporaryAllowance replaced by CooldownCache entries with actionTaken='temporary_allowance'
+ * Kept for migration reference only.
+ */
+interface _LegacyTemporaryAllowance {
 	filePath: string;
 	allowedAt: number;
-	expiresAt: number; // Timestamp when allowance expires
-	// 🆕 Add cooldown-related fields
-	cooldownExpiresAt?: number;
-	cooldownAction?: "snapshot_created" | "save_allowed" | "save_blocked" | "user_override";
+	expiresAt: number;
 }
 
 type StoredProtectedFile = {
@@ -29,6 +44,13 @@ type StoredProtectedFile = {
 };
 
 export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable {
+	/**
+	 * SDK ProtectionManager - Single Source of Truth for protection decisions.
+	 * Per arch_remediation.md Task 1.2: All isProtected() and getProtectionLevel()
+	 * decisions MUST delegate to SDK. VSCode only handles persistence (HOW).
+	 */
+	private sdkProtectionManager: IProtectionManager | null = null;
+
 	get(uri: vscode.Uri): ProtectedFileEntry | undefined {
 		const normalizedPath = this.normalize(uri.fsPath);
 		return this.cachedFiles.find((entry) => this.normalize(entry.path) === normalizedPath);
@@ -40,41 +62,96 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	private readonly _onProtectionChanged = new EventEmitter<vscode.Uri[]>();
 	readonly onProtectionChanged = this._onProtectionChanged.event;
 
+	/**
+	 * Cached files from VSCode storage - used for persistence and UI.
+	 * NOTE: This is NOT the source of truth for protection decisions.
+	 * Use sdkProtectionManager.isProtected() for decisions.
+	 */
 	private cachedFiles: ProtectedFileEntry[] = [];
 
 	/**
-	 * O(1) lookup index for protected file paths
-	 * Maintains normalized paths for fast isProtected() checks
+	 * StorageManager - Single source for cooldowns, snapshots, and audit
+	 * Per arch_remediation.md Task 2.3: Consolidated cooldown management
 	 */
-	private protectedPathsIndex = new Set<string>();
-
-	/**
-	 * Temporary allowances for files - allows one save operation to proceed
-	 * without requiring a snapshot
-	 */
-	private temporaryAllowances = new Map<string, TemporaryAllowance>();
-
-	// 🆕 Add CooldownManager instance
-	private cooldownManager: CooldownManager | null = null;
+	private storageManager: StorageManager | null = null;
 
 	constructor(private readonly state: Memento) {
 		// Load files synchronously on construction to avoid race conditions
 		this.cachedFiles = this.loadFilesFromStorage();
+		logger.info("[SnapBack] ProtectedFileRegistry constructed", {
+			cachedCount: this.cachedFiles.length,
+		});
 	}
 
-	// 🆕 Add method to initialize CooldownManager
-	async initializeCooldownManager(dbPath: string): Promise<void> {
-		this.cooldownManager = new CooldownManager(dbPath);
-		await this.cooldownManager.initialize();
-		logger.info("CooldownManager initialized in ProtectedFileRegistry");
+	/**
+	 * Initialize SDK ProtectionManager - REQUIRED for proper trust chain.
+	 * Per arch_remediation.md Task 1.2: SDK is the Single Source of Truth.
+	 *
+	 * @param sdkManager - SDK ProtectionManager instance
+	 */
+	initializeSDKProtectionManager(sdkManager: IProtectionManager): void {
+		this.sdkProtectionManager = sdkManager;
+
+		// Sync existing files from VSCode storage to SDK
+		for (const file of this.cachedFiles) {
+			const level = this.mapToSDKLevel(file.protectionLevel);
+			const absolutePath = this.getAbsolutePath(file.path);
+			this.sdkProtectionManager.protect(absolutePath, level, "Synced from VSCode storage");
+		}
+
+		logger.info("[SnapBack] SDK ProtectionManager initialized with cached files", {
+			filesCount: this.cachedFiles.length,
+		});
 	}
 
-	// 🆕 Add method to get CooldownManager
-	getCooldownManager(): CooldownManager | null {
-		return this.cooldownManager;
+	/**
+	 * Map VSCode ProtectionLevel to SDK ProtectionLevel
+	 */
+	private mapToSDKLevel(level: ProtectionLevel | undefined): SDKProtectionLevel {
+		// SDK uses lowercase: 'watch' | 'warn' | 'block'
+		// VSCode types may use same or mixed case
+		if (!level) return "watch";
+		return level.toLowerCase() as SDKProtectionLevel;
 	}
 
-	// 🆕 Add method to record audit entries
+	/**
+	 * Map SDK ProtectionLevel to VSCode ProtectionLevel
+	 */
+	private mapFromSDKLevel(level: SDKProtectionLevel | null): ProtectionLevel | undefined {
+		if (!level) return undefined;
+		return level as ProtectionLevel;
+	}
+
+	/**
+	 * Initialize StorageManager for cooldown and audit operations
+	 * Per arch_remediation.md Task 2.3: Consolidated cooldown management
+	 */
+	initializeStorageManager(storageManager: StorageManager): void {
+		this.storageManager = storageManager;
+		logger.info("StorageManager initialized in ProtectedFileRegistry");
+	}
+
+	/**
+	 * @deprecated Use initializeStorageManager instead
+	 * Kept for backward compatibility during migration
+	 */
+	async initializeCooldownManager(_dbPath: string): Promise<void> {
+		logger.warn("initializeCooldownManager is deprecated - use initializeStorageManager instead");
+		// No-op: CooldownManager removed per arch_remediation.md Task 2.3
+	}
+
+	/**
+	 * @deprecated CooldownManager removed per arch_remediation.md Task 2.3
+	 * Use StorageManager directly for cooldown operations
+	 */
+	getCooldownManager(): null {
+		return null;
+	}
+
+	/**
+	 * Record audit entry via StorageManager
+	 * Per arch_remediation.md Task 2.3: Audit via StorageManager.AuditLog
+	 */
 	async recordAudit(
 		filePath: string,
 		protectionLevel: ProtectionLevel,
@@ -82,26 +159,35 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 		details?: Record<string, unknown>,
 		snapshotId?: string,
 	): Promise<void> {
-		if (this.cooldownManager) {
+		if (this.storageManager) {
 			try {
-				await this.cooldownManager.recordAudit(
+				await this.storageManager.recordAudit({
 					filePath,
 					protectionLevel,
-					action as "save_attempt" | "save_blocked" | "snapshot_created" | "user_override",
+					action: action as
+						| "snapshot_created"
+						| "snapshot_restored"
+						| "save_blocked"
+						| "save_warned"
+						| "cooldown_triggered"
+						| "ai_detected",
 					details,
 					snapshotId,
-				);
+				});
 			} catch (error) {
 				logger.warn("Failed to record audit entry", { error });
 			}
 		}
 	}
 
-	// 🆕 Add method to check cooldown status
-	async isInCooldown(filePath: string, protectionLevel: ProtectionLevel): Promise<boolean> {
-		if (this.cooldownManager) {
+	/**
+	 * Check cooldown status via StorageManager.CooldownCache
+	 * Per arch_remediation.md Task 2.3: CooldownCache is single source
+	 */
+	isInCooldown(filePath: string, protectionLevel: ProtectionLevel): boolean {
+		if (this.storageManager) {
 			try {
-				return await this.cooldownManager.isInCooldown(filePath, protectionLevel);
+				return this.storageManager.isInCooldown(this.normalize(filePath), protectionLevel);
 			} catch (error) {
 				logger.warn("Failed to check cooldown status", { error });
 				return false; // Fail open
@@ -110,16 +196,35 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 		return false;
 	}
 
-	// 🆕 Add method to set cooldown
-	async setCooldown(
+	/**
+	 * Set cooldown via StorageManager.CooldownCache
+	 * Per arch_remediation.md Task 2.3: CooldownCache is single source
+	 */
+	setCooldown(
 		filePath: string,
 		protectionLevel: ProtectionLevel,
-		actionTaken: "snapshot_created" | "save_allowed" | "save_blocked" | "user_override",
+		actionTaken: "snapshot_created" | "save_allowed" | "save_blocked" | "user_override" | "temporary_allowance",
 		snapshotId?: string,
-	): Promise<void> {
-		if (this.cooldownManager) {
+	): void {
+		if (this.storageManager) {
 			try {
-				await this.cooldownManager.setCooldown(filePath, protectionLevel, actionTaken, snapshotId);
+				const normalized = this.normalize(filePath);
+				const now = Date.now();
+				const duration =
+					actionTaken === "temporary_allowance"
+						? THRESHOLDS.protection.otherCooldown
+						: protectionLevel === "block"
+							? THRESHOLDS.protection.protectedCooldown
+							: THRESHOLDS.protection.otherCooldown;
+
+				this.storageManager.setCooldown({
+					filePath: normalized,
+					protectionLevel,
+					triggeredAt: now,
+					expiresAt: now + duration,
+					actionTaken,
+					snapshotId,
+				});
 			} catch (error) {
 				logger.warn("Failed to set cooldown", { error });
 			}
@@ -133,29 +238,21 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 		this._onDidChangeProtectedFiles.dispose();
 		// REQUIRED: Dispose new event emitter
 		this._onProtectionChanged.dispose();
-
-		// 🆕 Dispose CooldownManager
-		if (this.cooldownManager) {
-			this.cooldownManager.close().catch((error) => {
-				logger.warn("Failed to close CooldownManager", { error });
-			});
-		}
+		// Note: StorageManager is disposed separately by extension
 	}
 
 	private loadFilesFromStorage(): ProtectedFileEntry[] {
 		const stored = this.state.get<StoredProtectedFile[]>(STORAGE_KEY, []);
 
 		// Debug logging to identify potential issues with stored data
-		logger.debug("Loading protected files from storage", {
+		logger.info("Loading protected files from storage", {
 			storedCount: stored.length,
 			hasInvalidEntries: stored.some((file) => !file || typeof file !== "object"),
 		});
 
-		// Clear and rebuild the O(1) lookup index
-		this.protectedPathsIndex.clear();
+		// NOTE: protectedPathsIndex has been removed per arch_remediation.md Task 1.2
+		// SDK ProtectionManager is now the source of truth for isProtected() decisions
 
-		// CRITICAL FIX: Store the path in normalized form (relative path)
-		// This ensures consistency with isProtected() which also uses normalized paths
 		const result: ProtectedFileEntry[] = [];
 
 		for (let index = 0; index < stored.length; index++) {
@@ -173,9 +270,6 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 				continue;
 			}
 
-			// Add to O(1) lookup index
-			this.protectedPathsIndex.add(file.path);
-
 			result.push({
 				id: this.getAbsolutePath(file.path),
 				label: file.label,
@@ -186,6 +280,11 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 				protectionLevel: file.protectionLevel || "watch",
 			});
 		}
+
+		logger.info("[SnapBack] Protected files loaded from storage", {
+			storedCount: stored.length,
+			validCount: result.length,
+		});
 
 		return result;
 	}
@@ -201,7 +300,7 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 		this.cachedFiles = this.loadFilesFromStorage();
 
 		// Debug logging to identify potential issues with cached data
-		logger.debug("Returning protected files list", {
+		logger.info("Returning protected files list", {
 			cachedCount: this.cachedFiles.length,
 			hasInvalidEntries: this.cachedFiles.some((file) => !file || typeof file !== "object"),
 		});
@@ -314,6 +413,7 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 			throw new Error(`Invalid file label for path: ${filePath}`);
 		}
 
+		const level = options?.protectionLevel || "watch";
 		const existingIndex = entries.findIndex((item) => item.path === normalized);
 
 		const updated: StoredProtectedFile = {
@@ -321,14 +421,20 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 			label,
 			lastProtectedAt: Date.now(),
 			lastSnapshotId: options?.snapshotId,
-			// 🆕 Add protection level with default value
-			protectionLevel: options?.protectionLevel || "watch",
+			protectionLevel: level,
 		};
 
 		if (existingIndex >= 0) {
 			entries.splice(existingIndex, 1, updated);
 		} else {
 			entries.unshift(updated);
+		}
+
+		// Sync to SDK ProtectionManager (SSOT)
+		if (this.sdkProtectionManager) {
+			const absolutePath = this.getAbsolutePath(normalized);
+			this.sdkProtectionManager.protect(absolutePath, this.mapToSDKLevel(level));
+			logger.debug("[SnapBack] Synced protection to SDK", { absolutePath, level });
 		}
 
 		await this.write(entries);
@@ -349,6 +455,13 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 		const normalized = this.normalize(filePath);
 		const next = entries.filter((entry) => entry.path !== normalized);
 		if (next.length !== entries.length) {
+			// Sync to SDK ProtectionManager (SSOT)
+			if (this.sdkProtectionManager) {
+				const absolutePath = this.getAbsolutePath(normalized);
+				this.sdkProtectionManager.unprotect(absolutePath);
+				logger.debug("[SnapBack] Synced unprotection to SDK", { absolutePath });
+			}
+
 			await this.write(next);
 			// Refresh cache immediately after update
 			this.cachedFiles = this.loadFilesFromStorage();
@@ -385,10 +498,10 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	}
 
 	// 🆕 Add method to update protection level
-	async updateProtectionLevel(path: string, level: ProtectionLevel): Promise<void> {
-		logger.info(`[SnapBack] updateProtectionLevel called - path: ${path}, level: ${level}`);
+	async updateProtectionLevel(filePath: string, level: ProtectionLevel): Promise<void> {
+		logger.info(`[SnapBack] updateProtectionLevel called - path: ${filePath}, level: ${level}`);
 		const entries = await this.read();
-		const normalized = this.normalize(path);
+		const normalized = this.normalize(filePath);
 		logger.info(`[SnapBack] Normalized path: ${normalized}`);
 		const existingIndex = entries.findIndex((item) => item.path === normalized);
 
@@ -399,6 +512,15 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 			entries[existingIndex].protectionLevel = level;
 			entries[existingIndex].lastProtectedAt = Date.now();
 			logger.info(`[SnapBack] Updated entry protectionLevel to: ${entries[existingIndex].protectionLevel}`);
+
+			// Sync to SDK ProtectionManager (SSOT)
+			if (this.sdkProtectionManager) {
+				const absolutePath = this.getAbsolutePath(normalized);
+				// Update level in SDK by re-protecting with new level
+				this.sdkProtectionManager.protect(absolutePath, this.mapToSDKLevel(level));
+				logger.debug("[SnapBack] Synced protection level update to SDK", { absolutePath, level });
+			}
+
 			await this.write(entries);
 			logger.info("[SnapBack] Written to storage");
 			// Refresh cache immediately after update
@@ -411,10 +533,10 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 			this._onDidChangeProtectedFiles.fire();
 
 			// REQUIRED: Fire decoration update event
-			const uri = vscode.Uri.file(path);
+			const uri = vscode.Uri.file(filePath);
 			this._onProtectionChanged.fire([uri]);
 		} else {
-			throw new Error(`File not protected: ${path}`);
+			throw new Error(`File not protected: ${filePath}`);
 		}
 	}
 
@@ -424,6 +546,16 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	clearAll(): void {
 		// REQUIRED: Fire decoration update event for all URIs
 		const allUris = this.cachedFiles.map((f) => vscode.Uri.file(this.getAbsolutePath(f.path)));
+
+		// Sync to SDK ProtectionManager (SSOT)
+		if (this.sdkProtectionManager) {
+			for (const file of this.cachedFiles) {
+				const absolutePath = this.getAbsolutePath(file.path);
+				this.sdkProtectionManager.unprotect(absolutePath);
+			}
+			logger.debug("[SnapBack] Synced clearAll to SDK", { count: this.cachedFiles.length });
+		}
+
 		this.cachedFiles = [];
 		this.write([]);
 		this._onDidChangeProtectedFiles.fire();
@@ -443,43 +575,66 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	}
 
 	/**
-	 * Check if a file is protected - O(1) lookup using Set
+	 * Check if a file is protected - DELEGATES TO SDK.
+	 *
+	 * Per arch_remediation.md Task 1.2: SDK owns the "whether" decision.
+	 * This method MUST NOT contain any conditional logic based on local state.
+	 * The SDK ProtectionManager is the Single Source of Truth.
 	 */
 	isProtected(filePath: string): boolean {
-		const normalized = this.normalize(filePath);
-		// O(1) lookup instead of O(n) Array.some()
-		const isProtected = this.protectedPathsIndex.has(normalized);
-		logger.info(
-			"[SnapBack] isProtected check - filePath:",
-			filePath,
-			"normalized:",
-			normalized,
-			"result:",
-			isProtected,
-		);
-		logger.info("[SnapBack] Current cached files:", undefined, {
-			paths: this.cachedFiles.map((f) => f.path),
-		});
-		return isProtected;
-	}
-
-	// 🆕 Add helper method to get protection level for a file
-	getProtectionLevel(filePath: string): ProtectionLevel | undefined {
-		const normalized = this.normalize(filePath);
-		const file = this.cachedFiles.find((f) => f.path === normalized);
-		const level = file?.protectionLevel;
-
-		// 🛡️ CRITICAL FIX: Verify state consistency to prevent UI mismatch
-		if (file && level) {
-			logger.debug("Protection level retrieved", {
+		// TRUST SDK DECISION COMPLETELY
+		if (this.sdkProtectionManager) {
+			const absolutePath = this.getAbsolutePathForCheck(filePath);
+			const result = this.sdkProtectionManager.isProtected(absolutePath);
+			logger.debug("[SnapBack] isProtected delegated to SDK", {
 				filePath,
-				normalized,
-				level,
-				source: "cache",
+				absolutePath,
+				result,
 			});
+			return result;
 		}
 
-		return level;
+		// Fallback: SDK not yet initialized, use cached files (temporary)
+		// This should rarely happen - log a warning
+		logger.warn("[SnapBack] isProtected called before SDK initialization - using fallback");
+		const normalized = this.normalize(filePath);
+		return this.cachedFiles.some((f) => f.path === normalized);
+	}
+
+	/**
+	 * Get absolute path for protection check.
+	 * Handles both relative and absolute paths.
+	 */
+	private getAbsolutePathForCheck(filePath: string): string {
+		if (path.isAbsolute(filePath)) {
+			return filePath;
+		}
+		return this.getAbsolutePath(filePath);
+	}
+
+	/**
+	 * Get protection level for a file - DELEGATES TO SDK.
+	 *
+	 * Per arch_remediation.md Task 1.2: SDK owns the "whether" decision.
+	 * This method MUST NOT contain any conditional logic based on local state.
+	 */
+	getProtectionLevel(filePath: string): ProtectionLevel | undefined {
+		// TRUST SDK DECISION COMPLETELY
+		if (this.sdkProtectionManager) {
+			const absolutePath = this.getAbsolutePathForCheck(filePath);
+			const level = this.sdkProtectionManager.getLevel(absolutePath);
+			logger.debug("[SnapBack] getProtectionLevel delegated to SDK", {
+				filePath,
+				level,
+			});
+			return this.mapFromSDKLevel(level);
+		}
+
+		// Fallback: SDK not yet initialized, use cached files (temporary)
+		logger.warn("[SnapBack] getProtectionLevel called before SDK initialization - using fallback");
+		const normalized = this.normalize(filePath);
+		const file = this.cachedFiles.find((f) => f.path === normalized);
+		return file?.protectionLevel;
 	}
 
 	/**
@@ -581,7 +736,8 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	}
 
 	/**
-	 * Grant temporary allowance for a file to bypass protection for one save operation
+	 * Grant temporary allowance for a file to bypass protection for one save operation.
+	 * Per arch_remediation.md Task 2.3: Uses CooldownCache via StorageManager
 	 * @param filePath The file path to grant allowance for
 	 * @param durationMs Duration in milliseconds for which the allowance is valid (default: 5 minutes from SDK)
 	 */
@@ -589,34 +745,40 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 		const normalized = this.normalize(filePath);
 		const now = Date.now();
 
-		const allowance: TemporaryAllowance = {
-			filePath: normalized,
-			allowedAt: now,
-			expiresAt: now + durationMs,
-		};
-
-		this.temporaryAllowances.set(normalized, allowance);
+		if (this.storageManager) {
+			this.storageManager.setCooldown({
+				filePath: normalized,
+				protectionLevel: "temporary", // Special level for temporary allowances
+				triggeredAt: now,
+				expiresAt: now + durationMs,
+				actionTaken: "temporary_allowance",
+			});
+		}
 		logger.info(`[SnapBack] Granted temporary allowance for ${normalized} (expires in ${durationMs}ms)`);
 	}
 
 	/**
-	 * Check if a file has a valid temporary allowance
+	 * Check if a file has a valid temporary allowance.
+	 * Per arch_remediation.md Task 2.3: Uses CooldownCache via StorageManager
 	 * @param filePath The file path to check
 	 * @returns true if the file has a valid temporary allowance, false otherwise
 	 */
 	hasTemporaryAllowance(filePath: string): boolean {
 		const normalized = this.normalize(filePath);
-		const allowance = this.temporaryAllowances.get(normalized);
 
-		if (!allowance) {
+		if (!this.storageManager) {
 			return false;
 		}
 
-		// Check if allowance is still valid
+		const entry = this.storageManager.getCooldownByPath(normalized);
+		if (!entry || entry.actionTaken !== "temporary_allowance") {
+			return false;
+		}
+
+		// CooldownCache already handles expiration, but double-check
 		const now = Date.now();
-		if (now > allowance.expiresAt) {
-			// Expired allowance, remove it
-			this.temporaryAllowances.delete(normalized);
+		if (now > entry.expiresAt) {
+			this.storageManager.removeCooldownByPath(normalized);
 			logger.info(`[SnapBack] Removed expired temporary allowance for ${normalized}`);
 			return false;
 		}
@@ -625,29 +787,33 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	}
 
 	/**
-	 * Consume a temporary allowance for a file (use it up)
+	 * Consume a temporary allowance for a file (use it up).
+	 * Per arch_remediation.md Task 2.3: Uses CooldownCache via StorageManager
 	 * @param filePath The file path to consume allowance for
 	 * @returns true if an allowance was consumed, false if no valid allowance existed
 	 */
 	consumeTemporaryAllowance(filePath: string): boolean {
 		const normalized = this.normalize(filePath);
-		const allowance = this.temporaryAllowances.get(normalized);
 
-		if (!allowance) {
+		if (!this.storageManager) {
+			return false;
+		}
+
+		const entry = this.storageManager.getCooldownByPath(normalized);
+		if (!entry || entry.actionTaken !== "temporary_allowance") {
 			return false;
 		}
 
 		// Check if allowance is still valid
 		const now = Date.now();
-		if (now > allowance.expiresAt) {
-			// Expired allowance, remove it
-			this.temporaryAllowances.delete(normalized);
+		if (now > entry.expiresAt) {
+			this.storageManager.removeCooldownByPath(normalized);
 			logger.info(`[SnapBack] Removed expired temporary allowance for ${normalized}`);
 			return false;
 		}
 
 		// Valid allowance, consume it
-		this.temporaryAllowances.delete(normalized);
+		this.storageManager.removeCooldownByPath(normalized);
 		logger.info(`[SnapBack] Consumed temporary allowance for ${normalized}`);
 		return true;
 	}

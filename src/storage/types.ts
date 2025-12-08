@@ -9,7 +9,8 @@ export interface CooldownEntry {
 	protectionLevel: string;
 	triggeredAt: number;
 	expiresAt: number;
-	actionTaken: string;
+	/** Action that triggered the cooldown. 'temporary_allowance' is a special case for one-time save bypasses */
+	actionTaken: "snapshot_created" | "save_allowed" | "save_blocked" | "user_override" | "temporary_allowance";
 	snapshotId?: string;
 }
 
