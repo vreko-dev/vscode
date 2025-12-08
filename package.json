@@ -1140,6 +1140,7 @@
     "@electron/rebuild": "catalog:",
     "@playwright/test": "catalog:",
     "@size-limit/file": "catalog:",
+    "@snapback/testing": "workspace:*",
     "@types/node": "catalog:",
     "@types/mocha": "catalog:",
     "@types/glob": "catalog:",
