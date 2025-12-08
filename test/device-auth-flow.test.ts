@@ -1,9 +1,9 @@
 /**
  * VSCode Device Auth Flow - Token Handling Tests (RED Phase)
- * 
+ *
  * Tests for VSCode extension's RFC 8628 Device Authorization Flow token handling.
  * Following @testing_blueprint.md sections 8.1 Universal Rules and 8.2 Extension Rules
- * 
+ *
  * Coverage: Happy (8) + Sad (5) + Edge (7) + Error (6) = 26 test cases
  */
 

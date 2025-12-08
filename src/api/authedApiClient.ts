@@ -73,38 +73,38 @@ export function createAuthedApiClient(context: vscode.ExtensionContext): AuthedA
 		async fetch<T>(path: string, init?: RequestInit): Promise<T> {
 			// Retrieve stored API key from VS Code Secrets
 			const apiKey = await context.secrets.get("snapback.apiKey");
-			
+
 			if (!apiKey) {
 				// No stored token - session expired
 				throw new Error("Session expired - please reconnect your account");
 			}
-			
+
 			// Create request with Authorization Bearer token
 			const requestInit: RequestInit = {
 				...init,
 				headers: {
 					...init?.headers,
-					"Authorization": `Bearer ${apiKey}`,
+					Authorization: `Bearer ${apiKey}`,
 					"Content-Type": "application/json",
 				},
 			};
-			
+
 			try {
 				// Perform authenticated fetch
 				const response = await fetch(path, requestInit);
-				
+
 				// Check for auth failures (401 Unauthorized, 403 Forbidden)
 				if (response.status === 401 || response.status === 403) {
 					// Clear stored credentials on auth failure
 					await context.secrets.delete("snapback.apiKey");
 					throw new Error("Session expired - please reconnect your account");
 				}
-				
+
 				// Check for other HTTP errors
 				if (!response.ok) {
 					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 				}
-				
+
 				// Parse and return response
 				return (await response.json()) as T;
 			} catch (error) {
