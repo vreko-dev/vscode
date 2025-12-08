@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import type { StorageManager } from "../services/StorageManager";
 import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
 import type { SessionManifest } from "../snapshot/sessionTypes";
+import { logger } from "../utils/logger";
 import { SessionFileTreeItem, SessionTreeItem } from "./sessionTypes";
 
 /**
@@ -23,14 +24,14 @@ export class SessionsTreeProvider implements vscode.TreeDataProvider<vscode.Tree
 		private sessionCoordinator: SessionCoordinator,
 		private storageManager: StorageManager,
 	) {
-		console.log("[SessionsTreeProvider] Constructor called");
+		logger.debug("SessionsTreeProvider constructor called");
 		// Load persisted sessions
 		this.loadSessions();
 
 		// Listen for session finalization events
 		this.disposables.push(
 			this.sessionCoordinator.onSessionFinalized((session) => {
-				console.log("[SessionsTreeProvider] Session finalized event received:", session.id);
+				logger.debug("SessionsTreeProvider session finalized", { sessionId: session.id });
 				this.sessions.push(session);
 				this.storageManager.storeSessionManifest(session);
 				this.refresh();
@@ -39,14 +40,14 @@ export class SessionsTreeProvider implements vscode.TreeDataProvider<vscode.Tree
 	}
 
 	private async loadSessions(): Promise<void> {
-		console.log("[SessionsTreeProvider] loadSessions() called");
+		logger.debug("SessionsTreeProvider loading sessions");
 		this.sessions = await this.storageManager.listSessionManifests();
-		console.log("[SessionsTreeProvider] Loaded sessions:", this.sessions.length);
+		logger.debug("SessionsTreeProvider sessions loaded", { count: this.sessions.length });
 		this.refresh();
 	}
 
 	refresh(): void {
-		console.log("[SessionsTreeProvider] refresh() called");
+		logger.debug("SessionsTreeProvider refresh triggered");
 		this._onDidChangeTreeData.fire(undefined);
 	}
 
@@ -55,7 +56,7 @@ export class SessionsTreeProvider implements vscode.TreeDataProvider<vscode.Tree
 	}
 
 	async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
-		console.log("[SessionsTreeProvider] getChildren() called", {
+		logger.debug("SessionsTreeProvider getChildren", {
 			hasElement: !!element,
 			sessionsCount: this.sessions.length,
 		});
@@ -73,7 +74,7 @@ export class SessionsTreeProvider implements vscode.TreeDataProvider<vscode.Tree
 								: vscode.TreeItemCollapsibleState.None,
 						),
 				);
-			console.log("[SessionsTreeProvider] Returning items:", items.length);
+			logger.debug("SessionsTreeProvider returning items", { count: items.length });
 			return items;
 		}
 

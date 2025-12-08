@@ -99,7 +99,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		process.env.VSCODE_SNAPSHOT_TEST_MODE === "true" ||
 		vscode.workspace.getConfiguration("snapback").get<boolean>("testMode", false);
 
-	console.log(`🚀 Activation: Initializing with Test Mode = ${isTestMode}`);
+	logger.debug(`Activation: Initializing with Test Mode = ${isTestMode}`);
 	logger.info(`Extension activation: isTestMode = ${isTestMode}`);
 
 	// 2. Construct provider WITH the correct mode immediately
@@ -124,9 +124,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.workspace.onDidChangeConfiguration((e) => {
 			if (e.affectsConfiguration("snapback.testMode")) {
 				const configTestMode = vscode.workspace.getConfiguration("snapback").get<boolean>("testMode", false);
-				console.log(`🔄 Config changed: testMode = ${configTestMode}, calling setTestMode...`);
+				logger.debug(`Config changed: testMode = ${configTestMode}, calling setTestMode...`);
 				authProvider.setTestMode(configTestMode);
-				console.log("✅ setTestMode completed");
+				logger.debug("setTestMode completed");
 			}
 		}),
 	);
@@ -135,7 +135,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	// This bypasses config listeners and provides synchronous control
 	context.subscriptions.push(
 		vscode.commands.registerCommand("snapback.__setTestMode", async (enable: boolean) => {
-			console.log(`🧪 COMMAND: snapback.__setTestMode called with ${enable}`);
+			logger.debug(`COMMAND: snapback.__setTestMode called with ${enable}`);
 			authProvider.setTestMode(enable);
 			return { success: true, mode: enable ? "MOCK" : "REAL" };
 		}),
@@ -463,18 +463,18 @@ export async function activate(context: vscode.ExtensionContext) {
 		// ⚡ PERF: Defer audit to background (after UI becomes responsive)
 		// Don't await - this can take 10-20 seconds on large repos
 		setTimeout(() => {
-			console.log("[PERF] Running deferred auditRepo...");
+			logger.debug("[PERF] Running deferred auditRepo...");
 			const auditStart = Date.now();
 			protectionService
 				.auditRepo()
 				.catch((err) => {
 					logger.error("Deferred protection audit failed", err as Error);
-					console.log("[PERF] auditRepo failed", {
+					logger.debug("[PERF] auditRepo failed", {
 						ms: Date.now() - auditStart,
 					});
 				})
 				.then(() => {
-					console.log("[PERF] auditRepo completed", {
+					logger.debug("[PERF] auditRepo completed", {
 						ms: Date.now() - auditStart,
 					});
 				});
