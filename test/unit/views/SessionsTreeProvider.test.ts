@@ -16,29 +16,7 @@ import {
 	SessionTreeItem,
 } from "@vscode/views/sessionTypes";
 
-// Mock vscode
-vi.mock("vscode", () => ({
-	TreeItemCollapsibleState: {
-		None: 0,
-		Collapsed: 1,
-		Expanded: 2,
-	},
-	EventEmitter: vi.fn().mockImplementation(() => ({
-		event: vi.fn(),
-		fire: vi.fn(),
-	})),
-	TreeItem: vi.fn(),
-	MarkdownString: vi.fn().mockImplementation(() => ({
-		supportHtml: false,
-		isTrusted: false,
-		appendMarkdown: vi.fn(),
-		appendText: vi.fn(),
-	})),
-	ThemeIcon: vi.fn().mockImplementation((id: string) => ({ id })),
-	Uri: {
-		file: vi.fn((path: string) => ({ fsPath: path, scheme: "file" })),
-	},
-}));
+// Note: vscode mock comes from global test/unit/setup.ts
 
 // Mock SessionCoordinator
 const createMockSessionCoordinator = () => {
@@ -306,11 +284,8 @@ describe("SessionsTreeProvider", () => {
 		});
 
 		it("should fire onDidChangeTreeData event when refreshed", () => {
-			// Access private property
-			const emitter = (provider as any)
-				._onDidChangeTreeData as vscode.EventEmitter<
-				vscode.TreeItem | undefined
-			>;
+			// Access private EventEmitter
+			const emitter = (provider as any)._onDidChangeTreeData;
 			const fireSpy = vi.spyOn(emitter, "fire");
 
 			provider.refresh();
