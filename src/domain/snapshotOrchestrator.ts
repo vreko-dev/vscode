@@ -115,7 +115,8 @@ export class SnapshotOrchestrator {
 		}
 
 		const id = this.generateId();
-		const timestamp = Date.now();
+		// Use decision context timestamp if available, otherwise current time
+		const timestamp = decision.context.timestamp || Date.now();
 
 		// Filter out binary files
 		const textFiles = files.filter((f) => !f.isBinary);
@@ -158,7 +159,7 @@ export class SnapshotOrchestrator {
 
 		// Enforce storage limits
 		if (!this.canStoreSnapshot(totalSize)) {
-			await this.enforceStorageLimits();
+			await this.enforceStorageLimits(totalSize);
 		}
 
 		// Store snapshot
@@ -190,17 +191,18 @@ export class SnapshotOrchestrator {
 
 	/**
 	 * Enforce storage limits by removing old snapshots
+	 * @param incomingSize - Size of the snapshot we want to store
 	 */
-	private async enforceStorageLimits(): Promise<void> {
+	private async enforceStorageLimits(incomingSize = 0): Promise<void> {
 		// Sort by timestamp (oldest first)
 		const sorted = Array.from(this.snapshots.values()).sort((a, b) => a.timestamp - b.timestamp);
 
-		// Remove oldest until we have space
+		// Remove oldest until we have space for the incoming snapshot
 		for (const snapshot of sorted) {
-			// Check both count and storage limits
+			// Check if we have enough space now (including incoming snapshot)
 			if (
 				this.snapshots.size < this.config.maxSnapshots &&
-				this.totalStorageUsed <= this.config.maxStorageBytes
+				this.totalStorageUsed + incomingSize <= this.config.maxStorageBytes
 			) {
 				break;
 			}
