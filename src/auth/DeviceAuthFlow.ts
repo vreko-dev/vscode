@@ -213,13 +213,23 @@ export class DeviceAuthFlow {
 					const approvalTimeMs = Date.now() - this.pollStartTime;
 					this.diagnosticTracker.trackAuthApprovalReceived(approvalTimeMs);
 
-					// TODO: In production, use access_token as Bearer token or exchange for API key
-					// For now, treat access_token as the api_key
+					// Store access_token as API key for authenticated API calls
+					// In production, you could:
+					// 1. Exchange token for API key via backend
+					// 2. Extract user info from JWT payload
+					// 3. Validate token claims and scopes
 					const api_key = access_token;
-					const user_id = "user-from-token"; // Extract from token in production
-					const tier: "free" | "pro" | "enterprise" = "free"; // Extract from token in production
+					const user_id = "user-from-token"; // Extract from JWT claims in production
+					const tier: "free" | "pro" | "enterprise" = "free"; // Extract from JWT claims in production
 
-					// Store API key securely
+					// Log successful token reception
+					logger.debug("Device auth token received", {
+						hasRefreshToken: !!data.refresh_token,
+						expiresIn: data.expires_in,
+						scope: data.scope,
+					});
+
+					// Store credentials securely in VS Code Secrets
 					await this.context.secrets.store("snapback.apiKey", api_key);
 					await this.context.secrets.store("snapback.userId", user_id);
 					await this.context.secrets.store("snapback.userTier", tier);

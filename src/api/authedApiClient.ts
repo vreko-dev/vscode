@@ -1,10 +1,11 @@
 /**
- * @fileoverview Authenticated API Client - Placeholder for auth task implementation
+ * @fileoverview Authenticated API Client for VS Code Extension
  *
- * This module provides placeholder interfaces for authenticated API calls.
- * The actual implementation will be provided by a separate auth task.
+ * Provides authenticated API calls with secure token storage and automatic
+ * Bearer token injection. Handles session expiration and 401/403 errors.
  *
  * @see Design: .qoder/quests/snapback-explorer-tree.md
+ * @see Auth: DeviceAuthFlow for token acquisition
  */
 
 import * as vscode from "vscode";
@@ -32,12 +33,14 @@ export interface AuthedApiClient {
 /**
  * Create authenticated API client instance
  *
- * TODO: This is a placeholder implementation. The auth task will provide the real implementation.
+ * Implements secure token management with VS Code Secrets API.
+ * Automatically adds Bearer token to all requests.
+ * Throws "Session expired - please reconnect your account" on 401/403.
  *
- * @param context - VS Code extension context
- * @returns AuthedApiClient instance
+ * @param context - VS Code extension context with secrets storage
+ * @returns AuthedApiClient instance with authenticated fetch method
  */
-export function createAuthedApiClient(_context: vscode.ExtensionContext): AuthedApiClient {
+export function createAuthedApiClient(context: vscode.ExtensionContext): AuthedApiClient {
 	// MOCK IMPLEMENTATION FOR E2E TESTS
 	const isTestMode =
 		process.env.VSCODE_SNAPSHOT_TEST_MODE === "true" ||
@@ -65,11 +68,54 @@ export function createAuthedApiClient(_context: vscode.ExtensionContext): Authed
 		};
 	}
 
+	// Production implementation
 	return {
-		async fetch<T>(_path: string, _init?: RequestInit): Promise<T> {
-			// TODO: Implement actual authenticated fetch with token refresh
-			// For now, throw session expired to show connect node
-			throw new Error("Session expired - please reconnect your account");
+		async fetch<T>(path: string, init?: RequestInit): Promise<T> {
+			// Retrieve stored API key from VS Code Secrets
+			const apiKey = await context.secrets.get("snapback.apiKey");
+			
+			if (!apiKey) {
+				// No stored token - session expired
+				throw new Error("Session expired - please reconnect your account");
+			}
+			
+			// Create request with Authorization Bearer token
+			const requestInit: RequestInit = {
+				...init,
+				headers: {
+					...init?.headers,
+					"Authorization": `Bearer ${apiKey}`,
+					"Content-Type": "application/json",
+				},
+			};
+			
+			try {
+				// Perform authenticated fetch
+				const response = await fetch(path, requestInit);
+				
+				// Check for auth failures (401 Unauthorized, 403 Forbidden)
+				if (response.status === 401 || response.status === 403) {
+					// Clear stored credentials on auth failure
+					await context.secrets.delete("snapback.apiKey");
+					throw new Error("Session expired - please reconnect your account");
+				}
+				
+				// Check for other HTTP errors
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+				}
+				
+				// Parse and return response
+				return (await response.json()) as T;
+			} catch (error) {
+				// Re-throw session expired errors
+				if (error instanceof Error && error.message.includes("Session expired")) {
+					throw error;
+				}
+				// Wrap other errors
+				const message = error instanceof Error ? error.message : String(error);
+				throw new Error(`Authenticated API call failed: ${message}`);
+			}
 		},
 	};
 }
