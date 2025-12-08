@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validate } from "../../../src/schema/rulesBundle.schema";
+import { validate } from "@vscode/schema/rulesBundle.schema";
 
 describe("RulesManager Precedence Schema Tests", () => {
 	it("should validate policy bundle with precedence field", () => {

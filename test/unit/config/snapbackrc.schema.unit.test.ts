@@ -1,6 +1,6 @@
 import Ajv from "ajv";
 import { describe, expect, it } from "vitest";
-import { SNAPBACKRC_SCHEMA } from "../../../src/types/snapbackrc.types";
+import { SNAPBACKRC_SCHEMA } from "@vscode/types/snapbackrc.types";
 
 describe("SnapBackRC Schema Validation", () => {
 	const ajv = new Ajv({ allErrors: true });

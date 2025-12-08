@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EncryptionService } from "../../../src/snapshot/EncryptionService";
+import { EncryptionService } from "@vscode/snapshot/EncryptionService";
 
 describe("EncryptionService", () => {
 	it("should encrypt and decrypt data successfully", () => {

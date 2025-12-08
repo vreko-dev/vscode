@@ -7,9 +7,9 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SessionCoordinator } from "../../../src/snapshot/SessionCoordinator";
-import type { SessionManifest } from "../../../src/snapshot/sessionTypes";
-import type { SqliteStorageAdapter } from "../../../src/storage/SqliteStorageAdapter";
+import { SessionCoordinator } from "@vscode/snapshot/SessionCoordinator";
+import type { SessionManifest } from "@vscode/snapshot/sessionTypes";
+import type { SqliteStorageAdapter } from "@vscode/storage/SqliteStorageAdapter";
 
 // Mock storage adapter
 const mockStorage = {

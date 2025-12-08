@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { SnapBackExplorerTreeProvider } from "../../../src/views/explorerTree/SnapBackExplorerTreeProvider";
+import { SnapBackExplorerTreeProvider } from "@vscode/views/explorerTree/SnapBackExplorerTreeProvider";
 import type {
 	SnapBackTreeNode,
 	WorkspaceSafetyResponse,
 	WorkspaceSnapshotsResponse,
-} from "../../../src/views/explorerTree/types";
+} from "@vscode/views/explorerTree/types";
 
 // Mock vscode module
 vi.mock("vscode", () => ({

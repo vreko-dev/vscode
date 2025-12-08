@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
-import { ProtectionManager } from "../../../src/services/protectionPolicy";
-import type { SnapBackRC } from "../../../src/types/snapbackrc.types";
+import type { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
+import { ProtectionManager } from "@vscode/services/protectionPolicy";
+import type { SnapBackRC } from "@vscode/types/snapbackrc.types";
 
 describe("ProtectionManager", () => {
 	let mockRegistry: Partial<ProtectedFileRegistry>;

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
-import { PreSnapshotService } from "../../../src/services/PreSnapshotService.js";
+import { PreSnapshotService } from "@vscode/services/PreSnapshotService.js";
 
 /**
  * PreSnapshotService Test Suite (GREEN Phase - TDD)
@@ -37,7 +37,7 @@ vi.mock("vscode", () => {
 	};
 });
 
-import { detectAIPresence } from "../../../src/utils/AIPresenceDetector.js";
+import { detectAIPresence } from "@vscode/utils/AIPresenceDetector.js";
 
 // ============================================================================
 // Mock Implementations

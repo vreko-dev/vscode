@@ -4,8 +4,8 @@ import * as vscode from "vscode";
 import {
 	type AIDetection,
 	AIWarningManager,
-} from "../../../src/ai/AIWarningManager";
-import { isOk } from "../../../src/types/result";
+} from "@vscode/ai/AIWarningManager";
+import { isOk } from "@vscode/types/result";
 
 // Mock logger
 vi.mock("@snapback/infrastructure", () => ({

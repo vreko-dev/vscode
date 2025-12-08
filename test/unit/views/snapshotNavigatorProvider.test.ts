@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CheckpointNavigatorProvider } from "../../../src/views/checkpointNavigatorProvider";
+import { CheckpointNavigatorProvider } from "@vscode/views/checkpointNavigatorProvider";
 
 // Define proper types for the mocks
 interface MockStorage {

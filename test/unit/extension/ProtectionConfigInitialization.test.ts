@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
-import { ProtectionConfigManager } from "../../../src/protection/ProtectionConfigManager";
+import { ProtectionConfigManager } from "@vscode/protection/ProtectionConfigManager";
 
 describe("Extension Protection Config Initialization", () => {
 	it("calls ProtectionConfigManager.initialize during activation", async () => {

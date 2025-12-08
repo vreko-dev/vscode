@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 // Import vscode from the global mock
 import * as vscode from "vscode";
-import { MCPLifecycleManager } from "../../../src/services/MCPLifecycleManager";
+import { MCPLifecycleManager } from "@vscode/services/MCPLifecycleManager";
 
 // Mock Node.js modules
 vi.mock("node:child_process");

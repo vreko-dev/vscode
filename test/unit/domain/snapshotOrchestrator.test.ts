@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { SnapshotOrchestrator } from "../../../src/domain/snapshotOrchestrator";
-import type { ProtectionDecision, FileInfo } from "../../../src/types";
+import { SnapshotOrchestrator } from "@vscode/domain/snapshotOrchestrator";
+import type { ProtectionDecision, FileInfo } from "@vscode/types";
 import type { IKeyValueStorage } from "@snapback/sdk";
 
 class MockStorage implements IKeyValueStorage {

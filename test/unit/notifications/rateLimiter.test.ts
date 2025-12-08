@@ -9,7 +9,7 @@ import {
 	disposeNotificationRateLimiter,
 	getNotificationRateLimiter,
 	NotificationRateLimiter,
-} from "../../../src/notifications/rateLimiter";
+} from "@vscode/notifications/rateLimiter";
 
 describe("NotificationRateLimiter", () => {
 	let limiter: NotificationRateLimiter;

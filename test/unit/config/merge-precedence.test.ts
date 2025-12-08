@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SnapBackRC } from "../../../src/types/snapbackrc.types";
+import type { SnapBackRC } from "@vscode/types/snapbackrc.types";
 
 // Test to verify config merge precedence - GREEN (Passing Test)
 describe("Config Merge Precedence - GREEN (Passing Test)", () => {

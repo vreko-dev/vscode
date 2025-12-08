@@ -10,8 +10,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { BlobStore } from "../../../src/storage/BlobStore";
-import { SnapshotStore } from "../../../src/storage/SnapshotStore";
+import { BlobStore } from "@vscode/storage/BlobStore";
+import { SnapshotStore } from "@vscode/storage/SnapshotStore";
 
 describe("SnapshotStore", () => {
 	let tempDir: string;

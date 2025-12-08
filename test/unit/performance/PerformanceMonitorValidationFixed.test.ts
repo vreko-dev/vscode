@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { PerformanceMonitor } from "../../../src/performance/PerformanceMonitor";
+import { PerformanceMonitor } from "@vscode/performance/PerformanceMonitor";
 
 describe("PerformanceMonitor Configuration Validation Fixed", () => {
 	let monitor: PerformanceMonitor;

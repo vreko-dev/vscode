@@ -3,8 +3,8 @@ import * as vscode from "vscode";
 import type {
 	IStorageManager,
 	SnapshotManifest,
-} from "../../../src/storage/types";
-import { SnapBackTreeProvider } from "../../../src/views/SnapBackTreeProvider";
+} from "@vscode/storage/types";
+import { SnapBackTreeProvider } from "@vscode/views/SnapBackTreeProvider";
 
 // Mock vscode module
 vi.mock("vscode", () => ({

@@ -17,7 +17,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Mock Implementations
 // ============================================================================
 
-import { SnapshotContentProvider } from "../../../src/providers/SnapshotContentProvider.js";
+import { SnapshotContentProvider } from "@vscode/providers/SnapshotContentProvider.js";
 import * as vscode from "vscode";
 
 interface FileState {

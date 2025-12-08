@@ -2,9 +2,9 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { OperationCache } from "../../../src/performance/operationCache";
-import { GlobValidator } from "../../../src/security/globValidator";
-import { PathValidator } from "../../../src/security/pathValidator";
+import { OperationCache } from "@vscode/performance/operationCache";
+import { GlobValidator } from "@vscode/security/globValidator";
+import { PathValidator } from "@vscode/security/pathValidator";
 
 /**
  * Simplified ProtectedFileRegistry for integration testing

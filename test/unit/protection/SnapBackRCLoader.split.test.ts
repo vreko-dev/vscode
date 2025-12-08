@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
+import type { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
 
 /**
  * RED PHASE: Tests for SnapBackRCLoader method split

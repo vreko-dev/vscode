@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getProtectionLevelForFile } from "../../../src/config/merge";
-import type { SnapBackRC } from "../../../src/types/snapbackrc.types";
+import { getProtectionLevelForFile } from "@vscode/config/merge";
+import type { SnapBackRC } from "@vscode/types/snapbackrc.types";
 
 describe("Effective Level Resolution", () => {
 	it("should return highest level when multiple rules match", () => {

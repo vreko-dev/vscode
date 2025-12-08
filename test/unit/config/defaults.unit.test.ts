@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SNAPBACKRC } from "../../../src/config/defaults";
+import { DEFAULT_SNAPBACKRC } from "@vscode/config/defaults";
 
 describe("Defaults Configuration", () => {
 	it("should block sensitive files like environment files and lockfiles", () => {

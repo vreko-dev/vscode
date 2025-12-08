@@ -6,8 +6,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProtectionService } from "../../../src/services/protectionService";
-import { ProtectionService as ProtectionServiceImpl } from "../../../src/services/protectionService";
+import type { ProtectionService } from "@vscode/services/protectionService";
+import { ProtectionService as ProtectionServiceImpl } from "@vscode/services/protectionService";
 
 describe("ProtectionService", () => {
 	let service: ProtectionService;

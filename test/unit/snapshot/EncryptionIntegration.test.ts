@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SnapshotManager } from "../../../src/snapshot/SnapshotManager";
+import { SnapshotManager } from "@vscode/snapshot/SnapshotManager";
 import type {
 	IConfirmationService,
 	IEventEmitter,
 	IStorage,
 	RichSnapshot,
-} from "../../../src/types/snapshot";
+} from "@vscode/types/snapshot";
 
 describe("Encryption Integration Tests", () => {
 	let mockStorage: IStorage;

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type {
 	FileHealthLevel,
 	FileHealthStatus,
-} from "../../../src/decorations/types";
+} from "@vscode/decorations/types";
 
 describe("FileHealth Types", () => {
 	describe("FileHealthLevel", () => {

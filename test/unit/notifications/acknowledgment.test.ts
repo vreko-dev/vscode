@@ -5,7 +5,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NotificationAcknowledgment } from "../../../src/notifications/acknowledgment";
+import { NotificationAcknowledgment } from "@vscode/notifications/acknowledgment";
 
 describe("NotificationAcknowledgment", () => {
 	let mockGlobalState: any;

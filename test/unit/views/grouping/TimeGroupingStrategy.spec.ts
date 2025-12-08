@@ -6,8 +6,8 @@
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import { TimeGroupingStrategy } from "../../../../src/views/grouping/TimeGroupingStrategy";
-import type { SnapshotDisplayItem } from "../../../../src/views/types";
+import { TimeGroupingStrategy } from "@vscode/views/grouping/TimeGroupingStrategy";
+import type { SnapshotDisplayItem } from "@vscode/views/types";
 
 describe("TimeGroupingStrategy (TDD RED)", () => {
 	let strategy: TimeGroupingStrategy;

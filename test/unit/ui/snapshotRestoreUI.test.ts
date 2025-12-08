@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import type { OperationCoordinator } from "../../../src/operationCoordinator";
-import type { CheckpointDocumentProvider } from "../../../src/providers/CheckpointDocumentProvider";
-import { CheckpointRestoreUI } from "../../../src/ui/CheckpointRestoreUI";
+import type { OperationCoordinator } from "@vscode/operationCoordinator";
+import type { CheckpointDocumentProvider } from "@vscode/providers/CheckpointDocumentProvider";
+import { CheckpointRestoreUI } from "@vscode/ui/CheckpointRestoreUI";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

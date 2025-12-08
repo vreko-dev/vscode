@@ -4,11 +4,11 @@
 
 import type { BurstDetectionResult } from "@snapback/sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SessionManifest } from "../../../src/snapshot/sessionTypes";
+import type { SessionManifest } from "@vscode/snapshot/sessionTypes";
 import {
 	tagSession,
 	updateSessionWithTags,
-} from "../../../src/utils/SessionTagger";
+} from "@vscode/utils/SessionTagger";
 
 // Mock VS Code extensions API
 vi.mock("vscode", () => ({

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { StatusBarController } from "../../../src/ui/status-bar";
+import { StatusBarController } from "@vscode/ui/status-bar";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

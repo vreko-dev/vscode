@@ -7,14 +7,14 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import type { StorageManager } from "../../../src/services/StorageManager";
-import type { SessionCoordinator } from "../../../src/snapshot/SessionCoordinator";
-import type { SessionManifest } from "../../../src/snapshot/sessionTypes";
-import { SessionsTreeProvider } from "../../../src/views/SessionsTreeProvider";
+import type { StorageManager } from "@vscode/services/StorageManager";
+import type { SessionCoordinator } from "@vscode/snapshot/SessionCoordinator";
+import type { SessionManifest } from "@vscode/snapshot/sessionTypes";
+import { SessionsTreeProvider } from "@vscode/views/SessionsTreeProvider";
 import {
 	SessionFileTreeItem,
 	SessionTreeItem,
-} from "../../../src/views/sessionTypes";
+} from "@vscode/views/sessionTypes";
 
 // Mock vscode
 vi.mock("vscode", () => ({

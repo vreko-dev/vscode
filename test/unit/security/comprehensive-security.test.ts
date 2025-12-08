@@ -4,11 +4,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { TelemetryClient } from "@snapback/infrastructure/src/tracing/telemetry-client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ConfigurationManager } from "../../../src/config/configurationManager";
-import { PolicyManager } from "../../../src/policy/PolicyManager";
-import { RulesManager } from "../../../src/rules/RulesManager";
-import { EncryptionService } from "../../../src/snapshot/EncryptionService";
-import { migrateExistingSnapshots } from "../../../src/snapshot/migration/encrypt-existing-snapshots";
+import { ConfigurationManager } from "@vscode/config/configurationManager";
+import { PolicyManager } from "@vscode/policy/PolicyManager";
+import { RulesManager } from "@vscode/rules/RulesManager";
+import { EncryptionService } from "@vscode/snapshot/EncryptionService";
+import { migrateExistingSnapshots } from "@vscode/snapshot/migration/encrypt-existing-snapshots";
 
 // Mock the logger
 vi.mock("../../../src/utils/logger", () => ({

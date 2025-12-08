@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { SaveHandler } from "../../../src/handlers/SaveHandler";
-import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
+import { SaveHandler } from "@vscode/handlers/SaveHandler";
+import { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
 
 // Mock all SaveHandler dependencies at module level (hoisted)
 vi.mock("../../../src/handlers/AnalysisCoordinator.js", () => ({

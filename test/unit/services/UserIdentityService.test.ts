@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { UserIdentityService } from "../../../src/services/UserIdentityService";
+import { UserIdentityService } from "@vscode/services/UserIdentityService";
 
 describe("UserIdentityService", () => {
 	let service: UserIdentityService;

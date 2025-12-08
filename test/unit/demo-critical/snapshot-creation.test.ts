@@ -14,13 +14,13 @@
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import { SnapshotManager } from "../../../src/snapshot/SnapshotManager";
+import { SnapshotManager } from "@vscode/snapshot/SnapshotManager";
 import type {
 	FileInput,
 	IConfirmationService,
 	IEventEmitter,
 	IStorage,
-} from "../../../src/types/snapshot";
+} from "@vscode/types/snapshot";
 
 // Mock storage implementation for testing
 class MockStorage implements IStorage {

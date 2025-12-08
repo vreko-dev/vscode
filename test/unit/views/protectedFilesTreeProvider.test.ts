@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { ProtectedFilesTreeProvider } from "../../../src/views/ProtectedFilesTreeProvider";
+import { ProtectedFilesTreeProvider } from "@vscode/views/ProtectedFilesTreeProvider";
 import type {
 	ProtectedFileEntry,
 	ProtectedFileProvider,
-} from "../../../src/views/types";
+} from "@vscode/views/types";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

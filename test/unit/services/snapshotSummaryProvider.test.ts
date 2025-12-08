@@ -1,7 +1,7 @@
 import type { Snapshot, SnapshotStorage } from "@snapback/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { StorageSnapshotSummaryProvider } from "../../../src/services/snapshotSummaryProvider";
+import { StorageSnapshotSummaryProvider } from "@vscode/services/snapshotSummaryProvider";
 
 // Mock VS Code API
 vi.mock("vscode", () => {

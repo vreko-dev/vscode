@@ -4,7 +4,7 @@ import {
 	getDepth,
 	isWithin,
 	normalize,
-} from "../../../src/utils/PathNormalizer";
+} from "@vscode/utils/PathNormalizer";
 
 describe("PathNormalizer", () => {
 	describe("normalize", () => {

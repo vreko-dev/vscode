@@ -1,6 +1,6 @@
 import type { Checkpoint as StorageCheckpoint } from "@snapback/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CheckpointStorageAdapter } from "../../../src/checkpoint/CheckpointStorageAdapter";
+import { CheckpointStorageAdapter } from "@vscode/checkpoint/CheckpointStorageAdapter";
 
 // Mock the storage implementation
 const mockStorage: CheckpointStorage = {

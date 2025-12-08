@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
 	executeSandboxedScript,
 	SandboxError,
-} from "../../../src/config/secureChildProcess";
+} from "@vscode/config/secureChildProcess";
 
 describe("Sandbox Integration Tests", () => {
 	let tempDir: string;

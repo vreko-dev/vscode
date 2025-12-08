@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { TipBudgetManager } from "../../../src/utils/TipBudgetManager";
+import { TipBudgetManager } from "@vscode/utils/TipBudgetManager";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AIRiskService } from "../../../src/services/aiRiskService";
-import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
-import type { ProtectionManager } from "../../../src/services/protectionPolicy";
-import { ProtectionService } from "../../../src/services/protectionService";
+import type { AIRiskService } from "@vscode/services/aiRiskService";
+import type { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
+import type { ProtectionManager } from "@vscode/services/protectionPolicy";
+import { ProtectionService } from "@vscode/services/protectionService";
 
 describe("ProtectionService - Enhanced Audit Features", () => {
 	let protectionService: ProtectionService;

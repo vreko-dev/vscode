@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SNAPBACKRC } from "../../../src/config/defaults";
+import { DEFAULT_SNAPBACKRC } from "@vscode/config/defaults";
 import {
 	getProtectionLevelForFile,
 	mergeConfigs,
-} from "../../../src/config/merge";
-import type { SnapBackRC } from "../../../src/types/snapbackrc.types";
+} from "@vscode/config/merge";
+import type { SnapBackRC } from "@vscode/types/snapbackrc.types";
 
 describe("Basic Configuration Integration", () => {
 	it("should work with default configuration only", () => {

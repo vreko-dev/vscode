@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
+import { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
 
 // Use the global mock from setup.ts
 declare const vscode: any;

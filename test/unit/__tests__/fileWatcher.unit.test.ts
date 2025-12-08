@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as vscode from "vscode";
-import { FileSystemWatcher } from "../../../src/protection/FileSystemWatcher";
-import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
+import { FileSystemWatcher } from "@vscode/protection/FileSystemWatcher";
+import { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
 
 describe("File System Watcher Tests", () => {
 	let registry: ProtectedFileRegistry;

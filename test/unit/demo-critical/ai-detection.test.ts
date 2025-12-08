@@ -16,7 +16,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	detectAIPresence,
 	isAIAssistantInstalled,
-} from "../../../src/utils/AIPresenceDetector";
+} from "@vscode/utils/AIPresenceDetector";
 
 // Mock vscode.extensions.all
 const mockExtensions: any[] = [];

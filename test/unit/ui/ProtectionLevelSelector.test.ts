@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { ProtectionLevelSelector } from "../../../src/ui/ProtectionLevelSelector";
+import { ProtectionLevelSelector } from "@vscode/ui/ProtectionLevelSelector";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

@@ -10,7 +10,7 @@ import {
 	legacyProtectionLevelToCanonical,
 	PROTECTION_LEVEL_SIGNAGE,
 	REPO_STATUS_SIGNAGE,
-} from "../../../src/signage/index";
+} from "@vscode/signage/index";
 import {
 	FILE_HEALTH_CANONICAL,
 	type FileHealthCanonical,
@@ -18,7 +18,7 @@ import {
 	type ProtectionLevelCanonical,
 	REPO_STATUS_CANONICAL,
 	type RepoStatusCanonical,
-} from "../../../src/signage/types";
+} from "@vscode/signage/types";
 
 describe("Signage Module", () => {
 	describe("Protection Level Canonical Values", () => {

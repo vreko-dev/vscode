@@ -15,7 +15,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ConfigFileManager } from "../../../src/protection/ConfigFileManager";
+import { ConfigFileManager } from "@vscode/protection/ConfigFileManager";
 
 describe("[DEMO-CRITICAL] Settings Management Integration", () => {
 	let testWorkspace: string;

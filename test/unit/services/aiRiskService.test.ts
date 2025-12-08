@@ -6,11 +6,11 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AIRiskService } from "../../../src/services/aiRiskService";
+import type { AIRiskService } from "@vscode/services/aiRiskService";
 import {
 	NoopAIRiskService,
 	RemoteAIRiskService,
-} from "../../../src/services/aiRiskService";
+} from "@vscode/services/aiRiskService";
 
 describe("NoopAIRiskService", () => {
 	let service: AIRiskService;

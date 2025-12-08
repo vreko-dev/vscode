@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { loadCjsConfig, loadMjsConfig } from "../../../src/config/loaders";
+import { loadCjsConfig, loadMjsConfig } from "@vscode/config/loaders";
 
 // Mock vscode to enable executable configs
 vi.mock("vscode", () => {

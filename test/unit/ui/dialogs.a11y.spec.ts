@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { SnapBackDialogs } from "../../../src/ui/dialogs";
+import { SnapBackDialogs } from "@vscode/ui/dialogs";
 
 // Mock VS Code API
 vi.mock("vscode", () => {

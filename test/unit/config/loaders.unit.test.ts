@@ -10,7 +10,7 @@ import {
 	loadMjsConfig,
 	loadPackageJsonConfig,
 	loadYamlConfig,
-} from "../../../src/config/loaders";
+} from "@vscode/config/loaders";
 
 // Mock modules
 vi.mock("fs/promises", () => {

@@ -1,26 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { SmartContext } from "../../../src/context/SmartContext";
-import { OperationCoordinator } from "../../../src/core/OperationCoordinator";
-import { ProtectedFileRegistry } from "../../../src/core/ProtectedFileRegistry";
-import { SaveHandler } from "../../../src/handlers/SaveHandler";
-import { WorkflowIntegration } from "../../../src/integration/WorkflowIntegration";
-import { WorkspaceMemory } from "../../../src/memory/WorkspaceMemory";
-import { SemanticCheckpointNamer } from "../../../src/naming/SemanticCheckpointNamer";
-import { CheckpointDocumentProvider } from "../../../src/providers/CheckpointDocumentProvider";
-import { ConflictResolver } from "../../../src/resolution/ConflictResolver";
-import { CheckpointSummaryProvider } from "../../../src/services/CheckpointSummaryProvider";
-import { ConfigFileScanner } from "../../../src/services/ConfigFileScanner";
-import { NotificationManager } from "../../../src/services/NotificationManager";
-import { ProtectionDecorator } from "../../../src/services/ProtectionDecorator";
-import { CheckpointStorageAdapter } from "../../../src/storage/CheckpointStorageAdapter";
-import { CompressionUtil } from "../../../src/storage/CompressionUtil";
-import { isBetterSqlite3Available } from "../../../src/storage/SqliteCheckpointStorage";
-import { SqliteStorageAdapter } from "../../../src/storage/SqliteStorageAdapter";
-import { StreamingCompressionUtil } from "../../../src/storage/StreamingCompressionUtil";
-import { CheckpointDecorations } from "../../../src/ui/CheckpointDecorations";
-import { FileChangeAnalyzer } from "../../../src/utils/FileChangeAnalyzer";
-import { WelcomeView } from "../../../src/views/WelcomeView";
+import { SmartContext } from "@vscode/context/SmartContext";
+import { OperationCoordinator } from "@vscode/core/OperationCoordinator";
+import { ProtectedFileRegistry } from "@vscode/core/ProtectedFileRegistry";
+import { SaveHandler } from "@vscode/handlers/SaveHandler";
+import { WorkflowIntegration } from "@vscode/integration/WorkflowIntegration";
+import { WorkspaceMemory } from "@vscode/memory/WorkspaceMemory";
+import { SemanticCheckpointNamer } from "@vscode/naming/SemanticCheckpointNamer";
+import { CheckpointDocumentProvider } from "@vscode/providers/CheckpointDocumentProvider";
+import { ConflictResolver } from "@vscode/resolution/ConflictResolver";
+import { CheckpointSummaryProvider } from "@vscode/services/CheckpointSummaryProvider";
+import { ConfigFileScanner } from "@vscode/services/ConfigFileScanner";
+import { NotificationManager } from "@vscode/services/NotificationManager";
+import { ProtectionDecorator } from "@vscode/services/ProtectionDecorator";
+import { CheckpointStorageAdapter } from "@vscode/storage/CheckpointStorageAdapter";
+import { CompressionUtil } from "@vscode/storage/CompressionUtil";
+import { isBetterSqlite3Available } from "@vscode/storage/SqliteCheckpointStorage";
+import { SqliteStorageAdapter } from "@vscode/storage/SqliteStorageAdapter";
+import { StreamingCompressionUtil } from "@vscode/storage/StreamingCompressionUtil";
+import { CheckpointDecorations } from "@vscode/ui/CheckpointDecorations";
+import { FileChangeAnalyzer } from "@vscode/utils/FileChangeAnalyzer";
+import { WelcomeView } from "@vscode/views/WelcomeView";
 
 // Mock VS Code APIs
 vi.mock("vscode", () => ({

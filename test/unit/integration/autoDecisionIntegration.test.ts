@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AutoDecisionIntegration } from "../../../src/integration/AutoDecisionIntegration";
+import { AutoDecisionIntegration } from "@vscode/integration/AutoDecisionIntegration";
 
 describe("AutoDecisionIntegration", () => {
 	let integration: AutoDecisionIntegration;

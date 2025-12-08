@@ -10,7 +10,7 @@ import {
 	detectAIPresence,
 	getInstalledAIAssistants,
 	isAIAssistantInstalled,
-} from "../../../src/utils/AIPresenceDetector";
+} from "@vscode/utils/AIPresenceDetector";
 
 // Create a mock extension object
 const createMockExtension = (id: string, name: string) => ({

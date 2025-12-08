@@ -1,8 +1,8 @@
 import { logger } from "@snapback/infrastructure";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { AIWarningManager } from "../../../src/ai/AIWarningManager";
-import { isOk } from "../../../src/types/result";
+import { AIWarningManager } from "@vscode/ai/AIWarningManager";
+import { isOk } from "@vscode/types/result";
 
 // Mock logger
 vi.mock("@snapback/infrastructure", () => ({

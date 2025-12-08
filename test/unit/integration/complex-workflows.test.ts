@@ -3,18 +3,18 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { CheckpointManager } from "../../../src/checkpoint/CheckpointManager";
-import { CheckpointStorageAdapter } from "../../../src/checkpoint/CheckpointStorageAdapter";
-import { VSCodeConfirmationService } from "../../../src/checkpoint/VSCodeConfirmationService";
-import { SaveHandler } from "../../../src/handlers/SaveHandler";
-import { NotificationManager } from "../../../src/notificationManager";
-import { OperationCoordinator } from "../../../src/operationCoordinator";
-import { StorageCheckpointSummaryProvider } from "../../../src/services/checkpointSummaryProvider";
-import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
-import { isBetterSqlite3Available } from "../../../src/storage/SqliteCheckpointStorage";
-import { SqliteStorageAdapter } from "../../../src/storage/SqliteStorageAdapter";
-import { ProtectionDecorationProvider } from "../../../src/ui/ProtectionDecorationProvider";
-import { WorkspaceMemoryManager } from "../../../src/workspaceMemory";
+import { CheckpointManager } from "@vscode/checkpoint/CheckpointManager";
+import { CheckpointStorageAdapter } from "@vscode/checkpoint/CheckpointStorageAdapter";
+import { VSCodeConfirmationService } from "@vscode/checkpoint/VSCodeConfirmationService";
+import { SaveHandler } from "@vscode/handlers/SaveHandler";
+import { NotificationManager } from "@vscode/notificationManager";
+import { OperationCoordinator } from "@vscode/operationCoordinator";
+import { StorageCheckpointSummaryProvider } from "@vscode/services/checkpointSummaryProvider";
+import { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
+import { isBetterSqlite3Available } from "@vscode/storage/SqliteCheckpointStorage";
+import { SqliteStorageAdapter } from "@vscode/storage/SqliteStorageAdapter";
+import { ProtectionDecorationProvider } from "@vscode/ui/ProtectionDecorationProvider";
+import { WorkspaceMemoryManager } from "@vscode/workspaceMemory";
 
 // Mock VS Code API
 vi.mock("vscode", () => {

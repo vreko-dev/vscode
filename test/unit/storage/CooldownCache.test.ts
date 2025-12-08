@@ -6,8 +6,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { CooldownCache } from "../../../src/storage/CooldownCache";
-import type { CooldownEntry } from "../../../src/storage/types";
+import { CooldownCache } from "@vscode/storage/CooldownCache";
+import type { CooldownEntry } from "@vscode/storage/types";
 
 describe("CooldownCache", () => {
 	let cache: CooldownCache;

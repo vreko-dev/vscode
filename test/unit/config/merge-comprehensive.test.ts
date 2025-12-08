@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
 	getProtectionLevelForFile,
 	mergeConfigs,
-} from "../../../src/config/merge";
-import type { SnapBackRC } from "../../../src/types/snapbackrc.types";
+} from "@vscode/config/merge";
+import type { SnapBackRC } from "@vscode/types/snapbackrc.types";
 
 describe("Comprehensive Config Merge Scenarios", () => {
 	it("should handle complex protection rule merging with provenance", () => {

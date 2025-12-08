@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CheckpointDocumentProvider } from "../../../src/providers/CheckpointDocumentProvider";
+import { CheckpointDocumentProvider } from "@vscode/providers/CheckpointDocumentProvider";
 
 describe("CheckpointDocumentProvider", () => {
 	let provider: CheckpointDocumentProvider;

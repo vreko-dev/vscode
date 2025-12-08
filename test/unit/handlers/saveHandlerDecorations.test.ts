@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { FileHealthDecorationProvider } from "../../../src/decorations/FileHealthDecorationProvider";
-import { SaveHandler } from "../../../src/handlers/SaveHandler";
-import { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
-import type { AnalysisResult } from "../../../src/types/api";
+import { FileHealthDecorationProvider } from "@vscode/decorations/FileHealthDecorationProvider";
+import { SaveHandler } from "@vscode/handlers/SaveHandler";
+import { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
+import type { AnalysisResult } from "@vscode/types/api";
 
 describe("SaveHandler Decoration Integration", () => {
 	let saveHandler: SaveHandler;

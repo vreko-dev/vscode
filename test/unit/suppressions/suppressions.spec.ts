@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SuppressionCodeActionsProvider } from "../../../src/suppressions/code-actions";
-import { SuppressionManager } from "../../../src/suppressions/manager";
+import { SuppressionCodeActionsProvider } from "@vscode/suppressions/code-actions";
+import { SuppressionManager } from "@vscode/suppressions/manager";
 
 // Mock VS Code API
 vi.mock("vscode", () => {

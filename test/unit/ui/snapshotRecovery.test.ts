@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import * as vscode from "vscode";
-import type { SnapshotOrchestrator } from "../../../src/domain/snapshotOrchestrator";
-import type { PersistedSnapshot } from "../../../src/domain/snapshotOrchestrator";
+import type { SnapshotOrchestrator } from "@vscode/domain/snapshotOrchestrator";
+import type { PersistedSnapshot } from "@vscode/domain/snapshotOrchestrator";
 
 /**
  * Mock SnapshotOrchestrator for testing

@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { extractTopIdentifiers } from "../../../src/utils/SessionSummaryGenerator";
+import { extractTopIdentifiers } from "@vscode/utils/SessionSummaryGenerator";
 
 describe("SessionSummaryGenerator", () => {
 	describe("extractTopIdentifiers", () => {

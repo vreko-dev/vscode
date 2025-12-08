@@ -16,15 +16,15 @@ import {
 	fileExists,
 	readJsonFile,
 	writeJsonFile,
-} from "../../../src/storage/utils/atomicWrite";
+} from "@vscode/storage/utils/atomicWrite";
 import {
 	generateAuditId,
 	generateSessionId,
 	generateSnapshotId,
 	parseTimestampFromId,
 	randomId,
-} from "../../../src/storage/utils/fileId";
-import { getBlobPath, hashContent } from "../../../src/storage/utils/hash";
+} from "@vscode/storage/utils/fileId";
+import { getBlobPath, hashContent } from "@vscode/storage/utils/hash";
 
 describe("Storage Utilities", () => {
 	let tempDir: string;

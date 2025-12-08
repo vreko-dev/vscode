@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { ProtectionRule } from "../../../src/types/snapbackrc.types";
+import type { ProtectionRule } from "@vscode/types/snapbackrc.types";
 
 /**
  * RED PHASE: Tests for DEFAULT_CRITICAL_PATTERNS

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { OnWillSaveHandler } from "../../../src/save/onWillSave";
-import { SnapBackDialogs } from "../../../src/ui/dialogs";
+import { OnWillSaveHandler } from "@vscode/save/onWillSave";
+import { SnapBackDialogs } from "@vscode/ui/dialogs";
 
 // Mock VS Code API
 vi.mock("vscode", () => {

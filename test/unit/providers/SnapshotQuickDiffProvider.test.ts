@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as vscode from "vscode";
-import { SnapshotQuickDiffProvider } from "../../../src/providers/SnapshotQuickDiffProvider.js";
+import { SnapshotQuickDiffProvider } from "@vscode/providers/SnapshotQuickDiffProvider.js";
 
 /**
  * SnapshotQuickDiffProvider Test Suite (GREEN Phase - TDD)

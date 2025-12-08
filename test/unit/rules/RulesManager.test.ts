@@ -1,7 +1,7 @@
 import base64url from "base64url";
 import nacl from "tweetnacl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RulesManager } from "../../../src/rules/RulesManager";
+import { RulesManager } from "@vscode/rules/RulesManager";
 
 // Mock the logger
 vi.mock("../../../src/utils/logger", () => ({

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
 	PerformanceMonitor,
 	type PerformanceMonitorConfig,
-} from "../../../src/performance/PerformanceMonitor";
+} from "@vscode/performance/PerformanceMonitor";
 
 describe("PerformanceMonitor", () => {
 	let monitor: PerformanceMonitor;

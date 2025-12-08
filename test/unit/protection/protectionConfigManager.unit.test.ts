@@ -2,8 +2,8 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ProtectionConfigManager } from "../../../src/protection/ProtectionConfigManager";
-import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
+import { ProtectionConfigManager } from "@vscode/protection/ProtectionConfigManager";
+import type { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
 import { patchRegistryMockWithProtectionLevel } from "../../helpers/mockPatches";
 
 // Mock VS Code API

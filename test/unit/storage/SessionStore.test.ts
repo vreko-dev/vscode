@@ -10,8 +10,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as vscode from "vscode";
-import { SessionStore } from "../../../src/storage/SessionStore";
-import type { SessionFileEntry } from "../../../src/storage/types";
+import { SessionStore } from "@vscode/storage/SessionStore";
+import type { SessionFileEntry } from "@vscode/storage/types";
 
 describe("SessionStore", () => {
 	let tempDir: string;

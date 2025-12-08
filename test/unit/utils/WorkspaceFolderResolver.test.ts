@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { WorkspaceFolderResolver } from "../../../src/utils/WorkspaceFolderResolver";
+import { WorkspaceFolderResolver } from "@vscode/utils/WorkspaceFolderResolver";
 
 describe("WorkspaceFolderResolver", () => {
 	describe("getWorkspaceFolderForFile", () => {

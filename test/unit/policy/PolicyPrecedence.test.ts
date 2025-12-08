@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PolicyManager } from "../../../src/policy/PolicyManager";
-import type { PolicyConfig } from "../../../src/types/policy.types";
+import { PolicyManager } from "@vscode/policy/PolicyManager";
+import type { PolicyConfig } from "@vscode/types/policy.types";
 
 // Mock VS Code APIs
 vi.mock("vscode", () => ({

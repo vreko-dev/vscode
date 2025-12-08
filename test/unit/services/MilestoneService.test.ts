@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { MilestoneService } from "../../../src/services/MilestoneService";
+import { MilestoneService } from "@vscode/services/MilestoneService";
 
 // Mock dependencies
 const mockGlobalState = {

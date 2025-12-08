@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { ConfigFileScanner } from "../../../src/services/configFileScanner";
+import { ConfigFileScanner } from "@vscode/services/configFileScanner";
 
 // Mock VS Code API
 vi.mock("vscode", () => {

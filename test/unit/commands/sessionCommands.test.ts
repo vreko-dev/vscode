@@ -5,9 +5,9 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CommandContext } from "../../../src/commands/index";
-import { registerSessionCommands } from "../../../src/commands/sessionCommands";
-import type { SessionManifest } from "../../../src/snapshot/sessionTypes";
+import type { CommandContext } from "@vscode/commands/index";
+import { registerSessionCommands } from "@vscode/commands/sessionCommands";
+import type { SessionManifest } from "@vscode/snapshot/sessionTypes";
 
 // Mock VS Code APIs
 const mockVscode = {

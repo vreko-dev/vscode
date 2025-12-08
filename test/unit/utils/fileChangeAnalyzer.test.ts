@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { FileChangeAnalyzer } from "../../../src/utils/FileChangeAnalyzer";
+import { FileChangeAnalyzer } from "@vscode/utils/FileChangeAnalyzer";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({

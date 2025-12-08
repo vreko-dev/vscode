@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { WorkspaceManager } from "../../../src/services/WorkspaceManager";
-import type { FileSystemStorage } from "../../../src/storage/types";
-import { WorkspaceFolderResolver } from "../../../src/utils/WorkspaceFolderResolver";
+import { WorkspaceManager } from "@vscode/services/WorkspaceManager";
+import type { FileSystemStorage } from "@vscode/storage/types";
+import { WorkspaceFolderResolver } from "@vscode/utils/WorkspaceFolderResolver";
 
 // Mock vscode
 vi.mock("vscode", () => {

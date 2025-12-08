@@ -10,8 +10,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as vscode from "vscode";
-import { AuditLog } from "../../../src/storage/AuditLog";
-import type { AuditEntry } from "../../../src/storage/types";
+import { AuditLog } from "@vscode/storage/AuditLog";
+import type { AuditEntry } from "@vscode/storage/types";
 
 describe("AuditLog", () => {
 	let tempDir: string;

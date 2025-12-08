@@ -4,9 +4,9 @@ import type {
   ProtectionDecision,
   AutoDecisionConfig,
   DecisionReason,
-} from "../../../src/domain/types";
-import { DEFAULT_CONFIG } from "../../../src/domain/types";
-import { AutoDecisionEngine } from "../../../src/domain/engine";
+} from "@vscode/domain/types";
+import { DEFAULT_CONFIG } from "@vscode/domain/types";
+import { AutoDecisionEngine } from "@vscode/domain/engine";
 
 /**
  * AutoDecisionEngine Tests

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import { WorkspaceManager } from "../../../src/services/WorkspaceManager";
-import type { FileSystemStorage } from "../../../src/storage/types";
+import { WorkspaceManager } from "@vscode/services/WorkspaceManager";
+import type { FileSystemStorage } from "@vscode/storage/types";
 
 describe("WorkspaceManager", () => {
 	let mockStorage: FileSystemStorage;

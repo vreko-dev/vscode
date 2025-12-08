@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
-import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
-import { ProtectionDecorator } from "../../../src/services/protectionDecorator";
+import type { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
+import { ProtectionDecorator } from "@vscode/services/protectionDecorator";
 
 // Mock VS Code API
 vi.mock("vscode", () => {

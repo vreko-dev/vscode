@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { PerformanceMonitor } from "../../../src/performance/PerformanceMonitor";
+import { PerformanceMonitor } from "@vscode/performance/PerformanceMonitor";
 import {
 	getPerformanceMonitor,
 	setPerformanceMonitor,
 	timedClass,
 	timedMethod,
-} from "../../../src/performance/timingDecorators";
+} from "@vscode/performance/timingDecorators";
 
 describe("Timing Decorators", () => {
 	let monitor: PerformanceMonitor;

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { RulesManager } from "../../../src/rules/RulesManager";
+import { RulesManager } from "@vscode/rules/RulesManager";
 
 // Test to verify offline mode behavior - RED (Failing Test)
 describe("Offline Mode - RED (Failing Test)", () => {

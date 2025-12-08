@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AIOptInManager } from "../../../src/utils/AIOptInManager";
+import { AIOptInManager } from "@vscode/utils/AIOptInManager";
 
 // Mock VS Code API
 vi.mock("vscode", () => ({
