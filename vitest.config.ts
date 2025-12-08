@@ -47,6 +47,8 @@ export default defineConfig({
 		passWithNoTests: true,
 		include: ["test/**/*.test.ts", "test/**/*.spec.ts"],
 		exclude: ["node_modules", "dist", "out"],
+		// Global setup file for all tests
+		setupFiles: ["./test/unit/setup.ts"],
 		// Module directories for monorepo dependency resolution
 		deps: {
 			moduleDirectories: ["node_modules", resolve(__dirname, "../../node_modules")],

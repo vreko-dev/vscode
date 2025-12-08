@@ -176,6 +176,10 @@ const extendedMockVscode = {
 		...mockVscode.languages,
 		createDiagnosticCollection: vi.fn((name?: string) => createMockDiagnosticCollection(name)),
 	},
+	// Ensure all top-level exports are included
+	env: mockVscode.env,
+	extensions: mockVscode.extensions,
+	version: "1.75.0",
 	// Use classes from centralized mocks
 	EventEmitter: MockEventEmitter,
 	Position: MockPosition,
@@ -185,6 +189,20 @@ const extendedMockVscode = {
 	Disposable: MockDisposable,
 	RelativePattern: MockRelativePattern,
 	CancellationError: MockCancellationError,
+	// Ensure other enums and constants are available
+	ThemeColor: mockVscode.ThemeColor,
+	ThemeIcon: mockVscode.ThemeIcon,
+	FileDecoration: mockVscode.FileDecoration,
+	ConfigurationTarget: mockVscode.ConfigurationTarget,
+	TreeItemCollapsibleState: mockVscode.TreeItemCollapsibleState,
+	ProgressLocation: mockVscode.ProgressLocation,
+	StatusBarAlignment: mockVscode.StatusBarAlignment,
+	OverviewRulerLane: mockVscode.OverviewRulerLane,
+	CancellationTokenSource: mockVscode.CancellationTokenSource,
+	Selection: mockVscode.Selection,
+	DiagnosticSeverity: mockVscode.DiagnosticSeverity,
+	Uri: mockVscode.Uri,
+	FileType: mockVscode.FileType,
 };
 
 vi.mock("vscode", () => extendedMockVscode);
