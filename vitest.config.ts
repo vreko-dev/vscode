@@ -49,10 +49,7 @@ export default defineConfig({
 		exclude: ["node_modules", "dist", "out"],
 		// Module directories for monorepo dependency resolution
 		deps: {
-			moduleDirectories: [
-				"node_modules",
-				resolve(__dirname, "../../node_modules"),
-			],
+			moduleDirectories: ["node_modules", resolve(__dirname, "../../node_modules")],
 		},
 	},
 });
