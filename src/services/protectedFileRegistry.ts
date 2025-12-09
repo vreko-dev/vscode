@@ -24,16 +24,6 @@ export interface IProtectionManager {
 
 const STORAGE_KEY = "snapback:protected-files";
 
-/**
- * @deprecated TemporaryAllowance replaced by CooldownCache entries with actionTaken='temporary_allowance'
- * Kept for migration reference only.
- */
-interface _LegacyTemporaryAllowance {
-	filePath: string;
-	allowedAt: number;
-	expiresAt: number;
-}
-
 type StoredProtectedFile = {
 	path: string;
 	label: string;
@@ -141,16 +131,7 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	}
 
 	/**
-	 * @deprecated CooldownManager removed per arch_remediation.md Task 2.3
-	 * Use StorageManager directly for cooldown operations
-	 */
-	getCooldownManager(): null {
-		return null;
-	}
-
-	/**
 	 * Record audit entry via StorageManager
-	 * Per arch_remediation.md Task 2.3: Audit via StorageManager.AuditLog
 	 */
 	async recordAudit(
 		filePath: string,

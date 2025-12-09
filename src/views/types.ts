@@ -194,12 +194,6 @@ export interface SnapshotSummaryProvider {
 	forFile(path: string | Uri): Promise<SnapshotSummary[]>;
 }
 
-// Backwards compatibility aliases
-/** @deprecated Use SnapshotSummary instead */
-export type CheckpointSummary = SnapshotSummary;
-/** @deprecated Use SnapshotSummaryProvider instead */
-export type CheckpointSummaryProvider = SnapshotSummaryProvider;
-
 /**
  * Protection level type - uses canonical format from contracts
  * Canonical: "watch" | "warn" | "block"

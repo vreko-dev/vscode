@@ -115,8 +115,7 @@ export class SnapshotOrchestrator {
 		}
 
 		const id = this.generateId();
-		// Use decision context timestamp if available, otherwise current time
-		const timestamp = decision.context.timestamp || Date.now();
+		const timestamp = Date.now();
 
 		// Filter out binary files
 		const textFiles = files.filter((f) => !f.isBinary);
