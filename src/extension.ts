@@ -297,7 +297,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Phase 2: Storage and configuration (fail-fast if unavailable)
 		const phase2Start = Date.now();
-		const phase2Result = await initializePhase2Storage(workspaceRoot, context);
+		const phase2Result = await initializePhase2Storage(workspaceRoot, context, eventBus); // GREEN: Pass eventBus
 		phaseTimings["Phase 2 (Storage)"] = Date.now() - phase2Start;
 		storage = phase2Result.storage;
 

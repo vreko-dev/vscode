@@ -1118,6 +1118,15 @@ export class OperationCoordinator {
 			this.updateOperationStatus(operationId, "completed");
 			this.updateOperationProgress(operationId, 100);
 
+			// GREEN PHASE: Publish SNAPSHOT_RESTORED event (per TDD_CORE.md)
+			if (this.eventBus) {
+				this.eventBus.publish(SnapBackEvent.SNAPSHOT_RESTORED, {
+					snapshotId,
+					filesRestored,
+					timestamp: Date.now(),
+				});
+			}
+
 			if (!options?.dryRun) {
 				// Track Disaster Averted
 				const recoveredLines = filesRestored * 50; // Estimate: 50 lines per file avg if diff not avail
@@ -1193,6 +1202,17 @@ export class OperationCoordinator {
 		const operationId = `risk-analysis-${Date.now()}`;
 		this.startOperation(operationId, "Risk Analysis", [`file-access-${filePath}`]);
 
+		const startTime = Date.now();
+
+		// GREEN PHASE: Publish ANALYSIS_REQUESTED event (per TDD_CORE.md)
+		if (this.eventBus) {
+			this.eventBus.publish(SnapBackEvent.ANALYSIS_REQUESTED, {
+				filePath,
+				analysisType: "risk",
+				timestamp: startTime,
+			});
+		}
+
 		try {
 			// Phase 1: Update workspace state and set analyzing status
 			this.workspaceMemory.updateLastActiveFile(filePath);
@@ -1214,6 +1234,16 @@ export class OperationCoordinator {
 			this.workspaceMemory.updateProtectionStatus("protected");
 			await this.workspaceMemory.saveContext();
 
+			// GREEN PHASE: Publish ANALYSIS_COMPLETED event (per TDD_CORE.md)
+			if (this.eventBus) {
+				this.eventBus.publish(SnapBackEvent.ANALYSIS_COMPLETED, {
+					filePath,
+					riskScore: 85, // Would be dynamically calculated
+					duration: Date.now() - startTime,
+					timestamp: Date.now(),
+				});
+			}
+
 			// User notification with enhanced risk assessment results
 			await this.notificationManager.showEnhancedRiskDetected("MEDIUM", {
 				detectedPatterns: [
@@ -1229,6 +1259,17 @@ export class OperationCoordinator {
 			this.updateOperationStatus(operationId, "failed");
 			this.workspaceMemory.updateProtectionStatus("atRisk");
 			await this.workspaceMemory.saveContext();
+
+			// GREEN PHASE: Publish ANALYSIS_COMPLETED with error (per TDD_CORE.md)
+			if (this.eventBus) {
+				this.eventBus.publish(SnapBackEvent.ANALYSIS_COMPLETED, {
+					filePath,
+					error: (error as Error).message,
+					duration: Date.now() - startTime,
+					timestamp: Date.now(),
+				});
+			}
+
 			throw error;
 		}
 	}

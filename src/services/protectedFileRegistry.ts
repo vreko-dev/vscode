@@ -1,5 +1,6 @@
 import * as path from "node:path";
 import type { ProtectionLevel as SDKProtectionLevel } from "@snapback/contracts";
+import { SnapBackEvent, type SnapBackEventBus } from "@snapback/events";
 import { THRESHOLDS } from "@snapback/sdk";
 import type { Disposable, Memento } from "vscode";
 import * as vscode from "vscode";
@@ -64,10 +65,15 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	 * Per arch_remediation.md Task 2.3: Consolidated cooldown management
 	 */
 	private storageManager: StorageManager | null = null;
+	private eventBus?: SnapBackEventBus;
 
-	constructor(private readonly state: Memento) {
+	constructor(
+		private readonly state: Memento,
+		eventBus?: SnapBackEventBus,
+	) {
 		// Load files synchronously on construction to avoid race conditions
 		this.cachedFiles = this.loadFilesFromStorage();
+		this.eventBus = eventBus;
 		logger.info("[SnapBack] ProtectedFileRegistry constructed", {
 			cachedCount: this.cachedFiles.length,
 		});
@@ -433,6 +439,15 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 		const uri = vscode.Uri.file(filePath);
 		logger.info("[SnapBack] Firing onProtectionChanged for:", uri.fsPath);
 		this._onProtectionChanged.fire([uri]);
+
+		// GREEN PHASE: Publish FILE_PROTECTED event (per TDD_CORE.md)
+		if (this.eventBus) {
+			this.eventBus.publish(SnapBackEvent.FILE_PROTECTED, {
+				filePath: normalized,
+				level: options?.protectionLevel || "watch",
+				timestamp: Date.now(),
+			});
+		}
 	}
 
 	async remove(filePath: string): Promise<void> {
@@ -457,6 +472,14 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 			const uri = vscode.Uri.file(filePath);
 			logger.info("[SnapBack] Firing onProtectionChanged for removal:", uri.fsPath);
 			this._onProtectionChanged.fire([uri]);
+
+			// GREEN PHASE: Publish FILE_UNPROTECTED event (per TDD_CORE.md)
+			if (this.eventBus) {
+				this.eventBus.publish(SnapBackEvent.FILE_UNPROTECTED, {
+					filePath: normalized,
+					timestamp: Date.now(),
+				});
+			}
 		}
 	}
 

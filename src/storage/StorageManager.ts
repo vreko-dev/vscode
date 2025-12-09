@@ -1,5 +1,6 @@
 // apps/vscode/src/storage/StorageManager.ts
 
+import { SnapBackEvent, type SnapBackEventBus } from "@snapback/events";
 import * as vscode from "vscode";
 import { AuditLog } from "./AuditLog";
 import { BlobStore } from "./BlobStore";
@@ -40,11 +41,13 @@ export class StorageManager implements IStorageManager {
 	private auditLog: AuditLog;
 
 	private initialized = false;
+	private eventBus?: SnapBackEventBus;
 
-	constructor(context: vscode.ExtensionContext) {
+	constructor(context: vscode.ExtensionContext, eventBus?: SnapBackEventBus) {
 		// Use VS Code's global storage URI
 		this.storageUri = context.globalStorageUri;
 		this.metadataUri = vscode.Uri.joinPath(this.storageUri, "storage.json");
+		this.eventBus = eventBus;
 
 		// Initialize components
 		this.cooldownCache = new CooldownCache();
@@ -249,6 +252,14 @@ export class StorageManager implements IStorageManager {
 		await this.ensureComponentsInitialized();
 		await this.snapshotStore.delete(id);
 		this.updateStats().catch(console.error);
+
+		// GREEN PHASE: Publish SNAPSHOT_DELETED event (per TDD_CORE.md)
+		if (this.eventBus) {
+			this.eventBus.publish(SnapBackEvent.SNAPSHOT_DELETED, {
+				id,
+				timestamp: Date.now(),
+			});
+		}
 	}
 
 	async getSnapshotsForFile(filePath: string, limit?: number): Promise<SnapshotManifest[]> {

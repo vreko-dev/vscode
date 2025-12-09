@@ -33,8 +33,47 @@ export class TelemetryProxy {
 		// Initialize offline queue for network resilience
 		this.offlineQueue = new OfflineEventQueue(context);
 
+		// Setup network monitoring for offline queue processing
+		this.setupNetworkMonitoring();
+
 		// Start background queue processing
 		this.startQueueProcessor();
+	}
+
+	/**
+	 * Setup network event monitoring
+	 *
+	 * Establishes listeners for 'online' and 'offline' events on the global scope.
+	 * When network is restored, immediately triggers queue processing to send any
+	 * queued events. Uses globalThis for cross-environment compatibility (browser,
+	 * Node.js, VS Code extension).
+	 *
+	 * Error handling:
+	 * - Uses canonical toError() from @snapback-oss/sdk for error normalization
+	 * - Uses canonical logger from @snapback/infrastructure for structured logging
+	 * - Failed queue processing is caught and logged, not re-thrown
+	 *
+	 * @see toError - For cross-environment error handling
+	 * @see logger - For canonical structured logging
+	 * @see processQueue - Processes offline queue with exponential backoff
+	 */
+	private setupNetworkMonitoring(): void {
+		// Setup event listeners on the global scope
+		// Uses globalThis for compatibility across browser/Node.js/extension contexts
+		const globalWindow = globalThis as any;
+
+		if (globalWindow.addEventListener) {
+			globalWindow.addEventListener("online", () => {
+				logger.info("Network restored, processing offline queue");
+				this.processQueue().catch((err: unknown) => {
+					logger.error("Failed to process offline queue on network restoration", toError(err));
+				});
+			});
+
+			globalWindow.addEventListener("offline", () => {
+				logger.info("Network disconnected, switching to offline mode");
+			});
+		}
 	}
 
 	/**

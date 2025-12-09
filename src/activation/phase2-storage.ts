@@ -29,7 +29,11 @@ export interface Phase2Result {
 	sdkProtectionManager: SDKProtectionManager;
 }
 
-export async function initializePhase2Storage(workspaceRoot: string, context: ExtensionContext): Promise<Phase2Result> {
+export async function initializePhase2Storage(
+	workspaceRoot: string,
+	context: ExtensionContext,
+	eventBus?: import("@snapback/events").SnapBackEventBus,
+): Promise<Phase2Result> {
 	const phase2Start = Date.now();
 	logger.info("[PERF] Phase 2 starting...");
 
@@ -38,7 +42,7 @@ export async function initializePhase2Storage(workspaceRoot: string, context: Ex
 
 	try {
 		const storageStart = Date.now();
-		const storage = new StorageManager(context);
+		const storage = new StorageManager(context, eventBus); // GREEN: Pass eventBus
 		console.log("[PERF] StorageManager created", {
 			ms: Date.now() - storageStart,
 		});
@@ -81,7 +85,7 @@ export async function initializePhase2Storage(workspaceRoot: string, context: Ex
 
 		// Initialize protected file registry
 		const regStart = Date.now();
-		const protectedFileRegistry = new ProtectedFileRegistry(context.workspaceState);
+		const protectedFileRegistry = new ProtectedFileRegistry(context.workspaceState, eventBus); // GREEN: Pass eventBus
 		console.log("[PERF] ProtectedFileRegistry created", {
 			ms: Date.now() - regStart,
 		});
