@@ -250,6 +250,16 @@ export class OperationCoordinator {
 	) {}
 
 	/**
+	 * REFACTOR: Extract common event publishing pattern
+	 * Defensive pattern: only publishes if eventBus is available
+	 */
+	private publishEvent<T>(event: SnapBackEvent, payload: T): void {
+		if (this.eventBus) {
+			this.eventBus.publish(event, payload);
+		}
+	}
+
+	/**
 	 * Registers and initiates a new operation in the coordination system.
 	 *
 	 * Creates a new operation entry with dependency tracking and immediately
@@ -708,16 +718,13 @@ export class OperationCoordinator {
 						},
 					});
 
-					// GREEN PHASE: Publish SNAPSHOT_CREATED event (per TDD_CORE.md)
-					// Only publish on success, not in catch block
-					if (this.eventBus) {
-						this.eventBus.publish(SnapBackEvent.SNAPSHOT_CREATED, {
-							id: snapshotManifest.id,
-							name: snapshotManifest.name,
-							timestamp: snapshotManifest.timestamp,
-							trigger: snapshotManifest.trigger,
-						});
-					}
+					// REFACTOR: Use extracted publishEvent helper
+					this.publishEvent(SnapBackEvent.SNAPSHOT_CREATED, {
+						id: snapshotManifest.id,
+						name: snapshotManifest.name,
+						timestamp: snapshotManifest.timestamp,
+						trigger: snapshotManifest.trigger,
+					});
 
 					// Convert SnapshotManifest to Snapshot type for compatibility
 					const snapshot: Snapshot = {
@@ -1118,14 +1125,12 @@ export class OperationCoordinator {
 			this.updateOperationStatus(operationId, "completed");
 			this.updateOperationProgress(operationId, 100);
 
-			// GREEN PHASE: Publish SNAPSHOT_RESTORED event (per TDD_CORE.md)
-			if (this.eventBus) {
-				this.eventBus.publish(SnapBackEvent.SNAPSHOT_RESTORED, {
-					snapshotId,
-					filesRestored,
-					timestamp: Date.now(),
-				});
-			}
+			// REFACTOR: Use extracted publishEvent helper
+			this.publishEvent(SnapBackEvent.SNAPSHOT_RESTORED, {
+				snapshotId,
+				filesRestored,
+				timestamp: Date.now(),
+			});
 
 			if (!options?.dryRun) {
 				// Track Disaster Averted
@@ -1204,14 +1209,12 @@ export class OperationCoordinator {
 
 		const startTime = Date.now();
 
-		// GREEN PHASE: Publish ANALYSIS_REQUESTED event (per TDD_CORE.md)
-		if (this.eventBus) {
-			this.eventBus.publish(SnapBackEvent.ANALYSIS_REQUESTED, {
-				filePath,
-				analysisType: "risk",
-				timestamp: startTime,
-			});
-		}
+		// REFACTOR: Use extracted publishEvent helper
+		this.publishEvent(SnapBackEvent.ANALYSIS_REQUESTED, {
+			filePath,
+			analysisType: "risk",
+			timestamp: startTime,
+		});
 
 		try {
 			// Phase 1: Update workspace state and set analyzing status
@@ -1234,15 +1237,13 @@ export class OperationCoordinator {
 			this.workspaceMemory.updateProtectionStatus("protected");
 			await this.workspaceMemory.saveContext();
 
-			// GREEN PHASE: Publish ANALYSIS_COMPLETED event (per TDD_CORE.md)
-			if (this.eventBus) {
-				this.eventBus.publish(SnapBackEvent.ANALYSIS_COMPLETED, {
-					filePath,
-					riskScore: 85, // Would be dynamically calculated
-					duration: Date.now() - startTime,
-					timestamp: Date.now(),
-				});
-			}
+			// REFACTOR: Use extracted publishEvent helper
+			this.publishEvent(SnapBackEvent.ANALYSIS_COMPLETED, {
+				filePath,
+				riskScore: 85, // Would be dynamically calculated
+				duration: Date.now() - startTime,
+				timestamp: Date.now(),
+			});
 
 			// User notification with enhanced risk assessment results
 			await this.notificationManager.showEnhancedRiskDetected("MEDIUM", {
@@ -1260,15 +1261,13 @@ export class OperationCoordinator {
 			this.workspaceMemory.updateProtectionStatus("atRisk");
 			await this.workspaceMemory.saveContext();
 
-			// GREEN PHASE: Publish ANALYSIS_COMPLETED with error (per TDD_CORE.md)
-			if (this.eventBus) {
-				this.eventBus.publish(SnapBackEvent.ANALYSIS_COMPLETED, {
-					filePath,
-					error: (error as Error).message,
-					duration: Date.now() - startTime,
-					timestamp: Date.now(),
-				});
-			}
+			// REFACTOR: Use extracted publishEvent helper (error path)
+			this.publishEvent(SnapBackEvent.ANALYSIS_COMPLETED, {
+				filePath,
+				error: (error as Error).message,
+				duration: Date.now() - startTime,
+				timestamp: Date.now(),
+			});
 
 			throw error;
 		}

@@ -80,6 +80,16 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	}
 
 	/**
+	 * REFACTOR: Extract common event publishing pattern
+	 * Defensive pattern: only publishes if eventBus is available
+	 */
+	private publishEvent<T>(event: SnapBackEvent, payload: T): void {
+		if (this.eventBus) {
+			this.eventBus.publish(event, payload);
+		}
+	}
+
+	/**
 	 * Initialize SDK ProtectionManager - REQUIRED for proper trust chain.
 	 * Per arch_remediation.md Task 1.2: SDK is the Single Source of Truth.
 	 *
@@ -440,14 +450,12 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 		logger.info("[SnapBack] Firing onProtectionChanged for:", uri.fsPath);
 		this._onProtectionChanged.fire([uri]);
 
-		// GREEN PHASE: Publish FILE_PROTECTED event (per TDD_CORE.md)
-		if (this.eventBus) {
-			this.eventBus.publish(SnapBackEvent.FILE_PROTECTED, {
-				filePath: normalized,
-				level: options?.protectionLevel || "watch",
-				timestamp: Date.now(),
-			});
-		}
+		// REFACTOR: Use extracted publishEvent helper
+		this.publishEvent(SnapBackEvent.FILE_PROTECTED, {
+			filePath: normalized,
+			level: options?.protectionLevel || "watch",
+			timestamp: Date.now(),
+		});
 	}
 
 	async remove(filePath: string): Promise<void> {
@@ -473,13 +481,11 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 			logger.info("[SnapBack] Firing onProtectionChanged for removal:", uri.fsPath);
 			this._onProtectionChanged.fire([uri]);
 
-			// GREEN PHASE: Publish FILE_UNPROTECTED event (per TDD_CORE.md)
-			if (this.eventBus) {
-				this.eventBus.publish(SnapBackEvent.FILE_UNPROTECTED, {
-					filePath: normalized,
-					timestamp: Date.now(),
-				});
-			}
+			// REFACTOR: Use extracted publishEvent helper
+			this.publishEvent(SnapBackEvent.FILE_UNPROTECTED, {
+				filePath: normalized,
+				timestamp: Date.now(),
+			});
 		}
 	}
 

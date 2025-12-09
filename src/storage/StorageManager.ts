@@ -57,6 +57,16 @@ export class StorageManager implements IStorageManager {
 		this.auditLog = new AuditLog(this.storageUri);
 	}
 
+	/**
+	 * REFACTOR: Extract common event publishing pattern
+	 * Defensive pattern: only publishes if eventBus is available
+	 */
+	private publishEvent<T>(event: SnapBackEvent, payload: T): void {
+		if (this.eventBus) {
+			this.eventBus.publish(event, payload);
+		}
+	}
+
 	// ============================================
 	// Lifecycle
 	// ============================================
@@ -253,13 +263,11 @@ export class StorageManager implements IStorageManager {
 		await this.snapshotStore.delete(id);
 		this.updateStats().catch(console.error);
 
-		// GREEN PHASE: Publish SNAPSHOT_DELETED event (per TDD_CORE.md)
-		if (this.eventBus) {
-			this.eventBus.publish(SnapBackEvent.SNAPSHOT_DELETED, {
-				id,
-				timestamp: Date.now(),
-			});
-		}
+		// REFACTOR: Use extracted publishEvent helper
+		this.publishEvent(SnapBackEvent.SNAPSHOT_DELETED, {
+			id,
+			timestamp: Date.now(),
+		});
 	}
 
 	async getSnapshotsForFile(filePath: string, limit?: number): Promise<SnapshotManifest[]> {
