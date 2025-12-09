@@ -1,7 +1,7 @@
 {
   "name": "snapback-vscode",
   "description": "Smart snapshot manager with Watch/Warn/Block protection levels. Code Breaks. SnapBack.",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "activationEvents": [
     "onStartupFinished",
     "onCommand:snapback.*",
@@ -57,11 +57,7 @@
       }
     ],
     "commands": [
-      {
-        "comment": "═══════════════════════════════════════════════════════════════════════════════",
-        "comment2": "Protection Commands - File-level protection management",
-        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
-      },
+
       {
         "command": "snapback.protectFile",
         "title": "Protect File",
@@ -122,11 +118,7 @@
         "category": "SnapBack",
         "icon": "$(symbol-event)"
       },
-      {
-        "comment": "═══════════════════════════════════════════════════════════════════════════════",
-        "comment2": "Snapshot Commands - Snapshot creation and restoration",
-        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
-      },
+
       {
         "command": "snapback.createSnapshot",
         "title": "Create Snapshot",
@@ -199,11 +191,7 @@
         "category": "SnapBack",
         "icon": "$(link-external)"
       },
-      {
-        "comment": "═══════════════════════════════════════════════════════════════════════════════",
-        "comment2": "View Commands - UI navigation and refresh",
-        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
-      },
+
       {
         "command": "snapback.showStatus",
         "title": "Show Protection Status",
@@ -228,11 +216,7 @@
         "category": "SnapBack",
         "icon": "$(go-to-file)"
       },
-      {
-        "comment": "═══════════════════════════════════════════════════════════════════════════════",
-        "comment2": "Account Commands - Authentication and connection",
-        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
-      },
+
       {
         "command": "snapback.signIn",
         "title": "Sign In",
@@ -257,11 +241,7 @@
         "category": "SnapBack",
         "icon": "$(account)"
       },
-      {
-        "comment": "═══════════════════════════════════════════════════════════════════════════════",
-        "comment2": "Utility Commands - Settings, help, and configuration",
-        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
-      },
+
       {
         "command": "snapback.initialize",
         "title": "Initialize",
@@ -298,11 +278,7 @@
         "category": "SnapBack",
         "icon": "$(bell-slash)"
       },
-      {
-        "comment": "═══════════════════════════════════════════════════════════════════════════════",
-        "comment2": "Health & Risk Commands - File health monitoring",
-        "comment3": "═══════════════════════════════════════════════════════════════════════════════"
-      },
+
       {
         "command": "snapback.showFileHealthStatus",
         "title": "Show File Health Status",
@@ -602,9 +578,7 @@
     "configuration": {
       "title": "SnapBack",
       "properties": {
-        "comment": "═══════════════════════════════════════════════════════════════════════════",
-        "comment2": "Protection Settings - Default protection levels and visual indicators",
-        "comment3": "═══════════════════════════════════════════════════════════════════════════",
+
         "snapback.protectionLevels.defaultLevel": {
           "type": "string",
           "enum": [
@@ -633,9 +607,7 @@
           "description": "Show file health indicators (🛡/⚠️/🚨) based on detected risk",
           "order": 3
         },
-        "comment4": "═══════════════════════════════════════════════════════════════════════════",
-        "comment5": "Snapshot Settings - Snapshot behavior and management",
-        "comment6": "═══════════════════════════════════════════════════════════════════════════",
+
         "snapback.snapshot.naming.useGit": {
           "type": "boolean",
           "default": true,
@@ -701,9 +673,7 @@
             }
           }
         },
-        "comment7": "═══════════════════════════════════════════════════════════════════════════",
-        "comment8": "Notification Settings - User feedback and alerts",
-        "comment9": "═══════════════════════════════════════════════════════════════════════════",
+
         "snapback.notifications.showSnapshotCreated": {
           "type": "boolean",
           "default": true,
@@ -728,9 +698,7 @@
           "description": "Show notifications when auto-snapshots are created for protected files",
           "order": 23
         },
-        "comment10": "═══════════════════════════════════════════════════════════════════════════",
-        "comment11": "Guardian (AI Protection) - Risk detection and prevention",
-        "comment12": "═══════════════════════════════════════════════════════════════════════════",
+
         "snapback.guardian.enabled": {
           "type": "boolean",
           "default": true,
@@ -778,9 +746,7 @@
           "description": "Risk score threshold for blocking changes (0-10 scale)",
           "order": 36
         },
-        "comment13": "═══════════════════════════════════════════════════════════════════════════",
-        "comment14": "AI Detection - Session and change detection",
-        "comment15": "═══════════════════════════════════════════════════════════════════════════",
+
         "snapback.aiDetection.enabled": {
           "type": "boolean",
           "default": true,
@@ -801,9 +767,7 @@
           "description": "Confidence threshold for showing AI detection results (0-10 scale)",
           "order": 42
         },
-        "comment16": "═══════════════════════════════════════════════════════════════════════════",
-        "comment17": "API & Authentication - Connection and authentication settings",
-        "comment18": "═══════════════════════════════════════════════════════════════════════════",
+
         "snapback.api.baseUrl": {
           "type": "string",
           "default": "https://api.snapback.dev/api",
@@ -834,9 +798,7 @@
           "description": "Prefer OAuth 2.0 authentication over API key when available",
           "order": 54
         },
-        "comment19": "═══════════════════════════════════════════════════════════════════════════",
-        "comment20": "MCP (Model Context Protocol) - AI assistant integration",
-        "comment21": "═══════════════════════════════════════════════════════════════════════════",
+
         "snapback.mcp.enabled": {
           "type": "boolean",
           "default": true,
@@ -879,9 +841,7 @@
           "maximum": 30000,
           "order": 65
         },
-        "comment22": "═══════════════════════════════════════════════════════════════════════════",
-        "comment23": "Advanced Settings - Configuration, onboarding, and system settings",
-        "comment24": "═══════════════════════════════════════════════════════════════════════════",
+
         "snapback.config.enableExecutableConfigs": {
           "type": "boolean",
           "default": false,
@@ -918,9 +878,7 @@
           "description": "Logging level for SnapBack extension",
           "order": 74
         },
-        "comment25": "═══════════════════════════════════════════════════════════════════════════",
-        "comment26": "AutoDecisionEngine - Intelligent snapshot decision making",
-        "comment27": "═══════════════════════════════════════════════════════════════════════════",
+
         "snapback.autoDecision.riskThreshold": {
           "type": "number",
           "minimum": 0,
@@ -977,9 +935,7 @@
           "description": "Enable test mode (uses mock auth and API)",
           "scope": "resource"
         },
-        "comment28": "═══════════════════════════════════════════════════════════════════════════",
-        "comment29": "Telemetry & Observability - Runtime instrumentation settings",
-        "comment30": "═══════════════════════════════════════════════════════════════════════════",
+
         "snapback.telemetry.endpoint": {
           "type": "string",
           "default": "http://localhost:4318/v1/traces",
@@ -1195,6 +1151,7 @@
     "launch-demo": "bash scripts/launch-demo-vscode.sh",
     "lint": "biome lint .",
     "lint:fix": "biome lint --fix .",
+    "lint:manifest": "node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const cmds=pkg.contributes.commands;const missing=cmds.filter(c=>!c.command);if(missing.length>0){console.error('\\x1b[31m✗ ERROR\\x1b[0m Commands missing command property:',missing.length);process.exit(1)}const props=Object.keys(pkg.contributes.configuration.properties);const commentProps=props.filter(p=>p.startsWith('comment'));if(commentProps.length>0){console.error('\\x1b[31m✗ ERROR\\x1b[0m Configuration properties with comment prefix:',commentProps.length);process.exit(1)}console.log('\\x1b[32m✓ OK\\x1b[0m package.json manifest validation passed');\"",
     "monitor-vsix-size": "node scripts/monitor-vsix-size.js",
     "package": "pnpm run check-types && node esbuild.config.cjs --production",
     "package-and-install": "node scripts/package-and-install.cjs",
