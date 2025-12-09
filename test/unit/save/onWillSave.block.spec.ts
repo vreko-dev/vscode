@@ -180,7 +180,7 @@ describe("OnWillSaveHandler", () => {
 
 			// Mock registry to return Watch level protection
 			mockRegistry.get.mockResolvedValue({
-				protectionLevel: "Watched",
+				protectionLevel: "watch"
 			});
 
 			await onWillSaveHandler.handleWillSave(mockEvent as any);
@@ -205,17 +205,19 @@ describe("OnWillSaveHandler", () => {
 
 			// Mock registry to return Protected level
 			mockRegistry.get.mockResolvedValue({
-				protectionLevel: "Protected",
+				protectionLevel: "block"
 			});
 
 			// Mock showBlockDialog to return 'cancel'
 			(SnapBackDialogs.showBlockDialog as any).mockResolvedValue("cancel");
 
-			// Mock the rejection to avoid unhandled promise rejection
-			const mockPromise = Promise.reject(
-				new Error("Save cancelled by SnapBack protection"),
-			);
-			mockEvent.waitUntil.mockImplementation(() => mockPromise.catch(() => {}));
+			// Track if waitUntil was called with a rejected promise
+			let waitUntilRejected = false;
+			mockEvent.waitUntil.mockImplementation((promise: Promise<any>) => {
+				promise.catch(() => {
+					waitUntilRejected = true;
+				});
+			});
 
 			await onWillSaveHandler.handleWillSave(mockEvent as any);
 
@@ -239,7 +241,7 @@ describe("OnWillSaveHandler", () => {
 
 			// Mock registry to return Protected level
 			mockRegistry.get.mockResolvedValue({
-				protectionLevel: "Protected",
+				protectionLevel: "block"
 			});
 
 			// Mock showBlockDialog to return 'createSnapshot'
@@ -279,7 +281,7 @@ describe("OnWillSaveHandler", () => {
 
 			// Mock registry to return Protected level
 			mockRegistry.get.mockResolvedValue({
-				protectionLevel: "Protected",
+				protectionLevel: "block"
 			});
 
 			// Mock showBlockDialog to return 'continue'
@@ -312,7 +314,7 @@ describe("OnWillSaveHandler", () => {
 
 			// Mock registry to return Protected level
 			mockRegistry.get.mockResolvedValue({
-				protectionLevel: "Protected",
+				protectionLevel: "block"
 			});
 
 			// Mock showBlockDialog to return 'createSnapshot'
@@ -353,17 +355,16 @@ describe("OnWillSaveHandler", () => {
 
 			// Mock registry to return Protected level
 			mockRegistry.get.mockResolvedValue({
-				protectionLevel: "Protected",
+				protectionLevel: "block"
 			});
 
 			// Mock showBlockDialog to return 'cancel'
 			(SnapBackDialogs.showBlockDialog as any).mockResolvedValue("cancel");
 
-			// Mock the rejection to avoid unhandled promise rejection
-			const mockPromise = Promise.reject(
-				new Error("Save cancelled by SnapBack protection"),
-			);
-			mockEvent.waitUntil.mockImplementation(() => mockPromise.catch(() => {}));
+			// Track if waitUntil was called with a rejected promise
+			mockEvent.waitUntil.mockImplementation((promise: Promise<any>) => {
+				promise.catch(() => {});
+			});
 
 			await onWillSaveHandler.handleWillSave(mockEvent as any);
 
@@ -412,7 +413,7 @@ describe("OnWillSaveHandler", () => {
 			};
 
 			mockRegistry.get.mockResolvedValue({
-				protectionLevel: "Protected",
+				protectionLevel: "block"
 			});
 
 			// Mock showBlockDialog to return 'cancel'
@@ -423,11 +424,10 @@ describe("OnWillSaveHandler", () => {
 				waitUntil: vi.fn(),
 			};
 
-			// Mock the rejection to avoid unhandled promise rejection
-			const mockPromise = Promise.reject(
-				new Error("Save cancelled by SnapBack protection"),
-			);
-			mockEvent.waitUntil.mockImplementation(() => mockPromise.catch(() => {}));
+			// Track if waitUntil was called with a rejected promise
+			mockEvent.waitUntil.mockImplementation((promise: Promise<any>) => {
+				promise.catch(() => {});
+			});
 
 			await onWillSaveHandler.handleWillSave(mockEvent as any);
 
@@ -444,7 +444,7 @@ describe("OnWillSaveHandler", () => {
 			};
 
 			mockRegistry.get.mockResolvedValue({
-				protectionLevel: "Protected",
+				protectionLevel: "block"
 			});
 
 			// For low-risk content, the decision should be 'Allow', so no dialog should be shown
