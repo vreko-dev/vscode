@@ -311,6 +311,13 @@ describe("SnapshotOrchestrator", () => {
 
 	describe("Expiration cleanup", () => {
 		it("should remove old snapshots", async () => {
+			// Use fake timers to control time
+			vi.useFakeTimers();
+			
+			// Set time to 8 days ago when creating the snapshot
+			const eightDaysAgo = Date.now() - 1000 * 60 * 60 * 24 * 8;
+			vi.setSystemTime(eightDaysAgo);
+
 			const oldDecision: ProtectionDecision = {
 				createSnapshot: true,
 				showNotification: false,
@@ -318,7 +325,7 @@ describe("SnapshotOrchestrator", () => {
 				confidence: 0.75,
 				context: {
 					repoId: "test-repo",
-					timestamp: Date.now() - 1000 * 60 * 60 * 24 * 8, // 8 days ago
+					timestamp: eightDaysAgo,
 					files: [],
 					riskScore: 50,
 					burstDetected: false,
@@ -341,9 +348,15 @@ describe("SnapshotOrchestrator", () => {
 			await orchestrator.createSnapshot(oldDecision, files);
 			expect(orchestrator.getSnapshots().length).toBe(1);
 
+			// Move time to now (8 days later)
+			vi.setSystemTime(Date.now() + 1000 * 60 * 60 * 24 * 8);
+
 			await orchestrator.cleanup();
 
 			expect(orchestrator.getSnapshots().length).toBe(0);
+			
+			// Restore real timers
+			vi.useRealTimers();
 		});
 
 		it("should keep recent snapshots", async () => {
