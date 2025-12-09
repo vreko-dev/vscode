@@ -194,6 +194,7 @@ const extendedMockVscode = {
 	ThemeIcon: mockVscode.ThemeIcon,
 	FileDecoration: mockVscode.FileDecoration,
 	ConfigurationTarget: mockVscode.ConfigurationTarget,
+	LogLevel: mockVscode.LogLevel,
 	TreeItemCollapsibleState: mockVscode.TreeItemCollapsibleState,
 	ProgressLocation: mockVscode.ProgressLocation,
 	StatusBarAlignment: mockVscode.StatusBarAlignment,
