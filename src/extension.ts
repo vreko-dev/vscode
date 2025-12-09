@@ -320,6 +320,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			telemetryProxy, // Pass telemetryProxy here
 			phase2Result.protectedFileRegistry,
 			phase2Result.snapbackrcLoader, // 🟢 TDD GREEN: Pass for ProtectionService
+			eventBus, // GREEN PHASE: Pass event bus for SNAPSHOT_CREATED publishing
 		);
 		phaseTimings["Phase 3 (Managers)"] = Date.now() - phase3Start;
 

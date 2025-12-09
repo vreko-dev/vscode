@@ -68,6 +68,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
 import type { Snapshot } from "@snapback/contracts";
+import { SnapBackEvent, type SnapBackEventBus } from "@snapback/events";
 import { THRESHOLDS } from "@snapback/sdk";
 import { chunk } from "es-toolkit";
 import ignore from "ignore";
@@ -245,6 +246,7 @@ export class OperationCoordinator {
 		private telemetryProxy: TelemetryProxy,
 		private conflictResolver: ConflictResolver,
 		private milestoneService: MilestoneService,
+		private eventBus?: SnapBackEventBus,
 	) {}
 
 	/**
@@ -705,6 +707,17 @@ export class OperationCoordinator {
 							...(sessionId && { sessionId }), // NEW - Attach session ID if available
 						},
 					});
+
+					// GREEN PHASE: Publish SNAPSHOT_CREATED event (per TDD_CORE.md)
+					// Only publish on success, not in catch block
+					if (this.eventBus) {
+						this.eventBus.publish(SnapBackEvent.SNAPSHOT_CREATED, {
+							id: snapshotManifest.id,
+							name: snapshotManifest.name,
+							timestamp: snapshotManifest.timestamp,
+							trigger: snapshotManifest.trigger,
+						});
+					}
 
 					// Convert SnapshotManifest to Snapshot type for compatibility
 					const snapshot: Snapshot = {

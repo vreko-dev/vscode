@@ -48,6 +48,7 @@ export async function initializePhase3Managers(
 	telemetryProxy: TelemetryProxy,
 	protectedFileRegistry?: ProtectedFileRegistry,
 	snapbackrcLoader?: import("../protection/SnapBackRCLoader.js").SnapBackRCLoader,
+	eventBus?: import("@snapback/events").SnapBackEventBus,
 ): Promise<Phase3Result> {
 	const phase3Start = Date.now();
 	console.log("[PERF] Phase 3 starting...");
@@ -86,6 +87,7 @@ export async function initializePhase3Managers(
 			telemetryProxy,
 			conflictResolver,
 			milestoneService,
+			eventBus, // GREEN PHASE: Wire in event bus
 		);
 		console.log("[PERF] OperationCoordinator", { ms: Date.now() - t });
 
