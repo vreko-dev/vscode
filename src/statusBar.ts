@@ -100,7 +100,7 @@ export class SnapBackStatusBar {
 
 		// Count files by protection level
 		files.forEach((file) => {
-			const level = file.protectionLevel || "Watched";
+			const level = file.protectionLevel || "watch";
 			stats[level.toLowerCase() as keyof Omit<ProtectionStats, "total" | "highestLevel">]++;
 		});
 

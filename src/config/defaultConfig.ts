@@ -1,4 +1,3 @@
-import type { ProtectionLevel } from "../types/protection";
 import type { ProtectionRule, SnapBackRC, SnapBackSettings } from "../types/snapbackrc.types";
 
 /**
@@ -10,93 +9,93 @@ export const DEFAULT_CRITICAL_PATTERNS: readonly ProtectionRule[] = Object.freez
 	// Dependency locks - wrong versions break builds
 	{
 		pattern: "**/package-lock.json",
-		level: "Protected" as ProtectionLevel,
+		level: "block",
 		reason: "Lock file - wrong version breaks reproducible Node.js builds",
 	},
 	{
 		pattern: "**/yarn.lock",
-		level: "Protected" as ProtectionLevel,
+		level: "block",
 		reason: "Lock file - ensures reproducible Yarn installs",
 	},
 	{
 		pattern: "**/pnpm-lock.yaml",
-		level: "Protected" as ProtectionLevel,
+		level: "block",
 		reason: "Lock file - critical for pnpm monorepos",
 	},
 	{
 		pattern: "**/poetry.lock",
-		level: "Protected" as ProtectionLevel,
+		level: "block",
 		reason: "Lock file - Python dependency lock",
 	},
 	{
 		pattern: "**/Cargo.lock",
-		level: "Protected" as ProtectionLevel,
+		level: "block",
 		reason: "Lock file - Rust dependency lock",
 	},
 	{
 		pattern: "**/go.sum",
-		level: "Protected" as ProtectionLevel,
+		level: "block",
 		reason: "Lock file - Go module checksums",
 	},
 	{
 		pattern: "**/Gemfile.lock",
-		level: "Protected" as ProtectionLevel,
+		level: "block",
 		reason: "Lock file - Ruby gem dependencies",
 	},
 	{
 		pattern: "**/composer.lock",
-		level: "Protected" as ProtectionLevel,
+		level: "block",
 		reason: "Lock file - PHP composer dependencies",
 	},
 
 	// Environment & Secrets - exposing causes immediate security breaches
 	{
 		pattern: "**/.env*",
-		level: "Protected" as ProtectionLevel,
+		level: "block",
 		reason: "Sensitive environment variables and secrets",
 	},
 
 	// Core configuration files - wrong changes break builds
 	{
 		pattern: "package.json",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Core Node.js configuration - dependencies and scripts",
 	},
 	{
 		pattern: "tsconfig.json",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "TypeScript compiler configuration",
 	},
 
 	// Infrastructure - controls deployment and infrastructure
 	{
 		pattern: "Dockerfile",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Container image definition",
 	},
 	{
 		pattern: "docker-compose.yml",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Multi-container orchestration",
 	},
 	{
 		pattern: "**/docker-compose.yaml",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Multi-container orchestration (yaml variant)",
 	},
 	{
 		pattern: "**/*.tf",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Terraform infrastructure definitions",
 	},
 	{
 		pattern: ".github/workflows/*.yml",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "GitHub Actions CI/CD workflows",
 	},
 	{
 		pattern: ".github/workflows/*.yaml",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "GitHub Actions CI/CD workflows (yaml variant)",
 	},
 ]);
@@ -111,162 +110,162 @@ export const EXTENDED_PATTERNS: readonly ProtectionRule[] = Object.freeze([
 	// Documentation - passive watching
 	{
 		pattern: "*.md",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "Documentation files",
 	},
 	{
 		pattern: "*.txt",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "Text files",
 	},
 	{
 		pattern: "README*",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "README documentation",
 	},
 
 	// General configuration files
 	{
 		pattern: "*.json",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "JSON configuration files",
 	},
 	{
 		pattern: ".editorconfig",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "Editor configuration",
 	},
 	{
 		pattern: ".prettierrc*",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "Prettier formatting configuration",
 	},
 	{
 		pattern: ".eslintrc*",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "ESLint configuration",
 	},
 	{
 		pattern: ".babelrc",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "Babel transpiler configuration",
 	},
 	{
 		pattern: ".gitignore",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Git ignore rules",
 	},
 
 	// IDE and editor settings
 	{
 		pattern: ".vscode/settings.json",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "VS Code settings",
 	},
 	{
 		pattern: ".idea/**",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "IDE configuration directory",
 	},
 
 	// Build tool configurations
 	{
 		pattern: "vite.config.*",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Vite bundler configuration",
 	},
 	{
 		pattern: "webpack.config.*",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Webpack bundler configuration",
 	},
 	{
 		pattern: "rollup.config.*",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Rollup bundler configuration",
 	},
 	{
 		pattern: "esbuild.config.*",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "esbuild bundler configuration",
 	},
 	{
 		pattern: "Makefile",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "Make build configuration",
 	},
 	{
 		pattern: "CMakeLists.txt",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "CMake build configuration",
 	},
 
 	// Language-specific package managers and configs
 	{
 		pattern: "requirements.txt",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "Python dependencies",
 	},
 	{
 		pattern: "Gemfile",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Ruby gem configuration",
 	},
 	{
 		pattern: "composer.json",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "PHP composer configuration",
 	},
 	{
 		pattern: "setup.py",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Python package setup",
 	},
 	{
 		pattern: "pyproject.toml",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Python project configuration",
 	},
 	{
 		pattern: "pom.xml",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Maven Java build configuration",
 	},
 	{
 		pattern: "build.gradle*",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Gradle Java build configuration",
 	},
 	{
 		pattern: "*.csproj",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: ".NET C# project file",
 	},
 	{
 		pattern: "go.mod",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Go module definition",
 	},
 	{
 		pattern: "Cargo.toml",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Rust package configuration",
 	},
 	{
 		pattern: "bunfig.toml",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Bun runtime configuration",
 	},
 	{
 		pattern: "*.sln",
-		level: "Watched" as ProtectionLevel,
+		level: "watch",
 		reason: "Visual Studio solution file",
 	},
 
 	// Kubernetes and container orchestration
 	{
 		pattern: "kubernetes/*.yaml",
-		level: "Warning" as ProtectionLevel,
+		level: "warn",
 		reason: "Kubernetes manifests",
 	},
 ]);
@@ -296,14 +295,14 @@ export const DEFAULT_SNAPBACK_CONFIG: Readonly<SnapBackRC> = Object.freeze({
 		notificationDuration: 1000,
 		showStatusBarItem: true,
 		confirmRestore: true,
-		defaultProtectionLevel: "Watched" as ProtectionLevel,
+		defaultProtectionLevel: "watch" as const,
 		protectionDebounce: 1000,
 		enableCaching: true,
 	},
 	policies: {},
 	hooks: {},
 	templates: [],
-});
+} as const satisfies SnapBackRC);
 
 /**
  * Default SnapBack settings
@@ -315,10 +314,10 @@ export const DEFAULT_SETTINGS: Readonly<SnapBackSettings> = Object.freeze({
 	notificationDuration: 1000,
 	showStatusBarItem: true,
 	confirmRestore: true,
-	defaultProtectionLevel: "Watched" as ProtectionLevel,
+	defaultProtectionLevel: "watch" as const,
 	protectionDebounce: 1000,
 	enableCaching: true,
-});
+} as const satisfies SnapBackSettings);
 
 /**
  * Default ignore patterns

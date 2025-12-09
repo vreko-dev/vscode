@@ -41,7 +41,7 @@ export class UnifiedAuthProvider implements vscode.AuthenticationProvider {
 		if (initialTestMode) {
 			console.log("🏗️ UnifiedProxy: Constructed in MOCK mode");
 			logger.info("UnifiedAuthProvider initialized with MOCK provider");
-			this._delegate = new MockAuthProvider(context);
+			this._delegate = new MockAuthProvider();
 		} else {
 			console.log("🏗️ UnifiedProxy: Constructed in REAL mode");
 			logger.info("UnifiedAuthProvider initialized with REAL provider");
@@ -93,7 +93,7 @@ export class UnifiedAuthProvider implements vscode.AuthenticationProvider {
 		if (isTest) {
 			console.log("🔀 Creating new MockAuthProvider...");
 			logger.info("🔀 UnifiedAuthProvider: Switching to MOCK Strategy");
-			this._delegate = new MockAuthProvider(this.context);
+			this._delegate = new MockAuthProvider();
 		} else {
 			console.log("🔀 Creating new SnapBackOAuthProvider...");
 			logger.info("🔀 UnifiedAuthProvider: Switching to REAL Strategy");

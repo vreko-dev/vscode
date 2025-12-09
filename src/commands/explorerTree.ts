@@ -10,6 +10,7 @@
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
+import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import type { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider";
 import type { SnapBackTreeNode } from "../views/explorerTree/types";
 
@@ -136,7 +137,7 @@ export function registerOpenSnapshotInWebCommand(_context: vscode.ExtensionConte
  */
 export function registerCreateSnapshotCommand(
 	_context: vscode.ExtensionContext,
-	snapshotManager: any, // TODO: Import proper type from managers
+	snapshotManager: SnapshotManager,
 ): vscode.Disposable {
 	return vscode.commands.registerCommand("snapback.createSnapshot", async (node?: SnapBackTreeNode) => {
 		try {

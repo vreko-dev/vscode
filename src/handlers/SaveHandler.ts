@@ -324,7 +324,7 @@ export class SaveHandler {
 		// Update file decoration if provider is available
 		if (this.decorationProvider) {
 			try {
-				const protectionLevel = this.registry.getProtectionLevel(filePath) || "Watched";
+				const protectionLevel = this.registry.getProtectionLevel(filePath) || "watch";
 				const analysisResult = this.analysisCoordinator.lastAnalysisResult;
 				const healthLevel = this.determineHealthLevel(protectionLevel, analysisResult);
 				// Convert protection level to lowercase for the decoration provider

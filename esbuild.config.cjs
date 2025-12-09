@@ -1,6 +1,6 @@
 const esbuild = require("esbuild");
 const fs = require("node:fs");
-const path = require("node:path");
+const _path = require("node:path");
 const { visualizer } = require("esbuild-visualizer");
 
 const production = process.argv.includes("--production");
@@ -54,9 +54,7 @@ async function main() {
 
 		// Environment
 		define: {
-			"process.env.NODE_ENV": production
-				? '"production"'
-				: '"development"',
+			"process.env.NODE_ENV": production ? '"production"' : '"development"',
 			"process.env.VSCODE_EXTENSION": '"true"',
 		},
 
@@ -76,18 +74,10 @@ async function main() {
 									title: "SnapBack VSCode Bundle Analysis",
 									template: "treemap",
 								});
-								fs.writeFileSync(
-									"dist/bundle-analysis.html",
-									html
-								);
-								console.log(
-									"📊 Bundle analysis: dist/bundle-analysis.html"
-								);
+								fs.writeFileSync("dist/bundle-analysis.html", html);
+								console.log("📊 Bundle analysis: dist/bundle-analysis.html");
 							} catch (err) {
-								console.warn(
-									"⚠️  Failed to generate bundle analysis",
-									err
-								);
+								console.warn("⚠️  Failed to generate bundle analysis", err);
 							}
 						}
 					});
@@ -118,15 +108,12 @@ async function main() {
 					});
 
 					// Provide stub for worker thread dependencies
-					build.onLoad(
-						{ filter: /.*/, namespace: "worker-stub" },
-						() => {
-							return {
-								contents: "module.exports = {}",
-								loader: "js",
-							};
-						}
-					);
+					build.onLoad({ filter: /.*/, namespace: "worker-stub" }, () => {
+						return {
+							contents: "module.exports = {}",
+							loader: "js",
+						};
+					});
 				},
 			},
 		],

@@ -100,7 +100,9 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	private mapToSDKLevel(level: ProtectionLevel | undefined): SDKProtectionLevel {
 		// SDK uses lowercase: 'watch' | 'warn' | 'block'
 		// VSCode types may use same or mixed case
-		if (!level) return "watch";
+		if (!level) {
+			return "watch";
+		}
 		return level.toLowerCase() as SDKProtectionLevel;
 	}
 
@@ -108,7 +110,9 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	 * Map SDK ProtectionLevel to VSCode ProtectionLevel
 	 */
 	private mapFromSDKLevel(level: SDKProtectionLevel | null): ProtectionLevel | undefined {
-		if (!level) return undefined;
+		if (!level) {
+			return undefined;
+		}
 		return level as ProtectionLevel;
 	}
 
@@ -575,11 +579,10 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 			return result;
 		}
 
-		// Fallback: SDK not yet initialized, use cached files (temporary)
-		// This should rarely happen - log a warning
-		logger.warn("[SnapBack] isProtected called before SDK initialization - using fallback");
-		const normalized = this.normalize(filePath);
-		return this.cachedFiles.some((f) => f.path === normalized);
+		// Fallback: SDK not yet initialized - return safe default (not protected)
+		// This avoids dual sources of truth per arch_remediation.md
+		logger.warn("[SnapBack] isProtected called before SDK initialization - returning false (safe default)");
+		return false;
 	}
 
 	/**
@@ -611,11 +614,12 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 			return this.mapFromSDKLevel(level);
 		}
 
-		// Fallback: SDK not yet initialized, use cached files (temporary)
-		logger.warn("[SnapBack] getProtectionLevel called before SDK initialization - using fallback");
-		const normalized = this.normalize(filePath);
-		const file = this.cachedFiles.find((f) => f.path === normalized);
-		return file?.protectionLevel;
+		// Fallback: SDK not yet initialized - return undefined (safe default)
+		// This avoids dual sources of truth per arch_remediation.md
+		logger.warn(
+			"[SnapBack] getProtectionLevel called before SDK initialization - returning undefined (safe default)",
+		);
+		return undefined;
 	}
 
 	/**

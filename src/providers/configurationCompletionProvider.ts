@@ -46,22 +46,22 @@ export class ConfigurationCompletionProvider implements vscode.CompletionItemPro
 
 	private getLevelCompletions(): vscode.CompletionItem[] {
 		const levels: Array<{
-			label: "Watched" | "Warning" | "Protected";
+			label: "watch" | "warn" | "block";
 			detail: string;
 			documentation: string;
 		}> = [
 			{
-				label: "Watched",
+				label: "watch",
 				detail: "Monitor changes",
 				documentation: "Monitor file changes and capture snapshots silently.",
 			},
 			{
-				label: "Warning",
+				label: "warn",
 				detail: "Require confirmation",
 				documentation: "Ask for confirmation before saving protected files.",
 			},
 			{
-				label: "Protected",
+				label: "block",
 				detail: "Prevent direct modifications",
 				documentation: "Require explicit override before saving protected files.",
 			},
@@ -104,7 +104,7 @@ export class ConfigurationCompletionProvider implements vscode.CompletionItemPro
 			{
 				label: "defaultProtectionLevel",
 				detail: "ProtectionLevel",
-				defaultValue: '"Watched"',
+				defaultValue: '"watch"',
 				documentation: "Default protection level for new files.",
 			},
 			{
@@ -146,7 +146,7 @@ export class ConfigurationCompletionProvider implements vscode.CompletionItemPro
 			{
 				label: "defaultProtectionLevel",
 				detail: "ProtectionLevel",
-				defaultValue: '"Watched"',
+				defaultValue: '"watch"',
 				documentation: "Default protection level for new files.",
 			},
 		];

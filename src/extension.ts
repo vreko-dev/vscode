@@ -769,7 +769,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				// Simplified approach since we can't easily access getProtectionInfo
 				const payload: ProtectionChangedPayload = {
 					filePath,
-					level: "Watched", // Default level
+					level: "watch", // Default level
 					timestamp: Date.now(),
 				};
 				eventBus.publish(SnapBackEvent.PROTECTION_CHANGED, payload);

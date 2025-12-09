@@ -18,8 +18,6 @@ export class MockAuthProvider implements vscode.AuthenticationProvider {
 
 	private _currentSession: SnapBackSession | undefined;
 
-	constructor(_context: vscode.ExtensionContext) {}
-
 	async getSessions(
 		_scopes?: readonly string[],
 		_options?: vscode.AuthenticationProviderSessionOptions,
@@ -78,7 +76,7 @@ export class MockAuthProvider implements vscode.AuthenticationProvider {
 	}
 
 	static register(context: vscode.ExtensionContext): vscode.Disposable {
-		const provider = new MockAuthProvider(context);
+		const provider = new MockAuthProvider();
 
 		// Register with the SAME ID as the real provider so other components don't care
 		const disposable = vscode.authentication.registerAuthenticationProvider(

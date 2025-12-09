@@ -292,7 +292,7 @@ export class ProtectionManager {
 			}
 
 			// Create map of protected file paths to their protection levels for quick lookup
-			const protectedMap = new Map(protectedFiles.map((p) => [p.path, p.protectionLevel || "Watched"]));
+			const protectedMap = new Map(protectedFiles.map((p) => [p.path, p.protectionLevel || "watch"]));
 
 			// Helper to compare protection levels (higher number = more protection)
 			const getLevelValue = (level: string): number => {

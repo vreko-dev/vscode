@@ -32,7 +32,7 @@ export interface SnapshotCreatedPayload {
 /** Protection level changed event payload */
 export interface ProtectionChangedPayload {
 	filePath: string;
-	level: "Watched" | "Warning" | "Protected";
+	level: "watch" | "warn" | "block";
 	timestamp: number;
 	reason?: string;
 }
@@ -63,7 +63,7 @@ export interface ProtectionLevelRequest {
 export interface ProtectionLevelResponse {
 	filePath: string;
 	isProtected: boolean;
-	level: "Watched" | "Warning" | "Protected" | null;
+	level: "watch" | "warn" | "block" | null;
 }
 
 /** Create snapshot request */

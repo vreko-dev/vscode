@@ -27,6 +27,7 @@ import type { AutoDecisionConfig, ProtectionDecision, SaveContext } from "../dom
 import { DEFAULT_CONFIG } from "../domain/types";
 import type { NotificationManager } from "../notificationManager";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
+import { detectAIPresence } from "../utils/AIPresenceDetector";
 import { logger } from "../utils/logger";
 
 export interface FileChangeEvent {
@@ -44,6 +45,7 @@ export class AutoDecisionIntegration {
 	private adapter: NotificationAdapter;
 	private signalAggregator: SignalAggregator;
 	private settingsLoader: SettingsLoader | null = null;
+	private snapshotManager: SnapshotManager;
 
 	private fileBuffer: FileChangeEvent[] = [];
 	private bufferTimeout: NodeJS.Timeout | null = null;
@@ -71,11 +73,13 @@ export class AutoDecisionIntegration {
 	];
 
 	constructor(
-		_snapshotManager: SnapshotManager,
+		snapshotManager: SnapshotManager,
 		_notificationManager: NotificationManager,
 		config?: Partial<AutoDecisionConfig>,
 		context?: vscode.ExtensionContext,
 	) {
+		// Store snapshot manager for snapshot creation
+		this.snapshotManager = snapshotManager;
 		// Initialize SettingsLoader if context available
 		if (context) {
 			this.settingsLoader = new SettingsLoader(context);
@@ -385,6 +389,15 @@ export class AutoDecisionIntegration {
 			durationMs: 0,
 		});
 
+		// Set AI signal - detect AI coding assistants
+		const aiPresence = detectAIPresence();
+		this.signalAggregator.setAISignal({
+			detected: aiPresence.hasAI,
+			toolName: aiPresence.detectedAssistants[0], // Primary assistant
+			confidence: aiPresence.hasAI ? 0.85 : 0, // High confidence when detected
+			indicators: aiPresence.detectedAssistants,
+		});
+
 		// Aggregate into SaveContext
 		const context = this.signalAggregator.aggregate(fileInfos, repoId);
 
@@ -435,17 +448,37 @@ export class AutoDecisionIntegration {
 	/**
 	 * Execute decision: create snapshot and/or show notification
 	 */
-	private async executeDecision(decision: ProtectionDecision, _context: SaveContext): Promise<void> {
+	private async executeDecision(decision: ProtectionDecision, context: SaveContext): Promise<void> {
 		try {
 			// Create snapshot if needed
-			if (decision.createSnapshot) {
+			if (decision.createSnapshot && context.files.length > 0) {
 				logger.info("Creating snapshot from decision", {
 					reasons: decision.reasons,
 					confidence: decision.confidence,
 				});
 
-				// TODO: Implement snapshot creation
-				// await this.orchestrator.createSnapshot(context, decision);
+				// Create snapshot for the first file in context
+				const primaryFile = context.files[0];
+				try {
+					// Read file content for snapshot
+					const fileUri = vscode.Uri.file(primaryFile.path);
+					const document = await vscode.workspace.openTextDocument(fileUri);
+					const content = document.getText();
+
+					const snapshot = await this.snapshotManager.createSnapshot([
+						{
+							path: primaryFile.path,
+							content,
+							action: "modify" as const,
+						},
+					]);
+					logger.info("Snapshot created from AutoDecision", {
+						snapshotId: snapshot.id,
+						filePath: primaryFile.path,
+					});
+				} catch (snapshotError) {
+					logger.error("Failed to create snapshot from AutoDecision", snapshotError as Error);
+				}
 			}
 
 			// Show notification if needed
