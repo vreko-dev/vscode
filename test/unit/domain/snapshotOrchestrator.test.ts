@@ -313,7 +313,7 @@ describe("SnapshotOrchestrator", () => {
 		it("should remove old snapshots", async () => {
 			// Use fake timers to control time
 			vi.useFakeTimers();
-			
+
 			// Set time to 8 days ago when creating the snapshot
 			const eightDaysAgo = Date.now() - 1000 * 60 * 60 * 24 * 8;
 			vi.setSystemTime(eightDaysAgo);
@@ -354,7 +354,7 @@ describe("SnapshotOrchestrator", () => {
 			await orchestrator.cleanup();
 
 			expect(orchestrator.getSnapshots().length).toBe(0);
-			
+
 			// Restore real timers
 			vi.useRealTimers();
 		});
