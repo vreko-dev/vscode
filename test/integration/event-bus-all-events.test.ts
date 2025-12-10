@@ -1,13 +1,13 @@
 /**
  * TDD RED Phase: Event Bus - All Remaining Events
- * 
+ *
  * Per TDD_CORE.md:
  * - Write failing tests FIRST
  * - 4-path coverage: happy, sad, edge, error
  * - No vague assertions
- * 
+ *
  * These tests will FAIL until implementation is added.
- * 
+ *
  * Events covered:
  * - SNAPSHOT_DELETED
  * - SNAPSHOT_RESTORED

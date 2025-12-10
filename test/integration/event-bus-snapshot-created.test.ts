@@ -1,11 +1,11 @@
 /**
  * TDD RED Phase: Event Bus - SNAPSHOT_CREATED Integration
- * 
+ *
  * Per TDD_CORE.md:
  * - Write failing tests FIRST
  * - 4-path coverage: happy, sad, edge, error
  * - No vague assertions
- * 
+ *
  * These tests will FAIL until implementation is added.
  */
 
@@ -35,7 +35,7 @@ describe('Event Bus - SNAPSHOT_CREATED Integration (RED Phase)', () => {
 			// EXPECTED BEHAVIOR (currently FAILS):
 			// When operationCoordinator.coordinateSnapshotCreation() succeeds,
 			// it should publish SnapBackEvent.SNAPSHOT_CREATED with snapshot ID
-			
+
 			const eventSpy = vi.fn();
 			eventBus?.on(SnapBackEvent.SNAPSHOT_CREATED, eventSpy);
 
@@ -90,7 +90,7 @@ describe('Event Bus - SNAPSHOT_CREATED Integration (RED Phase)', () => {
 		it('RED: should handle missing eventBus gracefully', async () => {
 			// EXPECTED: If eventBus is undefined, operation should still succeed
 			// (defensive programming)
-			
+
 			// Create coordinator without eventBus
 			const coordinatorWithoutBus = null; // Will be implemented
 
@@ -140,7 +140,7 @@ describe('Event Bus - SNAPSHOT_CREATED Integration (RED Phase)', () => {
 		it('RED: should trigger tree view refresh when SNAPSHOT_CREATED fires', async () => {
 			// EXPECTED: Tree view refresh() is called when event fires
 			// This tests the full integration: create → event → UI update
-			
+
 			const treeProvider = {
 				refresh: vi.fn(),
 			};
