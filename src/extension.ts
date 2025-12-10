@@ -171,57 +171,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	// 🆕 Initialize CredentialsManager early
 	const credentialsManager = createCredentialsManager(context.secrets);
 
-	// 🆕 Track authentication events
-	// Listen for session changes to track when user successfully authenticates
-	context.subscriptions.push(
-		vscode.authentication.onDidChangeSessions(async (e) => {
-			logger.info(`📨 Extension: Heard Auth Change for provider: ${e.provider.id}`);
-
-			if (e.provider.id === "snapback") {
-				// Check if we have a valid session
-				const sessions = await vscode.authentication.getSession("snapback", [], { createIfNone: false });
-				logger.info(`👤 Extension: Current Session: ${sessions ? sessions.account.label : "None"}`);
-
-				if (sessions && userIdentityService) {
-					// Use unified identity service to handle login
-					await userIdentityService.handleLogin(sessions.account.id);
-
-					// Update global state
-					await context.globalState.update("snapback.hasAuthenticated", true);
-
-					// Sync credentials for test mode
-					// Check config since env var may not propagate to extension host
-					const isTestMode =
-						process.env.VSCODE_SNAPSHOT_TEST_MODE === "true" ||
-						vscode.workspace.getConfiguration("snapback").get<boolean>("testMode", false);
-
-					logger.info(`🔧 Extension: isTestMode = ${isTestMode}`);
-
-					if (isTestMode) {
-						await credentialsManager.setCredentials({
-							accessToken: sessions.accessToken,
-							refreshToken: "mock-refresh-token",
-							expiresAt: Date.now() + 3600 * 1000,
-							user: {
-								id: sessions.account.id,
-								email: sessions.account.label,
-								name: sessions.account.label,
-							},
-						});
-						logger.info("✅ Synced mock credentials to CredentialsManager");
-					}
-
-					// Refresh views to show authenticated state
-					logger.info("🔄 Extension: Triggering View Refresh...");
-					refreshViews();
-					logger.info("✅ Extension: View Refresh triggered");
-				} else {
-					logger.info("⚠️ Extension: No session or userIdentityService not ready");
-				}
-			}
-		}),
-	);
-
 	// 🆕 Initialize WorkspaceFolderResolver for early workspace verification
 	// This is lightweight and doesn't require storage
 	const workspaceFolderResolver = new WorkspaceFolderResolver(vscode.workspace.workspaceFolders || []);
@@ -402,6 +351,56 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Configure TelemetryProxy to use UserIdentityService
 		telemetryProxy.setIdentityProvider(() => userIdentityService?.getCurrentId() ?? Promise.resolve("unknown"));
 		logger.info("UserIdentityService initialized");
+
+		// 🔒 AUTH LISTENER (moved here - userIdentityService now guaranteed to exist)
+		// Listen for session changes to track when user successfully authenticates
+		context.subscriptions.push(
+			vscode.authentication.onDidChangeSessions(async (e) => {
+				logger.info(`📨 Extension: Heard Auth Change for provider: ${e.provider.id}`);
+
+				if (e.provider.id === "snapback") {
+					// Check if we have a valid session
+					const sessions = await vscode.authentication.getSession("snapback", [], { createIfNone: false });
+					logger.info(`👤 Extension: Current Session: ${sessions ? sessions.account.label : "None"}`);
+
+					if (sessions) {
+						// ✅ userIdentityService is now guaranteed to exist (no null check needed)
+						await userIdentityService!.handleLogin(sessions.account.id);
+
+						// Update global state
+						await context.globalState.update("snapback.hasAuthenticated", true);
+
+						// Sync credentials for test mode
+						const isTestMode =
+							process.env.VSCODE_SNAPSHOT_TEST_MODE === "true" ||
+							vscode.workspace.getConfiguration("snapback").get<boolean>("testMode", false);
+
+						logger.info(`🔧 Extension: isTestMode = ${isTestMode}`);
+
+						if (isTestMode) {
+							await credentialsManager.setCredentials({
+								accessToken: sessions.accessToken,
+								refreshToken: "mock-refresh-token",
+								expiresAt: Date.now() + 3600 * 1000,
+								user: {
+									id: sessions.account.id,
+									email: sessions.account.label,
+									name: sessions.account.label,
+								},
+							});
+							logger.info("✅ Synced mock credentials to CredentialsManager");
+						}
+
+						// Refresh views to show authenticated state
+						logger.info("🔄 Extension: Triggering View Refresh...");
+						refreshViews();
+						logger.info("✅ Extension: View Refresh triggered");
+					} else {
+						logger.info("⚠️ Extension: No active session");
+					}
+				}
+			}),
+		);
 
 		const phase4Result = await initializePhase4Providers(
 			context,

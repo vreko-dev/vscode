@@ -20,7 +20,7 @@ export const TIMING_CONSTANTS = {
 	SESSION_IDLE_TIMEOUT_MS: THRESHOLDS.session.idleTimeout,
 	/** Maximum session duration (1 hour) - from SDK session.maxSessionDuration */
 	SESSION_MAX_DURATION_MS: THRESHOLDS.session.maxSessionDuration,
-	/** Database lock timeout (30 seconds) - VSCode-specific for SQLite WAL mode */
+	/** Storage operation timeout (30 seconds) - VSCode-specific for file-based operations */
 	LOCK_TIMEOUT_MS: 30000,
 	/** Default cooldown period (5 minutes) - from SDK protection.otherCooldown */
 	COOLDOWN_DEFAULT_MS: THRESHOLDS.protection.otherCooldown,

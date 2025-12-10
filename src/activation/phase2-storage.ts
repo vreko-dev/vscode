@@ -221,15 +221,68 @@ export async function initializePhase2Storage(
 		};
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
+		const errorName = error instanceof Error ? error.name : "Error";
 		const err = error instanceof Error ? error : new Error(String(error));
 
 		logger.error("[CRITICAL] Failed to initialize storage and configuration components", err);
 
-		// Show user-facing error
-		vscode.window.showErrorMessage(
-			`${SNAPBACK_ICONS.WARN} SnapBack: Activation failed. Sessions and snapshots will not be available. Details: ${errorMessage}`,
-			"View Logs",
-		);
+		// Show user-friendly error notification based on error type
+		if (errorName === "StorageSpaceError") {
+			// Disk full - provide actionable guidance
+			const choice = await vscode.window.showErrorMessage(
+				`${SNAPBACK_ICONS.CRITICAL} SnapBack: Your disk is full - snapshots disabled`,
+				{
+					modal: false,
+					detail: "Free up disk space, then reload VS Code (Cmd+Shift+P → 'Developer: Reload Window') to re-enable snapshot features.",
+				},
+				"Free Space Guide",
+				"Reload Window",
+			);
+
+			if (choice === "Free Space Guide") {
+				await vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/troubleshooting/disk-space"));
+			} else if (choice === "Reload Window") {
+				await vscode.commands.executeCommand("workbench.action.reloadWindow");
+			}
+		} else if (errorName === "StoragePermissionError") {
+			// Permission denied - guide user to fix permissions
+			const choice = await vscode.window.showErrorMessage(
+				`${SNAPBACK_ICONS.WARN} SnapBack: Permission denied accessing storage`,
+				{
+					modal: false,
+					detail: `Cannot write to storage directory. Check folder permissions and reload VS Code.\n\nPath: ${context.globalStorageUri.fsPath}`,
+				},
+				"Show Folder",
+				"Reload Window",
+			);
+
+			if (choice === "Show Folder") {
+				await vscode.commands.executeCommand("revealFileInOS", context.globalStorageUri);
+			} else if (choice === "Reload Window") {
+				await vscode.commands.executeCommand("workbench.action.reloadWindow");
+			}
+		} else {
+			// Unknown error - provide debug info
+			const choice = await vscode.window.showErrorMessage(
+				`${SNAPBACK_ICONS.WARN} SnapBack: Storage initialization failed`,
+				{
+					modal: false,
+					detail: `Snapshot features are disabled.\n\nError: ${errorMessage}\n\nCheck the Output panel for details.`,
+				},
+				"View Logs",
+				"Report Issue",
+			);
+
+			if (choice === "View Logs") {
+				await vscode.commands.executeCommand("workbench.action.output.show");
+			} else if (choice === "Report Issue") {
+				await vscode.env.openExternal(
+					vscode.Uri.parse(
+						`https://github.com/snapback-dev/snapback/issues/new?title=Storage%20Initialization%20Failed&body=${encodeURIComponent(`Error: ${errorMessage}\n\nPlatform: ${process.platform}\nVS Code: ${vscode.version}`)}`,
+					),
+				);
+			}
+		}
 
 		// Log that we're in fallback mode
 		logger.warn(

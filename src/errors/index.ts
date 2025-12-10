@@ -59,7 +59,7 @@ export class StorageError extends SnapBackError {
 
 /**
  * Database connection failed
- * Thrown when unable to connect to SQLite database
+ * Thrown when unable to connect to storage backend
  */
 export class DatabaseConnectionError extends StorageError {
 	constructor(message: string, cause?: Error) {

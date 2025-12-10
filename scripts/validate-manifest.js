@@ -80,7 +80,7 @@ async function validateManifest() {
 				success(`Version: ${manifest.version}`);
 			} else {
 				warning(
-					`Version format might not follow semantic versioning: ${manifest.version}`,
+					`Version format might not follow semantic versioning: ${manifest.version}`
 				);
 				hasWarnings = true;
 			}
@@ -131,7 +131,9 @@ async function validateManifest() {
 		if (manifest.pricing) {
 			success(`Pricing: ${manifest.pricing}`);
 		} else {
-			info("Consider adding pricing information for marketplace visibility");
+			info(
+				"Consider adding pricing information for marketplace visibility"
+			);
 		}
 
 		if (manifest.sponsor) {
@@ -158,7 +160,9 @@ async function validateManifest() {
 		if (manifest.galleryBanner) {
 			success("Gallery banner configuration present");
 		} else {
-			info("Consider adding gallery banner for better marketplace appearance");
+			info(
+				"Consider adding gallery banner for better marketplace appearance"
+			);
 		}
 
 		// Check for activation events
@@ -168,10 +172,12 @@ async function validateManifest() {
 			manifest.activationEvents.length > 0
 		) {
 			success(
-				`Activation events: ${manifest.activationEvents.length} events configured`,
+				`Activation events: ${manifest.activationEvents.length} events configured`
 			);
 		} else {
-			warning("No activation events specified (extension will not activate)");
+			warning(
+				"No activation events specified (extension will not activate)"
+			);
 			hasWarnings = true;
 		}
 
@@ -186,13 +192,15 @@ async function validateManifest() {
 				manifest.contributes.commands.length > 0
 			) {
 				success(
-					`Commands: ${manifest.contributes.commands.length} commands registered`,
+					`Commands: ${manifest.contributes.commands.length} commands registered`
 				);
 			}
 
 			// Check for views
 			if (manifest.contributes.views) {
-				const viewCount = Object.keys(manifest.contributes.views).length;
+				const viewCount = Object.keys(
+					manifest.contributes.views
+				).length;
 				if (viewCount > 0) {
 					success(`Views: ${viewCount} view containers registered`);
 				}
@@ -222,15 +230,8 @@ async function validateManifest() {
 			}
 		}
 
-		// Check for native modules
-		if (manifest.dependencies?.["better-sqlite3"]) {
-			success("Native module (better-sqlite3) properly declared as dependency");
-		} else {
-			warning(
-				"better-sqlite3 not found in dependencies (required for SnapBack)",
-			);
-			hasWarnings = true;
-		}
+		// NOTE: better-sqlite3 removed - extension uses file-based storage
+		// Native module checks no longer needed
 
 		// Summary
 		log(`\n${"=".repeat(50)}`, "blue");
@@ -243,12 +244,12 @@ async function validateManifest() {
 			log("\nRecommendations:", "blue");
 			log(
 				"1. Address the warnings above for a better marketplace experience",
-				"cyan",
+				"cyan"
 			);
 			log("2. Test the extension locally before publishing", "cyan");
 			log(
 				"3. Ensure all assets (README, CHANGELOG, LICENSE) are up to date",
-				"cyan",
+				"cyan"
 			);
 			process.exit(0);
 		} else {

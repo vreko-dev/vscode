@@ -276,7 +276,7 @@ export function registerSessionCommands(
  *
  * @see {@link SessionManifest} for session structure
  * @see {@link SnapshotManager.get} for snapshot retrieval
- * @see {@link SqliteStorageAdapter.restore} for atomic restore operation
+ * @see {@link StorageManager} for file-based storage operations
  *
  * @since 1.2.0
  */

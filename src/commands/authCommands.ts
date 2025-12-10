@@ -8,34 +8,45 @@ import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
 import { logger } from "../utils/logger";
 
+// Auth provider constants
+const AUTH_PROVIDER_ID = "snapback" as const;
+const AUTH_SCOPES = ["read", "write"] as const;
+
+/**
+ * Shared sign-in handler implementation
+ * Used by both new and legacy sign-in commands
+ */
+async function handleSignIn(): Promise<void> {
+	try {
+		logger.info("User initiated sign in");
+
+		// Trigger OAuth flow
+		const session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, AUTH_SCOPES, {
+			createIfNone: true,
+		});
+
+		if (session) {
+			vscode.window.showInformationMessage(`Signed in to SnapBack as ${session.account.label}`);
+			logger.info("Sign in successful", {
+				account: session.account.id,
+			});
+		}
+	} catch (error) {
+		logger.error("Sign in failed", error as Error);
+		vscode.window.showErrorMessage(`Sign in failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+	}
+}
+
 /**
  * Register authentication-related commands
  */
 export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.Disposable[] {
 	return [
-		// Sign in to SnapBack
-		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SIGN_IN_LEGACY, async () => {
-			try {
-				logger.info("User initiated sign in");
+		// Sign in to SnapBack (new command structure)
+		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SIGN_IN, handleSignIn),
 
-				// Trigger OAuth flow
-				const session = await vscode.authentication.getSession("snapback", ["read", "write"], {
-					createIfNone: true,
-				});
-
-				if (session) {
-					vscode.window.showInformationMessage(`Signed in to SnapBack as ${session.account.label}`);
-					logger.info("Sign in successful", {
-						account: session.account.id,
-					});
-				}
-			} catch (error) {
-				logger.error("Sign in failed", error as Error);
-				vscode.window.showErrorMessage(
-					`Sign in failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-				);
-			}
-		}),
+		// Sign in to SnapBack (legacy command - kept for backward compatibility)
+		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SIGN_IN_LEGACY, handleSignIn),
 
 		// Sign out of SnapBack
 		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SIGN_OUT_LEGACY, async () => {
@@ -43,7 +54,7 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 				logger.info("User initiated sign out");
 
 				// Get current session
-				const sessions = await vscode.authentication.getSession("snapback", ["read", "write"], {
+				const sessions = await vscode.authentication.getSession(AUTH_PROVIDER_ID, AUTH_SCOPES, {
 					createIfNone: false,
 				});
 
@@ -61,7 +72,7 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 
 				if (confirmed === "Sign Out") {
 					// Remove session (this triggers the authentication provider's removeSession method)
-					await vscode.commands.executeCommand("workbench.action.accounts.logout", "snapback");
+					await vscode.commands.executeCommand("workbench.action.accounts.logout", AUTH_PROVIDER_ID);
 
 					vscode.window.showInformationMessage("Signed out of SnapBack");
 					logger.info("Sign out successful");
@@ -78,14 +89,14 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SHOW_STATUS_LEGACY, async () => {
 			try {
 				// Try to get session without prompting
-				const session = await vscode.authentication.getSession("snapback", ["read", "write"], {
+				const session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, AUTH_SCOPES, {
 					createIfNone: false,
 					silent: true,
 				});
 
 				if (session) {
 					// Check if API key is also configured
-					const config = vscode.workspace.getConfiguration("snapback");
+					const config = vscode.workspace.getConfiguration(AUTH_PROVIDER_ID);
 					const hasApiKey = !!config.get("api.key");
 
 					const authMethod = hasApiKey ? "OAuth (with API key fallback)" : "OAuth";
@@ -96,7 +107,7 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 					);
 				} else {
 					// Check for API key
-					const config = vscode.workspace.getConfiguration("snapback");
+					const config = vscode.workspace.getConfiguration(AUTH_PROVIDER_ID);
 					const hasApiKey = !!config.get("api.key");
 
 					if (hasApiKey) {
@@ -116,7 +127,7 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 		}),
 		// Test: Get Auth State
 		vscode.commands.registerCommand(COMMANDS.ACCOUNT.GET_AUTH_STATE, async () => {
-			const session = await vscode.authentication.getSession("snapback", ["read", "write"], {
+			const session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, AUTH_SCOPES, {
 				createIfNone: false,
 			});
 			return { authenticated: !!session };

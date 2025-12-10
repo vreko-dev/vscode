@@ -76,18 +76,39 @@ export class StorageManager implements IStorageManager {
 			return;
 		}
 
-		// ⚡ CRITICAL PERF: Skip directory check on activation
-		// VS Code FS API can be slow. Directory will be created on first use if needed.
-		// This saves 1-3 seconds on cold start
-		// await ensureDirectory(this.storageUri);
-		// Instead, just create it non-blocking
+		// ⚡ CRITICAL: Create storage directory with proper error handling
+		// This must succeed for snapshots and sessions to work
 		try {
 			await vscode.workspace.fs.createDirectory(this.storageUri);
 		} catch (err: any) {
-			// Directory might already exist or be inaccessible
-			// This is fine - we'll fail later on first actual use if truly broken
-			if (err.code !== "FileExists") {
-				console.warn("[SnapBack Storage] Directory creation warning:", err?.message);
+			// Handle specific error cases with clear user guidance
+			if (err.code === "FileExists") {
+				// OK - directory already exists, continue normally
+			} else if (err.code === "NoSpace" || err.message?.includes("ENOSPC") || err.message?.includes("no space")) {
+				// Disk full - provide actionable guidance
+				const error = new Error(
+					"Cannot initialize SnapBack storage: Your disk is full. Free up space and reload VS Code to use snapshot features.",
+				);
+				error.name = "StorageSpaceError";
+				throw error;
+			} else if (
+				err.code === "NoPermissions" ||
+				err.message?.includes("EACCES") ||
+				err.message?.includes("permission")
+			) {
+				// Permission denied - guide user to fix permissions
+				const error = new Error(
+					`Cannot initialize SnapBack storage: Permission denied accessing ${this.storageUri.fsPath}. Check folder permissions and reload VS Code.`,
+				);
+				error.name = "StoragePermissionError";
+				throw error;
+			} else {
+				// Unknown error - provide debug info
+				const error = new Error(
+					`Cannot initialize SnapBack storage: ${err.message || "Unknown error"}. Check the Output panel for details.`,
+				);
+				error.name = "StorageInitializationError";
+				throw error;
 			}
 		}
 
@@ -117,13 +138,37 @@ export class StorageManager implements IStorageManager {
 			return;
 		}
 
-		// Initialize all heavy components on first use
-		await this.blobStore.initialize();
-		await this.snapshotStore.initialize();
-		await this.sessionStore.initialize();
-		await this.auditLog.initialize();
+		try {
+			// Initialize all heavy components on first use
+			await this.blobStore.initialize();
+			await this.snapshotStore.initialize();
+			await this.sessionStore.initialize();
+			await this.auditLog.initialize();
 
-		this._componentsInitialized = true;
+			this._componentsInitialized = true;
+		} catch (err: any) {
+			// Provide user-friendly error messages for common storage failures
+			if (err.code === "NoSpace" || err.message?.includes("ENOSPC") || err.message?.includes("no space")) {
+				const error = new Error(
+					"Cannot create snapshot: Your disk is full. Free up space to continue using SnapBack.",
+				);
+				error.name = "StorageSpaceError";
+				throw error;
+			}
+			if (
+				err.code === "NoPermissions" ||
+				err.message?.includes("EACCES") ||
+				err.message?.includes("permission")
+			) {
+				const error = new Error(
+					`Cannot access storage: Permission denied. Check folder permissions for ${this.storageUri.fsPath}`,
+				);
+				error.name = "StoragePermissionError";
+				throw error;
+			}
+			// Re-throw with original error for debugging
+			throw err;
+		}
 	}
 
 	// Add flag to track component initialization
