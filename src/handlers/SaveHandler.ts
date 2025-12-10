@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import type { ProtectionDecisionEngine } from "@snapback/sdk";
 import * as vscode from "vscode";
 import { type AIDetection, AIWarningManager } from "../ai/AIWarningManager";
@@ -214,13 +215,31 @@ export class SaveHandler {
 			filePath,
 			step: "analysis_started",
 		});
-		await this.analysisCoordinator.analyzeAndPublish(filePath, filename, preSaveContent, document);
-		logger.debug("Risk analysis completed", {
-			correlationId,
-			filePath,
-			duration: Date.now() - analysisStartTime,
-			step: "analysis_completed",
-		});
+
+		// P0 FIX: Error boundary for analyzeAndPublish
+		// If analysis fails, continue with save using default protection
+		try {
+			await this.analysisCoordinator.analyzeAndPublish(filePath, filename, preSaveContent, document);
+			logger.debug("Risk analysis completed", {
+				correlationId,
+				filePath,
+				duration: Date.now() - analysisStartTime,
+				step: "analysis_completed",
+			});
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			const baseFilename = path.basename(filePath);
+
+			logger.error(`Analysis failed for ${baseFilename}, applying safe default protection: ${errorMessage}`);
+
+			// Show user-friendly message
+			vscode.window.showWarningMessage(
+				`Code analysis unavailable. Applied safe protection to ${baseFilename}.`,
+				"OK",
+			);
+
+			// Continue with save - analysis failure does not block save
+		}
 
 		// If analysis resulted in blocking (user cancelled), the coordinator already threw CancellationError
 		// If we get here, analysis passed or user chose to proceed
