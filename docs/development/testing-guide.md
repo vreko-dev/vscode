@@ -157,6 +157,10 @@ describe("Protection Commands Integration", () => {
 
 ## Manual Testing
 
+// TODO: Implement automated tests for manual test cases
+// TODO: Add integration tests for VS Code API behavior verification
+// TODO: Implement UI verification tests for visual elements
+
 Some aspects of SnapBack cannot be fully tested automatically and require manual verification.
 
 ### Manual Test Cases

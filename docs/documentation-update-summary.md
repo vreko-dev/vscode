@@ -6,6 +6,8 @@ This update restructures and refreshes the SnapBack documentation to accurately 
 
 ## Changes Made
 
+// TODO: Archive documents after all TODO items are implemented
+
 ### 1. Documentation Structure
 
 -   **Archived outdated documentation** in `ARCHIVE/20251020/` directory

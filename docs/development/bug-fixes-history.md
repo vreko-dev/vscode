@@ -39,6 +39,10 @@ This document catalogs the critical bugs discovered and fixed during the Protect
 
 ## Detailed Bug Reports
 
+// TODO: Implement preventive measures for bug recurrence
+// TODO: Add regression tests for all fixed bugs
+// TODO: Implement automated detection for similar issues
+
 ### Bug #1: Invalid Timeline Command Reference
 
 **Severity**: High

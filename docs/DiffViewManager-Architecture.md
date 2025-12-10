@@ -1161,6 +1161,8 @@ function useDiffLines(original: string, changed: string) {
 function useSyntaxHighlight(content: string, fileName: string): string {
   // For MVP: Return plain content with basic HTML escaping
   // TODO: Integrate TextMate tokenizer for proper syntax highlighting
+  // TODO: Integrate with NotificationManager for user feedback on diff operations
+  // TODO: Add performance monitoring for diff rendering and panel creation
 
   // Escape HTML
   const escaped = content

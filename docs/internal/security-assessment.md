@@ -60,6 +60,11 @@ case 'watch': {
 3. **Timeout Detection**: Implement timeout detection for checkpoint operations
 4. **User Notification**: Alert users when protection fails
 
+// TODO: Implement immediate fix for Watch level race condition
+// TODO: Implement proper error handling for checkpoint operations
+// TODO: Add timeout detection for checkpoint operations
+// TODO: Implement user notifications for protection failures
+
 ### 2. Remote Code Execution via Hooks
 
 **Severity**: CRITICAL
@@ -100,6 +105,11 @@ export interface SnapBackHooks {
 2. **Alternative Approach**: Implement a whitelist of allowed commands with proper sandboxing
 3. **User Education**: Clearly document the security risks of hooks
 4. **Configuration Validation**: Validate all hook commands before execution
+
+// TODO: Remove hooks feature or implement proper sandboxing
+// TODO: Implement whitelist of allowed commands
+// TODO: Add user education documentation for hooks security risks
+// TODO: Implement configuration validation for hook commands
 
 ## Medium Security Issues
 

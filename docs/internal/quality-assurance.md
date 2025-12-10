@@ -89,6 +89,10 @@ All changes must pass the following quality gates before merging:
 
 ## Test Infrastructure
 
+// TODO: Implement comprehensive test infrastructure
+// TODO: Add platform-specific tests for native modules
+// TODO: Implement performance benchmarking infrastructure
+
 ### Frameworks
 
 -   **Vitest**: Unit testing framework

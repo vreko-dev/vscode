@@ -186,6 +186,10 @@ const SQL = await initSqlJs();
 
 ## Debugging Native Module Issues
 
+// TODO: Implement proper input validation for native module loading
+// TODO: Add permission checks before loading native modules
+// TODO: Implement sandboxing for native module execution
+
 ### Issue: "Cannot find module 'better-sqlite3'"
 
 **Cause**: Module not in node_modules or not in .vsix package

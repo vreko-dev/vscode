@@ -173,6 +173,10 @@ Commands are filtered based on experience level using `when` clauses:
 
 ## Integration
 
+// TODO: Implement integration with DiffViewManager for AI change review features
+// TODO: Implement integration with Security System for protection level features
+// TODO: Implement integration with NotificationManager for contextual hints
+
 ### Extension Activation
 
 ```typescript
