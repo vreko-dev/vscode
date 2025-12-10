@@ -52,7 +52,7 @@ describe("P0 Telemetry Integration Tests", () => {
 			 */
 
 			// This test verifies the event constant exists
-			expect(CORE_TELEMETRY_EVENTS.AUTH_FLOW_COMPLETED).toBe("auth.flow_completed");
+			expect(CORE_TELEMETRY_EVENTS.AUTH_APPROVAL_RECEIVED).toBe("auth.approval.received");
 
 			// Verify event structure matches schema
 			const expectedEvent = {
@@ -64,7 +64,8 @@ describe("P0 Telemetry Integration Tests", () => {
 
 			// Integration point: extension.ts line 371-390
 			// When UserIdentityService.handleLogin() is called,
-			// telemetryProxy.trackEvent(AUTH_FLOW_COMPLETED) should fire
+			// When user completes authentication, AUTH_APPROVAL_RECEIVED should fire
+			// telemetryProxy.trackEvent(AUTH_APPROVAL_RECEIVED) should fire
 
 			expect(expectedEvent.is_first_auth).toBe(true);
 		});
@@ -114,7 +115,7 @@ describe("P0 Telemetry Integration Tests", () => {
 			 * Expected: milestone.first_snapshot event emitted once
 			 */
 
-			expect(CORE_TELEMETRY_EVENTS.MILESTONE_FIRST_SNAPSHOT).toBe("milestone.first_snapshot");
+			expect(CORE_TELEMETRY_EVENTS.SNAPSHOT_CREATED).toBe("snapshot_created");
 
 			// Verify trigger validation
 			const validTriggers = ["auto", "manual", "ai_detected"];

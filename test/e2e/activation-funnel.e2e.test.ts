@@ -79,9 +79,9 @@ describe("E2E: Activation Funnel (Install → Auth → First Snapshot)", () => {
 			const hasAuthenticatedBefore = mockGlobalState.get<boolean>("snapback.hasAuthenticated", false);
 			expect(hasAuthenticatedBefore).toBe(false);
 
-			// Simulate auth.flow_completed event
+			// Simulate auth approval received event
 			telemetryEvents.push({
-				event: CORE_TELEMETRY_EVENTS.AUTH_FLOW_COMPLETED,
+				event: CORE_TELEMETRY_EVENTS.AUTH_APPROVAL_RECEIVED,
 				properties: {
 					provider: "oauth",
 					user_id: "user-123",
@@ -105,7 +105,7 @@ describe("E2E: Activation Funnel (Install → Auth → First Snapshot)", () => {
 
 			// Simulate milestone.first_snapshot event
 			telemetryEvents.push({
-				event: CORE_TELEMETRY_EVENTS.MILESTONE_FIRST_SNAPSHOT,
+				event: CORE_TELEMETRY_EVENTS.SNAPSHOT_CREATED,
 				properties: {
 					time_since_activation_ms: timeSinceActivation,
 					trigger: "auto",
@@ -165,7 +165,7 @@ describe("E2E: Activation Funnel (Install → Auth → First Snapshot)", () => {
 			expect(hasAuthenticatedBefore).toBe(true); // Already authenticated before
 
 			telemetryEvents.push({
-				event: CORE_TELEMETRY_EVENTS.AUTH_FLOW_COMPLETED,
+				event: CORE_TELEMETRY_EVENTS.AUTH_APPROVAL_RECEIVED,
 				properties: {
 					provider: "oauth",
 					user_id: "user-123",
@@ -207,7 +207,7 @@ describe("E2E: Activation Funnel (Install → Auth → First Snapshot)", () => {
 					timestamp: activationTimestamp,
 				},
 				{
-					event: CORE_TELEMETRY_EVENTS.AUTH_FLOW_COMPLETED,
+					event: CORE_TELEMETRY_EVENTS.AUTH_APPROVAL_RECEIVED,
 					properties: {
 						provider: "oauth",
 						user_id: userId, // CRITICAL: User ID present
@@ -217,7 +217,7 @@ describe("E2E: Activation Funnel (Install → Auth → First Snapshot)", () => {
 					timestamp: activationTimestamp + 2000,
 				},
 				{
-					event: CORE_TELEMETRY_EVENTS.MILESTONE_FIRST_SNAPSHOT,
+					event: CORE_TELEMETRY_EVENTS.SNAPSHOT_CREATED,
 					properties: {
 						time_since_activation_ms: 5000,
 						trigger: "auto",
@@ -230,12 +230,12 @@ describe("E2E: Activation Funnel (Install → Auth → First Snapshot)", () => {
 			);
 
 			// Dashboard Query Simulation: Filter events by user_id
-			const authEvent = telemetryEvents.find((e) => e.event === CORE_TELEMETRY_EVENTS.AUTH_FLOW_COMPLETED);
+			const authEvent = telemetryEvents.find((e) => e.event === CORE_TELEMETRY_EVENTS.AUTH_APPROVAL_RECEIVED);
 			expect(authEvent?.properties.user_id).toBe(userId);
 
 			// Calculate activation metrics
 			const firstSnapshotEvent = telemetryEvents.find(
-				(e) => e.event === CORE_TELEMETRY_EVENTS.MILESTONE_FIRST_SNAPSHOT,
+				(e) => e.event === CORE_TELEMETRY_EVENTS.SNAPSHOT_CREATED,
 			);
 			const timeToFirstSnapshot = firstSnapshotEvent?.properties.time_since_activation_ms as number;
 
@@ -292,7 +292,7 @@ describe("E2E: Activation Funnel (Install → Auth → First Snapshot)", () => {
 			await mockGlobalState.update("snapback.hasCreatedFirstSnapshot", false);
 
 			telemetryEvents.push({
-				event: CORE_TELEMETRY_EVENTS.AUTH_FLOW_COMPLETED,
+				event: CORE_TELEMETRY_EVENTS.AUTH_APPROVAL_RECEIVED,
 				properties: {
 					provider: "oauth",
 					user_id: "user-123",
@@ -315,7 +315,7 @@ describe("E2E: Activation Funnel (Install → Auth → First Snapshot)", () => {
 
 			// STEP 4: User creates first snapshot (milestone should still emit)
 			telemetryEvents.push({
-				event: CORE_TELEMETRY_EVENTS.MILESTONE_FIRST_SNAPSHOT,
+				event: CORE_TELEMETRY_EVENTS.SNAPSHOT_CREATED,
 				properties: {
 					time_since_activation_ms: 10000,
 					trigger: "auto",
