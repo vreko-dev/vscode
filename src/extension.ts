@@ -364,8 +364,11 @@ export async function activate(context: vscode.ExtensionContext) {
 					logger.info(`👤 Extension: Current Session: ${sessions ? sessions.account.label : "None"}`);
 
 					if (sessions) {
-						// ✅ userIdentityService is now guaranteed to exist (no null check needed)
-						await userIdentityService!.handleLogin(sessions.account.id);
+						if (!userIdentityService) {
+							logger.error("userIdentityService not initialized during auth callback");
+							return;
+						}
+						await userIdentityService.handleLogin(sessions.account.id);
 
 						// Update global state
 						await context.globalState.update("snapback.hasAuthenticated", true);
