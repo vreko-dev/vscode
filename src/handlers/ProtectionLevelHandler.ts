@@ -694,6 +694,9 @@ A snapshot will be created before saving.`,
 			// Track Milestone (files protected)
 			if (this.milestoneService) {
 				void this.milestoneService.incrementProtectedFiles();
+
+				// P0 FIX: Track first snapshot creation (P0 Blocker #3)
+				void this.milestoneService.trackFirstSnapshot();
 			}
 
 			logger.info("Snapshot created successfully", {

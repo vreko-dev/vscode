@@ -18,6 +18,7 @@ export class MilestoneService {
 		TOTAL_FILES_PROTECTED: "snapback.milestones.totalFilesProtected",
 		TOTAL_RECOVERIES: "snapback.milestones.totalRecoveries",
 		LAST_MILESTONE_SHOWN: "snapback.milestones.lastShown",
+		FIRST_SNAPSHOT_CREATED: "snapback.events.first_snapshot_created",
 	};
 
 	// Milestone thresholds
@@ -31,6 +32,31 @@ export class MilestoneService {
 		private telemetryProxy: TelemetryProxy,
 		private notificationManager: NotificationManager,
 	) {}
+
+	/**
+	 * P0 FIX: Track first snapshot creation (P0 Blocker #3)
+	 * Records when the user creates their first snapshot for milestone tracking
+	 */
+	async trackFirstSnapshot(): Promise<void> {
+		const hasCreated = this.context.globalState.get<boolean>(MilestoneService.KEYS.FIRST_SNAPSHOT_CREATED, false);
+
+		if (!hasCreated) {
+			await this.context.globalState.update(MilestoneService.KEYS.FIRST_SNAPSHOT_CREATED, true);
+
+			this.telemetryProxy.trackEvent("first_snapshot.created", {
+				timestamp: Date.now(),
+			});
+
+			this.notificationManager.showNotification({
+				id: `first-snapshot-${Date.now()}`,
+				type: "info",
+				icon: "📸",
+				message: "First Snapshot Created!",
+				detail: "Your first snapshot is secured. Code changes are now being tracked.",
+				timestamp: Date.now(),
+			});
+		}
+	}
 
 	/**
 	 * Increment the count of protected files and check for milestones
