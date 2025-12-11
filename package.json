@@ -1048,6 +1048,7 @@
     ]
   },
   "dependencies": {
+    "@snapback/config": "workspace:*",
     "@snapback/contracts": "workspace:*",
     "@snapback/core": "workspace:*",
     "@snapback/events": "workspace:*",
