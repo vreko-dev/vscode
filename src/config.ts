@@ -1,10 +1,13 @@
-import * as vscode from "vscode";
-
 /**
  * Configuration management for SnapBack extension
- * Handles privacy settings and feature toggles
+ * Uses unified ConfigStore v2 for all settings
  */
 
+import { getInitializedConfigStore } from "./config/configStore";
+
+/**
+ * Configuration type inferred from ConfigStore schema
+ */
 export interface SnapBackConfig {
 	privacy: {
 		consent: boolean;
@@ -39,61 +42,67 @@ export interface SnapBackConfig {
 }
 
 /**
- * Get the current SnapBack configuration
+ * Get the current SnapBack configuration from ConfigStore
  * @returns Current configuration
  */
 export function getConfig(): SnapBackConfig {
-	const config = vscode.workspace.getConfiguration("snapback");
+	const store = getInitializedConfigStore();
+	const config = store.getConfig();
+	const settings = config.settings;
 
 	return {
 		privacy: {
-			consent: config.get("privacy.consent", false),
-			clipboard: config.get("privacy.clipboard", false),
-			watcher: config.get("privacy.watcher", false),
-			gitWrapper: config.get("privacy.gitWrapper", false),
-			lastReminded: config.get("privacy.lastReminded", undefined),
+			consent: settings.privacy?.consent ?? false,
+			clipboard: settings.privacy?.clipboard ?? false,
+			watcher: settings.privacy?.watcher ?? false,
+			gitWrapper: settings.privacy?.gitWrapper ?? false,
+			lastReminded: settings.privacy?.lastReminded,
 		},
 		protection: {
-			enabled: config.get("protection.enabled", true),
-			level: config.get("protection.level", "warn"),
-			autoProtect: config.get("protection.autoProtect", true),
+			enabled: true,
+			level: settings.defaultProtectionLevel || "warn",
+			autoProtect: true,
 		},
 		notifications: {
-			enabled: config.get("notifications.enabled", true),
-			quietHours: {
-				start: config.get("notifications.quietHours.start", "22:00"),
-				end: config.get("notifications.quietHours.end", "08:00"),
-			},
-			rateLimit: config.get("notifications.rateLimit", 5),
+			enabled: settings.notifications?.enabled ?? true,
+			quietHours: settings.notifications?.quietHours || { start: "22:00", end: "08:00" },
+			rateLimit: settings.notifications?.rateLimit ?? 5,
 		},
 		snapshots: {
-			enabled: config.get("snapshots.enabled", true),
-			autoCreate: config.get("snapshots.autoCreate", true),
-			retentionDays: config.get("snapshots.retentionDays", 30),
+			enabled: settings.snapshots?.enabled ?? true,
+			autoCreate: settings.snapshots?.autoCreate ?? true,
+			retentionDays: settings.snapshots?.retentionDays ?? 30,
 		},
 		ai: {
-			enabled: config.get("ai.enabled", true),
-			context: config.get("ai.context", true),
-			copilot: config.get("ai.copilot", true),
+			enabled: settings.ai?.enabled ?? true,
+			context: settings.ai?.context ?? true,
+			copilot: settings.ai?.copilot ?? true,
 		},
 	};
 }
 
 /**
- * Update a specific configuration value
- * @param section Configuration section (e.g., 'privacy', 'protection')
- * @param key Configuration key (e.g., 'consent', 'enabled')
+ * Update a specific configuration value in ConfigStore
+ * @param path Dot notation path (e.g., 'privacy.consent', 'notifications.enabled')
  * @param value New value
- * @param target Configuration target (Global, Workspace, etc.)
  */
-export async function updateConfig(
-	section: string,
-	key: string,
-	value: unknown,
-	target: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Global,
-): Promise<void> {
-	const config = vscode.workspace.getConfiguration(`snapback.${section}`);
-	await config.update(key, value, target);
+export async function updateConfig(path: string, value: unknown): Promise<void> {
+	const store = getInitializedConfigStore();
+	const config = store.getConfig();
+
+	// Update nested property
+	const keys = path.split(".");
+	let current: any = config;
+
+	for (let i = 0; i < keys.length - 1; i++) {
+		if (!(keys[i] in current)) {
+			current[keys[i]] = {};
+		}
+		current = current[keys[i]];
+	}
+
+	current[keys[keys.length - 1]] = value;
+	await store.saveSnapbackrc(config);
 }
 
 /**
@@ -101,8 +110,8 @@ export async function updateConfig(
  * @returns Whether privacy consent has been given
  */
 export function hasPrivacyConsent(): boolean {
-	const config = vscode.workspace.getConfiguration("snapback.privacy");
-	return config.get("consent", false);
+	const store = getInitializedConfigStore();
+	return store.get<boolean>("settings.privacy.consent") || false;
 }
 
 /**
@@ -111,13 +120,12 @@ export function hasPrivacyConsent(): boolean {
  * @returns Whether the feature is enabled
  */
 export function isFeatureEnabled(feature: "clipboard" | "watcher" | "gitWrapper"): boolean {
-	// If no consent given, features are disabled
 	if (!hasPrivacyConsent()) {
 		return false;
 	}
 
-	const config = vscode.workspace.getConfiguration("snapback.privacy");
-	return config.get(feature, false);
+	const store = getInitializedConfigStore();
+	return store.get<boolean>(`settings.privacy.${feature}`) || false;
 }
 
 /**
@@ -125,8 +133,9 @@ export function isFeatureEnabled(feature: "clipboard" | "watcher" | "gitWrapper"
  * @returns Whether protection is enabled
  */
 export function isProtectionEnabled(): boolean {
-	const config = vscode.workspace.getConfiguration("snapback.protection");
-	return config.get("enabled", true);
+	const store = getInitializedConfigStore();
+	const level = store.get<string>("settings.defaultProtectionLevel");
+	return level !== "watch";
 }
 
 /**
@@ -134,8 +143,8 @@ export function isProtectionEnabled(): boolean {
  * @returns Current protection level
  */
 export function getProtectionLevel(): "watch" | "warn" | "block" {
-	const config = vscode.workspace.getConfiguration("snapback.protection");
-	return config.get("level", "warn");
+	const store = getInitializedConfigStore();
+	return store.get<"watch" | "warn" | "block">("settings.defaultProtectionLevel") || "warn";
 }
 
 /**
@@ -143,8 +152,8 @@ export function getProtectionLevel(): "watch" | "warn" | "block" {
  * @returns Whether notifications are enabled
  */
 export function areNotificationsEnabled(): boolean {
-	const config = vscode.workspace.getConfiguration("snapback.notifications");
-	return config.get("enabled", true);
+	const store = getInitializedConfigStore();
+	return store.get<boolean>("settings.notifications.enabled") !== false;
 }
 
 /**
@@ -152,8 +161,8 @@ export function areNotificationsEnabled(): boolean {
  * @returns Whether snapshots are enabled
  */
 export function areSnapshotsEnabled(): boolean {
-	const config = vscode.workspace.getConfiguration("snapback.snapshots");
-	return config.get("enabled", true);
+	const store = getInitializedConfigStore();
+	return store.get<boolean>("settings.snapshots.enabled") !== false;
 }
 
 /**
@@ -161,6 +170,6 @@ export function areSnapshotsEnabled(): boolean {
  * @returns Whether AI features are enabled
  */
 export function isAiEnabled(): boolean {
-	const config = vscode.workspace.getConfiguration("snapback.ai");
-	return config.get("enabled", true);
+	const store = getInitializedConfigStore();
+	return store.get<boolean>("settings.ai.enabled") !== false;
 }
