@@ -10,10 +10,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ExtensionContext } from "vscode";
 
 describe("First Snapshot Milestone Tracking (RED)", () => {
-	let mockContext: Partial<ExtensionContext>;
 	let mockTelemetryProxy: any;
 	let mockGlobalState: any;
 
@@ -32,10 +30,6 @@ describe("First Snapshot Milestone Tracking (RED)", () => {
 			keys: () => [],
 			setKeysForSync: vi.fn(),
 		};
-
-		mockContext = {
-			globalState: mockGlobalState,
-		} as any;
 
 		mockTelemetryProxy = {
 			trackEvent: vi.fn(),

@@ -3,7 +3,8 @@ import * as vscode from "vscode";
 import { SaveHandler } from "@vscode/handlers/SaveHandler";
 import { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
 
-describe.skip("SaveHandler - Pre-Save State Capture", () => {
+describe.skip("SaveHandler - Pre-Save State Capture [GH-save-pre-save]", () => {
+	// @see https://github.com/snapback/snapback-site/issues/save-pre-save
 	let saveHandler: SaveHandler;
 	let registry: ProtectedFileRegistry;
 	let mockOperationCoordinator: any;

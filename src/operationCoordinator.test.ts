@@ -40,7 +40,8 @@ describe("OperationCoordinator", () => {
 			mockStorage,
 			mockTelemetryProxy,
 			mockConflictResolver,
-			mockMilestoneService
+			mockMilestoneService,
+			{} as any // Mock SessionCoordinator
 		);
 
 		// Mock vscode.workspace.workspaceFolders

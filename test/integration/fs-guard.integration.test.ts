@@ -24,32 +24,38 @@ describe("FS Guard", () => {
 	});
 
 	// Skip the more complex tests that require extensive mocking
-	it.skip("fs-002: should watch common AI agent directories", () => {
+	it.skip("fs-002: should watch common AI agent directories [GH-fs-002]", () => {
+		// @see https://github.com/snapback/snapback-site/issues/fs-002
 		// This test requires complex mocking of chokidar which is beyond the scope here
 		expect(true).toBe(true);
 	});
 
-	it.skip("fs-003: should handle file changes and analyze with Guardian", async () => {
+	it.skip("fs-003: should handle file changes and analyze with Guardian [GH-fs-003]", async () => {
+		// @see https://github.com/snapback/snapback-site/issues/fs-003
 		// This test requires mocking of VS Code and file system which is complex
 		expect(true).toBe(true);
 	});
 
-	it.skip("fs-004: should block critical changes and delete file", async () => {
+	it.skip("fs-004: should block critical changes and delete file [GH-fs-004]", async () => {
+		// @see https://github.com/snapback/snapback-site/issues/fs-004
 		// This test requires mocking of VS Code and file system which is complex
 		expect(true).toBe(true);
 	});
 
-	it.skip("fs-005: should allow override for critical changes", async () => {
+	it.skip("fs-005: should allow override for critical changes [GH-fs-005]", async () => {
+		// @see https://github.com/snapback/snapback-site/issues/fs-005
 		// This test requires mocking of VS Code UI components which is complex
 		expect(true).toBe(true);
 	});
 
-	it.skip("fs-006: should warn for moderate risk changes", async () => {
+	it.skip("fs-006: should warn for moderate risk changes [GH-fs-006]", async () => {
+		// @see https://github.com/snapback/snapback-site/issues/fs-006
 		// This test requires mocking of VS Code UI components which is complex
 		expect(true).toBe(true);
 	});
 
-	it.skip("fs-007: should handle file reading errors gracefully", async () => {
+	it.skip("fs-007: should handle file reading errors gracefully [GH-fs-007]", async () => {
+		// @see https://github.com/snapback/snapback-site/issues/fs-007
 		// This test requires mocking of file system errors which is complex
 		expect(true).toBe(true);
 	});

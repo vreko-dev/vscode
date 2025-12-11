@@ -1,13 +1,13 @@
 /**
  * @fileoverview P0 Blocker Tests for SaveHandler (RED PHASE)
- * 
+ *
  * Tests that FAIL until P0 fixes are implemented
- * 
+ *
  * Coverage:
  * 1. Error boundary for analyzeAndPublish()
  * 2. Safe default protection fallback
  * 3. Error telemetry tracking
- * 
+ *
  * @see error_spec.md - SaveHandler Error Boundary (45 min)
  * @see TDD_CORE.md - Phase 1 (RED)
  */

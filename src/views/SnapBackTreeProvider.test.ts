@@ -65,6 +65,7 @@ describe("SnapBackTreeProvider", () => {
 			id: "snap-1",
 			timestamp: Date.now() - 1000 * 60 * 30, // 30 minutes ago
 			name: "Recent snapshot",
+			anchorFile: "/test/file1.ts",
 			files: { "/test/file1.ts": { blob: "hash1", size: 100 } },
 			trigger: "manual",
 			metadata: { sessionId: "session-1" },
@@ -73,6 +74,7 @@ describe("SnapBackTreeProvider", () => {
 			id: "snap-2",
 			timestamp: Date.now() - 1000 * 60 * 60 * 25, // 25 hours ago (yesterday)
 			name: "Yesterday snapshot",
+			anchorFile: "/test/file2.ts",
 			files: { "/test/file2.ts": { blob: "hash2", size: 200 } },
 			trigger: "auto",
 			metadata: { sessionId: "session-2" },
@@ -81,6 +83,7 @@ describe("SnapBackTreeProvider", () => {
 			id: "snap-3",
 			timestamp: Date.now() - 1000 * 60 * 60 * 24 * 5, // 5 days ago (this week)
 			name: "This week snapshot",
+			anchorFile: "/test/file3.ts",
 			files: { "/test/file3.ts": { blob: "hash3", size: 300 } },
 			trigger: "manual",
 			metadata: { sessionId: "session-3" },
@@ -89,6 +92,7 @@ describe("SnapBackTreeProvider", () => {
 			id: "snap-4",
 			timestamp: Date.now() - 1000 * 60 * 60 * 24 * 10, // 10 days ago (older)
 			name: "Older snapshot",
+			anchorFile: "/test/file4.ts",
 			files: { "/test/file4.ts": { blob: "hash4", size: 400 } },
 			trigger: "auto",
 			metadata: { sessionId: "session-4" },

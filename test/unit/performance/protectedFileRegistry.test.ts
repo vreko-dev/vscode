@@ -90,7 +90,8 @@ class OptimizedProtectedFileRegistry {
 	}
 }
 
-describe.skip("ProtectedFileRegistry - O(1) Lookup Performance", () => {
+describe.skip("ProtectedFileRegistry - O(1) Lookup Performance [GH-perf-registry]", () => {
+	// @see https://github.com/snapback/snapback-site/issues/perf-registry
 	let registry: OptimizedProtectedFileRegistry;
 
 	beforeEach(() => {

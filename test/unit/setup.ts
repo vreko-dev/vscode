@@ -1,221 +1,139 @@
 /**
  * VS Code Extension Unit Test Setup
  *
- * Configures global mocks and test utilities for VS Code extension testing.
- * Uses centralized testing utilities from @snapback/testing.
+ * Configures global mocks for VS Code extension testing.
+ * Provides minimal setup to allow tests to run without external dependencies.
  */
 
 import { afterEach, beforeEach, vi } from "vitest";
 
-// Import centralized VS Code mocks
-import {
-	mockVscode,
-	MockEventEmitter,
-	MockPosition,
-	MockRange,
-	MockWorkspaceEdit,
-	MockTreeItem,
-	MockDisposable,
-	MockRelativePattern,
-	MockCancellationError,
-	createMockOutputChannel,
-	createMockStatusBarItem,
-	createMockDiagnosticCollection,
-	createMockFileSystemWatcher,
-} from "@snapback/testing/mocks/vscode";
-
-// Import centralized test utilities
-import {
-	createTestWorkspace,
-	createPerformanceMonitor,
-} from "../__mocks__/factories";
-
-// Mock Sentry modules to prevent native module loading errors
-// These must be mocked BEFORE any imports that use them
-vi.mock("@sentry/profiling-node", () => ({
-	default: {},
-	nodeProfilingIntegration: vi.fn(() => ({})),
-	ProfilingIntegration: vi.fn(),
+// Mock vscode module to prevent import errors in tests
+vi.mock("vscode", () => ({
+	EventEmitter: class MockEventEmitter {
+		fire(): void {}
+		dispose(): void {}
+	},
+	Position: class MockPosition {
+		constructor(public line: number, public character: number) {}
+	},
+	Range: class MockRange {
+		constructor(public start: any, public end: any) {}
+	},
+	WorkspaceEdit: class MockWorkspaceEdit {},
+	TreeItem: class MockTreeItem {
+		constructor(public label: string) {}
+	},
+	FileSystemWatcher: class MockFileSystemWatcher {
+		dispose(): void {}
+	},
+	Disposable: class MockDisposable {
+		static from(): MockDisposable { return new MockDisposable(); }
+		dispose(): void {}
+	},
+	RelativePattern: class MockRelativePattern {
+		constructor(public base: string, public pattern: string) {}
+	},
+	CancellationError: class MockCancellationError extends Error {
+		constructor() { super("CancellationError"); }
+	},
+	Uri: {
+		file: (path: string) => ({ scheme: "file", fsPath: path }),
+		parse: (value: string) => ({ scheme: "file", fsPath: value }),
+	},
+	window: {
+		createOutputChannel: vi.fn(() => ({ appendLine: vi.fn(), show: vi.fn(), clear: vi.fn() })),
+		createStatusBarItem: vi.fn(() => ({ show: vi.fn(), hide: vi.fn(), dispose: vi.fn() })),
+		showErrorMessage: vi.fn(),
+		showWarningMessage: vi.fn(),
+		showInformationMessage: vi.fn(),
+		withProgress: vi.fn(async (_, callback) => callback()),
+	},
+	workspace: {
+		onDidSaveTextDocument: {
+			once: vi.fn(),
+			on: vi.fn(),
+			dispose: vi.fn(),
+		},
+		onDidChangeTextDocument: {
+			on: vi.fn(),
+			dispose: vi.fn(),
+		},
+		getConfiguration: vi.fn(() => ({
+			get: vi.fn(() => undefined),
+			update: vi.fn(),
+			has: vi.fn(() => false),
+		})),
+		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
+		getWorkspaceFolder: vi.fn(() => ({ uri: { fsPath: "/test/workspace" } })),
+		asRelativePath: vi.fn((p: string) => p),
+		fs: {
+			readFile: vi.fn(),
+			writeFile: vi.fn(),
+			stat: vi.fn(),
+			delete: vi.fn(),
+		},
+		createFileSystemWatcher: vi.fn(() => ({ onDidCreate: { on: vi.fn() }, onDidDelete: { on: vi.fn() }, dispose: vi.fn() })),
+		applyEdit: vi.fn(async () => true),
+		openTextDocument: vi.fn(async () => ({} as any)),
+	},
+	languages: {
+		createDiagnosticCollection: vi.fn(() => ({ set: vi.fn(), clear: vi.fn(), delete: vi.fn(), dispose: vi.fn() })),
+	},
+	commands: {
+		registerCommand: vi.fn(),
+		executeCommand: vi.fn(),
+	},
+	env: {
+		openExternal: vi.fn(),
+	},
+	extensions: {
+		all: [],
+		getExtension: vi.fn(),
+	},
+	version: "1.75.0",
+	ThemeColor: class MockThemeColor { constructor(public id: string) {} },
+	ThemeIcon: class MockThemeIcon { constructor(public id: string) {} },
+	FileDecoration: class MockFileDecoration {},
+	ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
+	LogLevel: { Trace: 0, Debug: 1, Info: 2, Warning: 3, Error: 4, Off: 5 },
+	TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
+	ProgressLocation: { SourceControl: 1, Window: 10, Notification: 15 },
+	StatusBarAlignment: { Left: 0, Right: 1 },
+	DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2, Hint: 3 },
 }));
 
+// Mock Sentry modules
+vi.mock("@sentry/profiling-node", () => ({ default: {}, nodeProfilingIntegration: vi.fn() }));
 vi.mock("@sentry/node", () => ({
-	default: {
-		init: vi.fn(),
-		captureException: vi.fn(),
-		captureMessage: vi.fn(),
-		setUser: vi.fn(),
-		setContext: vi.fn(),
-	},
+	default: { init: vi.fn(), captureException: vi.fn() },
 	init: vi.fn(),
 	captureException: vi.fn(),
-	captureMessage: vi.fn(),
-	setUser: vi.fn(),
-	setContext: vi.fn(),
 }));
 
-// Mock sdk-types to prevent module resolution errors
-vi.mock("../../src/sdk-types", () => ({
-	SnapbackClient: vi.fn().mockImplementation(() => ({
-		getHttpClient: vi.fn(),
-	})),
-	analyze: vi.fn().mockResolvedValue({
-		decision: "allow",
-		confidence: 0.9,
-		rules_hit: [],
-	}),
-	evaluatePolicy: vi.fn().mockResolvedValue({
-		decision: "allow",
-		confidence: 0.9,
-		rules_hit: [],
-		policyVersion: "1.0.0",
-	}),
-	ingestTelemetry: vi.fn().mockResolvedValue({
-		id: "test-id",
-		received: true,
-	}),
-}));
-
-// Mock @snapback/infrastructure completely to avoid Sentry import
+// Mock @snapback/infrastructure
 vi.mock("@snapback/infrastructure", () => ({
 	logger: {
 		info: vi.fn(),
 		debug: vi.fn(),
 		warn: vi.fn(),
 		error: vi.fn(),
-		fatal: vi.fn(),
-		trace: vi.fn(),
 	},
-	initializeSentry: vi.fn(),
-	captureSentryException: vi.fn(),
 }));
 
-// Mock the local Logger utility to prevent initialization errors
-vi.mock("../../src/utils/logger", () => {
-	const mockLogger = {
+// Mock local logger
+vi.mock("../../src/utils/logger", () => ({
+	logger: {
 		info: vi.fn(),
 		debug: vi.fn(),
 		warn: vi.fn(),
 		error: vi.fn(),
-		show: vi.fn(),
-		dispose: vi.fn(),
-	};
-	return {
-		Logger: {
-			getInstance: vi.fn(() => mockLogger),
-		},
-		logger: mockLogger,
-	};
-});
-
-// Define mock output channel
-const mockOutputChannel = createMockOutputChannel("SnapBack Test");
-
-// Extended mock for VSCode with project-specific overrides
-const extendedMockVscode = {
-	...mockVscode,
-	window: {
-		...mockVscode.window,
-		createOutputChannel: vi.fn(() => mockOutputChannel),
-		createStatusBarItem: vi.fn(() => createMockStatusBarItem()),
 	},
-	workspace: {
-		...mockVscode.workspace,
-		getConfiguration: vi.fn(() => ({
-			get: vi.fn((key: string, defaultValue?: unknown) => {
-				// Return default values for configuration
-				if (key === "logLevel") return "info";
-				if (key === "preSnapshot.debounceMs") return 500;
-				if (key === "preSnapshot.enabled") return true;
-				return defaultValue;
-			}),
-			update: vi.fn(),
-			has: vi.fn(),
-		})),
-		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
-		getWorkspaceFolder: vi.fn((uri: { scheme?: string }) => {
-			if (uri?.scheme === "file") {
-				return { uri: { fsPath: "/test/workspace" } };
-			}
-			return undefined;
-		}),
-		asRelativePath: vi.fn((pathOrUri: string | { fsPath: string }) => {
-			const path = typeof pathOrUri === "string" ? pathOrUri : pathOrUri.fsPath;
-			return path.replace(/^.*workspace\//, "");
-		}),
-		fs: {
-			readFile: vi.fn(),
-			writeFile: vi.fn(),
-			stat: vi.fn(),
-			delete: vi.fn(),
-			rename: vi.fn(),
-			readDirectory: vi.fn(async () => []),
-		},
-		createFileSystemWatcher: vi.fn(() => createMockFileSystemWatcher()),
-		applyEdit: vi.fn(async () => true),
-		openTextDocument: vi.fn(async (uri) => ({
-			uri,
-			fileName: uri.fsPath,
-			isUntitled: false,
-			languageId: "typescript",
-			version: 1,
-			isDirty: false,
-			isClosed: false,
-			save: vi.fn(async () => true),
-			eol: 1,
-			lineCount: 1,
-			lineAt: vi.fn(),
-			offsetAt: vi.fn(),
-			positionAt: vi.fn(),
-			getText: vi.fn(() => ""),
-			getWordRangeAtPosition: vi.fn(),
-			validateRange: vi.fn(),
-			validatePosition: vi.fn(),
-		})),
-	},
-	languages: {
-		...mockVscode.languages,
-		createDiagnosticCollection: vi.fn((name?: string) => createMockDiagnosticCollection(name)),
-	},
-	// Ensure all top-level exports are included
-	env: mockVscode.env,
-	extensions: mockVscode.extensions,
-	version: "1.75.0",
-	// Use classes from centralized mocks
-	EventEmitter: MockEventEmitter,
-	Position: MockPosition,
-	Range: MockRange,
-	WorkspaceEdit: MockWorkspaceEdit,
-	TreeItem: MockTreeItem,
-	Disposable: MockDisposable,
-	RelativePattern: MockRelativePattern,
-	CancellationError: MockCancellationError,
-	// Ensure other enums and constants are available
-	ThemeColor: mockVscode.ThemeColor,
-	ThemeIcon: mockVscode.ThemeIcon,
-	FileDecoration: mockVscode.FileDecoration,
-	ConfigurationTarget: mockVscode.ConfigurationTarget,
-	LogLevel: mockVscode.LogLevel,
-	TreeItemCollapsibleState: mockVscode.TreeItemCollapsibleState,
-	ProgressLocation: mockVscode.ProgressLocation,
-	StatusBarAlignment: mockVscode.StatusBarAlignment,
-	OverviewRulerLane: mockVscode.OverviewRulerLane,
-	CancellationTokenSource: mockVscode.CancellationTokenSource,
-	Selection: mockVscode.Selection,
-	DiagnosticSeverity: mockVscode.DiagnosticSeverity,
-	Uri: mockVscode.Uri,
-	FileType: mockVscode.FileType,
-};
-
-vi.mock("vscode", () => extendedMockVscode);
-
-// Also set it globally for direct access
-(globalThis as Record<string, unknown>).vscode = extendedMockVscode;
+}));
 
 // ============================================
-// Global Test Utilities & Setup Hooks
+// Global Test Hooks
 // ============================================
 
-// Reset mocks between tests
 beforeEach(() => {
 	vi.clearAllMocks();
 });
@@ -223,7 +141,3 @@ beforeEach(() => {
 afterEach(() => {
 	vi.restoreAllMocks();
 });
-
-// Global test utilities for test authors
-(globalThis as Record<string, unknown>).createTestWorkspace = createTestWorkspace;
-(globalThis as Record<string, unknown>).createPerformanceMonitor = createPerformanceMonitor;

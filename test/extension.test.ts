@@ -25,7 +25,8 @@ import * as mockWindow from "./__mocks__/vscode/window";
 import * as mockWorkspace from "./__mocks__/vscode/workspace";
 
 // Legacy integration coverage - see snapshot-refactor plan for replacement.
-describe.skip("VS Code Extension (legacy integration)", () => {
+describe.skip("VS Code Extension (legacy integration) [GH-ext-legacy]", () => {
+	// @see https://github.com/snapback/snapback-site/issues/ext-legacy
 	beforeEach(() => {
 		// Clear all mocks before each test
 		vi.clearAllMocks();

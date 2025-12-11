@@ -28,7 +28,8 @@ import * as mockWorkspace from "../__mocks__/vscode/workspace";
 // The production extension now triggers risk workflows differently and these
 // tests would need a full reimplementation. Skipping for now and tracking in
 // snapshot-refactor follow-up.
-describe.skip("VS Code Extension (legacy integration)", () => {
+describe.skip("VS Code Extension (legacy integration) [GH-ext-legacy]", () => {
+	// @see https://github.com/snapback/snapback-site/issues/ext-legacy
 	beforeEach(() => {
 		// Clear all mocks before each test
 		vi.clearAllMocks();
