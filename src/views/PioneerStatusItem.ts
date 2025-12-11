@@ -70,6 +70,8 @@ export class PioneerStatusItem implements vscode.Disposable {
 	}
 
 	dispose() {
-		this.disposables.forEach((d) => d.dispose());
+		for (const d of this.disposables) {
+			d.dispose();
+		}
 	}
 }

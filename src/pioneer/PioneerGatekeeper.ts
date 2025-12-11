@@ -1,4 +1,4 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
 import type { PioneerProfile, Tier } from "./types";
 
 export class PioneerGatekeeper {
@@ -21,16 +21,24 @@ export class PioneerGatekeeper {
 	}
 
 	private get tierRank(): number {
-		if (!this.currentProfile) return -1;
+		if (!this.currentProfile) {
+			return -1;
+		}
 		const tiers: Tier[] = ["seedling", "grower", "cultivator", "guardian"];
 		return tiers.indexOf(this.currentProfile.tier);
 	}
 
 	canUseFeature(feature: "clusters" | "co-change"): boolean {
-		if (!this.currentProfile) return false;
+		if (!this.currentProfile) {
+			return false;
+		}
 
-		if (feature === "clusters") return true; // All pioneers
-		if (feature === "co-change") return this.tierRank >= 1; // Grower+
+		if (feature === "clusters") {
+			return true; // All pioneers
+		}
+		if (feature === "co-change") {
+			return this.tierRank >= 1; // Grower+
+		}
 
 		return false;
 	}
