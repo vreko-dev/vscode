@@ -177,7 +177,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Update credentials manager with telemetry support (will be initialized again later with full telemetry)
 	// This early initialization allows auth events to be tracked
-	const credentialsManagerWithTelemetry = createCredentialsManager(context.secrets, vscode, telemetryProxy);
+	const _credentialsManagerWithTelemetry = createCredentialsManager(context.secrets, vscode, telemetryProxy);
 
 	// 🔗 Register URI Handler for authentication deep links (early in activation)
 	// This must be registered before async operations so deep links work even if extension is activating

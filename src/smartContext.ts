@@ -56,18 +56,29 @@ export class SmartContextDetector {
 	 */
 	private async detectProjectType(): Promise<"javascript" | "typescript" | "python" | "java" | "unknown"> {
 		const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
-		if (!workspaceRoot) return "unknown";
+		if (!workspaceRoot) {
+			return "unknown";
+		}
 
 		// Check for indicators in order of specificity
-		if (await this.fileExists(workspaceRoot, "tsconfig.json")) return "typescript";
-		if (await this.fileExists(workspaceRoot, "package.json")) return "javascript";
+		if (await this.fileExists(workspaceRoot, "tsconfig.json")) {
+			return "typescript";
+		}
+		if (await this.fileExists(workspaceRoot, "package.json")) {
+			return "javascript";
+		}
 		if (
 			(await this.fileExists(workspaceRoot, "requirements.txt")) ||
 			(await this.fileExists(workspaceRoot, "pyproject.toml"))
-		)
+		) {
 			return "python";
-		if ((await this.fileExists(workspaceRoot, "pom.xml")) || (await this.fileExists(workspaceRoot, "build.gradle")))
+		}
+		if (
+			(await this.fileExists(workspaceRoot, "pom.xml")) ||
+			(await this.fileExists(workspaceRoot, "build.gradle"))
+		) {
 			return "java";
+		}
 
 		return "unknown";
 	}
