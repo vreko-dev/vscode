@@ -136,6 +136,14 @@ export class SessionCoordinator {
 	}
 
 	/**
+	 * Get the number of candidates in the current session
+	 * @internal For testing only
+	 */
+	getCandidateCount(): number {
+		return this.sdkCoordinator.getCandidateCount();
+	}
+
+	/**
 	 * Add or update a file candidate in the current session
 	 *
 	 * @param uri - URI of the file
