@@ -15,6 +15,7 @@
  */
 
 import type * as vscode from "vscode";
+import { runPostAuthSetup } from "../onboarding/postAuthSetup";
 import { logger } from "../utils/logger";
 
 /**
@@ -84,7 +85,7 @@ export interface CredentialsManager {
  * }
  * ```
  */
-export function createCredentialsManager(secrets: vscode.SecretStorage): CredentialsManager {
+export function createCredentialsManager(secrets: vscode.SecretStorage, vscode?: any): CredentialsManager {
 	const STORAGE_KEY = "snapback.extensionCredentials";
 
 	return {
@@ -104,6 +105,14 @@ export function createCredentialsManager(secrets: vscode.SecretStorage): Credent
 
 		async setCredentials(credentials: ExtensionCredentials): Promise<void> {
 			await secrets.store(STORAGE_KEY, JSON.stringify(credentials));
+
+			// Trigger post-auth setup (non-blocking)
+			const workspaceRoot = vscode?.workspace?.workspaceFolders?.[0]?.uri?.fsPath;
+			if (workspaceRoot) {
+				runPostAuthSetup(workspaceRoot).catch((error) => {
+					logger.error("Post-auth setup failed", error instanceof Error ? error : new Error(String(error)));
+				});
+			}
 		},
 
 		async clearCredentials(): Promise<void> {
