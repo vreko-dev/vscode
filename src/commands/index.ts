@@ -30,6 +30,7 @@ import { registerAuthCommands } from "./authCommands";
 import { registerDecorationCommands } from "./decorationCommands"; // 🆕 Import decoration commands
 import { registerDetectionCommands } from "./detectionCommands";
 import { registerConnectCommand, registerOpenSnapshotInWebCommand, registerRefreshTreeCommand } from "./explorerTree";
+import { registerFeedbackCommands } from "./feedbackCommands"; // 🆕 Import feedback commands
 import { registerMcpCommands } from "./mcpCommands"; // 🆕 Import MCP commands
 import { registerOfflineModeCommands } from "./offlineModeCommands";
 import { registerPolicyOverrideCommands } from "./policyOverrideCommands";
@@ -261,6 +262,7 @@ export function registerAllCommands(
 		...registerDetectionCommands(context, commandContext),
 		...registerDecorationCommands(context, commandContext), // 🆕 Register decoration commands
 		...mcpCommandDisposables, // 🆕 Register MCP commands if available
+		...registerFeedbackCommands(context), // 🆕 Register feedback commands
 		// 🆕 Register Explorer Tree commands (cloud features) - only if available
 		...(commandContext.explorerTreeProvider
 			? [

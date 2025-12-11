@@ -39,6 +39,7 @@ export default defineConfig({
 			"@vscode/auth": resolve(__dirname, "./src/auth"),
 			"@vscode/protection": resolve(__dirname, "./src/protection"),
 			"@vscode/telemetry": resolve(__dirname, "./src/telemetry"),
+			"@vscode/pioneer": resolve(__dirname, "./src/pioneer"),
 		},
 	},
 	test: {

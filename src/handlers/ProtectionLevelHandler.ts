@@ -62,6 +62,147 @@ export class ProtectionLevelHandler {
 	}
 
 	/**
+	 * Apply protection inheritance from anchor file to dependent files.
+	 * Implements: BLOCK → WARN (depth1) → WATCH (depth2) propagation
+	 *
+	 * @param anchorPath - Path to the anchor file
+	 * @param anchorLevel - Protection level of anchor
+	 * @param relatedFiles - Files at depth1 and depth2
+	 * @returns InheritanceResult with protection map and inherited count
+	 */
+	async applyInheritance(
+		anchorPath: string,
+		anchorLevel: "watch" | "warn" | "block",
+		relatedFiles: { depth1: string[]; depth2: string[] },
+	): Promise<{
+		anchorPath: string;
+		protectionMap: Record<string, "watch" | "warn" | "block">;
+		inheritedCount: number;
+		reason?: string;
+	}> {
+		const protectionMap: Record<string, "watch" | "warn" | "block"> = {};
+		let inheritedCount = 0;
+
+		// Anchor gets its specified level (never overwrite)
+		protectionMap[anchorPath] = anchorLevel;
+
+		// Apply to depth1 files (highest priority)
+		const depth1Level = this.getEffectiveLevel(anchorLevel, 1);
+		for (const file of relatedFiles.depth1) {
+			// Skip anchor if it appears in depth1 (circular)
+			if (file === anchorPath) {
+				continue;
+			}
+			protectionMap[file] = depth1Level;
+			inheritedCount++;
+		}
+
+		// Apply to depth2 files (lower priority - don't override depth1)
+		const depth2Level = this.getEffectiveLevel(anchorLevel, 2);
+		for (const file of relatedFiles.depth2) {
+			// Skip anchor if it appears in depth2 (circular)
+			if (file === anchorPath) {
+				continue;
+			}
+			// Skip if already assigned (depth1 takes precedence)
+			if (file in protectionMap) {
+				continue;
+			}
+			protectionMap[file] = depth2Level;
+			inheritedCount++;
+		}
+
+		logger.debug("Applied protection inheritance", {
+			anchorPath,
+			anchorLevel,
+			depth1Level,
+			depth2Level,
+			inheritedCount,
+		});
+
+		return {
+			anchorPath,
+			protectionMap,
+			inheritedCount,
+			reason: `Inherited ${anchorLevel} protection from anchor`,
+		};
+	}
+
+	/**
+	 * Calculate effective protection level based on anchor level and depth.
+	 * Rules:
+	 * - BLOCK: depth1→WARN, depth2→WATCH (escalating down)
+	 * - WARN: depth1→WATCH, depth2→WATCH (both same)
+	 * - WATCH: all depths→WATCH (minimum level)
+	 *
+	 * @param anchorLevel - The anchor file's protection level
+	 * @param depth - Depth in dependency tree (1 or 2)
+	 * @returns Effective protection level at this depth
+	 */
+	getEffectiveLevel(anchorLevel: "watch" | "warn" | "block", depth: number): "watch" | "warn" | "block" {
+		const levelHierarchy: Record<"watch" | "warn" | "block", number> = {
+			watch: 1,
+			warn: 2,
+			block: 3,
+		};
+
+		const anchorScore = levelHierarchy[anchorLevel];
+
+		// Protection decreases by one level per depth
+		const effectiveScore = Math.max(1, anchorScore - depth);
+
+		// Map score back to level
+		const scoreToLevel: Record<number, "watch" | "warn" | "block"> = {
+			1: "watch",
+			2: "warn",
+			3: "block",
+		};
+
+		return scoreToLevel[effectiveScore] || "watch";
+	}
+
+	/**
+	 * Validate that protection inheritance is correctly applied.
+	 * Checks monotonic property: protection levels don't escalate up the chain.
+	 *
+	 * @param protectionMap - Map of files to protection levels
+	 * @returns true if inheritance is valid, false otherwise
+	 */
+	async validateInheritanceChain(protectionMap: Record<string, "watch" | "warn" | "block">): Promise<boolean> {
+		const levelScore: Record<"watch" | "warn" | "block", number> = {
+			watch: 1,
+			warn: 2,
+			block: 3,
+		};
+
+		const levels = Object.values(protectionMap);
+
+		// All levels should be defined
+		if (levels.length === 0) {
+			return false;
+		}
+
+		// All valid protection levels
+		const allValid = levels.every((level) => level in levelScore);
+
+		if (!allValid) {
+			logger.warn("Invalid protection level in inheritance chain");
+			return false;
+		}
+
+		// Monotonic check: max level should be unique (only anchor at top)
+		const maxLevel = Math.max(...levels.map((l) => levelScore[l]));
+		const maxCount = levels.filter((l) => levelScore[l] === maxLevel).length;
+
+		if (maxCount !== 1) {
+			logger.warn("Multiple files at same max protection level (should only be anchor)");
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Handle protection level logic for a file save.
 	 * Returns a result indicating whether save should proceed and if snapshot is needed.
 	 *

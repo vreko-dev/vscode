@@ -265,11 +265,55 @@ export class StorageManager implements IStorageManager {
 	// Snapshots
 	// ============================================
 
+	/**
+	 * High-level API to persist a snapshot with cluster support.
+	 * Handles cooldown checks and metadata updates.
+	 */
+	async persistSnapshot(
+		cluster: {
+			anchorFile: string;
+			clusterFiles: Map<string, string>;
+		},
+		trigger: SnapshotManifest["trigger"],
+		options?: { name?: string; metadata?: any },
+	): Promise<SnapshotManifest | null> {
+		// 1. Check Cooldown (Ephemeral debounce)
+		// We use the anchor file + "snapshot_created" as the cooldown key
+		// Actually, cooldown is usually set AFTER snapshot, but we might want to prevent rapid snapshots
+		if (this.cooldownCache.isInCooldown(cluster.anchorFile, "snapshot_created")) {
+			// Debounced
+			return null;
+		}
+
+		// 2. Create Snapshot
+		const name = options?.name || `Snapshot at ${new Date().toLocaleTimeString()}`;
+
+		const manifest = await this.createSnapshot(cluster.clusterFiles, {
+			name,
+			trigger,
+			anchorFile: cluster.anchorFile,
+			metadata: options?.metadata,
+		});
+
+		// 3. Set Cooldown (e.g., 500ms debounce)
+		this.cooldownCache.set({
+			filePath: cluster.anchorFile,
+			protectionLevel: "snapshot_created",
+			triggeredAt: Date.now(),
+			expiresAt: Date.now() + 500, // 500ms debounce
+			actionTaken: "snapshot_created",
+			snapshotId: manifest.id,
+		});
+
+		return manifest;
+	}
+
 	async createSnapshot(
 		files: Map<string, string>,
 		options: {
 			name: string;
 			trigger: SnapshotManifest["trigger"];
+			anchorFile: string;
 			metadata?: SnapshotManifest["metadata"];
 		},
 	): Promise<SnapshotManifest> {
@@ -280,6 +324,14 @@ export class StorageManager implements IStorageManager {
 
 		// Update metadata stats (fire and forget)
 		this.updateStats().catch(console.error);
+
+		// Publish event
+		this.publishEvent(SnapBackEvent.SNAPSHOT_CREATED, {
+			id: manifest.id,
+			timestamp: manifest.timestamp,
+			trigger: manifest.trigger,
+			anchorFile: manifest.anchorFile,
+		});
 
 		return manifest;
 	}

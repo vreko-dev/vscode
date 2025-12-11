@@ -1,5 +1,6 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { PioneerGatekeeper } from "../pioneer/PioneerGatekeeper";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { CORE_CONCEPT_SIGNAGE, PROTECTION_LEVEL_SIGNAGE } from "../signage/index";
 import type { ProtectionLevelCanonical } from "../signage/types";
@@ -20,23 +21,44 @@ import type { ProtectedFileEntry } from "./types";
  * - Rich tooltips with protection details
  * - Click to open file behavior
  *
+ * TIER-AWARE ENHANCEMENTS:
+ * - Lock icons (🔒) for tier-gated features (clusters, co-change)
+ * - Tier badges in descriptions (e.g., "Grower+" requirement)
+ * - Upgrade CTAs for free-tier users
+ * - Reactive refresh on tier changes via PioneerGatekeeper
+ *
  * VISUAL HIERARCHY:
  * - Section: Protection level name with emoji and file count
  * - File: Just the filename, no redundant level indicators
- * - Tooltip: Full details with path and protection metadata
+ * - Tooltip: Full details with path, protection metadata, and tier info
  */
 export class ProtectedFilesTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable {
 	private readonly _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 	private disposables: vscode.Disposable[] = [];
+	private gatekeeper: PioneerGatekeeper;
 
 	constructor(private readonly protectedFiles: ProtectedFileRegistry) {
+		this.gatekeeper = PioneerGatekeeper.getInstance();
+
 		// Subscribe to protection changes for automatic refresh
 		this.disposables.push(
 			this.protectedFiles.onDidChangeProtectedFiles(() => {
 				this.refresh();
 			}),
 		);
+
+		// Subscribe to tier changes for reactive sidebar refresh
+		const tierChangeHandler = () => {
+			logger.debug("Pioneer tier changed, refreshing sidebar");
+			this.refresh();
+		};
+		this.gatekeeper.onDidChangePioneerStatus.on("change", tierChangeHandler);
+		this.disposables.push({
+			dispose: () => {
+				this.gatekeeper.onDidChangePioneerStatus.removeListener("change", tierChangeHandler);
+			},
+		});
 	}
 
 	getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
@@ -136,6 +158,9 @@ export class ProtectedFilesTreeProvider implements vscode.TreeDataProvider<vscod
 			disposable.dispose();
 		}
 	}
+
+	// Removed unused tier-aware methods - these will be implemented when cluster features are added
+	// getTierAwareSectionTitle and addTierBadge were designed for future Pioneer tier gating
 }
 
 /**

@@ -3,6 +3,7 @@ import type { ProtectionDecisionEngine } from "@snapback/sdk";
 import * as vscode from "vscode";
 import { type AIDetection, AIWarningManager } from "../ai/AIWarningManager";
 import type { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider";
+import { ImportAnalyzer } from "../engine/graph/ImportAnalyzer";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskService } from "../services/aiRiskService";
 import { NoopAIRiskService } from "../services/aiRiskService";
@@ -15,6 +16,14 @@ import { AnalysisCoordinator } from "./AnalysisCoordinator";
 import { AuditLogger } from "./AuditLogger";
 import { CooldownService } from "./CooldownService";
 import { ProtectionLevelHandler } from "./ProtectionLevelHandler";
+
+// Interface for cluster cache entries
+interface ClusterTreeCache {
+	anchorPath: string;
+	depth1: string[];
+	depth2: string[];
+	timestamp: number; // For TTL-based invalidation
+}
 
 // Interface for iteration tracking data
 interface IterationData {
@@ -54,6 +63,11 @@ export class SaveHandler {
 	// Store iteration tracking data per file
 	private iterationData: Map<string, IterationData> = new Map();
 
+	// Cluster detection cache (in-memory with TTL-based invalidation)
+	private clusterCache: Map<string, ClusterTreeCache> = new Map();
+	private readonly CLUSTER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+	private importAnalyzer: ImportAnalyzer;
+
 	constructor(
 		private registry: ProtectedFileRegistry,
 		operationCoordinator: OperationCoordinator,
@@ -79,6 +93,7 @@ export class SaveHandler {
 		);
 		this.aiWarningManager = new AIWarningManager();
 		this.decorationProvider = decorationProvider || null;
+		this.importAnalyzer = new ImportAnalyzer();
 	}
 
 	/**
@@ -100,6 +115,171 @@ export class SaveHandler {
 	public initializeDecisionEngine(engine: ProtectionDecisionEngine): void {
 		this.protectionLevelHandler.initializeDecisionEngine(engine);
 		logger.info("[SnapBack] SDK ProtectionDecisionEngine initialized in SaveHandler");
+	}
+
+	/**
+	 * Check if user is allowed to save a file.
+	 * Blocks non-pioneer users from saving files in clusters (protected dependent files).
+	 *
+	 * @param filePath - Absolute path to the file being saved
+	 * @param profile - Current user's pioneer profile (null if not pioneer)
+	 * @returns SaveCheckResult with allowed status and reason
+	 */
+	public async canSaveFile(
+		filePath: string,
+		profile: any | null, // PioneerProfile | null (avoid circular import)
+	): Promise<{ allowed: boolean; reason?: string; clusterAnchor?: string; requiresSnapshot?: boolean }> {
+		// If not a protected file, allow save
+		if (!this.registry.isProtected(filePath)) {
+			return { allowed: true };
+		}
+
+		// Get current anchor map from registry (simplified - in real impl, this would be more complex)
+		// For now, just check if file is in registry as a dependent
+		const clusterAnchor = await this.detectFileInCluster(filePath);
+
+		// If file is in a cluster, check user tier
+		if (clusterAnchor) {
+			const isPioneer = this.isUserPioneer(profile);
+			if (!isPioneer) {
+				return {
+					allowed: false,
+					reason: "Only pioneers can modify files in clusters",
+					clusterAnchor,
+				};
+			}
+		}
+
+		return { allowed: true, clusterAnchor: clusterAnchor ?? undefined, requiresSnapshot: !!clusterAnchor };
+	}
+
+	/**
+	 * Detect if a file is part of any cluster (dependent file).
+	 * Returns the anchor file if found, null otherwise.
+	 * Uses in-memory cache with TTL-based invalidation for performance.
+	 *
+	 * Cache Strategy (Option B: Cache in Memory):
+	 * - Builds dependency trees lazily on first access (cache miss)
+	 * - Stores trees with timestamps for TTL-based expiry (5 minutes)
+	 * - Invalidates entire cache entries when anchor or dependency changes
+	 * - Gracefully handles missing files and circular dependencies
+	 *
+	 * Performance:
+	 * - Cache hit: O(n) lookup where n = number of cached anchors (typically small, <10)
+	 * - Cache miss: O(f*d) where f = files to analyze, d = dependency depth (capped at 2)
+	 * - Invalidation: O(c*d) where c = cached anchors, d = depth of dependency tree
+	 *
+	 * @param filePath - Absolute path to check
+	 * @returns Path to anchor file if file is in a cluster, null otherwise
+	 * @example
+	 * ```typescript
+	 * const anchor = await handler.detectFileInCluster('/project/src/services/api.ts');
+	 * if (anchor) {
+	 *   // File is a dependent of anchor, apply cluster protection
+	 *   const inheritance = await protectionHandler.applyInheritance(anchor, 'block', deps);
+	 * }
+	 * ```
+	 */
+	public async detectFileInCluster(filePath: string): Promise<string | null> {
+		// Check cache first - look for any anchor that has this file in depth1 or depth2
+		for (const [anchorPath, tree] of this.clusterCache.entries()) {
+			// Check if cache entry has expired
+			if (Date.now() - tree.timestamp > this.CLUSTER_CACHE_TTL) {
+				this.clusterCache.delete(anchorPath);
+				logger.debug("Cluster cache entry expired", { anchorPath, age: Date.now() - tree.timestamp });
+				continue;
+			}
+
+			// Check if file is in this cluster
+			if (tree.depth1.includes(filePath) || tree.depth2.includes(filePath)) {
+				logger.debug("Cluster cache hit", { filePath, anchorPath });
+				return anchorPath;
+			}
+		}
+
+		// Cache miss - build dependency trees for all anchors
+		try {
+			const anchors = this.registry.getAllProtectedFiles();
+			logger.debug("Cluster cache miss - building trees", { filePath, anchorCount: anchors.length });
+
+			for (const anchorPath of anchors) {
+				try {
+					const tree = await this.importAnalyzer.buildDependencyTree(anchorPath);
+
+					// Cache the tree
+					this.clusterCache.set(anchorPath, {
+						anchorPath,
+						depth1: tree.depth1,
+						depth2: tree.depth2,
+						timestamp: Date.now(),
+					});
+
+					// Check if the file we're looking for is in this cluster
+					if (tree.depth1.includes(filePath) || tree.depth2.includes(filePath)) {
+						return anchorPath;
+					}
+				} catch (error) {
+					logger.warn(`Failed to build dependency tree for ${anchorPath}`, {
+						error: error instanceof Error ? error.message : String(error),
+					});
+				}
+			}
+		} catch (error) {
+			logger.warn("Failed to detect file in cluster", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+
+		// File not found in any cluster
+		return null;
+	}
+
+	/**
+	 * Check if user is a pioneer (has active profile).
+	 * All pioneer tiers (seedling+) can use clusters.
+	 *
+	 * @param profile - Pioneer profile or null
+	 * @returns true if user is a pioneer, false otherwise
+	 */
+	public isUserPioneer(profile: any | null): boolean {
+		// Simplified check - profile must exist and have a tier
+		return profile !== null && profile !== undefined && profile.tier !== undefined;
+	}
+
+	/**
+	 * Invalidate cluster cache for files that were edited.
+	 * Called when a file is modified to prevent stale cluster detection.
+	 *
+	 * Invalidation Behavior:
+	 * - If anchor file is edited: removes entire cluster cache entry
+	 * - If dependency file is edited: removes anchor's cache (rebuilds on next access)
+	 * - Prevents stale detection when imports change
+	 * - O(c*d) complexity where c = cached anchors, d = dependency depth
+	 *
+	 * @param filePath - Path to file that was edited
+	 */
+	private invalidateFileCache(filePath: string): void {
+		// Remove any cache entries where this file is the anchor OR appears in depth1/depth2
+		const toDelete: string[] = [];
+
+		for (const [anchorPath, tree] of this.clusterCache.entries()) {
+			// Invalidate if:
+			// 1. This file is the anchor itself
+			// 2. This file is in the dependency tree (invalidate entire cluster)
+			if (anchorPath === filePath || tree.depth1.includes(filePath) || tree.depth2.includes(filePath)) {
+				toDelete.push(anchorPath);
+			}
+		}
+
+		// Remove invalidated entries
+		for (const anchorPath of toDelete) {
+			this.clusterCache.delete(anchorPath);
+		}
+
+		logger.debug("Cache invalidated for file edits", {
+			filePath,
+			entriesRemoved: toDelete.length,
+		});
 	}
 
 	/**
@@ -164,6 +344,17 @@ export class SaveHandler {
 		});
 
 		context.subscriptions.push(disposable);
+
+		// Register document change listener to invalidate cache when files are edited
+		// This prevents stale cluster detection after dependency changes
+		const changeDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
+			const filePath = event.document.uri.fsPath;
+			if (this.registry.isProtected(filePath)) {
+				this.invalidateFileCache(filePath);
+			}
+		});
+
+		context.subscriptions.push(changeDisposable);
 	}
 
 	/**

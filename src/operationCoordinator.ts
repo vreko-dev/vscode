@@ -77,6 +77,7 @@ import type { ConflictResolver } from "./conflictResolver";
 import type { NotificationManager } from "./notificationManager";
 import type { MilestoneService } from "./services/MilestoneService";
 import type { TelemetryProxy } from "./services/telemetry-proxy";
+import type { SessionCoordinator } from "./snapshot/SessionCoordinator";
 import type { StorageManager } from "./storage/StorageManager";
 import { logger } from "./utils/logger";
 import type { WorkspaceMemoryManager } from "./workspaceMemory";
@@ -228,6 +229,7 @@ export class OperationCoordinator {
 	 * @param notificationManager - Notification system for user communication
 	 * @param storage - File system storage for snapshot operations
 	 * @param conflictResolver - Optional conflict resolver for handling file conflicts
+	 * @param sessionCoordinator - Session coordinator for tracking snapshots in sessions
 	 *
 	 * @example
 	 * ```typescript
@@ -235,7 +237,8 @@ export class OperationCoordinator {
 	 *   workspaceMemoryManager,
 	 *   notificationManager,
 	 *   storage,
-	 *   conflictResolver
+	 *   conflictResolver,
+	 *   sessionCoordinator
 	 * );
 	 * ```
 	 */
@@ -246,6 +249,7 @@ export class OperationCoordinator {
 		private telemetryProxy: TelemetryProxy,
 		private conflictResolver: ConflictResolver,
 		private milestoneService: MilestoneService,
+		private sessionCoordinator: SessionCoordinator,
 		private eventBus?: SnapBackEventBus,
 	) {}
 
@@ -707,16 +711,37 @@ export class OperationCoordinator {
 						trigger = "ai-detected";
 					}
 
+					// Determine anchor file: first from specificFiles if incremental, otherwise first from filesMap
+					const anchorFile =
+						isIncremental && specificFiles && specificFiles.length > 0
+							? specificFiles[0]
+							: Array.from(filesMap.keys())[0] || workspaceRoot;
+
 					const snapshotManifest = await this.storage.createSnapshot(filesMap, {
 						name:
 							customSnapshotName ||
 							(isIncremental ? `Auto-save: ${specificFiles?.length} file(s)` : "Manual snapshot"),
 						trigger,
-						metadata: {
-							riskScore: 0,
-							...(sessionId && { sessionId }), // NEW - Attach session ID if available
-						},
+						anchorFile,
+						...(sessionId && { metadata: { sessionId } }),
 					});
+
+					// 🐛 FIX: Track snapshot files in session via SessionCoordinator
+					// This ensures sessions capture all files from snapshots instead of showing 0 files
+					// For each file in the snapshot, add it as a candidate to the current session
+					const snapshotStats = { added: Object.keys(fileContents).length, deleted: 0 };
+					for (const filePath of Object.keys(fileContents)) {
+						try {
+							this.sessionCoordinator.addCandidate(filePath, snapshotManifest.id, snapshotStats);
+						} catch (error: unknown) {
+							// Log but don't throw - session tracking failure shouldn't block snapshot creation
+							logger.warn("Failed to track snapshot file in session", {
+								filePath,
+								snapshotId: snapshotManifest.id,
+								error: error instanceof Error ? error.message : String(error),
+							});
+						}
+					}
 
 					// REFACTOR: Use extracted publishEvent helper
 					this.publishEvent(SnapBackEvent.SNAPSHOT_CREATED, {

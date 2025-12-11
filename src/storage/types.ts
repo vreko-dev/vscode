@@ -34,7 +34,9 @@ export interface SnapshotManifest {
 	name: string;
 	/** Trigger reason */
 	trigger: "auto" | "manual" | "ai-detected" | "pre-save";
-	/** Files in snapshot (path → ref) */
+	/** The main file that triggered this snapshot */
+	anchorFile: string;
+	/** Files in snapshot (path → ref). Includes anchor and related files. */
 	files: Record<string, SnapshotFileRef>;
 	/** Optional metadata */
 	metadata?: {

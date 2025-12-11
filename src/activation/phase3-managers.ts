@@ -39,7 +39,6 @@ export interface Phase3Result {
 
 import { MilestoneService } from "../services/MilestoneService";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
-// ... imports ...
 
 export async function initializePhase3Managers(
 	_context: vscode.ExtensionContext,
@@ -78,6 +77,11 @@ export async function initializePhase3Managers(
 		const milestoneService = new MilestoneService(_context, telemetryProxy, notificationManager);
 		console.log("[PERF] MilestoneService", { ms: Date.now() - t });
 
+		// Initialize SessionCoordinator (needed by OperationCoordinator for snapshot file tracking)
+		t = Date.now();
+		const sessionCoordinator = new SessionCoordinator(storage);
+		console.log("[PERF] SessionCoordinator", { ms: Date.now() - t });
+
 		// Initialize operation coordinator
 		t = Date.now();
 		const operationCoordinator = new OperationCoordinator(
@@ -87,7 +91,8 @@ export async function initializePhase3Managers(
 			telemetryProxy,
 			conflictResolver,
 			milestoneService,
-			eventBus, // GREEN PHASE: Wire in event bus
+			sessionCoordinator, // BUG FIX: Wire in SessionCoordinator for snapshot file tracking
+			eventBus, // Wire in event bus
 		);
 		console.log("[PERF] OperationCoordinator", { ms: Date.now() - t });
 
@@ -107,11 +112,6 @@ export async function initializePhase3Managers(
 			},
 		};
 		console.log("[PERF] EventEmitter setup", { ms: Date.now() - t });
-
-		// Initialize SessionCoordinator (needed by SnapshotManager)
-		t = Date.now();
-		const sessionCoordinator = new SessionCoordinator(storage);
-		console.log("[PERF] SessionCoordinator", { ms: Date.now() - t });
 
 		// Initialize SnapshotManager with SessionCoordinator
 		t = Date.now();

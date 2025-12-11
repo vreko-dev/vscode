@@ -16,6 +16,7 @@ import { initializePhase2Storage } from "./activation/phase2-storage";
 import { initializePhase3Managers } from "./activation/phase3-managers";
 import { initializePhase4Providers } from "./activation/phase4-providers";
 import { initializePhase5Registration } from "./activation/phase5-registration";
+import { initializePioneerInfrastructure } from "./activation/pioneer"; // 🆕 Import Pioneer Initialization
 import { createAuthedApiClient } from "./api/authedApiClient";
 import { AnonymousIdManager } from "./auth/AnonymousIdManager";
 import { AuthState } from "./auth/AuthState";
@@ -420,6 +421,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		const phase5Start = Date.now();
 		await initializePhase5Registration(context, phase4Result, phase3Result.sessionCoordinator);
 		phaseTimings["Phase 5 (Registration)"] = Date.now() - phase5Start;
+
+		// 🆕 Pioneer Infrastructure
+		const pioneerStart = Date.now();
+		await initializePioneerInfrastructure(context);
+		phaseTimings["Pioneer Infrastructure"] = Date.now() - pioneerStart;
 
 		// 🆕 Phase 14: Initialize AutoDecisionIntegration (session-level AI protection)
 		const phase14Start = Date.now();

@@ -40,11 +40,28 @@ export class SnapshotStore {
 		options: {
 			name: string;
 			trigger: SnapshotManifest["trigger"];
+			anchorFile?: string;
 			metadata?: SnapshotManifest["metadata"];
 		},
 	): Promise<SnapshotManifest> {
 		const id = generateSnapshotId();
 		const timestamp = Date.now();
+
+		// Resolve and validate anchor file
+		let resolvedAnchorFile = options.anchorFile;
+
+		if (!resolvedAnchorFile) {
+			if (files.size === 1) {
+				resolvedAnchorFile = files.keys().next().value;
+			} else {
+				throw new Error("Anchor file must be specified for multi-file snapshots");
+			}
+		}
+
+		// Ensure anchor (inferred or explicit) exists in files
+		if (!resolvedAnchorFile || !files.has(resolvedAnchorFile)) {
+			throw new Error(`Anchor file ${resolvedAnchorFile} not found in snapshot files`);
+		}
 
 		// Store each file in blob store
 		const fileRefs: Record<string, SnapshotFileRef> = {};
@@ -60,6 +77,7 @@ export class SnapshotStore {
 			timestamp,
 			name: options.name,
 			trigger: options.trigger,
+			anchorFile: resolvedAnchorFile,
 			files: fileRefs,
 			metadata: options.metadata,
 		};

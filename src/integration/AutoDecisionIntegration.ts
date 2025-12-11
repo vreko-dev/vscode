@@ -25,6 +25,7 @@ import type { FileInfo } from "../domain/signalAggregator";
 import { createSignalAggregator, type SignalAggregator } from "../domain/signalAggregator";
 import type { AutoDecisionConfig, ProtectionDecision, SaveContext } from "../domain/types";
 import { DEFAULT_CONFIG } from "../domain/types";
+import { FeedbackManager } from "../engine/FeedbackManager";
 import type { NotificationManager } from "../notificationManager";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import { detectAIPresence } from "../utils/AIPresenceDetector";
@@ -309,6 +310,19 @@ export class AutoDecisionIntegration {
 				reasons: decision.reasons,
 				confidence: decision.confidence,
 			});
+
+			// 🆕 Trigger FeedbackManager if burst is detected
+			// This allows users to report AI detection accuracy
+			if (saveContext.burstDetected) {
+				const feedbackManager = FeedbackManager.getInstance();
+				const detectionId = `burst-${Date.now()}-${Math.random().toString(36).slice(7)}`;
+				const confidence = decision.confidence; // Use decision confidence as AI confidence
+				feedbackManager.handleDetection(detectionId, confidence);
+				logger.debug("FeedbackManager triggered for burst detection", {
+					detectionId,
+					confidence,
+				});
+			}
 
 			// Step 4: Execute decision
 			await this.executeDecision(decision, saveContext);
