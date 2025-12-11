@@ -7,23 +7,19 @@
  * This module provides the single point of config access for the VS Code Extension.
  */
 
-import {
-	ConfigStore as ConfigStoreV2,
-	type ConfigStoreV2 as ConfigStoreV2Type,
-	getConfigStore,
-} from "@snapback/config";
+import { ConfigStore, type ConfigStoreV2 as ConfigStoreV2Type, getConfigStore } from "@snapback/config";
 import { logger } from "@snapback/infrastructure";
 
 /**
  * Global ConfigStore instance
  */
-let configStore: ConfigStoreV2Type | null = null;
+let configStore: ConfigStore | null = null;
 let disposed = false;
 
 /**
  * Initialize ConfigStore on extension activation
  */
-export async function initializeConfigStore(workspaceRoot: string): Promise<ConfigStoreV2Type> {
+export async function initializeConfigStore(workspaceRoot: string): Promise<ConfigStore> {
 	if (configStore) {
 		return configStore;
 	}
@@ -50,7 +46,7 @@ export async function initializeConfigStore(workspaceRoot: string): Promise<Conf
  * Get the initialized ConfigStore instance
  * Throws if not yet initialized
  */
-export function getInitializedConfigStore(): ConfigStoreV2Type {
+export function getInitializedConfigStore(): ConfigStore {
 	if (!configStore) {
 		throw new Error("ConfigStore not initialized. Call initializeConfigStore() first");
 	}
@@ -135,7 +131,7 @@ export function isInitialized(): boolean {
  */
 export function reset(): void {
 	disposeConfigStore();
-	ConfigStoreV2.reset();
+	ConfigStore.reset();
 }
 
 export type { ConfigStoreV2Type };

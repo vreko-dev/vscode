@@ -7,7 +7,6 @@ import { SNAPBACK_ICONS } from "../constants/index";
 import { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator";
 import { AutoProtectConfig } from "../protection/autoProtectConfig";
 import { ConfigFileManager } from "../protection/ConfigFileManager";
-import { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
 import { MCPLifecycleManager } from "../services/MCPLifecycleManager";
 import { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { migrateExistingSnapshots } from "../snapshot/migration/encrypt-existing-snapshots";
@@ -23,7 +22,8 @@ export interface Phase2Result {
 	configManager: ConfigFileManager;
 	autoProtectConfig: AutoProtectConfig;
 	snapbackrcDecorator: SnapBackRCDecorator;
-	snapbackrcLoader: SnapBackRCLoader;
+	/** @deprecated Use ConfigStore from @snapback/config instead */
+	snapbackrcLoader?: any;
 	mcpManager?: MCPLifecycleManager;
 	/** SDK ProtectionManager - Single Source of Truth for protection decisions */
 	sdkProtectionManager: SDKProtectionManager;
@@ -32,7 +32,7 @@ export interface Phase2Result {
 export async function initializePhase2Storage(
 	workspaceRoot: string,
 	context: ExtensionContext,
-	eventBus?: import("@snapback/events").SnapBackEventBus,
+	eventBus?: any,
 ): Promise<Phase2Result> {
 	const phase2Start = Date.now();
 	logger.info("[PERF] Phase 2 starting...");
@@ -153,27 +153,27 @@ export async function initializePhase2Storage(
 			ms: Date.now() - autoInitStart,
 		});
 
-		// ⚡ Load .snapbackrc asynchronously
+		// ⚡ Initialize ConfigStore asynchronously
 		// Don't await - load in background
-		const loaderStart = Date.now();
-		const snapbackrcLoader = new SnapBackRCLoader(protectedFileRegistry, workspaceRoot);
-		console.log("[PERF] SnapBackRCLoader created", {
-			ms: Date.now() - loaderStart,
+		const configStoreStart = Date.now();
+		let configStoreCleanup: (() => void) | null = null;
+		(async () => {
+			try {
+				const { initializeConfigStore, disposeConfigStore } = await import("../config/configStore");
+				await initializeConfigStore(workspaceRoot);
+				configStoreCleanup = disposeConfigStore;
+				logger.info("ConfigStore initialized in background");
+			} catch (err) {
+				logger.warn("Failed to initialize ConfigStore in background", err as Error);
+			}
+		})();
+		console.log("[PERF] ConfigStore initialization started", {
+			ms: Date.now() - configStoreStart,
 		});
-		// Load config without awaiting - will be available when needed
-		const loadConfigStart = Date.now();
-		snapbackrcLoader.loadConfig().catch((err) => {
-			logger.warn("Failed to load .snapbackrc in background", err as Error);
-		});
-		console.log("[PERF] loadConfig() started", {
-			ms: Date.now() - loadConfigStart,
-		});
-		// Still need to watch for changes
-		const watchStart = Date.now();
-		snapbackrcLoader.watchConfigFile();
-		console.log("[PERF] watchConfigFile() called", {
-			ms: Date.now() - watchStart,
-		});
+		// Register ConfigStore cleanup
+		if (configStoreCleanup) {
+			context.subscriptions.push({ dispose: configStoreCleanup });
+		}
 
 		// ⚡ Migration check deferred - don't block activation
 		const migrationService = new MigrationService(context, protectedFileRegistry);
@@ -216,7 +216,6 @@ export async function initializePhase2Storage(
 			autoProtectConfig,
 			mcpManager,
 			snapbackrcDecorator,
-			snapbackrcLoader,
 			sdkProtectionManager,
 		};
 	} catch (error) {
@@ -267,7 +266,11 @@ export async function initializePhase2Storage(
 				`${SNAPBACK_ICONS.WARN} SnapBack: Storage initialization failed`,
 				{
 					modal: false,
-					detail: `Snapshot features are disabled.\n\nError: ${errorMessage}\n\nCheck the Output panel for details.`,
+					detail: `Snapshot features are disabled.
+
+Error: ${errorMessage}
+
+Check the Output panel for details.`,
 				},
 				"View Logs",
 				"Report Issue",
@@ -313,9 +316,10 @@ export async function initializePhase2Storage(
 		);
 		await autoProtectConfig.initialize();
 
-		const snapbackrcLoader = new SnapBackRCLoader(protectedFileRegistry, workspaceRoot);
-		await snapbackrcLoader.loadConfig();
-		snapbackrcLoader.watchConfigFile();
+		// Initialize ConfigStore for fallback mode
+		const { initializeConfigStore, disposeConfigStore } = await import("../config/configStore");
+		await initializeConfigStore(workspaceRoot);
+		context.subscriptions.push({ dispose: disposeConfigStore });
 
 		// Create a fallback storage adapter using the new file-based system
 		const storage = new StorageManager(context);
@@ -333,7 +337,6 @@ export async function initializePhase2Storage(
 			autoProtectConfig,
 			mcpManager: undefined,
 			snapbackrcDecorator,
-			snapbackrcLoader,
 			sdkProtectionManager: fallbackSdkManager,
 		};
 	}
