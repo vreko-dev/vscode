@@ -33,7 +33,8 @@ export class TelemetryService {
 	public scrub(piiString: string): string {
 		try {
 			return hashContent(piiString);
-		} catch (e) {
+		} catch {
+			// Remove unused 'e' variable
 			return "scrub-failed";
 		}
 	}

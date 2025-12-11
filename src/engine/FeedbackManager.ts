@@ -56,7 +56,9 @@ export class FeedbackManager {
 	public handleDetection(detectionId: string, confidence: number) {
 		// Fix #1: Self-heal the document reference from active editor
 		const document = vscode.window.activeTextEditor?.document;
-		if (!document) return;
+		if (!document) {
+			return;
+		}
 
 		// 0. Clean up previous active detection
 		if (this.currentDetection) {
@@ -94,7 +96,9 @@ export class FeedbackManager {
 	}
 
 	public async reportFalsePositive() {
-		if (!this.currentDetection) return;
+		if (!this.currentDetection) {
+			return;
+		}
 		const { id, confidence } = this.currentDetection;
 
 		if (this.handledDetections.has(id)) {
@@ -112,7 +116,9 @@ export class FeedbackManager {
 			{ placeHolder: "Help us improve: What was the source?" },
 		);
 
-		if (!reason) return;
+		if (!reason) {
+			return;
+		}
 
 		this.addToHandledCache(id);
 
@@ -140,7 +146,9 @@ export class FeedbackManager {
 		// Fix #2: Only dismiss on "Significant" edits
 		this.activeDisposables.push(
 			vscode.workspace.onDidChangeTextDocument((e) => {
-				if (!this.currentDetection || e.document !== this.currentDetection.document) return;
+				if (!this.currentDetection || e.document !== this.currentDetection.document) {
+					return;
+				}
 
 				// Check for "commitment" signals
 				const hasNewline = e.contentChanges.some((c) => c.text.includes("\n"));
@@ -173,8 +181,12 @@ export class FeedbackManager {
 	}
 
 	private logImplicitAcceptance() {
-		if (!this.currentDetection) return;
-		if (this.handledDetections.has(this.currentDetection.id)) return;
+		if (!this.currentDetection) {
+			return;
+		}
+		if (this.handledDetections.has(this.currentDetection.id)) {
+			return;
+		}
 
 		try {
 			const telemetry = TelemetryService.getInstance();
@@ -205,7 +217,9 @@ export class FeedbackManager {
 			clearTimeout(this.activeTimeout);
 			this.activeTimeout = undefined;
 		}
-		this.activeDisposables.forEach((d) => d.dispose());
+		for (const d of this.activeDisposables) {
+			d.dispose();
+		}
 		this.activeDisposables = [];
 	}
 }

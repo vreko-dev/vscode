@@ -1,21 +1,25 @@
 import * as vscode from "vscode";
-import type { PioneerProfile } from "./types";
+
+interface PioneerProfile {
+	id: string;
+	username: string;
+	tier: "seedling" | "grower" | "cultivator" | "guardian";
+	totalPoints: number;
+	joinedAt: string;
+	referralCode: string;
+	githubStarred: boolean;
+}
 
 export class PioneerAuth {
 	async login(): Promise<vscode.AuthenticationSession | undefined> {
-		try {
-			const session = await vscode.authentication.getSession("github", ["read:user", "user:email"], {
-				createIfNone: true,
-			});
-			if (session) {
-				// PostHog telemetry would go here
-				// posthog.capture('pioneer_signup_completed', { auth_method: 'github_vscode' });
-			}
-			return session;
-		} catch (error) {
-			// Re-throw to match test expectation
-			throw error;
+		const session = await vscode.authentication.getSession("github", ["read:user", "user:email"], {
+			createIfNone: true,
+		});
+		if (session) {
+			// PostHog telemetry would go here
+			// posthog.capture('pioneer_signup_completed', { auth_method: 'github_vscode' });
 		}
+		return session;
 	}
 
 	async getProfile(): Promise<PioneerProfile | null> {

@@ -1,5 +1,5 @@
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 /**
  * Analyzes module imports in TypeScript/JavaScript files to build dependency trees.
@@ -93,7 +93,7 @@ export class ImportAnalyzer {
 				}
 			}
 			// Default to .ts for non-existent files (test support)
-			return resolvedPath + ".ts";
+			return `${resolvedPath}.ts`;
 		}
 
 		return resolvedPath;

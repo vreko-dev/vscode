@@ -125,11 +125,11 @@ export class NotificationManager {
 /**
  * Notification factory for common SnapBack alerts
  */
-export class NotificationFactory {
+export const NotificationFactory = {
 	/**
 	 * Threat detected notification (error level)
 	 */
-	static threatDetected(filePath: string, riskScore: number): NotificationConfig {
+	threatDetected(filePath: string, riskScore: number): NotificationConfig {
 		return {
 			id: `threat:${filePath}:${Date.now()}`,
 			type: "error",
@@ -150,12 +150,12 @@ export class NotificationFactory {
 				},
 			],
 		};
-	}
+	},
 
 	/**
 	 * Risk threshold breached notification (warning level)
 	 */
-	static thresholdBreached(riskScore: number, threshold: number): NotificationConfig {
+	thresholdBreached(riskScore: number, threshold: number): NotificationConfig {
 		return {
 			id: `threshold:${Date.now()}`,
 			type: "warning",
@@ -170,36 +170,36 @@ export class NotificationFactory {
 				},
 			],
 		};
-	}
+	},
 
 	/**
 	 * Burst detection notification (warning level)
 	 */
-	static burstDetected(saveCount: number, windowMs: number): NotificationConfig {
+	burstDetected(saveCount: number, windowMs: number): NotificationConfig {
 		return {
 			id: `burst:${Date.now()}`,
 			type: "warning",
 			title: "⚡ Burst Detected",
 			message: `${saveCount} saves in ${windowMs}ms - enabling enhanced protection`,
 		};
-	}
+	},
 
 	/**
 	 * Recovery success notification (info level)
 	 */
-	static recoverySuccess(snapshotId: string): NotificationConfig {
+	recoverySuccess(snapshotId: string): NotificationConfig {
 		return {
 			id: `recovery:${snapshotId}`,
 			type: "info",
 			title: "✅ Recovery Complete",
 			message: `Snapshot restored successfully (${snapshotId})`,
 		};
-	}
+	},
 
 	/**
 	 * Snapshot created notification (info level)
 	 */
-	static snapshotCreated(fileCount: number): NotificationConfig {
+	snapshotCreated(fileCount: number): NotificationConfig {
 		return {
 			id: `snapshot:${Date.now()}`,
 			type: "info",
@@ -207,12 +207,12 @@ export class NotificationFactory {
 			message: `Automatic snapshot: ${fileCount} files protected`,
 			durationMs: 3000, // Auto-dismiss after 3 seconds
 		};
-	}
+	},
 
 	/**
 	 * Protection enabled notification (info level)
 	 */
-	static protectionEnabled(level: "watch" | "warn" | "block"): NotificationConfig {
+	protectionEnabled(level: "watch" | "warn" | "block"): NotificationConfig {
 		const levelDescriptions = {
 			watch: "Monitoring changes",
 			warn: "Showing warnings",
@@ -226,12 +226,12 @@ export class NotificationFactory {
 			message: `File protection: ${levelDescriptions[level]}`,
 			durationMs: 2000, // Auto-dismiss after 2 seconds
 		};
-	}
+	},
 
 	/**
 	 * Critical file notification (error level)
 	 */
-	static criticalFileModified(filePath: string): NotificationConfig {
+	criticalFileModified(filePath: string): NotificationConfig {
 		return {
 			id: `critical:${filePath}:${Date.now()}`,
 			type: "error",
@@ -246,12 +246,12 @@ export class NotificationFactory {
 				},
 			],
 		};
-	}
+	},
 
 	/**
 	 * Permission denied notification (warning level)
 	 */
-	static permissionDenied(filePath: string): NotificationConfig {
+	permissionDenied(filePath: string): NotificationConfig {
 		return {
 			id: `permission:${filePath}:${Date.now()}`,
 			type: "warning",
@@ -266,8 +266,8 @@ export class NotificationFactory {
 				},
 			],
 		};
-	}
-}
+	},
+};
 
 /**
  * Notification service for integration with AutoDecisionIntegration
