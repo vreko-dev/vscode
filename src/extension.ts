@@ -172,6 +172,28 @@ export async function activate(context: vscode.ExtensionContext) {
 	// 🆕 Initialize CredentialsManager early
 	const credentialsManager = createCredentialsManager(context.secrets);
 
+	// 🆕 Initialize TelemetryProxy early for auth event tracking
+	const telemetryProxy = new TelemetryProxy(context);
+
+	// Update credentials manager with telemetry support (will be initialized again later with full telemetry)
+	// This early initialization allows auth events to be tracked
+	const credentialsManagerWithTelemetry = createCredentialsManager(context.secrets, vscode, telemetryProxy);
+
+	// 🔗 Register URI Handler for authentication deep links (early in activation)
+	// This must be registered before async operations so deep links work even if extension is activating
+	try {
+		const { AuthUriHandler } = await import("./auth/AuthUriHandler");
+		const authUriHandler = new AuthUriHandler(
+			credentialsManager,
+			vscode.workspace.getConfiguration("snapback").get<string>("apiBaseUrl", "https://api.snapback.dev"),
+			outputChannel,
+		);
+		context.subscriptions.push(vscode.window.registerUriHandler(authUriHandler));
+		logger.info("AuthUriHandler registered for deep links");
+	} catch (error) {
+		logger.error("Failed to register AuthUriHandler", error as Error);
+	}
+
 	// 🆕 Initialize WorkspaceFolderResolver for early workspace verification
 	// This is lightweight and doesn't require storage
 	const workspaceFolderResolver = new WorkspaceFolderResolver(vscode.workspace.workspaceFolders || []);
@@ -370,6 +392,12 @@ export async function activate(context: vscode.ExtensionContext) {
 							return;
 						}
 						await userIdentityService.handleLogin(sessions.account.id);
+
+						// Track auth started event (at beginning of OAuth flow)
+						await telemetryProxy.trackEvent("activation_funnel", {
+							stage: "auth_started",
+							provider: "vscode",
+						});
 
 						// Update global state
 						await context.globalState.update("snapback.hasAuthenticated", true);

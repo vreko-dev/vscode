@@ -11,6 +11,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { type ConfigStoreV2Type, getInitializedConfigStore } from "../config/configStore";
+import type { TelemetryProxy } from "../services/telemetry-proxy";
 import { detectStacks } from "../stacks/stackDetection";
 import { logger } from "../utils/logger";
 
@@ -35,7 +36,7 @@ async function fileExists(filePath: string): Promise<boolean> {
  * @param workspaceRoot - Root directory of the workspace
  * @returns void (failures are logged, not thrown)
  */
-export async function runPostAuthSetup(workspaceRoot: string): Promise<void> {
+export async function runPostAuthSetup(workspaceRoot: string, telemetry?: TelemetryProxy): Promise<void> {
 	try {
 		const rcPath = path.join(workspaceRoot, ".snapbackrc");
 
@@ -53,6 +54,15 @@ export async function runPostAuthSetup(workspaceRoot: string): Promise<void> {
 		logger.info(`Detected ${stacks.length} stacks`, {
 			stacks: stacks.map((s) => s.name).join(", "),
 		});
+
+		// Track telemetry for config generation
+		if (telemetry) {
+			await telemetry.trackEvent("activation_funnel", {
+				stage: "config_generated",
+				stacks_detected: stacks.length,
+				stack_names: stacks.map((s) => s.name),
+			});
+		}
 
 		// 2. Collect rules from detected stacks and ensure they have precedence
 		const detectedRules = stacks.flatMap((s) => s.rules);

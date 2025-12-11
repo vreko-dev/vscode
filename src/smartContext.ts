@@ -1,3 +1,4 @@
+import * as vscode from "vscode";
 import type { WorkspaceMemoryManager } from "./workspaceMemory";
 
 export interface SmartContext {
@@ -30,7 +31,7 @@ export class SmartContextDetector {
 		};
 
 		// Detect project type based on files in workspace
-		context.projectType = this.detectProjectType();
+		context.projectType = await this.detectProjectType();
 
 		// Detect framework based on dependencies
 		context.framework = this.detectFramework();
@@ -53,10 +54,35 @@ export class SmartContextDetector {
 	/**
 	 * Detect project type based on workspace files
 	 */
-	private detectProjectType(): "javascript" | "typescript" | "python" | "java" | "unknown" {
-		// In a real implementation, we would scan the workspace for specific files
-		// For now, we'll return a default value
-		return "typescript";
+	private async detectProjectType(): Promise<"javascript" | "typescript" | "python" | "java" | "unknown"> {
+		const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+		if (!workspaceRoot) return "unknown";
+
+		// Check for indicators in order of specificity
+		if (await this.fileExists(workspaceRoot, "tsconfig.json")) return "typescript";
+		if (await this.fileExists(workspaceRoot, "package.json")) return "javascript";
+		if (
+			(await this.fileExists(workspaceRoot, "requirements.txt")) ||
+			(await this.fileExists(workspaceRoot, "pyproject.toml"))
+		)
+			return "python";
+		if ((await this.fileExists(workspaceRoot, "pom.xml")) || (await this.fileExists(workspaceRoot, "build.gradle")))
+			return "java";
+
+		return "unknown";
+	}
+
+	/**
+	 * Check if a file exists in the workspace
+	 */
+	private async fileExists(workspaceRoot: string, fileName: string): Promise<boolean> {
+		try {
+			const filePath = vscode.Uri.file(`${workspaceRoot}/${fileName}`);
+			await vscode.workspace.fs.stat(filePath);
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	/**

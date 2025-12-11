@@ -16,6 +16,7 @@
 
 import type * as vscode from "vscode";
 import { runPostAuthSetup } from "../onboarding/postAuthSetup";
+import type { TelemetryProxy } from "../services/telemetry-proxy";
 import { logger } from "../utils/logger";
 
 /**
@@ -74,18 +75,24 @@ export interface CredentialsManager {
  * Implements secure credential storage using VS Code's SecretStorage.
  *
  * @param secrets - VS Code secret storage
+ * @param vscode - VS Code API reference (for workspace access)
+ * @param telemetry - Optional telemetry service for tracking auth events
  * @returns CredentialsManager instance
  *
  * @example
  * ```ts
- * const credentialsManager = createCredentialsManager(context.secrets);
+ * const credentialsManager = createCredentialsManager(context.secrets, vscode, telemetry);
  * const creds = await credentialsManager.getCredentials();
  * if (creds) {
  *   console.log("Authenticated as:", creds.user.email);
  * }
  * ```
  */
-export function createCredentialsManager(secrets: vscode.SecretStorage, vscode?: any): CredentialsManager {
+export function createCredentialsManager(
+	secrets: vscode.SecretStorage,
+	vscodeApi?: any,
+	telemetry?: TelemetryProxy,
+): CredentialsManager {
 	const STORAGE_KEY = "snapback.extensionCredentials";
 
 	return {
@@ -106,10 +113,19 @@ export function createCredentialsManager(secrets: vscode.SecretStorage, vscode?:
 		async setCredentials(credentials: ExtensionCredentials): Promise<void> {
 			await secrets.store(STORAGE_KEY, JSON.stringify(credentials));
 
+			// Track auth completion
+			if (telemetry) {
+				await telemetry.trackEvent("activation_funnel", {
+					stage: "auth_completed",
+					userEmail: credentials.user.email,
+					hasWorkspace: !!credentials.workspace,
+				});
+			}
+
 			// Trigger post-auth setup (non-blocking)
-			const workspaceRoot = vscode?.workspace?.workspaceFolders?.[0]?.uri?.fsPath;
+			const workspaceRoot = vscodeApi?.workspace?.workspaceFolders?.[0]?.uri?.fsPath;
 			if (workspaceRoot) {
-				runPostAuthSetup(workspaceRoot).catch((error) => {
+				runPostAuthSetup(workspaceRoot, telemetry).catch((error) => {
 					logger.error("Post-auth setup failed", error instanceof Error ? error : new Error(String(error)));
 				});
 			}

@@ -70,6 +70,25 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 		logger.info("Creating new OAuth session", { scopes });
 
 		try {
+			// Validate workspace exists before OAuth
+			if (!vscode.workspace.workspaceFolders?.length) {
+				const result = await vscode.window.showWarningMessage(
+					"SnapBack requires an open workspace folder to protect your code.",
+					"Open Folder",
+					"Cancel",
+				);
+
+				if (result === "Open Folder") {
+					await vscode.commands.executeCommand("vscode.openFolder");
+				}
+
+				throw new Error("Workspace required before authentication");
+			}
+
+			// Track auth started
+			// Note: Full telemetry tracking happens in auth_completed event after token exchange
+			logger.info("OAuth authentication flow initiated");
+
 			// Generate PKCE challenge
 			const { codeVerifier, codeChallenge } = await this.generatePKCE();
 
