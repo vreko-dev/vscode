@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import * as vscode from "vscode";
 import type { GitFileChange as FileChange } from "../types/fileChanges";
 import type {
 	CreateSnapshotOptions,
@@ -89,25 +90,25 @@ export class SnapshotManager {
 	private readonly deletionService: SnapshotDeletionService;
 	private readonly storage: IStorage;
 	private readonly eventEmitter?: IEventEmitter;
-	private readonly workspaceRoot: string;
 	private readonly encryptionService: EncryptionService;
 	private readonly sessionCoordinator?: SessionCoordinator;
 
 	constructor(
-		workspaceRoot: string,
+		_workspaceRoot: string,
 		storage: IStorage,
 		confirmationService: IConfirmationService,
 		eventEmitter?: IEventEmitter,
 		sessionCoordinator?: SessionCoordinator,
 	) {
-		this.workspaceRoot = workspaceRoot;
+		// Note: workspaceRoot parameter kept for compatibility but unused
+		// (now fetched dynamically via getCurrentWorkspaceRoot to support workspace switches)
 		this.storage = storage;
 		this.eventEmitter = eventEmitter;
 		this.sessionCoordinator = sessionCoordinator;
 
 		// Initialize components
 		this.deduplicator = new SnapshotDeduplicator(500);
-		this.namingStrategy = new SnapshotNamingStrategy(workspaceRoot);
+		this.namingStrategy = new SnapshotNamingStrategy(this.getCurrentWorkspaceRoot());
 		this.iconStrategy = new SnapshotIconStrategy();
 		this.encryptionService = new EncryptionService();
 
@@ -121,6 +122,23 @@ export class SnapshotManager {
 			},
 			confirmationService,
 		);
+	}
+
+	/**
+	 * Get current workspace root dynamically
+	 *
+	 * BUG FIX: Previously cached at construction time, causing stale paths
+	 * when testing in different workspaces. Now fetches current workspace.
+	 *
+	 * @returns Current workspace root path or empty string if none open
+	 * @throws Error if workspace root cannot be determined
+	 */
+	private getCurrentWorkspaceRoot(): string {
+		const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+		if (!workspaceRoot) {
+			throw new Error("No workspace folder is open");
+		}
+		return workspaceRoot;
 	}
 
 	/**
@@ -212,7 +230,7 @@ export class SnapshotManager {
 
 			const snapshotInfo: SnapshotInfo = {
 				files: fileChanges,
-				workspaceRoot: this.workspaceRoot,
+				workspaceRoot: this.getCurrentWorkspaceRoot(),
 			};
 
 			name = await this.namingStrategy.generateName(snapshotInfo);
@@ -502,8 +520,9 @@ export class SnapshotManager {
 	private validateFilePaths(paths: string[]): void {
 		for (const filePath of paths) {
 			// Check if path is absolute and within workspace
-			if (!filePath.startsWith(this.workspaceRoot)) {
-				throw new Error(`Invalid file path: ${filePath} is outside workspace root ${this.workspaceRoot}`);
+			const currentWorkspaceRoot = this.getCurrentWorkspaceRoot();
+			if (!filePath.startsWith(currentWorkspaceRoot)) {
+				throw new Error(`Invalid file path: ${filePath} is outside workspace root ${currentWorkspaceRoot}`);
 			}
 
 			// Basic path traversal prevention
