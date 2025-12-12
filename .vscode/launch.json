@@ -5,7 +5,7 @@
 			"name": "Run Extension",
 			"type": "extensionHost",
 			"request": "launch",
-			"runtimeExecutable": "${execPath}",
+			"runtimeExecutable": "/Applications/Qoder.app/Contents/MacOS/Electron",
 			"args": ["--extensionDevelopmentPath=${workspaceFolder}"],
 			"outFiles": ["${workspaceFolder}/dist/**/*.js"],
 			"preLaunchTask": "npm: compile",
@@ -18,7 +18,7 @@
 			"name": "Extension Tests",
 			"type": "extensionHost",
 			"request": "launch",
-			"runtimeExecutable": "${execPath}",
+			"runtimeExecutable": "/Applications/Visual Studio Code.app/Contents/MacOS/Electron",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
 				"--extensionTestsPath=${workspaceFolder}/out/test"
