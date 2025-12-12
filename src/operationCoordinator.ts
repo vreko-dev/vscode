@@ -529,6 +529,14 @@ export class OperationCoordinator {
 				},
 				async (progress) => {
 					if (isIncremental) {
+						// For incremental snapshots, convert relative paths to absolute if needed
+						const absoluteFiles = files.map((f) => {
+							if (path.isAbsolute(f)) {
+								return f;
+							}
+							return path.join(workspaceRoot, f);
+						});
+						files = absoluteFiles;
 						progress.report({
 							message: `Snapshotting ${files.length} file(s)...`,
 						});

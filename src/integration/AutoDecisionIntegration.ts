@@ -27,7 +27,10 @@ import type { AutoDecisionConfig, ProtectionDecision, SaveContext } from "../dom
 import { DEFAULT_CONFIG } from "../domain/types";
 import { FeedbackManager } from "../engine/FeedbackManager";
 import type { NotificationManager } from "../notificationManager";
+import { RecoveryUXNotification } from "../notifications/RecoveryUXNotification";
+import type { WorkspaceContextManager } from "../services/WorkspaceContextManager";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
+import { absoluteToWorkspaceRelative, createAbsolutePath } from "../types/PathBrands";
 import { detectAIPresence } from "../utils/AIPresenceDetector";
 import { logger } from "../utils/logger";
 
@@ -47,6 +50,7 @@ export class AutoDecisionIntegration {
 	private signalAggregator: SignalAggregator;
 	private settingsLoader: SettingsLoader | null = null;
 	private snapshotManager: SnapshotManager;
+	private workspaceContextManager: WorkspaceContextManager;
 
 	private fileBuffer: FileChangeEvent[] = [];
 	private bufferTimeout: NodeJS.Timeout | null = null;
@@ -76,11 +80,14 @@ export class AutoDecisionIntegration {
 	constructor(
 		snapshotManager: SnapshotManager,
 		_notificationManager: NotificationManager,
+		workspaceContextManager: WorkspaceContextManager,
 		config?: Partial<AutoDecisionConfig>,
 		context?: vscode.ExtensionContext,
 	) {
-		// Store snapshot manager for snapshot creation
+		// Store dependencies
 		this.snapshotManager = snapshotManager;
+		this.workspaceContextManager = workspaceContextManager;
+
 		// Initialize SettingsLoader if context available
 		if (context) {
 			this.settingsLoader = new SettingsLoader(context);
@@ -291,6 +298,12 @@ export class AutoDecisionIntegration {
 				this.fileBuffer.map((event) => this.extractFileInfo(event.filePath, event.content || "")),
 			);
 
+			// 🔍 DIAGNOSTIC: Process batch
+			const workspaceRoot = this.workspaceContextManager.getWorkspaceRoot();
+			console.log("[AutoDecision] processBatch() called");
+			console.log(`[AutoDecision] Files in batch: ${fileInfos.length}`);
+			console.log(`[AutoDecision] Workspace root: ${workspaceRoot}`);
+
 			// Step 2: Build SaveContext
 			const saveContext = await this.buildSaveContext(fileInfos);
 
@@ -336,19 +349,65 @@ export class AutoDecisionIntegration {
 
 	/**
 	 * Extract file metadata for SaveContext
+	 *
+	 * CRITICAL: Uses WorkspaceContextManager for dynamic workspace resolution
+	 * to prevent multi-workspace bugs (Antipattern #2)
 	 */
 	private async extractFileInfo(filePath: string, content: string): Promise<FileInfo> {
-		const relativePathResult = vscode.workspace.asRelativePath(filePath);
-		const relativePath = relativePathResult === filePath ? filePath : relativePathResult;
+		// Get dynamic workspace root - NEVER cached (fixes Antipattern #2)
+		const workspaceRoot = this.workspaceContextManager.getWorkspaceRoot();
 
-		return {
-			path: relativePath,
-			extension: path.extname(filePath),
-			sizeBytes: Buffer.byteLength(content, "utf-8"),
-			isNew: false, // TODO: Check if file existed before
-			isBinary: this.isBinaryContent(content, path.extname(filePath)),
-			nextHash: crypto.createHash("sha256").update(content).digest("hex"),
-		};
+		if (!workspaceRoot) {
+			logger.warn("No workspace root available, using absolute path", { filePath });
+			return {
+				path: filePath,
+				extension: path.extname(filePath),
+				sizeBytes: Buffer.byteLength(content, "utf-8"),
+				isNew: false,
+				isBinary: this.isBinaryContent(content, path.extname(filePath)),
+				nextHash: crypto.createHash("sha256").update(content).digest("hex"),
+			};
+		}
+
+		try {
+			// Use branded path types for type safety (fixes Antipattern #3)
+			const absolutePath = createAbsolutePath(filePath);
+			const workspaceRootPath = createAbsolutePath(workspaceRoot);
+
+			// Convert to workspace-relative path
+			const relativePath = absoluteToWorkspaceRelative(absolutePath, workspaceRootPath);
+
+			logger.debug("Path conversion", {
+				absolute: absolutePath,
+				workspaceRoot: workspaceRootPath,
+				relative: relativePath,
+			});
+
+			return {
+				path: relativePath, // Store as workspace-relative
+				extension: path.extname(filePath),
+				sizeBytes: Buffer.byteLength(content, "utf-8"),
+				isNew: false, // TODO: Check if file existed before
+				isBinary: this.isBinaryContent(content, path.extname(filePath)),
+				nextHash: crypto.createHash("sha256").update(content).digest("hex"),
+			};
+		} catch (error) {
+			// Fallback: file is outside workspace, use absolute path
+			logger.warn("File outside workspace, using absolute path", {
+				filePath,
+				workspaceRoot,
+				error: (error as Error).message,
+			});
+
+			return {
+				path: filePath,
+				extension: path.extname(filePath),
+				sizeBytes: Buffer.byteLength(content, "utf-8"),
+				isNew: false,
+				isBinary: this.isBinaryContent(content, path.extname(filePath)),
+				nextHash: crypto.createHash("sha256").update(content).digest("hex"),
+			};
+		}
 	}
 
 	/**
@@ -475,7 +534,14 @@ export class AutoDecisionIntegration {
 				const primaryFile = context.files[0];
 				try {
 					// Read file content for snapshot
-					const fileUri = vscode.Uri.file(primaryFile.path);
+					// Convert relative path to absolute if needed
+					const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+					const absolutePath = path.isAbsolute(primaryFile.path)
+						? primaryFile.path
+						: workspaceFolder
+							? path.join(workspaceFolder, primaryFile.path)
+							: primaryFile.path;
+					const fileUri = vscode.Uri.file(absolutePath);
 					const document = await vscode.workspace.openTextDocument(fileUri);
 					const content = document.getText();
 
@@ -489,6 +555,15 @@ export class AutoDecisionIntegration {
 					logger.info("Snapshot created from AutoDecision", {
 						snapshotId: snapshot.id,
 						filePath: primaryFile.path,
+					});
+
+					// Show recovery notification - the viral moment!
+					const notification = new RecoveryUXNotification();
+					void notification.showProtectionAlert({
+						filePath: primaryFile.path,
+						snapshotId: snapshot.id,
+						aiTool: detectAIPresence().detectedAssistants[0] || "AI",
+						operationType: "auto-detected",
 					});
 				} catch (snapshotError) {
 					logger.error("Failed to create snapshot from AutoDecision", snapshotError as Error);
@@ -552,7 +627,8 @@ export class AutoDecisionIntegration {
 export function createAutoDecisionIntegration(
 	snapshotManager: SnapshotManager,
 	notificationManager: NotificationManager,
+	workspaceContextManager: WorkspaceContextManager,
 	config?: Partial<AutoDecisionConfig>,
 ): AutoDecisionIntegration {
-	return new AutoDecisionIntegration(snapshotManager, notificationManager, config);
+	return new AutoDecisionIntegration(snapshotManager, notificationManager, workspaceContextManager, config);
 }

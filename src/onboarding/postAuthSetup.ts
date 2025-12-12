@@ -152,6 +152,21 @@ export async function runPostAuthSetup(workspaceRoot: string, telemetry?: Teleme
 					minFilesForBurst: 3,
 					maxSnapshotsPerMinute: 4,
 				},
+				mcp: {
+					performanceBudgets: { analyze_risk: 200, create_snapshot: 500 },
+					context7: {
+						apiUrl: "https://context7.com/api",
+						cacheTtlSearch: 3600,
+						cacheTtlDocs: 86400,
+					},
+					api: {
+						baseUrl: "https://api.snapback.dev",
+					},
+					http: {
+						allowedOrigins: ["*"],
+						apiUrl: "http://api:8080",
+					},
+				},
 				webBaseUrl: "https://app.snapback.dev",
 			},
 			policies: {

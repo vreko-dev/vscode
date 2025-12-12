@@ -37,6 +37,7 @@ import { ProtectionManager } from "./services/protectionPolicy";
 import { ProtectionService } from "./services/protectionService";
 import { TelemetryProxy } from "./services/telemetry-proxy";
 import { UserIdentityService } from "./services/UserIdentityService";
+import { createWorkspaceContextManager } from "./services/WorkspaceContextManager"; // 🆕 Import WorkspaceContextManager
 import { WorkspaceManager } from "./services/WorkspaceManager"; // 🆕 Import WorkspaceManager
 import type { StorageManager } from "./storage/StorageManager";
 import type { ProtectionChangedPayload } from "./types/api";
@@ -171,13 +172,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// 🆕 Initialize CredentialsManager early
 	const credentialsManager = createCredentialsManager(context.secrets);
-
-	// 🆕 Initialize TelemetryProxy early for auth event tracking
-	const telemetryProxy = new TelemetryProxy(context);
-
-	// Update credentials manager with telemetry support (will be initialized again later with full telemetry)
-	// This early initialization allows auth events to be tracked
-	const _credentialsManagerWithTelemetry = createCredentialsManager(context.secrets, vscode, telemetryProxy);
 
 	// 🔗 Register URI Handler for authentication deep links (early in activation)
 	// This must be registered before async operations so deep links work even if extension is activating
@@ -455,11 +449,17 @@ export async function activate(context: vscode.ExtensionContext) {
 		await initializePioneerInfrastructure(context);
 		phaseTimings["Pioneer Infrastructure"] = Date.now() - pioneerStart;
 
+		// 🆕 Phase 14: Initialize WorkspaceContextManager (fixes Antipattern #2)
+		const workspaceContextManager = createWorkspaceContextManager();
+		context.subscriptions.push(workspaceContextManager);
+		logger.info("WorkspaceContextManager initialized");
+
 		// 🆕 Phase 14: Initialize AutoDecisionIntegration (session-level AI protection)
 		const phase14Start = Date.now();
 		autoDecisionIntegration = new AutoDecisionIntegration(
 			phase3Result.snapshotManager,
 			phase3Result.notificationManager,
+			workspaceContextManager, // Pass WorkspaceContextManager for dynamic workspace resolution
 			{
 				riskThreshold: config.get<number>("snapback.autoDecision.riskThreshold", 60),
 				notifyThreshold: config.get<number>("snapback.autoDecision.notifyThreshold", 40),

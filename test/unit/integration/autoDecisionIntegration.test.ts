@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AutoDecisionIntegration } from "@vscode/integration/AutoDecisionIntegration";
+import { AutoDecisionIntegration } from "../../../src/integration/AutoDecisionIntegration";
 
 describe("AutoDecisionIntegration", () => {
 	let integration: AutoDecisionIntegration;
@@ -13,6 +13,7 @@ describe("AutoDecisionIntegration", () => {
 		integration = new AutoDecisionIntegration(
 			{ createSnapshot: vi.fn() } as any,
 			{} as any,
+			{ getWorkspaceRoot: vi.fn(() => "/test/workspace") } as any, // Mock WorkspaceContextManager
 		);
 	});
 
@@ -56,6 +57,7 @@ describe("AutoDecisionIntegration", () => {
 			const custom = new AutoDecisionIntegration(
 				{ createSnapshot: vi.fn() } as any,
 				{} as any,
+				{ getWorkspaceRoot: vi.fn(() => "/test/workspace") } as any, // Mock WorkspaceContextManager
 				{ riskThreshold: 75 },
 			);
 			expect(custom).toBeDefined();
