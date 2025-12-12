@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import type { EvaluationContext, ProtectionDecision, ProtectionDecisionEngine } from "@snapback/sdk";
 import * as vscode from "vscode";
+import { RecoveryUXNotification } from "../notifications/RecoveryUXNotification";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { MilestoneService } from "../services/MilestoneService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
@@ -221,6 +222,11 @@ export class ProtectionLevelHandler {
 	): Promise<ProtectionHandlingResult> {
 		const protectionLevel = this.registry.getProtectionLevel(filePath) || "watch";
 
+		// 🔍 DIAGNOSTIC: Entry point
+		console.log("[ProtectionLevel] handleProtectionLevel() called");
+		console.log(`[ProtectionLevel] File: ${filePath}`);
+		console.log(`[ProtectionLevel] Level: ${protectionLevel}`);
+
 		logger.debug("Handling protection level", {
 			filePath,
 			protectionLevel,
@@ -232,6 +238,12 @@ export class ProtectionLevelHandler {
 		// Per arch_remediation.md Task 2.3: isInCooldown is now synchronous (CooldownCache is in-memory)
 		const inCooldown = this.cooldownService.isInCooldown(filePath);
 		const hasTemporaryAllowance = this.registry.hasTemporaryAllowance(filePath);
+
+		// 🔍 DIAGNOSTIC: Cooldown check
+		console.log(`[ProtectionLevel] In cooldown: ${inCooldown}`);
+		if (inCooldown) {
+			console.log("[ProtectionLevel] SKIPPING - cooldown active");
+		}
 
 		// Build evaluation context for SDK
 		const context: EvaluationContext = {
@@ -398,6 +410,9 @@ export class ProtectionLevelHandler {
 			filename,
 		});
 
+		// 🔍 DIAGNOSTIC: Before showing modal
+		console.log("[ProtectionLevel] Showing modal: BLOCK confirmation dialog");
+
 		// Show confirmation dialog
 		const result = await vscode.window.showWarningMessage(
 			`🔴 This file is protected (BLOCK mode).
@@ -409,6 +424,9 @@ A snapshot will be created before saving.`,
 			"Create Snapshot & Save",
 			"Cancel",
 		);
+
+		// 🔍 DIAGNOSTIC: After user responds
+		console.log(`[ProtectionLevel] User response: ${result || "dismissed"}`);
 
 		if (result !== "Create Snapshot & Save") {
 			logger.info("User cancelled BLOCK mode save", { filePath });
@@ -530,6 +548,48 @@ A snapshot will be created before saving.`,
 	}
 
 	/**
+	 * Show protection notification to user.
+	 * This is the viral moment - when AI tries to delete/overwrite a file and SnapBack catches it.
+	 *
+	 * @param filePath - Path to the protected file
+	 * @param snapshotId - ID of the created snapshot
+	 */
+	private async showRecoveryNotification(filePath: string, snapshotId: string): Promise<void> {
+		// 🔍 DIAGNOSTIC: Entry point to verify this method is actually called
+		console.log("[ProtectionLevel] showRecoveryNotification() ENTERED");
+		console.log(`[ProtectionLevel] filePath: ${filePath}, snapshotId: ${snapshotId}`);
+
+		try {
+			const notification = new RecoveryUXNotification();
+			await notification.showProtectionAlert({
+				filePath,
+				snapshotId,
+				aiTool: this.detectAITool(),
+				operationType: "overwrite", // Detected from snapshot trigger context
+			});
+		} catch (error) {
+			logger.error("Failed to show recovery notification", error instanceof Error ? error : undefined);
+			// Fail gracefully - don't crash extension if notification fails
+		}
+	}
+
+	/**
+	 * Detect which AI tool is currently active in VS Code.
+	 * Checks for Cursor and Copilot extensions.
+	 *
+	 * @returns AI tool name or generic "AI" fallback
+	 */
+	private detectAITool(): string {
+		const cursor = vscode.extensions.getExtension("cursor.cursor");
+		const copilot = vscode.extensions.getExtension("github.copilot");
+
+		if (cursor?.isActive) return "Cursor";
+		if (copilot?.isActive) return "Copilot";
+
+		return "AI";
+	}
+
+	/**
 	 * Handle BLOCK protection level.
 	 * Requires user action to proceed with save.
 	 */
@@ -597,6 +657,9 @@ A snapshot will be created before saving.`,
 					filePath,
 					snapshotId,
 				});
+
+				// Show recovery notification - the viral moment!
+				void this.showRecoveryNotification(filePath, snapshotId);
 
 				return {
 					shouldProceed: true,
@@ -681,6 +744,9 @@ A snapshot will be created before saving.`,
 					path.relative(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "", filePath),
 				);
 
+				// Show recovery notification - the viral moment!
+				void this.showRecoveryNotification(filePath, snapshotId);
+
 				return {
 					shouldProceed: true,
 					shouldSnapshot: true,
@@ -754,6 +820,9 @@ A snapshot will be created before saving.`,
 
 				vscode.window.setStatusBarMessage(`✅ Snapshot created: ${filename}`, 2000);
 
+				// Show recovery notification - the viral moment!
+				void this.showRecoveryNotification(filePath, snapshotId);
+
 				return {
 					shouldProceed: true,
 					shouldSnapshot: true,
@@ -794,6 +863,10 @@ A snapshot will be created before saving.`,
 		_filename: string,
 		preSaveContent: string,
 	): Promise<string | undefined> {
+		// 🔍 DIAGNOSTIC: Before snapshot creation
+		console.log(`[ProtectionLevel] Creating snapshot for: ${filePath}`);
+		console.log("[ProtectionLevel] Snapshot ID will be: pending");
+
 		logger.info("Creating snapshot for file", {
 			filePath,
 			contentLength: preSaveContent.length,
@@ -828,9 +901,21 @@ A snapshot will be created before saving.`,
 			snapshotName, // Intelligent snapshot name
 		);
 
+		// 🔍 DIAGNOSTIC: After snapshot creation
+		if (snapshotId) {
+			console.log(`[ProtectionLevel] Snapshot created: ${snapshotId}`);
+			console.log("[ProtectionLevel] Calling showRecoveryNotification()");
+		} else {
+			console.log("[ProtectionLevel] Snapshot creation FAILED - no ID returned");
+		}
+
 		if (snapshotId) {
 			await this.registry.markSnapshot(snapshotId, [filePath]);
 			this.cooldownService.recordSnapshotTime(filePath);
+
+			// P0 FIX: Show recovery notification (Bug #1 root cause)
+			// This was logged but never called - the viral moment was missing!
+			void this.showRecoveryNotification(filePath, snapshotId);
 
 			// Track Milestone (files protected)
 			if (this.milestoneService) {
