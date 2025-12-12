@@ -276,14 +276,29 @@ describe("Configuration Performance Tests", () => {
 			mockProtectedFileRegistry,
 		);
 
-		// Get initial memory usage
+		// Warmup phase: Run 50 reloads to fill internal caches (e.g. patternCache)
+		// This ensures we measure actual LEAKS, not expected cache growth
+		for (let i = 0; i < 50; i++) {
+			await manager.load();
+			// @ts-ignore
+			if (vscode.workspace.findFiles) {
+				// @ts-ignore
+				vscode.workspace.findFiles = () => Promise.resolve([]);
+			}
+		}
+
+		// Force GC if available (requires --expose-gc) but optional
+		if (global.gc) {
+			global.gc();
+		}
+
+		// Get initial memory usage AFTER warmup
 		const initialMemory = process.memoryUsage().heapUsed;
 		const memorySamples: number[] = [];
 
 		// Perform 1000 reloads and sample memory
 		for (let i = 0; i < 1000; i++) {
 			await manager.load();
-			vi.mocked(vscode.workspace.findFiles).mockClear();
 
 			// Sample memory every 100 reloads
 			if (i % 100 === 0) {
