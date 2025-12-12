@@ -1,5 +1,5 @@
 import type { ProtectionLevel } from "@snapback/contracts";
-import { minimatch } from "minimatch";
+import { Minimatch } from "minimatch";
 import type { ProtectionRule, SnapBackRC } from "../types/snapbackrc.types";
 
 // Protection level hierarchy (higher number = more restrictive)
@@ -10,8 +10,8 @@ const PROTECTION_LEVEL_PRIORITY: Record<ProtectionLevel, number> = {
 };
 
 // Cache for compiled minimatch patterns to avoid recompilation
-const patternCache = new Map<string, (filePath: string) => boolean>();
-const MAX_PATTERN_CACHE_SIZE = 1000;
+const patternCache = new Map<string, Minimatch>();
+const MAX_PATTERN_CACHE_SIZE = 20000;
 
 /**
  * Get a compiled minimatch pattern from cache or create new one
@@ -19,27 +19,23 @@ const MAX_PATTERN_CACHE_SIZE = 1000;
  * @returns Compiled minimatch pattern function
  */
 function getCachedPattern(pattern: string): (filePath: string) => boolean {
-	if (patternCache.has(pattern)) {
-		const cached = patternCache.get(pattern);
-		if (cached === undefined) {
-			throw new Error(`Pattern cache miss for pattern: ${pattern}`);
+	let mm = patternCache.get(pattern);
+
+	if (!mm) {
+		// Maintain cache size limit
+		if (patternCache.size >= MAX_PATTERN_CACHE_SIZE) {
+			const firstKey = patternCache.keys().next().value;
+			if (firstKey) {
+				patternCache.delete(firstKey);
+			}
 		}
-		return cached;
+
+		mm = new Minimatch(pattern, { dot: true });
+		patternCache.set(pattern, mm);
 	}
 
-	const matcher = (filePath: string) => minimatch(filePath, pattern, { dot: true });
-
-	// Maintain cache size limit
-	if (patternCache.size >= MAX_PATTERN_CACHE_SIZE) {
-		// Remove oldest entries (simple FIFO)
-		const firstKey = patternCache.keys().next().value;
-		if (firstKey) {
-			patternCache.delete(firstKey);
-		}
-	}
-
-	patternCache.set(pattern, matcher);
-	return matcher;
+	// Return a closure that uses the cached Minimatch object
+	return (filePath: string) => mm!.match(filePath);
 }
 
 /**

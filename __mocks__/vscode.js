@@ -3,6 +3,7 @@
  * Provides realistic mocks for all VS Code APIs used by the extension
  */
 
+const { vi } = require("vitest");
 const EventEmitter = require("node:events");
 
 // Mock event emitter for VS Code events
@@ -80,15 +81,15 @@ class MockWebviewView {
 			options: {},
 			cspSource: "vscode-resource:",
 			asWebviewUri: (uri) => uri,
-			postMessage: jest.fn(),
-			onDidReceiveMessage: jest.fn(),
+			postMessage: vi.fn(),
+			onDidReceiveMessage: vi.fn(),
 		};
 		this.visible = true;
 		this.viewType = "";
 		this.title = "";
 		this.description = "";
-		this.onDidDispose = jest.fn();
-		this.onDidChangeVisibility = jest.fn();
+		this.onDidDispose = vi.fn();
+		this.onDidChangeVisibility = vi.fn();
 	}
 
 	show(_preserveFocus) {
@@ -176,7 +177,7 @@ class MockMemento {
 class MockSecretStorage {
 	constructor() {
 		this.secrets = new Map();
-		this.onDidChange = jest.fn();
+		this.onDidChange = vi.fn();
 	}
 
 	get(key) {
@@ -304,25 +305,28 @@ const vscode = {
 
 	// Window API
 	window: {
-		showInformationMessage: jest.fn().mockResolvedValue(undefined),
-		showWarningMessage: jest.fn().mockResolvedValue(undefined),
-		showErrorMessage: jest.fn().mockResolvedValue(undefined),
-		showQuickPick: jest.fn().mockResolvedValue(undefined),
-		showInputBox: jest.fn().mockResolvedValue(undefined),
-		showSaveDialog: jest.fn().mockResolvedValue(undefined),
-		showOpenDialog: jest.fn().mockResolvedValue(undefined),
-		showWorkspaceFolderPick: jest.fn().mockResolvedValue(undefined),
-
-		createStatusBarItem: jest.fn(() => new MockStatusBarItem()),
-		createOutputChannel: jest.fn(() => ({
-			append: jest.fn(),
-			appendLine: jest.fn(),
-			clear: jest.fn(),
-			show: jest.fn(),
-			hide: jest.fn(),
-			dispose: jest.fn(),
+		showInformationMessage: vi.fn().mockResolvedValue(undefined),
+		showWarningMessage: vi.fn().mockResolvedValue(undefined),
+		showErrorMessage: vi.fn().mockResolvedValue(undefined),
+		showQuickPick: vi.fn().mockResolvedValue(undefined),
+		showInputBox: vi.fn().mockResolvedValue(undefined),
+		showSaveDialog: vi.fn().mockResolvedValue(undefined),
+		showOpenDialog: vi.fn().mockResolvedValue(undefined),
+		showWorkspaceFolderPick: vi.fn().mockResolvedValue(undefined),
+		setStatusBarMessage: vi.fn((_message, _hideAfterTimeout) => ({
+			dispose: vi.fn(),
 		})),
-		createTreeView: jest.fn((viewId, options) => ({
+
+		createStatusBarItem: vi.fn(() => new MockStatusBarItem()),
+		createOutputChannel: vi.fn(() => ({
+			append: vi.fn(),
+			appendLine: vi.fn(),
+			clear: vi.fn(),
+			show: vi.fn(),
+			hide: vi.fn(),
+			dispose: vi.fn(),
+		})),
+		createTreeView: vi.fn((viewId, options) => ({
 			viewId,
 			options,
 			visible: true,
@@ -330,27 +334,27 @@ const vscode = {
 			message: "",
 			description: "",
 			selection: [],
-			reveal: jest.fn(),
-			dispose: jest.fn(),
-			onDidChangeSelection: jest.fn(),
-			onDidChangeVisibility: jest.fn(),
-			onDidCollapseElement: jest.fn(),
-			onDidExpandElement: jest.fn(),
+			reveal: vi.fn(),
+			dispose: vi.fn(),
+			onDidChangeSelection: vi.fn(),
+			onDidChangeVisibility: vi.fn(),
+			onDidCollapseElement: vi.fn(),
+			onDidExpandElement: vi.fn(),
 		})),
-		createWebviewPanel: jest.fn(() => new MockWebviewView()),
-		registerTreeDataProvider: jest.fn(),
-		registerWebviewViewProvider: jest.fn(),
+		createWebviewPanel: vi.fn(() => new MockWebviewView()),
+		registerTreeDataProvider: vi.fn(),
+		registerWebviewViewProvider: vi.fn(),
 
 		activeTextEditor: null,
 		visibleTextEditors: [],
 		terminals: [],
 
-		onDidChangeActiveTextEditor: jest.fn(),
-		onDidChangeVisibleTextEditors: jest.fn(),
-		onDidChangeWindowState: jest.fn(),
-		onDidChangeTextEditorSelection: jest.fn(),
-		onDidChangeTextEditorViewColumn: jest.fn(),
-		onDidChangeTextEditorVisibleRanges: jest.fn(),
+		onDidChangeActiveTextEditor: vi.fn(),
+		onDidChangeVisibleTextEditors: vi.fn(),
+		onDidChangeWindowState: vi.fn(),
+		onDidChangeTextEditorSelection: vi.fn(),
+		onDidChangeTextEditorViewColumn: vi.fn(),
+		onDidChangeTextEditorVisibleRanges: vi.fn(),
 	},
 
 	// Workspace API
@@ -359,72 +363,72 @@ const vscode = {
 		name: "Test Workspace",
 		workspaceFile: null,
 
-		getConfiguration: jest.fn((_section) => ({
-			get: jest.fn((_key, defaultValue) => defaultValue),
-			update: jest.fn().mockResolvedValue(undefined),
-			inspect: jest.fn(() => ({})),
-			has: jest.fn(() => false),
+		getConfiguration: vi.fn((_section) => ({
+			get: vi.fn((_key, defaultValue) => defaultValue),
+			update: vi.fn().mockResolvedValue(undefined),
+			inspect: vi.fn(() => ({})),
+			has: vi.fn(() => false),
 		})),
 
-		createFileSystemWatcher: jest.fn(() => new MockFileSystemWatcher()),
-		findFiles: jest.fn().mockResolvedValue([]),
-		saveAll: jest.fn().mockResolvedValue(true),
-		openTextDocument: jest.fn().mockResolvedValue(new MockTextDocument()),
+		createFileSystemWatcher: vi.fn(() => new MockFileSystemWatcher()),
+		findFiles: vi.fn().mockResolvedValue([]),
+		saveAll: vi.fn().mockResolvedValue(true),
+		openTextDocument: vi.fn().mockResolvedValue(new MockTextDocument()),
 
 		// Add the TimelineProvider registration function
-		registerTimelineProvider: jest.fn((_selector, _provider) => ({
-			dispose: jest.fn(),
+		registerTimelineProvider: vi.fn((_selector, _provider) => ({
+			dispose: vi.fn(),
 		})),
 
-		onDidChangeConfiguration: jest.fn(),
-		onDidChangeWorkspaceFolders: jest.fn(),
-		onDidCreateFiles: jest.fn(),
-		onDidDeleteFiles: jest.fn(),
-		onDidRenameFiles: jest.fn(),
-		onDidSaveTextDocument: jest.fn(),
-		onDidOpenTextDocument: jest.fn(),
-		onDidCloseTextDocument: jest.fn(),
-		onDidChangeTextDocument: jest.fn(),
-		onWillSaveTextDocument: jest.fn(),
+		onDidChangeConfiguration: vi.fn(),
+		onDidChangeWorkspaceFolders: vi.fn(),
+		onDidCreateFiles: vi.fn(),
+		onDidDeleteFiles: vi.fn(),
+		onDidRenameFiles: vi.fn(),
+		onDidSaveTextDocument: vi.fn(),
+		onDidOpenTextDocument: vi.fn(),
+		onDidCloseTextDocument: vi.fn(),
+		onDidChangeTextDocument: vi.fn(),
+		onWillSaveTextDocument: vi.fn(),
 	},
 
 	// Commands API
 	commands: {
-		registerCommand: jest.fn((_command, _callback) => ({
-			dispose: jest.fn(),
+		registerCommand: vi.fn((_command, _callback) => ({
+			dispose: vi.fn(),
 		})),
-		registerTextEditorCommand: jest.fn((_command, _callback) => ({
-			dispose: jest.fn(),
+		registerTextEditorCommand: vi.fn((_command, _callback) => ({
+			dispose: vi.fn(),
 		})),
-		executeCommand: jest.fn().mockResolvedValue(undefined),
-		getCommands: jest.fn().mockResolvedValue([]),
+		executeCommand: vi.fn().mockResolvedValue(undefined),
+		getCommands: vi.fn().mockResolvedValue([]),
 	},
 
 	// Languages API
 	languages: {
-		registerCodeActionsProvider: jest.fn(() => ({ dispose: jest.fn() })),
-		registerCompletionItemProvider: jest.fn(() => ({ dispose: jest.fn() })),
-		registerHoverProvider: jest.fn(() => ({ dispose: jest.fn() })),
-		registerDefinitionProvider: jest.fn(() => ({ dispose: jest.fn() })),
-		registerDocumentFormattingEditProvider: jest.fn(() => ({
-			dispose: jest.fn(),
+		registerCodeActionsProvider: vi.fn(() => ({ dispose: vi.fn() })),
+		registerCompletionItemProvider: vi.fn(() => ({ dispose: vi.fn() })),
+		registerHoverProvider: vi.fn(() => ({ dispose: vi.fn() })),
+		registerDefinitionProvider: vi.fn(() => ({ dispose: vi.fn() })),
+		registerDocumentFormattingEditProvider: vi.fn(() => ({
+			dispose: vi.fn(),
 		})),
-		createDiagnosticCollection: jest.fn(() => ({
-			set: jest.fn(),
-			delete: jest.fn(),
-			clear: jest.fn(),
-			forEach: jest.fn(),
-			get: jest.fn(),
-			has: jest.fn(),
-			dispose: jest.fn(),
+		createDiagnosticCollection: vi.fn(() => ({
+			set: vi.fn(),
+			delete: vi.fn(),
+			clear: vi.fn(),
+			forEach: vi.fn(),
+			get: vi.fn(),
+			has: vi.fn(),
+			dispose: vi.fn(),
 		})),
 	},
 
 	// Extensions API
 	extensions: {
-		getExtension: jest.fn(),
+		getExtension: vi.fn(),
 		all: [],
-		onDidChange: jest.fn(),
+		onDidChange: vi.fn(),
 	},
 
 	// Debug API
@@ -432,32 +436,32 @@ const vscode = {
 		activeDebugSession: null,
 		activeDebugConsole: null,
 		breakpoints: [],
-		onDidChangeActiveDebugSession: jest.fn(),
-		onDidStartDebugSession: jest.fn(),
-		onDidReceiveDebugSessionCustomEvent: jest.fn(),
-		onDidTerminateDebugSession: jest.fn(),
-		onDidChangeBreakpoints: jest.fn(),
-		registerDebugConfigurationProvider: jest.fn(() => ({
-			dispose: jest.fn(),
+		onDidChangeActiveDebugSession: vi.fn(),
+		onDidStartDebugSession: vi.fn(),
+		onDidReceiveDebugSessionCustomEvent: vi.fn(),
+		onDidTerminateDebugSession: vi.fn(),
+		onDidChangeBreakpoints: vi.fn(),
+		registerDebugConfigurationProvider: vi.fn(() => ({
+			dispose: vi.fn(),
 		})),
-		registerDebugAdapterDescriptorFactory: jest.fn(() => ({
-			dispose: jest.fn(),
+		registerDebugAdapterDescriptorFactory: vi.fn(() => ({
+			dispose: vi.fn(),
 		})),
-		startDebugging: jest.fn().mockResolvedValue(true),
-		stopDebugging: jest.fn().mockResolvedValue(undefined),
-		addBreakpoints: jest.fn(),
-		removeBreakpoints: jest.fn(),
+		startDebugging: vi.fn().mockResolvedValue(true),
+		stopDebugging: vi.fn().mockResolvedValue(undefined),
+		addBreakpoints: vi.fn(),
+		removeBreakpoints: vi.fn(),
 	},
 
 	// Tasks API
 	tasks: {
-		registerTaskProvider: jest.fn(() => ({ dispose: jest.fn() })),
-		fetchTasks: jest.fn().mockResolvedValue([]),
-		executeTask: jest.fn().mockResolvedValue({}),
-		onDidStartTask: jest.fn(),
-		onDidEndTask: jest.fn(),
-		onDidStartTaskProcess: jest.fn(),
-		onDidEndTaskProcess: jest.fn(),
+		registerTaskProvider: vi.fn(() => ({ dispose: vi.fn() })),
+		fetchTasks: vi.fn().mockResolvedValue([]),
+		executeTask: vi.fn().mockResolvedValue({}),
+		onDidStartTask: vi.fn(),
+		onDidEndTask: vi.fn(),
+		onDidStartTaskProcess: vi.fn(),
+		onDidEndTaskProcess: vi.fn(),
 	},
 
 	// Environment API
@@ -466,28 +470,28 @@ const vscode = {
 		appRoot: "/test/vscode",
 		language: "en",
 		clipboard: {
-			readText: jest.fn().mockResolvedValue(""),
-			writeText: jest.fn().mockResolvedValue(undefined),
+			readText: vi.fn().mockResolvedValue(""),
+			writeText: vi.fn().mockResolvedValue(undefined),
 		},
 		machineId: "test-machine-id",
 		sessionId: "test-session-id",
-		openExternal: jest.fn().mockResolvedValue(true),
-		asExternalUri: jest.fn().mockResolvedValue(null),
+		openExternal: vi.fn().mockResolvedValue(true),
+		asExternalUri: vi.fn().mockResolvedValue(null),
 	},
 
 	// URI utilities
 	Uri: {
-		file: jest.fn((path) => ({
+		file: vi.fn((path) => ({
 			scheme: "file",
 			path,
 			toString: () => `file://${path}`,
 		})),
-		parse: jest.fn((uri) => ({
+		parse: vi.fn((uri) => ({
 			scheme: "file",
 			path: uri,
 			toString: () => uri,
 		})),
-		joinPath: jest.fn((base, ...segments) => ({
+		joinPath: vi.fn((base, ...segments) => ({
 			scheme: base.scheme,
 			path: `${base.path}/${segments.join("/")}`,
 			toString: () => `${base.scheme}://${base.path}/${segments.join("/")}`,

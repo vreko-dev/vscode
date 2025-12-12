@@ -289,7 +289,7 @@ export class ConfigurationManager extends EventEmitter {
 
 		if (config.protection?.length) {
 			for (const rule of config.protection) {
-				const files = await vscode.workspace.findFiles(rule.pattern, ignoreGlob);
+				const files = (await vscode.workspace.findFiles(rule.pattern, ignoreGlob)) || [];
 
 				for (const file of files) {
 					await this.protectedFileRegistry.add(file.fsPath, {

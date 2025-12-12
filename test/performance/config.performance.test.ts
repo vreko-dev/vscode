@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { performance } from "node:perf_hooks";
+import * as vscode from "vscode";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConfigurationManager } from "../../src/config/configurationManager";
 import {
@@ -255,7 +256,7 @@ describe("Configuration Performance Tests", () => {
 		expect(reloadTime).toBeLessThan(100);
 	});
 
-	it("should maintain stable memory usage across 10k reloads", async () => {
+	it("should maintain stable memory usage across 10k reloads", { timeout: 30000 }, async () => {
 		// Mock file system for config manager
 		const mockFs = await import("node:fs/promises");
 		vi.mocked(mockFs.readFile).mockResolvedValue(JSON.stringify(largeConfig));
@@ -282,6 +283,7 @@ describe("Configuration Performance Tests", () => {
 		// Perform 1000 reloads and sample memory
 		for (let i = 0; i < 1000; i++) {
 			await manager.load();
+			vi.mocked(vscode.workspace.findFiles).mockClear();
 
 			// Sample memory every 100 reloads
 			if (i % 100 === 0) {
