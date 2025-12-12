@@ -1,5 +1,9 @@
 import { resolve } from "node:path";
-import { defineConfig } from "vitest/config";
+import { fileURLToPath } from "node:url";
+import { nodeConfig } from "@snapback/vitest-config";
+import { defineProject } from "vitest/config";
+
+const __dirname = resolve(fileURLToPath(import.meta.url), "..");
 
 /**
  * Vitest configuration for apps/vscode
@@ -7,9 +11,11 @@ import { defineConfig } from "vitest/config";
  * Configures TypeScript alias support for testing
  * Test files live in test/ but import from src/
  */
-export default defineConfig({
+export default defineProject({
+	...nodeConfig,
 	resolve: {
 		alias: {
+			...nodeConfig.resolve?.alias,
 			// Map @vscode/ to src/ for cleaner test imports
 			"@vscode": resolve(__dirname, "./src"),
 			// Common submodule aliases
@@ -43,6 +49,7 @@ export default defineConfig({
 		},
 	},
 	test: {
+		...nodeConfig.test,
 		globals: true,
 		environment: "node",
 		passWithNoTests: true,
@@ -51,8 +58,5 @@ export default defineConfig({
 		// Global setup file for all tests
 		setupFiles: ["./test/unit/setup.ts"],
 		// Module directories for monorepo dependency resolution
-		deps: {
-			moduleDirectories: ["node_modules", resolve(__dirname, "../../node_modules")],
-		},
 	},
 });

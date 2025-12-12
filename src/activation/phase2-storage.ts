@@ -3,6 +3,7 @@ import type { ProtectionConfig } from "@snapback/contracts";
 import { ProtectionManager as SDKProtectionManager } from "@snapback/sdk";
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
+import { migrateConfigIfNeeded } from "../config/migrate";
 import { SNAPBACK_ICONS } from "../constants/index";
 import { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator";
 import { AutoProtectConfig } from "../protection/autoProtectConfig";
@@ -132,6 +133,9 @@ export async function initializePhase2Storage(
 			ms: Date.now() - decStart,
 		});
 
+		// DEBUG: Verify we're running the correct bundle (2025-12-12 build)
+		console.log("[DEBUG_BUILD] Phase2 marker - build 2025-12-12-v2");
+
 		// ⚡ Initialize AutoProtectConfig with minimal work
 		// Heavy initialization (file watching) deferred to background
 		const autoStart = Date.now();
@@ -158,12 +162,26 @@ export async function initializePhase2Storage(
 		const configStoreStart = Date.now();
 		let configStoreCleanup: (() => void) | null = null;
 		(async () => {
+			console.log("[CONFIG_MIGRATION] Async block started");
 			try {
+				console.log("[CONFIG_MIGRATION] About to call migrateConfigIfNeeded");
+				// 🆕 Run config migration v1 → v2 before initializing ConfigStore
+				const migrationResult = await migrateConfigIfNeeded(context, workspaceRoot);
+				console.log("[CONFIG_MIGRATION] Result:", migrationResult);
+				if (migrationResult.migrated) {
+					logger.info("Config migration completed", {
+						protectionsMigrated: migrationResult.protectionsMigrated,
+					});
+				} else {
+					logger.debug("Config migration skipped", { reason: migrationResult.message });
+				}
+
 				const { initializeConfigStore, disposeConfigStore } = await import("../config/configStore");
 				await initializeConfigStore(workspaceRoot);
 				configStoreCleanup = disposeConfigStore;
 				logger.info("ConfigStore initialized in background");
 			} catch (err) {
+				console.error("[CONFIG_MIGRATION] Error in async block:", err);
 				logger.warn("Failed to initialize ConfigStore in background", err as Error);
 			}
 		})();
