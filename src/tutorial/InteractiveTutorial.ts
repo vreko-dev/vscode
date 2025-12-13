@@ -414,8 +414,14 @@ export class InteractiveTutorial implements vscode.Disposable {
 
 		await this.context.globalState.update("tutorial.completed", true);
 
-		// TODO: Telemetry
-		// telemetry.track('tutorial_completed', { became_pioneer: becamePioneer });
+		// Track tutorial completion with Pioneer conversion flag
+		if (this.telemetry?.track) {
+			try {
+				this.telemetry.track("tutorial_completed", { became_pioneer: _becamePioneer });
+			} catch (error) {
+				console.warn("Failed to track tutorial_completed:", error);
+			}
+		}
 
 		vscode.window.showInformationMessage("Tutorial complete! You're ready to protect your code with SnapBack.");
 
@@ -451,8 +457,17 @@ export class InteractiveTutorial implements vscode.Disposable {
 	async dismiss(): Promise<void> {
 		await this.context.globalState.update("tutorial.dismissed", true);
 
-		// TODO: Telemetry
-		// telemetry.track('tutorial_abandoned', { step: this.currentStep });
+		// Track tutorial abandonment with current step for funnel analysis
+		if (this.telemetry?.track) {
+			try {
+				this.telemetry.track("tutorial_abandoned", {
+					step: this.currentStep,
+					step_name: TutorialStep[this.currentStep],
+				});
+			} catch (error) {
+				console.warn("Failed to track tutorial_abandoned:", error);
+			}
+		}
 
 		this.dispose();
 	}

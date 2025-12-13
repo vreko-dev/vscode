@@ -183,11 +183,15 @@ export class GraphManager {
 	 * TEST: Respects maxDepth parameter
 	 */
 	async getCluster(anchorPath: string, maxDepth = 2): Promise<ClusterResult> {
-		// Ensure file is analyzed
+		// Ensure file is analyzed - trigger analysis if not in graph
 		if (!this.graph.has(anchorPath)) {
-			// TODO: Trigger analysis if not in graph
-			// For now, return empty cluster
-			return { root: anchorPath, depth1: [], depth2: [] };
+			try {
+				// Trigger on-demand analysis with empty hash (will be computed)
+				await this.analyzeFile(anchorPath, "");
+			} catch (_error) {
+				// File may not exist or have parse errors - return empty cluster
+				return { root: anchorPath, depth1: [], depth2: [] };
+			}
 		}
 
 		// Use ImportAnalyzer for consistent cluster detection

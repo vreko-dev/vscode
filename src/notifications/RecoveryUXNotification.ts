@@ -121,7 +121,7 @@ export class RecoveryUXNotification {
 		}
 
 		try {
-			await vscode.commands.executeCommand("snapback.showDiff", event.snapshotId);
+			await vscode.commands.executeCommand("snapback.compareWithSnapshot", event.snapshotId);
 			logger.info("Opened diff view", { snapshotId: event.snapshotId });
 		} catch (error) {
 			logger.error("Failed to open diff view", error instanceof Error ? error : undefined);
@@ -140,7 +140,7 @@ export class RecoveryUXNotification {
 		}
 
 		try {
-			await vscode.commands.executeCommand("snapback.restore", event.snapshotId);
+			await vscode.commands.executeCommand("snapback.snapBack", event.snapshotId);
 			logger.info("Triggered restore", { snapshotId: event.snapshotId });
 		} catch (error) {
 			logger.error("Failed to trigger restore", error instanceof Error ? error : undefined);

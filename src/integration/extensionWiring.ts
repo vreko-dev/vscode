@@ -1,14 +1,27 @@
 /**
  * Extension Wiring Integration
  *
+ * ⚠️ ORPHANED CODE - NOT USED IN PRODUCTION ⚠️
+ *
+ * This file is a standalone demo/sample implementation that was created
+ * for prototyping purposes. It is NOT imported or used by the actual
+ * extension activation flow.
+ *
+ * The real integration is handled by:
+ * - extension.ts → activation phases (phase2/phase3/phase4/phase5)
+ * - SaveHandler → AnalysisCoordinator → AIRiskService
+ * - AutoDecisionIntegration (session-level protection)
+ *
+ * This file can be deleted or moved to a samples/ directory.
+ *
+ * ---
+ * Original description:
  * Orchestrates all domain components:
  * - Connects VS Code events to SaveContext
  * - Runs AutoDecisionEngine on SaveContext
  * - Adapts decisions to notifications
  * - Creates snapshots via SnapshotOrchestrator
  * - Manages recovery workflow
- *
- * This is the glue layer between VS Code and domain logic.
  */
 
 import type { UserNotification } from "../domain/notificationAdapter";

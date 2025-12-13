@@ -11,10 +11,8 @@
 export const COMMANDS = {
 	// Protection Commands
 	PROTECTION: {
-		SET_LEVEL: "snapback.protection.setLevel",
-		SET_WATCH: "snapback.protection.watch",
-		SET_WARN: "snapback.protection.warn",
-		SET_BLOCK: "snapback.protection.block",
+		// Note: setWatchLevel, setWarnLevel, setBlockLevel commands are registered as legacy commands
+		// The v2 naming pattern (snapback.protection.*) is reserved for future use
 		REMOVE: "snapback.protection.remove",
 		PROTECT_WORKSPACE: "snapback.protection.workspace",
 		PROTECT_FOLDER: "snapback.protection.folder",
@@ -25,6 +23,10 @@ export const COMMANDS = {
 		CHANGE_LEVEL: "snapback.changeProtectionLevel",
 		SHOW_ALL: "snapback.showAllProtectedFiles",
 		PROTECT_REPO: "snapback.protectEntireRepo",
+		// Protection level commands (registered as legacy names)
+		SET_WATCH_LEVEL: "snapback.setWatchLevel",
+		SET_WARN_LEVEL: "snapback.setWarnLevel",
+		SET_BLOCK_LEVEL: "snapback.setBlockLevel",
 	},
 
 	// Snapshot Commands

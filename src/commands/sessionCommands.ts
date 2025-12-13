@@ -4,7 +4,10 @@
  * This module provides command handlers for session-aware snapshot features.
  *
  * Commands:
- * - snapback.restoreSession: Restore all files from a session
+ * - snapback.session.list: List all AI sessions (Quick Pick)
+ * - snapback.session.restore: Restore a session (with confirmation)
+ * - snapback.session.export: Export session to file
+ * - snapback.restoreSession: Restore all files from a session (tree view)
  * - snapback.previewRestoreSession: Preview session restore in a diff view
  *
  * @module commands/sessionCommands
@@ -59,6 +62,227 @@ export function registerSessionCommands(
 
 	// Extract needed services from context
 	const { snapshotManager, snapshotDocumentProvider } = commandContext;
+
+	// ============================================================================
+	// NEW: Register commands matching constants/commands.ts SESSION constants
+	// ============================================================================
+
+	/**
+	 * Command: snapback.session.list
+	 * Lists all available AI sessions in a Quick Pick for selection.
+	 */
+	disposables.push(
+		vscode.commands.registerCommand("snapback.session.list", async () => {
+			try {
+				logger.info("Executing snapback.session.list");
+
+				// Get all snapshots grouped by session
+				const snapshots = await snapshotManager.getAll();
+
+				if (!snapshots || snapshots.length === 0) {
+					vscode.window.showInformationMessage("No sessions found. Create a snapshot to start a session.");
+					return;
+				}
+
+				// Group by session ID
+				const sessionMap = new Map<string, typeof snapshots>();
+				for (const snap of snapshots) {
+					const sessionId = (snap.meta?.sessionId as string) || "default";
+					if (!sessionMap.has(sessionId)) {
+						sessionMap.set(sessionId, []);
+					}
+					sessionMap.get(sessionId)?.push(snap);
+				}
+
+				// Create QuickPick items
+				const items = Array.from(sessionMap.entries()).map(([sessionId, snaps]) => ({
+					label: `Session: ${sessionId}`,
+					description: `${snaps.length} snapshot(s)`,
+					detail: `Latest: ${new Date(snaps[0].timestamp).toLocaleString()}`,
+					sessionId,
+					snapshots: snaps,
+				}));
+
+				const selected = await vscode.window.showQuickPick(items, {
+					placeHolder: "Select a session to view",
+					title: "SnapBack Sessions",
+				});
+
+				if (selected) {
+					logger.info("Session selected", { sessionId: selected.sessionId });
+					// Show session details
+					vscode.window.showInformationMessage(
+						`Session "${selected.sessionId}" contains ${selected.snapshots.length} snapshot(s)`,
+					);
+				}
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				logger.error("Failed to list sessions", error instanceof Error ? error : undefined);
+				vscode.window.showErrorMessage(`Failed to list sessions: ${message}`);
+			}
+		}),
+	);
+
+	/**
+	 * Command: snapback.session.restore
+	 * Restores a selected session with confirmation dialog.
+	 */
+	disposables.push(
+		vscode.commands.registerCommand("snapback.session.restore", async () => {
+			try {
+				logger.info("Executing snapback.session.restore");
+
+				// Get all snapshots grouped by session
+				const snapshots = await snapshotManager.getAll();
+
+				if (!snapshots || snapshots.length === 0) {
+					vscode.window.showInformationMessage("No sessions to restore.");
+					return;
+				}
+
+				// Group by session ID
+				const sessionMap = new Map<string, typeof snapshots>();
+				for (const snap of snapshots) {
+					const sessionId = (snap.meta?.sessionId as string) || "default";
+					if (!sessionMap.has(sessionId)) {
+						sessionMap.set(sessionId, []);
+					}
+					sessionMap.get(sessionId)?.push(snap);
+				}
+
+				// Create QuickPick items
+				const items = Array.from(sessionMap.entries()).map(([sessionId, snaps]) => ({
+					label: `Session: ${sessionId}`,
+					description: `${snaps.length} snapshot(s)`,
+					detail: "Restore all files from this session",
+					sessionId,
+					snapshots: snaps,
+				}));
+
+				const selected = await vscode.window.showQuickPick(items, {
+					placeHolder: "Select a session to restore",
+					title: "Restore Session",
+				});
+
+				if (!selected) {
+					return; // User cancelled
+				}
+
+				// Confirm restoration
+				const confirm = await vscode.window.showWarningMessage(
+					`Restore ${selected.snapshots.length} snapshot(s) from session "${selected.sessionId}"? This will overwrite current files.`,
+					{ modal: true },
+					"Restore",
+				);
+
+				if (confirm !== "Restore") {
+					return; // User cancelled
+				}
+
+				// Restore the latest snapshot from the session
+				const latestSnapshot = selected.snapshots[0];
+				if (commandContext.operationCoordinator) {
+					await commandContext.operationCoordinator.restoreToSnapshot(latestSnapshot.id);
+					vscode.window.showInformationMessage(`Session "${selected.sessionId}" restored successfully`);
+					logger.info("Session restored", { sessionId: selected.sessionId });
+				} else {
+					vscode.window.showErrorMessage("Operation coordinator not available");
+				}
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				logger.error("Failed to restore session", error instanceof Error ? error : undefined);
+				vscode.window.showErrorMessage(`Failed to restore session: ${message}`);
+			}
+		}),
+	);
+
+	/**
+	 * Command: snapback.session.export
+	 * Exports a session to a JSON file.
+	 */
+	disposables.push(
+		vscode.commands.registerCommand("snapback.session.export", async () => {
+			try {
+				logger.info("Executing snapback.session.export");
+
+				// Get all snapshots grouped by session
+				const snapshots = await snapshotManager.getAll();
+
+				if (!snapshots || snapshots.length === 0) {
+					vscode.window.showInformationMessage("No sessions to export.");
+					return;
+				}
+
+				// Group by session ID
+				const sessionMap = new Map<string, typeof snapshots>();
+				for (const snap of snapshots) {
+					const sessionId = (snap.meta?.sessionId as string) || "default";
+					if (!sessionMap.has(sessionId)) {
+						sessionMap.set(sessionId, []);
+					}
+					sessionMap.get(sessionId)?.push(snap);
+				}
+
+				// Create QuickPick items
+				const items = Array.from(sessionMap.entries()).map(([sessionId, snaps]) => ({
+					label: `Session: ${sessionId}`,
+					description: `${snaps.length} snapshot(s)`,
+					detail: "Export session data to file",
+					sessionId,
+					snapshots: snaps,
+				}));
+
+				const selected = await vscode.window.showQuickPick(items, {
+					placeHolder: "Select a session to export",
+					title: "Export Session",
+				});
+
+				if (!selected) {
+					return; // User cancelled
+				}
+
+				// Show save dialog
+				const saveUri = await vscode.window.showSaveDialog({
+					defaultUri: vscode.Uri.file(`snapback-session-${selected.sessionId}.json`),
+					filters: {
+						"JSON files": ["json"],
+						"All files": ["*"],
+					},
+					title: "Export Session",
+				});
+
+				if (!saveUri) {
+					return; // User cancelled
+				}
+
+				// Build export data
+				const exportData = {
+					sessionId: selected.sessionId,
+					exportedAt: new Date().toISOString(),
+					snapshotCount: selected.snapshots.length,
+					snapshots: selected.snapshots.map((snap) => ({
+						id: snap.id,
+						timestamp: snap.timestamp,
+						metadata: snap.metadata,
+					})),
+				};
+
+				// Write to file
+				await vscode.workspace.fs.writeFile(saveUri, Buffer.from(JSON.stringify(exportData, null, 2), "utf-8"));
+
+				vscode.window.showInformationMessage(`Session "${selected.sessionId}" exported to ${saveUri.fsPath}`);
+				logger.info("Session exported", { sessionId: selected.sessionId, path: saveUri.fsPath });
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				logger.error("Failed to export session", error instanceof Error ? error : undefined);
+				vscode.window.showErrorMessage(`Failed to export session: ${message}`);
+			}
+		}),
+	);
+
+	// ============================================================================
+	// LEGACY: Tree view commands (snapback.restoreSession, snapback.previewRestoreSession)
+	// ============================================================================
 
 	/**
 	 * Command: Preview Session Restore

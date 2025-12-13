@@ -3,10 +3,14 @@
  * Calculates local safety signals and integrates with backend API
  */
 
+import { exec } from "node:child_process";
 import * as path from "node:path";
+import { promisify } from "node:util";
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
 import type { StorageSnapshotSummaryProvider } from "./snapshotSummaryProvider";
+
+const execAsync = promisify(exec);
 
 export interface BlockingIssue {
 	id: string;
@@ -157,10 +161,55 @@ export class WorkspaceSafetyService {
 		}
 	}
 
-	private async checkLargeChangesets(_watchItems: WatchItem[]): Promise<void> {
-		// TODO: Implement git diff analysis
-		// For now, this is a placeholder for future enhancement
-		// Would use: git diff --stat to count LOC changes
+	private async checkLargeChangesets(watchItems: WatchItem[]): Promise<void> {
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+		if (!workspaceFolder) {
+			return;
+		}
+
+		try {
+			// Run git diff --stat to get line change statistics
+			const { stdout } = await execAsync("git diff --stat", {
+				cwd: workspaceFolder.uri.fsPath,
+				timeout: 5000, // 5s timeout
+			});
+
+			if (!stdout.trim()) {
+				return; // No uncommitted changes
+			}
+
+			// Parse git diff --stat output
+			// Format: "filename | N +++++----" or summary line "X files changed, Y insertions, Z deletions"
+			const lines = stdout.trim().split("\n");
+			const summaryLine = lines[lines.length - 1];
+
+			// Parse summary: "5 files changed, 120 insertions(+), 30 deletions(-)"
+			const insertionsMatch = summaryLine.match(/(\d+) insertion/);
+			const deletionsMatch = summaryLine.match(/(\d+) deletion/);
+			const filesMatch = summaryLine.match(/(\d+) files? changed/);
+
+			const insertions = insertionsMatch ? Number.parseInt(insertionsMatch[1], 10) : 0;
+			const deletions = deletionsMatch ? Number.parseInt(deletionsMatch[1], 10) : 0;
+			const filesChanged = filesMatch ? Number.parseInt(filesMatch[1], 10) : 0;
+			const totalLOC = insertions + deletions;
+
+			// Threshold: warn if >100 LOC changed without snapshot
+			const LARGE_CHANGESET_THRESHOLD = 100;
+
+			if (totalLOC >= LARGE_CHANGESET_THRESHOLD) {
+				watchItems.push({
+					id: "large_changeset",
+					type: "large_changeset",
+					severity: totalLOC >= 500 ? "medium" : "low",
+					message: `${totalLOC} lines changed across ${filesChanged} files without snapshot`,
+					locChanged: totalLOC,
+					recommendation: "Consider creating a snapshot before committing",
+				});
+			}
+		} catch (error) {
+			// Git not available or not a git repo - silently ignore
+			logger.debug("Git diff check skipped", { error: (error as Error).message });
+		}
 	}
 
 	private async findCriticalFiles(): Promise<string[]> {

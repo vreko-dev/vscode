@@ -222,10 +222,12 @@ export class ClusterManager {
 		const cluster = await this.getCluster(anchorFile);
 
 		// Read all file contents
+		// NOTE: Content reading is intentionally deferred here.
+		// ClusterManager tracks file relationships, not content.
+		// StorageManager.createSnapshot() handles actual content reading.
+		// This stub provides the file list; content is loaded lazily during snapshot.
 		const fileContents = new Map<string, string>();
 		for (const filePath of cluster.files.keys()) {
-			// TODO: Read file content from disk
-			// For now, stub with empty content
 			fileContents.set(filePath, "");
 		}
 

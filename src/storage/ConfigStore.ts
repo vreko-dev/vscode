@@ -153,7 +153,9 @@ export class ConfigStore {
 			};
 			await writeJsonFile(this.configUri, this.cache);
 		} else {
-			// TODO: Handle migrations when version < CONFIG_VERSION
+			// DEFERRED: Schema migrations when version < CONFIG_VERSION
+			// Currently CONFIG_VERSION = 1, no migrations needed.
+			// When CONFIG_VERSION is bumped, add migration logic here.
 			this.cache = existing;
 		}
 
