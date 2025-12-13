@@ -7,19 +7,25 @@
  * This module provides the single point of config access for the VS Code Extension.
  */
 
-import { ConfigStore, type ConfigStoreV2 as ConfigStoreV2Type, getConfigStore } from "@snapback/config";
+import {
+	type ConfigPath,
+	ConfigStore,
+	type ConfigStoreV2 as ConfigStoreV2Type,
+	getConfigStore,
+	type PathValue,
+} from "@snapback/config";
 import { logger } from "@snapback/infrastructure";
 
 /**
  * Global ConfigStore instance
  */
-let configStore: ConfigStore | null = null;
+let configStore: InstanceType<typeof ConfigStore> | null = null;
 let disposed = false;
 
 /**
  * Initialize ConfigStore on extension activation
  */
-export async function initializeConfigStore(workspaceRoot: string): Promise<ConfigStore> {
+export async function initializeConfigStore(workspaceRoot: string): Promise<InstanceType<typeof ConfigStore>> {
 	if (configStore) {
 		return configStore;
 	}
@@ -46,7 +52,7 @@ export async function initializeConfigStore(workspaceRoot: string): Promise<Conf
  * Get the initialized ConfigStore instance
  * Throws if not yet initialized
  */
-export function getInitializedConfigStore(): ConfigStore {
+export function getInitializedConfigStore(): InstanceType<typeof ConfigStore> {
 	if (!configStore) {
 		throw new Error("ConfigStore not initialized. Call initializeConfigStore() first");
 	}
@@ -70,13 +76,21 @@ export function getConfig(): ConfigStoreV2Type {
 }
 
 /**
- * Get config value by dot notation path
- * Example: getConfigValue<number>("engine.maxDepth") → 2
+ * Get config value by dot notation path (TYPE-SAFE)
+ *
+ * Examples:
+ * ```ts
+ * getConfigValue("settings.privacy.consent") // boolean (autocomplete!)
+ * getConfigValue("engine.maxDepth") // number (autocomplete!)
+ * getConfigValue("fake.path") // ❌ Compile error
+ * ```
  */
-export function getConfigValue<T>(path: string): T | undefined {
+export function getConfigValue<P extends ConfigPath<ConfigStoreV2Type> & string>(
+	path: P,
+): PathValue<ConfigStoreV2Type, P> | undefined {
 	const store = getInitializedConfigStore();
 	try {
-		return store.get<T>(path);
+		return store.get(path);
 	} catch (error) {
 		logger.warn("Failed to get config value", {
 			path,
@@ -88,9 +102,14 @@ export function getConfigValue<T>(path: string): T | undefined {
 
 /**
  * Get config value with fallback default
+ *
+ * Note: For type safety, path must be a valid ConfigPath
  */
-export function getConfigValueOrDefault<T>(path: string, defaultValue: T): T {
-	return getConfigValue<T>(path) ?? defaultValue;
+export function getConfigValueOrDefault<P extends ConfigPath<ConfigStoreV2Type> & string>(
+	path: P,
+	defaultValue: PathValue<ConfigStoreV2Type, P>,
+): PathValue<ConfigStoreV2Type, P> {
+	return getConfigValue(path) ?? defaultValue;
 }
 
 /**

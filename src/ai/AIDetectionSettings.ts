@@ -8,6 +8,7 @@
  */
 
 import * as vscode from "vscode";
+import { getSnapBackConfig } from "../utils/config-helpers";
 
 // biome-ignore lint/complexity/noStaticOnlyClass: This is a utility class pattern for grouping related static methods
 export class AIDetectionSettings {
@@ -16,8 +17,8 @@ export class AIDetectionSettings {
 	 * When disabled, no change data is collected and finalizeSession returns 'unknown'
 	 */
 	static isEnabled(): boolean {
-		const config = vscode.workspace.getConfiguration("snapback.aiDetection");
-		return config.get<boolean>("enabled", true); // Default: enabled
+		const config = getSnapBackConfig();
+		return config.get("aiDetection.enabled"); // Type-safe autocomplete!
 	}
 
 	/**
@@ -25,8 +26,8 @@ export class AIDetectionSettings {
 	 * This is UI-only; doesn't affect detection logic
 	 */
 	static showSessionBadge(): boolean {
-		const config = vscode.workspace.getConfiguration("snapback.aiDetection");
-		return config.get<boolean>("showSessionBadge", true); // Default: show badge
+		const config = getSnapBackConfig();
+		return config.get("aiDetection.showSessionBadge"); // Type-safe autocomplete!
 	}
 
 	/**
@@ -34,8 +35,8 @@ export class AIDetectionSettings {
 	 * Results below this threshold are hidden from UI (but still recorded)
 	 */
 	static confidenceThreshold(): number {
-		const config = vscode.workspace.getConfiguration("snapback.aiDetection");
-		return config.get<number>("confidenceThreshold", 6.0); // Default: 6.0/10
+		const config = getSnapBackConfig();
+		return config.get("aiDetection.confidenceThreshold"); // Type-safe autocomplete!
 	}
 
 	/**

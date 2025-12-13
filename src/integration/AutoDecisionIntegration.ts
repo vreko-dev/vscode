@@ -28,6 +28,7 @@ import { DEFAULT_CONFIG } from "../domain/types";
 import { FeedbackManager } from "../engine/FeedbackManager";
 import type { NotificationManager } from "../notificationManager";
 import { RecoveryUXNotification } from "../notifications/RecoveryUXNotification";
+import type { AIRiskAssessment, AIRiskService, ChangeToAssess } from "../services/aiRiskService";
 import type { WorkspaceContextManager } from "../services/WorkspaceContextManager";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import { absoluteToWorkspaceRelative, createAbsolutePath } from "../types/PathBrands";
@@ -51,6 +52,7 @@ export class AutoDecisionIntegration {
 	private settingsLoader: SettingsLoader | null = null;
 	private snapshotManager: SnapshotManager;
 	private workspaceContextManager: WorkspaceContextManager;
+	private aiRiskService: AIRiskService | null = null;
 
 	private fileBuffer: FileChangeEvent[] = [];
 	private bufferTimeout: NodeJS.Timeout | null = null;
@@ -83,10 +85,12 @@ export class AutoDecisionIntegration {
 		workspaceContextManager: WorkspaceContextManager,
 		config?: Partial<AutoDecisionConfig>,
 		context?: vscode.ExtensionContext,
+		aiRiskService?: AIRiskService,
 	) {
 		// Store dependencies
 		this.snapshotManager = snapshotManager;
 		this.workspaceContextManager = workspaceContextManager;
+		this.aiRiskService = aiRiskService ?? null;
 
 		// Initialize SettingsLoader if context available
 		if (context) {
@@ -436,9 +440,10 @@ export class AutoDecisionIntegration {
 		// Reset and aggregate all signals
 		this.signalAggregator.reset();
 
-		// Set risk signal based on file patterns
+		// Set risk signal - use AIRiskService if available, fallback to local heuristics
+		const riskScore = await this.getRiskScore(fileInfos);
 		this.signalAggregator.setRiskSignal({
-			score: this.estimateRiskScore(fileInfos),
+			score: riskScore,
 		});
 
 		// Set burst signal
@@ -478,9 +483,56 @@ export class AutoDecisionIntegration {
 	}
 
 	/**
-	 * Estimate risk score from file patterns
+	 * Get risk score using AIRiskService if available, fallback to local estimation
 	 */
-	private estimateRiskScore(fileInfos: FileInfo[]): number {
+	private async getRiskScore(fileInfos: FileInfo[]): Promise<number> {
+		// Try AIRiskService first if available
+		if (this.aiRiskService && fileInfos.length > 0) {
+			try {
+				const primaryFile = fileInfos[0];
+				// Get file content for risk assessment
+				const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+				const absolutePath = path.isAbsolute(primaryFile.path)
+					? primaryFile.path
+					: workspaceFolder
+						? path.join(workspaceFolder, primaryFile.path)
+						: primaryFile.path;
+
+				const fileUri = vscode.Uri.file(absolutePath);
+				const document = await vscode.workspace.openTextDocument(fileUri);
+				const content = document.getText();
+
+				const change: ChangeToAssess = {
+					filePath: absolutePath,
+					before: "", // We don't have previous content in this context
+					after: content,
+					category: "file-change",
+				};
+
+				const assessment: AIRiskAssessment = await this.aiRiskService.assessChange(change);
+				logger.debug("AIRiskService assessment received", {
+					filePath: primaryFile.path,
+					score: assessment.score,
+					level: assessment.level,
+				});
+
+				return assessment.score;
+			} catch (error) {
+				logger.warn("AIRiskService assessment failed, using fallback", {
+					error: (error as Error).message,
+				});
+				// Fall through to local estimation
+			}
+		}
+
+		// Fallback: Local heuristic estimation
+		return this.estimateRiskScoreLocally(fileInfos);
+	}
+
+	/**
+	 * Estimate risk score from file patterns (local fallback)
+	 */
+	private estimateRiskScoreLocally(fileInfos: FileInfo[]): number {
 		let score = 0;
 
 		// Critical files add risk

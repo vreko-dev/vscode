@@ -156,15 +156,28 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 		try {
 			logger.info("Mark wrong requested for file", { filePath });
 
+			// Record this as a false positive by lowering protection level
+			const currentLevel = this.protectedFileRegistry.getProtectionLevel(filePath);
+
+			if (currentLevel === "block") {
+				// Lower from block to warn
+				await this.protectedFileRegistry.updateProtectionLevel(filePath, "warn");
+				logger.info("Lowered protection from block to warn", { filePath });
+			} else if (currentLevel === "warn") {
+				// Lower from warn to watch
+				await this.protectedFileRegistry.updateProtectionLevel(filePath, "watch");
+				logger.info("Lowered protection from warn to watch", { filePath });
+			} else if (currentLevel === "watch") {
+				// Remove protection entirely
+				await this.protectedFileRegistry.remove(filePath);
+				logger.info("Removed protection", { filePath });
+			}
+
 			// Show status bar message
 			vscode.window.setStatusBarMessage(
 				`✅ Marked as false positive: ${vscode.workspace.asRelativePath(filePath)}`,
 				3000,
 			);
-
-			// TODO: Implement actual mark wrong logic
-			// This would typically involve recording this as a false positive and potentially
-			// adjusting protection rules
 		} catch (error) {
 			logger.error("Error handling mark wrong:", error instanceof Error ? error : undefined);
 			vscode.window.showErrorMessage("Failed to mark as false positive");

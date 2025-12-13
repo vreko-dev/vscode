@@ -467,6 +467,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				maxSnapshotsPerMinute: config.get<number>("snapback.autoDecision.maxSnapshotsPerMinute", 4),
 			},
 			context, // Pass context for globalState storage persistence
+			aiRiskService, // GREEN: Pass AIRiskService for risk assessment
 		);
 		autoDecisionIntegration.activate();
 		context.subscriptions.push({

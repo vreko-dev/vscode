@@ -111,7 +111,7 @@ export async function updateConfig(path: string, value: unknown): Promise<void> 
  */
 export function hasPrivacyConsent(): boolean {
 	const store = getInitializedConfigStore();
-	return store.get<boolean>("settings.privacy.consent") || false;
+	return store.get("settings.privacy.consent") || false;
 }
 
 /**
@@ -125,7 +125,14 @@ export function isFeatureEnabled(feature: "clipboard" | "watcher" | "gitWrapper"
 	}
 
 	const store = getInitializedConfigStore();
-	return store.get<boolean>(`settings.privacy.${feature}`) || false;
+	// Type-safe path access per feature
+	if (feature === "clipboard") {
+		return store.get("settings.privacy.clipboard") || false;
+	}
+	if (feature === "watcher") {
+		return store.get("settings.privacy.watcher") || false;
+	}
+	return store.get("settings.privacy.gitWrapper") || false;
 }
 
 /**
@@ -134,7 +141,7 @@ export function isFeatureEnabled(feature: "clipboard" | "watcher" | "gitWrapper"
  */
 export function isProtectionEnabled(): boolean {
 	const store = getInitializedConfigStore();
-	const level = store.get<string>("settings.defaultProtectionLevel");
+	const level = store.get("settings.defaultProtectionLevel");
 	return level !== "watch";
 }
 
@@ -144,7 +151,7 @@ export function isProtectionEnabled(): boolean {
  */
 export function getProtectionLevel(): "watch" | "warn" | "block" {
 	const store = getInitializedConfigStore();
-	return store.get<"watch" | "warn" | "block">("settings.defaultProtectionLevel") || "warn";
+	return store.get("settings.defaultProtectionLevel") || "warn";
 }
 
 /**
@@ -153,7 +160,7 @@ export function getProtectionLevel(): "watch" | "warn" | "block" {
  */
 export function areNotificationsEnabled(): boolean {
 	const store = getInitializedConfigStore();
-	return store.get<boolean>("settings.notifications.enabled") !== false;
+	return store.get("settings.notifications.enabled") !== false;
 }
 
 /**
@@ -162,7 +169,7 @@ export function areNotificationsEnabled(): boolean {
  */
 export function areSnapshotsEnabled(): boolean {
 	const store = getInitializedConfigStore();
-	return store.get<boolean>("settings.snapshots.enabled") !== false;
+	return store.get("settings.snapshots.enabled") !== false;
 }
 
 /**
@@ -171,5 +178,5 @@ export function areSnapshotsEnabled(): boolean {
  */
 export function isAiEnabled(): boolean {
 	const store = getInitializedConfigStore();
-	return store.get<boolean>("settings.ai.enabled") !== false;
+	return store.get("settings.ai.enabled") !== false;
 }

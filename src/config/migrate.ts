@@ -124,7 +124,7 @@ async function writeV2Config(workspaceRoot: string, config: ConfigStoreV2): Prom
 	// Validate before writing
 	const validation = validateConfig(config);
 	if (!validation.valid) {
-		throw new Error(`Invalid config: ${validation.errors.join(", ")}`);
+		throw new Error(`Invalid config: ${validation.errors?.join(", ") || "Unknown validation error"}`);
 	}
 
 	// Atomic write: tmp file → rename

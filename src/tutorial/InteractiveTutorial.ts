@@ -143,6 +143,8 @@ export class InteractiveTutorial implements vscode.Disposable {
 		private readonly storageManager: StorageManager,
 		private readonly gatekeeper: PioneerGatekeeper,
 		private readonly sidebarReveal: (snapshotId: string) => void,
+		private readonly protectionManager?: any, // ProtectionManager interface
+		private readonly telemetry?: any, // Telemetry interface
 	) {}
 
 	/**
@@ -179,16 +181,27 @@ export class InteractiveTutorial implements vscode.Disposable {
 		await vscode.window.showTextDocument(doc);
 
 		// Set protection level to WARN
-		// TODO: Integrate with ProtectionManager
-		// await this.protectionManager.setProtection(doc.uri, 'warn');
+		if (this.protectionManager?.setProtection) {
+			try {
+				await this.protectionManager.setProtection(doc.uri, "warn");
+			} catch (error) {
+				// Silently fail - tutorial can continue without protection
+				console.warn("Failed to set protection level:", error);
+			}
+		}
 
 		// Show welcome decoration
 		this.showWelcomeDecoration();
 
 		// Track start
 		this.currentStep = TutorialStep.Welcome;
-		// TODO: Telemetry
-		// telemetry.track('tutorial_started');
+		if (this.telemetry?.track) {
+			try {
+				this.telemetry.track("tutorial_started");
+			} catch (error) {
+				console.warn("Failed to track telemetry:", error);
+			}
+		}
 
 		// Subscribe to document changes
 		this.subscribeToChanges();
@@ -263,8 +276,13 @@ export class InteractiveTutorial implements vscode.Disposable {
 
 		vscode.window.showInformationMessage("Great! Now save the file (Cmd+S or Ctrl+S) to see protection in action.");
 
-		// TODO: Telemetry
-		// telemetry.track('tutorial_step_completed', { step: 1 });
+		if (this.telemetry?.track) {
+			try {
+				this.telemetry.track("tutorial_step_completed", { step: 1 });
+			} catch (error) {
+				console.warn("Failed to track telemetry:", error);
+			}
+		}
 	}
 
 	/**
@@ -280,8 +298,13 @@ export class InteractiveTutorial implements vscode.Disposable {
 		// ProtectionManager will handle the modal
 		// When user clicks "Snapshot & Save", onSnapshotCreated will be called
 
-		// TODO: Telemetry
-		// telemetry.track('tutorial_step_completed', { step: 2 });
+		if (this.telemetry?.track) {
+			try {
+				this.telemetry.track("tutorial_step_completed", { step: 2 });
+			} catch (error) {
+				console.warn("Failed to track telemetry:", error);
+			}
+		}
 	}
 
 	/**
@@ -297,8 +320,13 @@ export class InteractiveTutorial implements vscode.Disposable {
 
 		vscode.window.showInformationMessage("Snapshot created! Check the SnapBack sidebar to see it.");
 
-		// TODO: Telemetry
-		// telemetry.track('tutorial_step_completed', { step: 3 });
+		if (this.telemetry?.track) {
+			try {
+				this.telemetry.track("tutorial_step_completed", { step: 3 });
+			} catch (error) {
+				console.warn("Failed to track telemetry:", error);
+			}
+		}
 
 		// Start handoff sequence
 		await this.startHandoffSequence();
@@ -348,8 +376,13 @@ export class InteractiveTutorial implements vscode.Disposable {
 	private async showPioneerCTA(): Promise<void> {
 		this.currentStep = TutorialStep.PioneerCTA;
 
-		// TODO: Telemetry
-		// telemetry.track('tutorial_pioneer_cta_shown');
+		if (this.telemetry?.track) {
+			try {
+				this.telemetry.track("tutorial_pioneer_cta_shown");
+			} catch (error) {
+				console.warn("Failed to track telemetry:", error);
+			}
+		}
 
 		const choice = await vscode.window.showInformationMessage(
 			"🚀 Unlock Cluster Protection!\n\n" +

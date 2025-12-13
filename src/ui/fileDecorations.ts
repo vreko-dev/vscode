@@ -1,9 +1,25 @@
 import * as vscode from "vscode";
+import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { DesignTokens, type ProtectionLevel } from "../styles/designTokens";
+import { logger } from "../utils/logger";
 
 export class FileDecorationProvider implements vscode.FileDecorationProvider, vscode.Disposable {
 	private _onDidChangeFileDecorations = new vscode.EventEmitter<vscode.Uri | vscode.Uri[] | undefined>();
 	readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
+	private readonly disposables: vscode.Disposable[] = [];
+
+	constructor(private readonly protectedFileRegistry?: ProtectedFileRegistry) {
+		// Subscribe to protection changes if registry provided
+		if (this.protectedFileRegistry?.onProtectionChanged) {
+			const subscription = this.protectedFileRegistry.onProtectionChanged((uris) => {
+				logger.debug("[FileDecorationProvider] Protection changed, refreshing decorations", {
+					uriCount: uris?.length,
+				});
+				this.refresh();
+			});
+			this.disposables.push(subscription);
+		}
+	}
 
 	static getDecoration(level: ProtectionLevel): vscode.FileDecoration {
 		const decorations = {
@@ -44,9 +60,22 @@ export class FileDecorationProvider implements vscode.FileDecorationProvider, vs
 		return FileDecorationProvider.getDecoration(level);
 	}
 
-	private getProtectionLevel(_uri: vscode.Uri): ProtectionLevel | undefined {
-		// TODO: Integrate with your ProtectedFileRegistry
-		return undefined;
+	private getProtectionLevel(uri: vscode.Uri): ProtectionLevel | undefined {
+		// Delegate to ProtectedFileRegistry if available
+		if (!this.protectedFileRegistry) {
+			return undefined;
+		}
+
+		try {
+			const level = this.protectedFileRegistry.getProtectionLevel(uri.fsPath);
+			return level;
+		} catch (error) {
+			logger.warn("[FileDecorationProvider] Failed to get protection level", {
+				path: uri.fsPath,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return undefined;
+		}
 	}
 
 	refresh(): void {
@@ -55,5 +84,9 @@ export class FileDecorationProvider implements vscode.FileDecorationProvider, vs
 
 	dispose(): void {
 		this._onDidChangeFileDecorations.dispose();
+		for (const d of this.disposables) {
+			d.dispose();
+		}
+		this.disposables.length = 0;
 	}
 }
