@@ -122,7 +122,9 @@ export function updateHead(state: StoreState, headId: string): StoreState {
 // ============================================
 
 export function isValidState(obj: unknown): obj is StoreState {
-	if (!obj || typeof obj !== "object") return false;
+	if (!obj || typeof obj !== "object") {
+		return false;
+	}
 	const state = obj as StoreState;
 	return (
 		state.schemaVersion === 1 &&
@@ -133,7 +135,9 @@ export function isValidState(obj: unknown): obj is StoreState {
 }
 
 export function isValidIndex(obj: unknown): obj is SeqIndex {
-	if (!obj || typeof obj !== "object") return false;
+	if (!obj || typeof obj !== "object") {
+		return false;
+	}
 	const index = obj as SeqIndex;
 	return (
 		index.schemaVersion === 1 &&

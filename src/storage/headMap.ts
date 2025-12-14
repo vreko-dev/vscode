@@ -110,7 +110,9 @@ export function getTombstones(headMap: HeadMap): string[] {
 // ============================================
 
 export function isValidHeadMap(obj: unknown): obj is HeadMap {
-	if (!obj || typeof obj !== "object") return false;
+	if (!obj || typeof obj !== "object") {
+		return false;
+	}
 	const map = obj as HeadMap;
 	return (
 		map.schemaVersion === 1 &&
