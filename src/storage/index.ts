@@ -28,3 +28,4 @@ export {
 	randomId,
 } from "./utils/fileId";
 export { getBlobPath, hashContent } from "./utils/hash";
+export { LockAcquisitionError, WriterLock, withLock } from "./writerLock";

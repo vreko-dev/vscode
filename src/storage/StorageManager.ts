@@ -20,6 +20,7 @@ import type {
 	StorageMetadata,
 } from "./types";
 import { readJsonFile, writeJsonFile } from "./utils/atomicWrite";
+import { WriterLock } from "./writerLock";
 
 const STORAGE_VERSION = 1;
 
@@ -40,6 +41,9 @@ export class StorageManager implements IStorageManager {
 	private sessionStore: SessionStore;
 	private auditLog: AuditLog;
 
+	// Writer lock for single-writer guarantee on storage files
+	private readonly writerLock: WriterLock;
+
 	private initialized = false;
 	private eventBus?: SnapBackEventBus;
 
@@ -55,6 +59,7 @@ export class StorageManager implements IStorageManager {
 		this.snapshotStore = new SnapshotStore(this.storageUri, this.blobStore);
 		this.sessionStore = new SessionStore(this.storageUri);
 		this.auditLog = new AuditLog(this.storageUri);
+		this.writerLock = new WriterLock();
 	}
 
 	/**
@@ -175,8 +180,27 @@ export class StorageManager implements IStorageManager {
 	private _componentsInitialized = false;
 
 	dispose(): void {
-		this.cooldownCache.dispose();
+		const errors: Error[] = [];
+
+		// Force release writer lock to ensure cleanup during deactivation
+		try {
+			this.writerLock.forceRelease();
+		} catch (e) {
+			errors.push(e as Error);
+		}
+
+		try {
+			this.cooldownCache.dispose();
+		} catch (e) {
+			errors.push(e as Error);
+		}
+
 		this.initialized = false;
+
+		if (errors.length > 0) {
+			console.warn("[SnapBack Storage] Dispose errors:", errors);
+		}
+
 		console.log("[SnapBack Storage] Disposed");
 	}
 
