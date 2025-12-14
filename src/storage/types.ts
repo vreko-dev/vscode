@@ -1,6 +1,130 @@
 // apps/vscode/src/storage/types.ts
 
 // ============================================
+// Schema V2 Constants
+// ============================================
+
+/** Schema version for V2 manifests */
+export const SCHEMA_VERSION_V2 = 2;
+
+/** Checkpoint types for V2 schema */
+export const CHECKPOINT_TYPES = ["POST", "PRE", "PRE_ROLLBACK"] as const;
+
+/** Checkpoint type: POST (after save), PRE (before risky save), PRE_ROLLBACK (before restore) */
+export type CheckpointType = (typeof CHECKPOINT_TYPES)[number];
+
+/**
+ * Type guard to check if a value is a valid CheckpointType
+ */
+export function isCheckpointType(value: unknown): value is CheckpointType {
+	return typeof value === "string" && (CHECKPOINT_TYPES as readonly string[]).includes(value);
+}
+
+// ============================================
+// Schema V2 Types
+// ============================================
+
+/** V2 file reference with blobHash (renamed from blob) */
+export interface SnapshotFileRefV2 {
+	/** SHA-256 hash of content (blob ID) */
+	blobHash: string;
+	/** Original file size in bytes */
+	size: number;
+}
+
+/** V2 snapshot manifest with chain support and checkpoint types */
+export interface SnapshotManifestV2 {
+	/** Schema version - always 2 for V2 */
+	schemaVersion: 2;
+	/** Unique ID: snap-{timestamp}-{random} */
+	id: string;
+	/** Sequential snapshot number (1-based, monotonic) */
+	seq: number;
+	/** Parent snapshot seq (null for root) */
+	parentSeq: number | null;
+	/** Parent snapshot ID (null for root) */
+	parentId: string | null;
+	/** Unix timestamp (ms) */
+	timestamp: number;
+	/** Human-readable name */
+	name: string;
+	/** Checkpoint type */
+	type: CheckpointType;
+	/** The main file that triggered this snapshot */
+	anchorFile: string;
+	/** Files in snapshot (path → ref). Includes anchor and related files. */
+	files: Record<string, SnapshotFileRefV2>;
+	/** Optional metadata */
+	metadata?: {
+		riskScore?: number;
+		aiDetection?: {
+			detected: boolean;
+			tool?: string;
+			confidence?: number;
+		};
+		sessionId?: string;
+	};
+}
+
+/**
+ * Type guard to check if a value is a valid SnapshotManifestV2
+ */
+export function isSnapshotManifestV2(value: unknown): value is SnapshotManifestV2 {
+	if (typeof value !== "object" || value === null) {
+		return false;
+	}
+
+	const obj = value as Record<string, unknown>;
+
+	// Check required V2 fields
+	if (obj.schemaVersion !== SCHEMA_VERSION_V2) {
+		return false;
+	}
+
+	if (typeof obj.id !== "string") {
+		return false;
+	}
+
+	if (typeof obj.seq !== "number" || obj.seq < 1 || !Number.isInteger(obj.seq)) {
+		return false;
+	}
+
+	// parentSeq must be null or a positive integer less than seq
+	if (obj.parentSeq !== null) {
+		if (typeof obj.parentSeq !== "number" || !Number.isInteger(obj.parentSeq) || obj.parentSeq < 0) {
+			return false;
+		}
+	}
+
+	// parentId must be null or string
+	if (obj.parentId !== null && typeof obj.parentId !== "string") {
+		return false;
+	}
+
+	if (typeof obj.timestamp !== "number") {
+		return false;
+	}
+
+	if (typeof obj.name !== "string") {
+		return false;
+	}
+
+	if (!isCheckpointType(obj.type)) {
+		return false;
+	}
+
+	if (typeof obj.anchorFile !== "string") {
+		return false;
+	}
+
+	if (typeof obj.files !== "object" || obj.files === null) {
+		return false;
+	}
+
+	return true;
+}
+
+// ============================================
 // Cooldown Types
 // ============================================
 
