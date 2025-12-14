@@ -21,6 +21,83 @@ export function isCheckpointType(value: unknown): value is CheckpointType {
 }
 
 // ============================================
+// Origin Labels (INTERACTIVE vs AUTOMATED)
+// ============================================
+
+/** Origin labels for change classification per spec */
+export const ORIGIN_LABELS = ["INTERACTIVE", "AUTOMATED"] as const;
+
+/** Origin label: INTERACTIVE (human typing), AUTOMATED (AI-generated) */
+export type OriginLabel = (typeof ORIGIN_LABELS)[number];
+
+/**
+ * Type guard to check if a value is a valid OriginLabel
+ */
+export function isOriginLabel(value: unknown): value is OriginLabel {
+	return typeof value === "string" && (ORIGIN_LABELS as readonly string[]).includes(value);
+}
+
+// ============================================
+// Reason Codes (for explainability)
+// ============================================
+
+/** Reason codes for snapshot triggers per spec */
+export const REASON_CODES = [
+	"RISK_BURST_START",
+	"RISK_LARGE_DELETE",
+	"RISK_MULTI_FILE",
+	"AI_DETECTED",
+	"MANUAL_SAVE",
+	"PRE_ROLLBACK",
+	"MANUAL_CHECKPOINT",
+	"CRITICAL_FILE",
+] as const;
+
+/** Reason code for explainability */
+export type ReasonCode = (typeof REASON_CODES)[number];
+
+/**
+ * Type guard to check if a value is a valid ReasonCode
+ */
+export function isReasonCode(value: unknown): value is ReasonCode {
+	return typeof value === "string" && (REASON_CODES as readonly string[]).includes(value);
+}
+
+// ============================================
+// Trigger Types (expanded per spec)
+// ============================================
+
+/** Trigger types for snapshots per spec */
+export const TRIGGER_TYPES = ["auto", "manual", "ai-detected", "pre-save", "risk-burst", "rollback"] as const;
+
+/** Trigger type for what caused the snapshot */
+export type Trigger = (typeof TRIGGER_TYPES)[number];
+
+/**
+ * Type guard to check if a value is a valid Trigger
+ */
+export function isTrigger(value: unknown): value is Trigger {
+	return typeof value === "string" && (TRIGGER_TYPES as readonly string[]).includes(value);
+}
+
+// ============================================
+// Compression Codecs
+// ============================================
+
+/** Compression codecs for blob storage per spec */
+export const COMPRESSION_CODECS = ["zstd", "gzip", "none"] as const;
+
+/** Compression codec type */
+export type CompressionCodec = (typeof COMPRESSION_CODECS)[number];
+
+/**
+ * Type guard to check if a value is a valid CompressionCodec
+ */
+export function isCompressionCodec(value: unknown): value is CompressionCodec {
+	return typeof value === "string" && (COMPRESSION_CODECS as readonly string[]).includes(value);
+}
+
+// ============================================
 // Schema V2 Types
 // ============================================
 
@@ -30,6 +107,8 @@ export interface SnapshotFileRefV2 {
 	blobHash: string;
 	/** Original file size in bytes */
 	size: number;
+	/** Compression codec used (optional, defaults to 'none') */
+	codec?: CompressionCodec;
 }
 
 /** V2 snapshot manifest with chain support and checkpoint types */
@@ -56,7 +135,13 @@ export interface SnapshotManifestV2 {
 	files: Record<string, SnapshotFileRefV2>;
 	/** Optional metadata */
 	metadata?: {
+		/** Risk score 0-1 */
 		riskScore?: number;
+		/** Origin classification (INTERACTIVE vs AUTOMATED) */
+		origin?: OriginLabel;
+		/** Stable reason codes for explainability */
+		reasons?: ReasonCode[];
+		/** Legacy AI detection (keep for compatibility) */
 		aiDetection?: {
 			detected: boolean;
 			tool?: string;
