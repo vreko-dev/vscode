@@ -93,6 +93,10 @@ export class BurstDetector implements vscode.Disposable {
 	private readonly WINDOW_MS = 100;
 	private readonly COOLDOWN_MS = 500;
 
+	// Burst-end detection: timers for each file with active burst
+	private burstEndTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+	private onBurstEndCallback: ((filePath: string) => void) | null = null;
+
 	constructor(
 		private readonly configStore: ConfigStore,
 		private readonly onBurstDetected: (event: BurstEvent) => void,
@@ -219,6 +223,7 @@ export class BurstDetector implements vscode.Disposable {
 	 * TEST: Calls onBurstDetected callback
 	 * TEST: Sets cooldown for file
 	 * TEST: Includes protection status
+	 * TEST: Starts/resets burst-end timer
 	 */
 	private async triggerBurst(
 		filePath: string,
@@ -243,6 +248,46 @@ export class BurstDetector implements vscode.Disposable {
 
 		// Set cooldown
 		this.cooldowns.set(filePath, timestamp);
+
+		// Reset burst-end timer (500ms after last activity)
+		this.resetBurstEndTimer(filePath);
+	}
+
+	/**
+	 * Reset or start the burst-end timer for a file
+	 *
+	 * The burst-end timer fires 500ms after the last burst activity.
+	 * This signals PRWManager to create the POST checkpoint.
+	 */
+	private resetBurstEndTimer(filePath: string): void {
+		// Clear existing timer
+		const existing = this.burstEndTimers.get(filePath);
+		if (existing) {
+			clearTimeout(existing);
+		}
+
+		// Start new timer
+		const timer = setTimeout(() => {
+			this.burstEndTimers.delete(filePath);
+			if (this.onBurstEndCallback) {
+				this.onBurstEndCallback(filePath);
+			}
+		}, this.COOLDOWN_MS);
+
+		this.burstEndTimers.set(filePath, timer);
+	}
+
+	/**
+	 * Set callback for burst-end events
+	 *
+	 * Called 500ms after the last burst activity on a file.
+	 * Used by PRWManager to create POST checkpoints.
+	 *
+	 * TEST: Callback fires 500ms after last burst
+	 * TEST: Timer resets on subsequent bursts
+	 */
+	setOnBurstEnd(callback: (filePath: string) => void): void {
+		this.onBurstEndCallback = callback;
 	}
 
 	/**
@@ -324,6 +369,11 @@ export class BurstDetector implements vscode.Disposable {
 	clear(): void {
 		this.changeHistory.clear();
 		this.cooldowns.clear();
+		// Clear all burst-end timers
+		for (const timer of this.burstEndTimers.values()) {
+			clearTimeout(timer);
+		}
+		this.burstEndTimers.clear();
 	}
 
 	/**

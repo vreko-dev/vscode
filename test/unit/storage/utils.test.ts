@@ -22,7 +22,7 @@ import {
 	fileExists,
 	readJsonFile,
 	writeJsonFile,
-} from "@vscode/storage/utils/atomicWrite";
+} from "@svscode/storage/utils/atomicWrite";
 import {
 	generateAuditId,
 	generateSessionId,

@@ -2,7 +2,7 @@
  * @fileoverview Schema V2 Tests - TDD Phase
  *
  * Tests for SnapshotManifestV2 schema compliance with spec.json requirements.
- * 
+ *
  * Missing fields per spec (to be implemented):
  * - workspaceKey: string (sha256 of sorted workspace folder URIs)
  * - OriginLabel: 'INTERACTIVE' | 'AUTOMATED'

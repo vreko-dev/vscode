@@ -5,6 +5,23 @@ export { BlobStore } from "./BlobStore";
 
 // Core components
 export { CooldownCache } from "./CooldownCache";
+export {
+	applyDeletions,
+	applySnapshot,
+	cloneHeadMap,
+	DEFAULT_HEAD_MAP,
+	getActiveFiles,
+	getFile,
+	getTombstones,
+	type HeadMap,
+	type HeadMapFileRef,
+	hasFile,
+	isDeleted,
+	isValidHeadMap,
+	markDeleted,
+	resetHeadMap,
+	setFile,
+} from "./headMap";
 export { SessionStore } from "./SessionStore";
 export type {
 	CreatePOSTOptions,
@@ -14,6 +31,22 @@ export type {
 } from "./SnapshotStore";
 export { SnapshotStore } from "./SnapshotStore";
 export { StorageManager } from "./StorageManager";
+// State management
+export {
+	addToIndex,
+	allocateSeq,
+	DEFAULT_INDEX,
+	DEFAULT_STATE,
+	type SeqIndex,
+	type StoreState,
+	updateHead,
+} from "./storeState";
+export {
+	type PendingDeletion,
+	StubTombstoneTracker,
+	type TombstoneTracker,
+} from "./tombstoneTracker";
+
 // Compatibility type re-exports
 export type { FileSystemStorage, SnapshotStorage } from "./types";
 // Types

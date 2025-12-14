@@ -131,17 +131,29 @@ describe("WriterLock - Single Writer Guarantee", () => {
 			expect(lock.isHeld()).toBe(false);
 		});
 
-		it("should throw LockAcquisitionError when lock unavailable", async () => {
+		it("should queue and wait when lock is held (not throw)", async () => {
 			const lock = new WriterLockModule.WriterLock();
 			await lock.acquire();
 
-			await expect(
-				WriterLockModule.withLock(lock, async () => {
-					return "should not execute";
-				}),
-			).rejects.toBeInstanceOf(WriterLockModule.LockAcquisitionError);
+			const executionOrder: string[] = [];
 
+			// Start a withLock that will queue
+			const queuedPromise = WriterLockModule.withLock(lock, async () => {
+				executionOrder.push("queued_callback");
+				return "queued_result";
+			});
+
+			// Callback should not have executed yet (lock is held)
+			expect(executionOrder).toEqual([]);
+
+			// Release the lock
 			await lock.release();
+
+			// Now the queued callback should execute
+			const result = await queuedPromise;
+
+			expect(executionOrder).toEqual(["queued_callback"]);
+			expect(result).toBe("queued_result");
 		});
 	});
 

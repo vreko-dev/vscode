@@ -34,6 +34,8 @@ export interface AcquireOptions {
  * This is a memory-based lock suitable for single-process scenarios.
  * For multi-process coordination, a file-based lock would be needed.
  *
+ * Uses a queue-based approach to serialize concurrent callers.
+ *
  * TODO(v2): Implement file-based lock for cross-process safety.
  * Current mitigation: Each workspace has unique workspaceKey in storage path,
  * so different workspaces don't conflict. Same workspace in two windows
@@ -41,11 +43,12 @@ export interface AcquireOptions {
  */
 export class WriterLock {
 	private holderId: string | null = null;
+	private waitQueue: Array<() => void> = [];
 
 	/**
 	 * Attempt to acquire the lock
 	 * @param options - Acquisition options
-	 * @returns true if lock acquired, false if already held
+	 * @returns true if lock acquired, false if already held (and no wait)
 	 */
 	async acquire(options?: AcquireOptions): Promise<boolean> {
 		if (this.holderId !== null) {
@@ -66,6 +69,26 @@ export class WriterLock {
 	}
 
 	/**
+	 * Wait to acquire the lock (queued)
+	 * @returns true when lock is acquired
+	 */
+	async acquireQueued(): Promise<boolean> {
+		// If lock is free, acquire immediately
+		if (this.holderId === null) {
+			this.holderId = randomUUID();
+			return true;
+		}
+
+		// Lock is held - wait in queue
+		return new Promise<boolean>((resolve) => {
+			this.waitQueue.push(() => {
+				this.holderId = randomUUID();
+				resolve(true);
+			});
+		});
+	}
+
+	/**
 	 * Release the lock
 	 * @throws Error if lock is not currently held
 	 */
@@ -74,6 +97,12 @@ export class WriterLock {
 			throw new Error("Cannot release lock that is not held");
 		}
 		this.holderId = null;
+
+		// Wake up next waiter if any
+		const nextWaiter = this.waitQueue.shift();
+		if (nextWaiter) {
+			nextWaiter();
+		}
 	}
 
 	/**
@@ -108,17 +137,15 @@ export class WriterLock {
 /**
  * Execute a callback while holding the writer lock.
  * Guarantees lock release even if callback throws.
+ * Uses queued acquisition to serialize concurrent callers.
  *
  * @param lock - The WriterLock instance
  * @param callback - Async function to execute while holding lock
  * @returns The result of the callback
- * @throws LockAcquisitionError if lock cannot be acquired
  */
 export async function withLock<T>(lock: WriterLock, callback: () => Promise<T>): Promise<T> {
-	const acquired = await lock.acquire();
-	if (!acquired) {
-		throw new LockAcquisitionError();
-	}
+	// Use queued acquisition to wait for lock if currently held
+	await lock.acquireQueued();
 
 	try {
 		return await callback();

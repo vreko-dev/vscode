@@ -23,6 +23,7 @@ import {
 } from "./types";
 import { ensureDirectory, fileExists, readJsonFile, writeJsonFile } from "./utils/atomicWrite";
 import { generateSnapshotId, parseTimestampFromId } from "./utils/fileId";
+import { WriterLock, withLock } from "./writerLock";
 
 /**
  * Snapshot storage using content-addressable blobs.
@@ -72,6 +73,9 @@ export class SnapshotStore {
 	private state: StoreState = { ...DEFAULT_STATE };
 	private index: SeqIndex = { ...DEFAULT_INDEX };
 	private stateLoaded = false;
+
+	// Writer lock for single-writer guarantee on V2 operations
+	private readonly lock = new WriterLock();
 
 	constructor(
 		storageUri: vscode.Uri,
@@ -133,44 +137,50 @@ export class SnapshotStore {
 	 *
 	 * PRE checkpoints mark the start of a risky operation.
 	 * They have files={} because content is read from head state.
+	 *
+	 * Protected by WriterLock to prevent concurrent seq allocation races.
 	 */
 	async createPRE(options: CreatePREOptions): Promise<SnapshotManifestV2> {
-		await this.loadState();
+		return withLock(this.lock, async () => {
+			await this.loadState();
 
-		const id = generateSnapshotId();
-		const timestamp = Date.now();
-		const { newState, seq } = allocateSeq(this.state);
+			const id = generateSnapshotId();
+			const timestamp = Date.now();
+			const { newState, seq } = allocateSeq(this.state);
 
-		const manifest: SnapshotManifestV2 = {
-			schemaVersion: SCHEMA_VERSION_V2,
-			id,
-			seq,
-			parentSeq: options.parentSeq,
-			parentId: options.parentId,
-			timestamp,
-			name: options.name,
-			type: options.type ?? "PRE",
-			anchorFile: options.anchorFile,
-			files: {}, // Empty for PRE - pointer only
-			metadata: options.metadata,
-		};
+			const manifest: SnapshotManifestV2 = {
+				schemaVersion: SCHEMA_VERSION_V2,
+				id,
+				seq,
+				parentSeq: options.parentSeq,
+				parentId: options.parentId,
+				timestamp,
+				name: options.name,
+				type: options.type ?? "PRE",
+				anchorFile: options.anchorFile,
+				files: {}, // Empty for PRE - pointer only
+				metadata: options.metadata,
+			};
 
-		// Write manifest
-		const manifestUri = vscode.Uri.joinPath(this.snapshotsUri, `${id}.json`);
-		await writeJsonFile(manifestUri, manifest);
+			// Write manifest
+			const manifestUri = vscode.Uri.joinPath(this.snapshotsUri, `${id}.json`);
+			await writeJsonFile(manifestUri, manifest);
 
-		// Update state and index
-		this.state = updateHead(newState, id);
-		addToIndex(this.index, seq, id);
-		await this.saveState();
+			// Update state and index
+			this.state = updateHead(newState, id);
+			addToIndex(this.index, seq, id);
+			await this.saveState();
 
-		return manifest;
+			return manifest;
+		});
 	}
 
 	/**
 	 * Create a POST checkpoint (with blob references)
 	 *
 	 * POST checkpoints contain the actual file contents after a save.
+	 *
+	 * Protected by WriterLock to prevent concurrent seq allocation races.
 	 */
 	async createPOST(options: CreatePOSTOptions): Promise<SnapshotManifestV2> {
 		// Validate: POST requires at least one file
@@ -183,44 +193,46 @@ export class SnapshotStore {
 			throw new Error(`Anchor file ${options.anchorFile} not found in snapshot files`);
 		}
 
-		await this.loadState();
+		return withLock(this.lock, async () => {
+			await this.loadState();
 
-		const id = generateSnapshotId();
-		const timestamp = Date.now();
-		const { newState, seq } = allocateSeq(this.state);
+			const id = generateSnapshotId();
+			const timestamp = Date.now();
+			const { newState, seq } = allocateSeq(this.state);
 
-		// Store each file in blob store
-		const fileRefs: Record<string, SnapshotFileRefV2> = {};
+			// Store each file in blob store
+			const fileRefs: Record<string, SnapshotFileRefV2> = {};
 
-		for (const [filePath, content] of options.files) {
-			const { hash, size } = await this.blobStore.store(content);
-			fileRefs[filePath] = { blobHash: hash, size };
-		}
+			for (const [filePath, content] of options.files) {
+				const { hash, size } = await this.blobStore.store(content);
+				fileRefs[filePath] = { blobHash: hash, size };
+			}
 
-		const manifest: SnapshotManifestV2 = {
-			schemaVersion: SCHEMA_VERSION_V2,
-			id,
-			seq,
-			parentSeq: options.parentSeq,
-			parentId: options.parentId,
-			timestamp,
-			name: options.name,
-			type: "POST",
-			anchorFile: options.anchorFile,
-			files: fileRefs,
-			metadata: options.metadata,
-		};
+			const manifest: SnapshotManifestV2 = {
+				schemaVersion: SCHEMA_VERSION_V2,
+				id,
+				seq,
+				parentSeq: options.parentSeq,
+				parentId: options.parentId,
+				timestamp,
+				name: options.name,
+				type: "POST",
+				anchorFile: options.anchorFile,
+				files: fileRefs,
+				metadata: options.metadata,
+			};
 
-		// Write manifest
-		const manifestUri = vscode.Uri.joinPath(this.snapshotsUri, `${id}.json`);
-		await writeJsonFile(manifestUri, manifest);
+			// Write manifest
+			const manifestUri = vscode.Uri.joinPath(this.snapshotsUri, `${id}.json`);
+			await writeJsonFile(manifestUri, manifest);
 
-		// Update state and index
-		this.state = updateHead(newState, id);
-		addToIndex(this.index, seq, id);
-		await this.saveState();
+			// Update state and index
+			this.state = updateHead(newState, id);
+			addToIndex(this.index, seq, id);
+			await this.saveState();
 
-		return manifest;
+			return manifest;
+		});
 	}
 
 	/**

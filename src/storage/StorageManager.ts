@@ -150,6 +150,11 @@ export class StorageManager implements IStorageManager {
 			await this.sessionStore.initialize();
 			await this.auditLog.initialize();
 
+			// Detect orphan PREs for observability (non-blocking)
+			this.snapshotStore.detectOrphanPREs().catch((err) => {
+				console.debug("[SnapBack Storage] Orphan PRE detection failed:", err);
+			});
+
 			this._componentsInitialized = true;
 		} catch (err: any) {
 			// Provide user-friendly error messages for common storage failures
