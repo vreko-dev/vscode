@@ -6,6 +6,12 @@ export { BlobStore } from "./BlobStore";
 // Core components
 export { CooldownCache } from "./CooldownCache";
 export { SessionStore } from "./SessionStore";
+export type {
+	CreatePOSTOptions,
+	CreatePREOptions,
+	SnapshotFiltersV2,
+	SnapshotManifestV2WithStatus,
+} from "./SnapshotStore";
 export { SnapshotStore } from "./SnapshotStore";
 export { StorageManager } from "./StorageManager";
 // Compatibility type re-exports
