@@ -3,37 +3,6 @@ import * as vscode from "vscode";
 import { ProtectionDecorationProvider } from "@vscode/ui/ProtectionDecorationProvider";
 
 // vscode mock provided by setup.ts
-,
-		createStatusBarItem: vi.fn().mockReturnValue({
-			text: "",
-			tooltip: "",
-			command: "",
-			show: vi.fn(),
-			dispose: vi.fn(),
-		}),
-	},
-	commands: {
-		registerCommand: vi.fn(),
-		executeCommand: vi.fn(),
-	},
-	Uri: {
-		file: vi.fn().mockImplementation((path) => ({
-			fsPath: path,
-			toString: () => `file://${path}`,
-		})),
-	},
-	FileDecoration: vi.fn().mockImplementation((badge, tooltip, color) => ({
-		badge,
-		tooltip,
-		color,
-	})),
-	ThemeColor: vi.fn().mockImplementation((color) => ({ id: color })),
-	EventEmitter: vi.fn().mockImplementation(() => ({
-		event: vi.fn(),
-		fire: vi.fn(),
-		dispose: vi.fn(),
-	})),
-}));
 
 describe("ProtectionDecorationProvider", () => {
 	let provider: ProtectionDecorationProvider;

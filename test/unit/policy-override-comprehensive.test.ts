@@ -4,10 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PolicyManager } from "../../src/policy/PolicyManager";
 
 // vscode mock provided by setup.ts
-,
-	},
-	RelativePattern: vi.fn(),
-}));
 
 // Mock fs
 vi.mock("node:fs/promises", () => {

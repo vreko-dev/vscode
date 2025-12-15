@@ -4,37 +4,6 @@ import { CheckpointDocumentProvider } from "@vscode/providers/CheckpointDocument
 import { CheckpointRestoreUI } from "@vscode/ui/CheckpointRestoreUI";
 
 // vscode mock provided by setup.ts
-,
-		createStatusBarItem: vi.fn().mockReturnValue({
-			text: "",
-			tooltip: "",
-			command: "",
-			show: vi.fn(),
-			dispose: vi.fn(),
-		}),
-		tabGroups: {
-			all: [],
-			close: vi.fn(),
-			onDidChangeActiveTextEditor: vi
-				.fn()
-				.mockReturnValue({ dispose: vi.fn() }),
-		},
-		onDidChangeActiveTextEditor: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-	},
-	commands: {
-		registerCommand: vi.fn(),
-		executeCommand: vi.fn(),
-	},
-	Uri: {
-		parse: vi.fn().mockImplementation((str) => ({ toString: () => str })),
-		file: vi.fn().mockImplementation((path) => ({ fsPath: path })),
-	},
-	EventEmitter: vi.fn().mockImplementation(() => ({
-		event: vi.fn(),
-		fire: vi.fn(),
-		dispose: vi.fn(),
-	})),
-}));
 
 describe("Memory Cleanup", () => {
 	let restoreUI: CheckpointRestoreUI;

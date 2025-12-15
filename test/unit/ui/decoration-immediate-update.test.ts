@@ -16,26 +16,6 @@ import type { ProtectedFileRegistry } from "../../../src/services/protectedFileR
 import { ProtectionDecorationProvider } from "../../../src/ui/ProtectionDecorationProvider";
 
 // vscode mock provided by setup.ts
-,
-		joinPath: vi.fn(),
-	},
-	EventEmitter: vi.fn().mockImplementation(() => ({
-		event: vi.fn(),
-		fire: vi.fn(),
-		dispose: vi.fn(),
-	})),
-	FileDecoration: vi.fn().mockImplementation((badge, tooltip, color) => ({
-		badge,
-		tooltip,
-		color,
-	})),
-	ThemeColor: vi.fn().mockImplementation((id: string) => ({ id })),
-	TreeItemCollapsibleState: {
-		None: 0,
-		Collapsed: 1,
-		Expanded: 2,
-	},
-}));
 
 // Mock PolicyManager
 vi.mock("../../../src/policy/PolicyManager", () => ({

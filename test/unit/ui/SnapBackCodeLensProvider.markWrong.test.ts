@@ -23,19 +23,6 @@ interface IFalsePositiveTracker {
 }
 
 // vscode mock provided by setup.ts
-,
-	window: {
-		setStatusBarMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-		showErrorMessage: vi.fn(),
-	},
-	commands: {
-		registerCommand: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-	},
-	languages: {
-		registerCodeLensProvider: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-	},
-}));
 
 // Type helper for tests - allows passing additional dependencies to constructor
 type SnapBackCodeLensProviderWithDeps = new (

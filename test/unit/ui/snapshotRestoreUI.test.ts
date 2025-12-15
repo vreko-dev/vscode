@@ -5,55 +5,6 @@ import type { CheckpointDocumentProvider } from "@vscode/providers/CheckpointDoc
 import { CheckpointRestoreUI } from "@vscode/ui/CheckpointRestoreUI";
 
 // vscode mock provided by setup.ts
-,
-		createStatusBarItem: vi.fn().mockReturnValue({
-			text: "",
-			tooltip: "",
-			command: "",
-			show: vi.fn(),
-			dispose: vi.fn(),
-		}),
-		createQuickPick: vi.fn().mockReturnValue({
-			title: "",
-			placeholder: "",
-			canSelectMany: false,
-			matchOnDetail: false,
-			matchOnDescription: false,
-			items: [],
-			selectedItems: [],
-			onDidAccept: vi.fn().mockImplementation((_callback) => {
-				// Simulate immediate acceptance for tests
-				// callback();
-				return { dispose: vi.fn() };
-			}),
-			onDidHide: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-			show: vi.fn(),
-			dispose: vi.fn(),
-		}),
-		tabGroups: {
-			all: [],
-			close: vi.fn().mockResolvedValue(undefined),
-		},
-	},
-	commands: {
-		registerCommand: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-		executeCommand: vi.fn().mockResolvedValue(undefined),
-	},
-	Uri: {
-		parse: vi.fn().mockImplementation((str) => ({ toString: () => str })),
-		file: vi.fn().mockImplementation((path) => ({ fsPath: path })),
-	},
-	// Add missing VS Code API exports
-	ProgressLocation: {
-		Window: 1,
-		Notification: 2,
-	},
-	StatusBarAlignment: {
-		Left: 1,
-		Right: 2,
-	},
-	TabInputTextDiff: class TabInputTextDiff {},
-}));
 
 describe("CheckpointRestoreUI", () => {
 	let restoreUI: CheckpointRestoreUI;

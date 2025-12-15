@@ -24,28 +24,6 @@ interface ITutorialProtection {
 }
 
 // vscode mock provided by setup.ts
-,
-	ThemeColor: class {
-		constructor(public id: string) {}
-	},
-	window: {
-		showInformationMessage: vi.fn(),
-		showTextDocument: vi.fn(),
-		createTextEditorDecorationType: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-		activeTextEditor: undefined,
-	},
-	workspace: {
-		openTextDocument: vi.fn().mockResolvedValue({
-			uri: { fsPath: "/tutorial.ts", scheme: "untitled" },
-			getText: vi.fn().mockReturnValue("tutorial content"),
-		}),
-		onDidChangeTextDocument: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-		onWillSaveTextDocument: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-	},
-	commands: {
-		executeCommand: vi.fn(),
-	},
-}));
 
 // Type helper for tests - allows passing additional dependencies to constructor
 type InteractiveTutorialWithDeps = new (

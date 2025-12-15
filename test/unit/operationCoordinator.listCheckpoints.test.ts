@@ -4,12 +4,6 @@ import { OperationCoordinator } from "../../src/operationCoordinator";
 import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
 // vscode mock provided by setup.ts
-,
-	},
-	workspace: {
-		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
-	},
-}));
 
 describe("OperationCoordinator - List Checkpoints", () => {
 	let coordinator: OperationCoordinator;

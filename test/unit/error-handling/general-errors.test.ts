@@ -23,15 +23,6 @@ import { FileChangeAnalyzer } from "@vscode/utils/FileChangeAnalyzer";
 import { WelcomeView } from "@vscode/views/WelcomeView";
 
 // vscode mock provided by setup.ts
-,
-		parse: vi.fn().mockImplementation((path) => ({ fsPath: path })),
-	},
-	EventEmitter: vi.fn().mockImplementation(() => ({
-		fire: vi.fn(),
-		event: vi.fn(),
-	})),
-	ThemeColor: vi.fn(),
-}));
 
 describe("Error Handling and Recovery Scenarios", () => {
 	let protectedFileRegistry: ProtectedFileRegistry;

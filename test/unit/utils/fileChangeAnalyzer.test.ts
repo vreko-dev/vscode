@@ -3,9 +3,6 @@ import * as vscode from "vscode";
 import { FileChangeAnalyzer } from "@vscode/utils/FileChangeAnalyzer";
 
 // vscode mock provided by setup.ts
-,
-	},
-}));
 
 describe("FileChangeAnalyzer", () => {
 	beforeEach(() => {

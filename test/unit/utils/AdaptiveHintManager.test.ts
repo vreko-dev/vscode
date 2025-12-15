@@ -10,10 +10,6 @@ import {
 } from "@vscode/utils/AdaptiveHintManager";
 
 // vscode mock provided by setup.ts
-,
-	},
-	ExtensionContext: vi.fn(),
-}));
 
 describe("AdaptiveHintManager", () => {
 	let adaptiveHintManager: AdaptiveHintManager;
