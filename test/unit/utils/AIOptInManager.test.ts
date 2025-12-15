@@ -5,15 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AIOptInManager } from "@vscode/utils/AIOptInManager";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		createQuickPick: vi.fn(),
-		showQuickPick: vi.fn(),
-	},
-	ExtensionContext: vi.fn(),
-}));
-
+// vscode mock provided by setup.ts
 describe("AIOptInManager", () => {
 	let aiOptInManager: AIOptInManager;
 	let mockContext: any;

@@ -3,15 +3,8 @@ import * as vscode from "vscode";
 import { CheckpointDocumentProvider } from "@vscode/providers/CheckpointDocumentProvider";
 import { CheckpointRestoreUI } from "@vscode/ui/CheckpointRestoreUI";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		showInformationMessage: vi.fn(),
-		showErrorMessage: vi.fn(),
-		showQuickPick: vi.fn(),
-		withProgress: vi
-			.fn()
-			.mockImplementation((_options, task) => task({ report: vi.fn() })),
+// vscode mock provided by setup.ts
+,
 		createStatusBarItem: vi.fn().mockReturnValue({
 			text: "",
 			tooltip: "",

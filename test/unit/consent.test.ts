@@ -2,27 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConsentModal } from "../../src/onboarding/consent-modal";
 import { VSCodeMockFactory } from "../helpers/vscodeHelpers";
 
-// Mock vscode
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		workspace: {
-			getConfiguration: vi.fn().mockReturnValue({
-				get: vi.fn(),
-				update: vi.fn().mockResolvedValue(undefined),
-			}),
-		},
-		window: {
-			showInformationMessage: vi.fn(),
-			showWarningMessage: vi.fn(),
-		},
-		ConfigurationTarget: {
-			Global: 1,
-			Workspace: 2,
-			WorkspaceFolder: 3,
-		},
-	};
-});
+// vscode mock provided by setup.ts
 
 import * as vscode from "vscode";
 

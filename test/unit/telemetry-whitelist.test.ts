@@ -2,22 +2,7 @@ import { TELEMETRY_EVENTS } from "@snapback/contracts/src/telemetry/events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VSCodeTelemetry } from "../../src/telemetry";
 
-// Mock VS Code
-vi.mock("vscode", () => {
-	return {
-		workspace: {
-			getConfiguration: vi.fn().mockReturnValue({
-				get: vi.fn().mockImplementation((key: string) => {
-					if (key === "posthogKey") return "test-key";
-					if (key === "telemetryProxy") return "https://test-proxy.com";
-					return undefined;
-				}),
-			}),
-		},
-		version: "1.75.0",
-	};
-});
-
+// vscode mock provided by setup.ts
 // Mock TelemetryClient
 const mockTelemetryClient = {
 	trackEvent: vi.fn(),

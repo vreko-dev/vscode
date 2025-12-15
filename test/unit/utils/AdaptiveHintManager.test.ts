@@ -9,21 +9,8 @@ import {
 	type Hint,
 } from "@vscode/utils/AdaptiveHintManager";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		showInformationMessage: vi.fn(),
-	},
-	env: {
-		openExternal: vi.fn(),
-	},
-	commands: {
-		executeCommand: vi.fn(),
-	},
-	Uri: {
-		parse: vi
-			.fn()
-			.mockImplementation((url: string) => ({ toString: () => url })),
+// vscode mock provided by setup.ts
+,
 	},
 	ExtensionContext: vi.fn(),
 }));

@@ -4,32 +4,7 @@ import { NotificationManager } from "../../src/notificationManager";
 import { OperationCoordinator } from "../../src/operationCoordinator";
 import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		showInformationMessage: vi.fn(),
-		showWarningMessage: vi.fn(),
-		showErrorMessage: vi.fn(),
-		showQuickPick: vi.fn(),
-		withProgress: vi
-			.fn()
-			.mockImplementation((_options, task) => task({ report: vi.fn() })),
-	},
-	workspace: {
-		fs: {
-			readFile: vi.fn(),
-			writeFile: vi.fn(),
-			delete: vi.fn(),
-		},
-		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
-	},
-	Uri: {
-		file: vi.fn().mockImplementation((path) => ({ fsPath: path })),
-	},
-	commands: {
-		executeCommand: vi.fn(),
-	},
-}));
+// vscode mock provided by setup.ts
 
 describe("OperationCoordinator", () => {
 	let coordinator: OperationCoordinator;

@@ -3,33 +3,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		window: {
-			showInformationMessage: vi.fn(),
-			showWarningMessage: vi.fn(),
-			showErrorMessage: vi.fn(),
-			showQuickPick: vi.fn(),
-			withProgress: vi
-				.fn()
-				.mockImplementation((_options, task) => task({ report: vi.fn() })),
-		},
-		workspace: {
-			workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
-			fs: {
-				readFile: vi.fn(),
-				writeFile: vi.fn(),
-			},
-		},
-		Uri: {
-			file: vi.fn().mockImplementation((path) => ({ fsPath: path })),
-		},
-		commands: {
-			executeCommand: vi.fn(),
-		},
-	};
-});
+// vscode mock provided by setup.ts
 
 import { NotificationManager } from "../../src/notificationManager";
 import { OperationCoordinator } from "../../src/operationCoordinator";

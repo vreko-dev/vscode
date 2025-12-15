@@ -22,16 +22,8 @@ interface IFalsePositiveTracker {
 	isFalsePositive(filePath: string): Promise<boolean>;
 }
 
-// Mock vscode module
-vi.mock("vscode", () => ({
-	Uri: {
-		file: (path: string) => ({ fsPath: path, scheme: "file" }),
-	},
-	EventEmitter: vi.fn().mockImplementation(() => ({
-		event: vi.fn(),
-		fire: vi.fn(),
-		dispose: vi.fn(),
-	})),
+// vscode mock provided by setup.ts
+,
 	window: {
 		setStatusBarMessage: vi.fn(),
 		showInformationMessage: vi.fn(),

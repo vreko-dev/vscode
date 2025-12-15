@@ -2,26 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { registerPolicyOverrideCommands } from "../../src/commands/policyOverrideCommands";
 
-// Mock vscode
-vi.mock("vscode", () => {
-	const mockDisposable = { dispose: vi.fn() };
-	return {
-		window: {
-			showErrorMessage: vi.fn(),
-			showQuickPick: vi.fn(),
-			showInformationMessage: vi.fn(),
-		},
-		commands: {
-			registerCommand: vi.fn((_command, _callback) => {
-				return mockDisposable;
-			}),
-		},
-		workspace: {
-			workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
-		},
-	};
-});
-
+// vscode mock provided by setup.ts
 describe("PolicyOverrideCommands", () => {
 	const mockContext: any = {
 		subscriptions: [],

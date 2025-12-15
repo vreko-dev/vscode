@@ -2,15 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { ProtectionDecorationProvider } from "@vscode/ui/ProtectionDecorationProvider";
 
-// Mock VS Code APIs
-vi.mock("vscode", () => ({
-	window: {
-		showInformationMessage: vi.fn(),
-		showErrorMessage: vi.fn(),
-		showQuickPick: vi.fn(),
-		withProgress: vi
-			.fn()
-			.mockImplementation((_options, task) => task({ report: vi.fn() })),
+// vscode mock provided by setup.ts
+,
 		createStatusBarItem: vi.fn().mockReturnValue({
 			text: "",
 			tooltip: "",

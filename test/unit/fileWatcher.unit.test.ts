@@ -8,37 +8,7 @@ const eventHandlers = {
 	onChange: [] as Function[],
 };
 
-// Mock vscode module
-vi.mock("vscode", () => {
-	// Create a mock file watcher that stores handlers
-	const mockWatcher = {
-		onDidDelete: vi.fn((callback) => {
-			eventHandlers.onDelete.push(callback);
-			return { dispose: vi.fn() };
-		}),
-		onDidCreate: vi.fn((callback) => {
-			eventHandlers.onCreate.push(callback);
-			return { dispose: vi.fn() };
-		}),
-		onDidChange: vi.fn((callback) => {
-			eventHandlers.onChange.push(callback);
-			return { dispose: vi.fn() };
-		}),
-		dispose: vi.fn(),
-	};
-
-	return {
-		default: {
-			workspace: {
-				createFileSystemWatcher: vi.fn(() => mockWatcher),
-			},
-		},
-		workspace: {
-			createFileSystemWatcher: vi.fn(() => mockWatcher),
-		},
-	};
-});
-
+// vscode mock provided by setup.ts
 // Mock ProtectedFileRegistry
 const mockRegistry = {
 	isProtected: vi.fn(),

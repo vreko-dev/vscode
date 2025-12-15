@@ -1,24 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { CheckpointTimelineProvider } from "../../src/views/checkpointTimelineProvider";
 
-// Mock vscode module
-vi.mock("vscode", async (importOriginal) => {
-	const actual: any = await importOriginal();
-	return {
-		...actual,
-		TimelineItem: class {
-			constructor(label: string, timestamp: number) {
-				(this as any).label = label;
-				(this as any).timestamp = timestamp;
-				(this as any).id = undefined;
-				(this as any).description = undefined;
-				(this as any).iconPath = undefined;
-				(this as any).command = undefined;
-			}
-		},
-	};
-});
-
+// vscode mock provided by setup.ts
 describe("TimelineProvider", () => {
 	it("should create timeline provider instance", () => {
 		const mockCheckpointSummaryProvider = {

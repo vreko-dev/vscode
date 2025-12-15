@@ -15,10 +15,8 @@ import * as vscode from "vscode";
 import type { ProtectedFileRegistry } from "../../../src/services/protectedFileRegistry";
 import { ProtectionDecorationProvider } from "../../../src/ui/ProtectionDecorationProvider";
 
-// Mock vscode
-vi.mock("vscode", () => ({
-	Uri: {
-		file: vi.fn((path: string) => ({ fsPath: path, scheme: "file" })),
+// vscode mock provided by setup.ts
+,
 		joinPath: vi.fn(),
 	},
 	EventEmitter: vi.fn().mockImplementation(() => ({

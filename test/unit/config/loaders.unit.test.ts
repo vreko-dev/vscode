@@ -38,18 +38,7 @@ vi.mock("yaml", () => {
 	};
 });
 
-// Mock vscode to keep executable configs disabled by default
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		workspace: {
-			getConfiguration: vi.fn().mockReturnValue({
-				get: vi.fn().mockReturnValue(false),
-			}),
-		},
-	};
-});
-
+// vscode mock provided by setup.ts
 describe("Configuration Loaders", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();

@@ -3,18 +3,7 @@ import * as vscode from "vscode";
 import { VSCodeTelemetry } from "../../src/telemetry";
 import { createMockExtensionContext } from "../__mocks__/factories";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		workspace: {
-			getConfiguration: vi.fn().mockReturnValue({
-				get: vi.fn().mockReturnValue(undefined),
-			}),
-		},
-		version: "1.75.0",
-	};
-});
-
+// vscode mock provided by setup.ts
 // Mock the telemetry client
 const mockTelemetryClient = {
 	initialize: vi.fn().mockResolvedValue(undefined),

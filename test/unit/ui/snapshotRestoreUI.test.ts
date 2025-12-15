@@ -4,15 +4,8 @@ import type { OperationCoordinator } from "@vscode/operationCoordinator";
 import type { CheckpointDocumentProvider } from "@vscode/providers/CheckpointDocumentProvider";
 import { CheckpointRestoreUI } from "@vscode/ui/CheckpointRestoreUI";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		showInformationMessage: vi.fn().mockResolvedValue(undefined),
-		showErrorMessage: vi.fn().mockResolvedValue(undefined),
-		showQuickPick: vi.fn(),
-		withProgress: vi
-			.fn()
-			.mockImplementation((_options, task) => task({ report: vi.fn() })),
+// vscode mock provided by setup.ts
+,
 		createStatusBarItem: vi.fn().mockReturnValue({
 			text: "",
 			tooltip: "",

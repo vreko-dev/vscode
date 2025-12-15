@@ -13,59 +13,7 @@ import { SqliteStorageAdapter } from "@vscode/storage/SqliteStorageAdapter";
 import { ProtectionDecorationProvider } from "@vscode/ui/ProtectionDecorationProvider";
 import { WorkspaceMemoryManager } from "@vscode/workspaceMemory";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		window: {
-			showInformationMessage: vi.fn(),
-			showWarningMessage: vi.fn(),
-			showErrorMessage: vi.fn(),
-			showQuickPick: vi.fn(),
-			createOutputChannel: vi.fn().mockReturnValue({
-				appendLine: vi.fn(),
-				dispose: vi.fn(),
-			}),
-			registerFileDecorationProvider: vi.fn(),
-			createStatusBarItem: vi.fn().mockReturnValue({
-				text: "",
-				tooltip: "",
-				command: "",
-				show: vi.fn(),
-				dispose: vi.fn(),
-			}),
-		},
-		commands: {
-			registerCommand: vi.fn(),
-			executeCommand: vi.fn(),
-		},
-		Uri: {
-			file: vi.fn().mockImplementation((filePath: string) => ({
-				fsPath: filePath,
-				toString: () => `file://${filePath}`,
-			})),
-		},
-		FileDecoration: vi.fn().mockImplementation((badge, tooltip, color) => ({
-			badge,
-			tooltip,
-			color,
-		})),
-		ThemeColor: vi
-			.fn()
-			.mockImplementation((colorId: string) => ({ id: colorId })),
-		EventEmitter: vi.fn().mockImplementation(() => ({
-			event: vi.fn(),
-			fire: vi.fn(),
-			dispose: vi.fn(),
-		})),
-		workspace: {
-			workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
-			registerTextDocumentContentProvider: vi.fn(),
-			onWillSaveTextDocument: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-		},
-	};
-});
-
+// vscode mock provided by setup.ts
 // Mock Memento for ProtectedFileRegistry
 class MockMemento {
 	private storage = new Map<string, any>();

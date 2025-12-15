@@ -6,44 +6,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock vscode before imports
-vi.mock("vscode", () => ({
-	window: {
-		showWarningMessage: vi.fn().mockResolvedValue(undefined),
-		showErrorMessage: vi.fn().mockResolvedValue(undefined),
-		showInformationMessage: vi.fn().mockResolvedValue(undefined),
-		createStatusBarItem: vi.fn(() => ({
-			show: vi.fn(),
-			dispose: vi.fn(),
-			text: "",
-			command: "",
-		})),
-		createOutputChannel: vi.fn(() => ({
-			appendLine: vi.fn(),
-			show: vi.fn(),
-			dispose: vi.fn(),
-		})),
-	},
-	workspace: {
-		isTrusted: false,
-		getConfiguration: vi.fn(() => ({
-			get: vi.fn().mockReturnValue(false),
-		})),
-		workspaceFolders: [
-			{ uri: { fsPath: "/mock/workspace" }, name: "mock-workspace", index: 0 },
-		],
-	},
-	ExtensionContext: {},
-	StatusBarAlignment: { Left: 1, Right: 2 },
-	extensions: {
-		getExtension: vi.fn(() => ({
-			packageJSON: { version: "1.0.0" },
-		})),
-	},
-	commands: {
-		executeCommand: vi.fn().mockResolvedValue(undefined),
-	},
-}));
+// vscode mock provided by setup.ts
 
 import * as vscode from "vscode";
 

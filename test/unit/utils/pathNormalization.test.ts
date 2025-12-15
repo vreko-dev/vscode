@@ -1,46 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		createTextEditorDecorationType: vi.fn(() => ({
-			dispose: vi.fn(),
-		})),
-		onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
-		onDidChangeTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
-		visibleTextEditors: [],
-	},
-	workspace: {
-		asRelativePath: vi.fn(),
-		workspaceFolders: undefined,
-		onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
-		onWillSaveTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
-		fs: {
-			readFile: vi.fn(),
-			writeFile: vi.fn(),
-			stat: vi.fn(),
-			delete: vi.fn(),
-			rename: vi.fn(),
-		},
-	},
-	Uri: {
-		file: vi.fn().mockImplementation((path: string) => ({
-			fsPath: path,
-			toString: () => `file://${path}`,
-		})),
-	},
-	// Add missing VS Code API exports
-	OverviewRulerLane: {
-		Left: 1,
-		Center: 2,
-		Right: 3,
-		Full: 4,
-	},
-	ThemeColor: vi
-		.fn()
-		.mockImplementation((colorId: string) => ({ id: colorId })),
-}));
+// vscode mock provided by setup.ts
 
 describe("Path Normalization", () => {
 	beforeEach(() => {

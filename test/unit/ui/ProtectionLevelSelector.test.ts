@@ -2,16 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { ProtectionLevelSelector } from "@vscode/ui/ProtectionLevelSelector";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		showQuickPick: vi.fn(),
-		showWarningMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-		showErrorMessage: vi.fn(),
-	},
-}));
-
+// vscode mock provided by setup.ts
 describe("ProtectionLevelSelector", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();

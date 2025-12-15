@@ -6,25 +6,7 @@ import { ProtectionConfigManager } from "@vscode/protection/ProtectionConfigMana
 import type { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
 import { patchRegistryMockWithProtectionLevel } from "../../helpers/mockPatches";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	RelativePattern: vi.fn(),
-	workspace: {
-		createFileSystemWatcher: vi.fn().mockReturnValue({
-			onDidChange: vi.fn(),
-			onDidCreate: vi.fn(),
-			onDidDelete: vi.fn(),
-			dispose: vi.fn(),
-		}),
-		findFiles: vi.fn().mockResolvedValue([]),
-		asRelativePath: vi.fn().mockImplementation((filePath) => filePath),
-	},
-	window: {
-		showWarningMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-		setStatusBarMessage: vi.fn(),
-	},
-}));
+// vscode mock provided by setup.ts
 
 describe("ProtectionConfigManager Integration", () => {
 	let tempDir: string;

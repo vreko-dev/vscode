@@ -22,60 +22,8 @@ import { CheckpointDecorations } from "@vscode/ui/CheckpointDecorations";
 import { FileChangeAnalyzer } from "@vscode/utils/FileChangeAnalyzer";
 import { WelcomeView } from "@vscode/views/WelcomeView";
 
-// Mock VS Code APIs
-vi.mock("vscode", () => ({
-	window: {
-		showErrorMessage: vi.fn(),
-		showWarningMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-		createOutputChannel: vi.fn().mockReturnValue({
-			appendLine: vi.fn(),
-			show: vi.fn(),
-		}),
-		showTextDocument: vi.fn(),
-		createWebviewPanel: vi.fn().mockReturnValue({
-			webview: {
-				html: "",
-				onDidReceiveMessage: vi.fn(),
-				postMessage: vi.fn(),
-			},
-			onDidDispose: vi.fn(),
-			reveal: vi.fn(),
-		}),
-	},
-	workspace: {
-		getConfiguration: vi.fn().mockReturnValue({
-			get: vi.fn().mockReturnValue(true),
-		}),
-		onDidChangeConfiguration: vi.fn(),
-		onDidChangeTextDocument: vi.fn(),
-		onDidSaveTextDocument: vi.fn(),
-		onDidCloseTextDocument: vi.fn(),
-		fs: {
-			readFile: vi.fn().mockResolvedValue(new Uint8Array()),
-			writeFile: vi.fn(),
-			stat: vi.fn().mockResolvedValue({ type: 1, ctime: 0, mtime: 0, size: 0 }),
-			readDirectory: vi.fn().mockResolvedValue([]),
-			createDirectory: vi.fn(),
-			delete: vi.fn(),
-			rename: vi.fn(),
-			copy: vi.fn(),
-			isWritableFileSystem: vi.fn().mockReturnValue(true),
-		},
-		workspaceFolders: [
-			{
-				uri: { fsPath: "/test/workspace" },
-				name: "test",
-				index: 0,
-			},
-		],
-	},
-	commands: {
-		registerCommand: vi.fn(),
-		executeCommand: vi.fn(),
-	},
-	Uri: {
-		file: vi.fn().mockImplementation((path) => ({ fsPath: path })),
+// vscode mock provided by setup.ts
+,
 		parse: vi.fn().mockImplementation((path) => ({ fsPath: path })),
 	},
 	EventEmitter: vi.fn().mockImplementation(() => ({

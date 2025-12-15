@@ -23,19 +23,8 @@ interface ITutorialProtection {
 	remove(filePath: string): Promise<void>;
 }
 
-// Mock vscode module
-vi.mock("vscode", () => ({
-	Uri: {
-		file: (path: string) => ({ fsPath: path, scheme: "file" }),
-	},
-	Range: class {
-		constructor(public start: number, public startChar: number, public end: number, public endChar: number) {}
-	},
-	EventEmitter: vi.fn().mockImplementation(() => ({
-		event: vi.fn(),
-		fire: vi.fn(),
-		dispose: vi.fn(),
-	})),
+// vscode mock provided by setup.ts
+,
 	ThemeColor: class {
 		constructor(public id: string) {}
 	},

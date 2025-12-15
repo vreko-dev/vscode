@@ -3,23 +3,7 @@ import type * as vscode from "vscode";
 import type { ProtectedFileRegistry } from "../../src/services/protectedFileRegistry";
 import { ProtectionDecorator } from "../../src/services/protectionDecorator";
 
-// Mock the VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		Uri: {
-			file: (path: string) => ({ fsPath: path }),
-		},
-		ThemeColor: class {
-			constructor(public id: string) {}
-		},
-		EventEmitter: class {
-			fire() {}
-			event = () => {};
-			dispose() {}
-		},
-	};
-});
+// vscode mock provided by setup.ts
 
 describe("ProtectionDecorator - Sync Cache Fix", () => {
 	beforeEach(() => {

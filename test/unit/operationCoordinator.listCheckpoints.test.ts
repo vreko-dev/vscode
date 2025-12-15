@@ -3,15 +3,8 @@ import { NotificationManager } from "../../src/notificationManager";
 import { OperationCoordinator } from "../../src/operationCoordinator";
 import { WorkspaceMemoryManager } from "../../src/workspaceMemory";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		showInformationMessage: vi.fn(),
-		showWarningMessage: vi.fn(),
-		showErrorMessage: vi.fn(),
-		withProgress: vi
-			.fn()
-			.mockImplementation((_options, task) => task({ report: vi.fn() })),
+// vscode mock provided by setup.ts
+,
 	},
 	workspace: {
 		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],

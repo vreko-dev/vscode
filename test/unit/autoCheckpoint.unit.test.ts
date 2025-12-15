@@ -20,36 +20,7 @@ vi.mock("../../src/checkpoint/CheckpointNamingStrategy", () => ({
 	},
 }));
 
-// Mock vscode module
-vi.mock("vscode", () => {
-	const eventHandlers: any[] = [];
-	const windowStub = {
-		setStatusBarMessage: vi.fn(() => ({ dispose: vi.fn() })),
-		showErrorMessage: vi.fn(() => Promise.resolve("Retry")),
-		showWarningMessage: vi.fn(() => Promise.resolve("Create Snapshot")),
-	};
-	const workspaceStub = {
-		onWillSaveTextDocument: vi.fn((handler) => {
-			eventHandlers.push(handler);
-			return { dispose: vi.fn() };
-		}),
-		fs: {
-			readFile: vi.fn().mockRejectedValue(new Error("file not found")),
-		},
-		workspaceFolders: [{ uri: { fsPath: "/test" } }],
-	};
-
-	return {
-		default: {
-			workspace: workspaceStub,
-			window: windowStub,
-		},
-		workspace: workspaceStub,
-		window: windowStub,
-		getEventHandlers: () => eventHandlers,
-	};
-});
-
+// vscode mock provided by setup.ts
 // Mock ProtectedFileRegistry
 const mockRegistry = {
 	isProtected: vi.fn(),

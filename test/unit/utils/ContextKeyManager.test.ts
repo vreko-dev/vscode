@@ -9,14 +9,7 @@ import {
 	ContextKeyManager,
 } from "@vscode/utils/ContextKeyManager";
 
-// Mock VS Code commands
-vi.mock("vscode", () => ({
-	commands: {
-		executeCommand: vi.fn(),
-	},
-	ExtensionContext: vi.fn(),
-}));
-
+// vscode mock provided by setup.ts
 describe("ContextKeyManager", () => {
 	let contextKeyManager: ContextKeyManager;
 	let mockContext: any;

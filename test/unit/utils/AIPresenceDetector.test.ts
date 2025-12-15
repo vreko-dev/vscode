@@ -24,17 +24,7 @@ const createMockExtension = (id: string, name: string) => ({
 	activate: vi.fn(),
 });
 
-// Mock VS Code extensions API
-vi.mock("vscode", () => ({
-	extensions: {
-		all: [
-			createMockExtension("github.copilot", "GitHub Copilot"),
-			createMockExtension("claude.claude", "Claude"),
-			createMockExtension("some.other.extension", "Other Extension"),
-		],
-	},
-}));
-
+// vscode mock provided by setup.ts
 describe("AIPresenceDetector", () => {
 	describe("detectAIPresence", () => {
 		it("should detect installed AI assistants", () => {

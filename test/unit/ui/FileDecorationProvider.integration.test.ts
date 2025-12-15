@@ -19,45 +19,7 @@ import type { ProtectionLevel } from "../../../src/styles/designTokens";
 // This will fail at runtime until we implement the feature
 type FileDecorationProviderWithRegistry = new (registry?: ProtectedFileRegistry) => FileDecorationProvider;
 
-// Mock vscode module
-vi.mock("vscode", () => {
-	class MockEventEmitter {
-		private listener: any = null;
-
-		get event() {
-			return (callback: any) => {
-				this.listener = callback;
-				return { dispose: vi.fn() };
-			};
-		}
-
-		fire(data: any) {
-			this.listener?.(data);
-		}
-
-		dispose() {
-			this.listener = null;
-		}
-	}
-
-	class MockFileDecoration {
-		constructor(public badge?: string, public tooltip?: string, public color?: any) {}
-	}
-
-	class MockThemeColor {
-		constructor(public id: string) {}
-	}
-
-	return {
-		Uri: {
-			file: (path: string) => ({ fsPath: path, scheme: "file" }),
-		},
-		EventEmitter: MockEventEmitter,
-		ThemeColor: MockThemeColor,
-		FileDecoration: MockFileDecoration,
-	};
-});
-
+// vscode mock provided by setup.ts
 describe("FileDecorationProvider Integration", () => {
 	let provider: FileDecorationProvider;
 	let mockRegistry: Partial<ProtectedFileRegistry>;

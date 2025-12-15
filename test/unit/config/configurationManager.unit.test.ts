@@ -19,35 +19,7 @@ vi.mock("fs/promises", () => {
 	};
 });
 
-// Mock vscode
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		workspace: {
-			createFileSystemWatcher: vi.fn(() => ({
-				onDidChange: vi.fn(),
-				onDidCreate: vi.fn(),
-				onDidDelete: vi.fn(),
-				dispose: vi.fn(),
-			})),
-			findFiles: vi.fn().mockResolvedValue([]),
-			getConfiguration: vi.fn().mockReturnValue({
-				get: vi.fn().mockReturnValue("info"),
-			}),
-		},
-		window: {
-			showErrorMessage: vi.fn(),
-			showInformationMessage: vi.fn().mockResolvedValue(undefined),
-		},
-		commands: {
-			executeCommand: vi.fn(),
-		},
-		env: {
-			openExternal: vi.fn(),
-		},
-		RelativePattern: vi.fn(),
-	};
-});
+// vscode mock provided by setup.ts
 
 describe("ConfigurationManager", () => {
 	const mockWorkspaceRoot = "/test/workspace";

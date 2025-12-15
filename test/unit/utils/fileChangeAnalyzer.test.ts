@@ -2,15 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { FileChangeAnalyzer } from "@vscode/utils/FileChangeAnalyzer";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	workspace: {
-		fs: {
-			readFile: vi.fn(),
-		},
-	},
-	Uri: {
-		file: vi.fn().mockImplementation((path) => ({ fsPath: path })),
+// vscode mock provided by setup.ts
+,
 	},
 }));
 

@@ -3,22 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { PolicyManager } from "../../src/policy/PolicyManager";
 
-// Mock vscode
-vi.mock("vscode", () => ({
-	window: {
-		showWarningMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-	},
-	workspace: {
-		createFileSystemWatcher: vi.fn(() => ({
-			onDidChange: vi.fn(),
-			onDidCreate: vi.fn(),
-			onDidDelete: vi.fn(),
-			dispose: vi.fn(),
-		})),
-	},
-	RelativePattern: vi.fn(),
-}));
+// vscode mock provided by setup.ts
 
 // Mock fs
 vi.mock("node:fs/promises", () => ({

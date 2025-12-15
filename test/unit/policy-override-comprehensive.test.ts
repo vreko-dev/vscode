@@ -3,21 +3,8 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PolicyManager } from "../../src/policy/PolicyManager";
 
-// Mock vscode
-vi.mock("vscode", () => ({
-	window: {
-		showWarningMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-		showQuickPick: vi.fn(),
-	},
-	workspace: {
-		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
-		createFileSystemWatcher: vi.fn(() => ({
-			onDidChange: vi.fn(),
-			onDidCreate: vi.fn(),
-			onDidDelete: vi.fn(),
-			dispose: vi.fn(),
-		})),
+// vscode mock provided by setup.ts
+,
 	},
 	RelativePattern: vi.fn(),
 }));

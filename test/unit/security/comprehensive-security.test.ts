@@ -20,21 +20,7 @@ vi.mock("../../../src/utils/logger", () => ({
 	},
 }));
 
-// Mock vscode
-vi.mock("vscode", () => ({
-	ExtensionContext: vi.fn(),
-	workspace: {
-		getConfiguration: vi.fn().mockReturnValue({
-			get: vi.fn().mockReturnValue(false),
-		}),
-	},
-	window: {
-		showWarningMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-		showQuickPick: vi.fn(),
-	},
-}));
-
+// vscode mock provided by setup.ts
 describe("Comprehensive Security Implementation Tests", () => {
 	describe("PR #1: Rule Bundle Signature Verification", () => {
 		let rulesManager: RulesManager;
