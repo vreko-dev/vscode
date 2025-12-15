@@ -1,4 +1,4 @@
-import type { StorageManager } from "../storage/StorageManager";
+import type { IStorageManager } from "../storage/types";
 import type { IStorage, Snapshot } from "./SnapshotManager";
 
 /**
@@ -7,6 +7,11 @@ import type { IStorage, Snapshot } from "./SnapshotManager";
  * This adapter bridges the new StorageManager with the SnapshotManager's
  * IStorage interface, enabling seamless integration without modifying
  * the existing snapshot manager.
+ *
+ * DESIGN NOTE: This adapter is a READ-ONLY bridge for the UI-focused SnapshotManager.
+ * For snapshot creation, use OperationCoordinator.coordinateSnapshotCreation() which
+ * goes through StorageManager directly. The save() method throws by design to prevent
+ * accidental misuse.
  *
  * @example
  * ```typescript
@@ -19,15 +24,23 @@ import type { IStorage, Snapshot } from "./SnapshotManager";
  * ```
  */
 export class SnapshotStorageAdapter implements IStorage {
-	constructor(private readonly storage: StorageManager) {}
+	constructor(private readonly storage: IStorageManager) {}
 
 	/**
 	 * Save a snapshot to storage
+	 *
+	 * BY DESIGN: This throws because the adapter is a read-only bridge.
+	 * Snapshot creation should go through:
+	 * - OperationCoordinator.coordinateSnapshotCreation() (main path)
+	 * - StorageManager.createSnapshot() (direct path)
+	 *
+	 * The SnapshotManager using this adapter is for UI operations (view, delete, protect)
+	 * not for creating new snapshots.
 	 */
 	async save(_snapshot: Snapshot): Promise<void> {
-		// StorageManager creates snapshots via createSnapshot()
-		// Direct save not supported - use SnapshotManager for creation
-		throw new Error("Direct save not supported - use SnapshotManager");
+		throw new Error(
+			"Direct save not supported - use OperationCoordinator.coordinateSnapshotCreation() for snapshot creation",
+		);
 	}
 
 	/**
@@ -76,12 +89,12 @@ export class SnapshotStorageAdapter implements IStorage {
 
 	/**
 	 * Update snapshot properties
+	 *
+	 * BY DESIGN: This throws because the adapter is read-only.
+	 * Metadata updates (protect, unprotect, rename) should be handled
+	 * at the StorageManager level directly.
 	 */
-	async update(id: string, updates: Partial<Snapshot>): Promise<void> {
-		const snapshot = await this.get(id);
-		if (snapshot) {
-			const updated = { ...snapshot, ...updates };
-			await this.save(updated);
-		}
+	async update(_id: string, _updates: Partial<Snapshot>): Promise<void> {
+		throw new Error("Direct update not supported - metadata updates should go through StorageManager");
 	}
 }

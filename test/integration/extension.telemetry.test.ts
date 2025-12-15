@@ -1,18 +1,19 @@
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { createMockExtensionContext } from "../__mocks__/factories";
 import { VSCodeTelemetry } from "../../src/telemetry";
 
 // Simple integration test to verify telemetry can be instantiated and initialized
 describe("Extension Telemetry Integration", () => {
-	let mockContext: any;
+	let mockContext: ReturnType<typeof createMockExtensionContext>;
 
 	beforeEach(() => {
-		mockContext = {
+		mockContext = createMockExtensionContext({
 			extension: {
 				packageJSON: {
 					version: "0.1.0",
 				},
 			},
-		};
+		});
 	});
 
 	it("should create and initialize VSCodeTelemetry instance", async () => {

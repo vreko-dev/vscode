@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { CommandContext } from "./index";
+import type { CommandContext } from "./types";
 
 export function registerWorkflowCommands(_context: vscode.ExtensionContext, ctx: CommandContext): vscode.Disposable[] {
 	return [

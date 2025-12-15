@@ -29,7 +29,7 @@ export type {
 	SnapshotFiltersV2,
 	SnapshotManifestV2WithStatus,
 } from "./SnapshotStore";
-export { SnapshotStore } from "./SnapshotStore";
+export { SnapshotChainError, SnapshotStore } from "./SnapshotStore";
 export { StorageManager } from "./StorageManager";
 // State management
 export {

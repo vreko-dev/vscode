@@ -12,7 +12,7 @@
 
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
-import type { CommandContext } from "./index";
+import type { CommandContext } from "./types";
 
 /**
  * Register all snapshot creation and restoration commands

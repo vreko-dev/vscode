@@ -8,7 +8,7 @@
 import * as vscode from "vscode";
 import { FeedbackManager } from "../engine/FeedbackManager";
 import { logger } from "../utils/logger";
-import { registerCommandSafely } from "./index";
+import { registerCommandSafely } from "./types";
 
 /**
  * Register all feedback-related commands

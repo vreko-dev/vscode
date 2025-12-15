@@ -26,6 +26,10 @@ import { registerAllCommands } from "./commands/index";
 import { initializeProtectionNotifications } from "./commands/protectionCommands";
 import { ContextManager } from "./contextManager";
 import { FileHealthDecorationProvider } from "./decorations/FileHealthDecorationProvider"; // 🆕 Import FileHealthDecorationProvider
+import { createPRWManager, type PRWManager } from "./domain/prwManager";
+import { createRateLimiter } from "./domain/rateLimiter";
+import { BurstDetector } from "./engine/BurstDetector";
+import { FeedbackManager } from "./engine/FeedbackManager";
 import { SaveHandler } from "./handlers/SaveHandler";
 import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration"; // 🆕 Import AutoDecisionIntegration
 import { FileSystemWatcher } from "./protection/FileSystemWatcher";
@@ -67,6 +71,10 @@ let anonymousIdManager: AnonymousIdManager | null = null;
 let autoDecisionIntegration: AutoDecisionIntegration | null = null;
 // 🆕 Global reference to UserIdentityService
 let userIdentityService: UserIdentityService | null = null;
+// 🆕 Global reference to PRWManager for PRE/POST checkpoint coordination
+let prwManager: PRWManager | null = null;
+// 🆕 Global reference to BurstDetector for AI paste detection
+let burstDetector: BurstDetector | null = null;
 
 // 🆕 Global reference to refresh views function
 let refreshViews = () => {};
@@ -276,6 +284,67 @@ export async function activate(context: vscode.ExtensionContext) {
 		const cooldownIndicator = new CooldownIndicator(phase2Result.protectedFileRegistry);
 		context.subscriptions.push(cooldownIndicator);
 
+		// 🆕 Initialize PRWManager for PRE/POST checkpoint coordination
+		// This enables automatic PRE checkpoints on save bursts
+		const prwRateLimiter = createRateLimiter(4, 60000); // 4 snapshots per minute
+		prwManager = createPRWManager({
+			snapshotStore: phase2Result.storage.getPRWSnapshotStore(),
+			rateLimiter: prwRateLimiter,
+		});
+		context.subscriptions.push({
+			dispose: () => {
+				prwManager?.dispose();
+				prwManager = null;
+			},
+		});
+		logger.info("PRWManager initialized for PRE/POST checkpoint coordination");
+
+		// 🆕 Initialize BurstDetector for AI paste detection
+		// Connects to PRWManager for automatic PRE/POST checkpoints on bursts
+		// 🐛 FIX: Also triggers FeedbackManager for user feedback on AI detection accuracy
+		const configStore = phase2Result.storage.getConfigStore();
+		burstDetector = new BurstDetector(configStore, (event) => {
+			// On burst detected → create PRE checkpoint
+			// Convert velocity to risk score (velocity * 10, capped at 100)
+			const riskScore = Math.min(100, Math.round(event.velocity * 10));
+			void prwManager?.handleSave(event.filePath, riskScore);
+			logger.debug("BurstDetector triggered PRE checkpoint", {
+				filePath: event.filePath,
+				riskScore,
+				velocity: event.velocity,
+			});
+
+			// 🐛 FIX: Trigger FeedbackManager on burst detection
+			// This was previously only triggered in AutoDecisionIntegration with 3+ files threshold
+			// Now we trigger on actual velocity-based burst detection (rapid pastes)
+			try {
+				const feedbackManager = FeedbackManager.getInstance();
+				const detectionId = `burst-${Date.now()}-${event.filePath.split("/").pop()}`;
+				// Convert velocity to confidence: higher velocity = higher AI likelihood
+				const confidence = Math.min(1, event.velocity / 100); // velocity 100+ chars/ms = 100% confidence
+				feedbackManager.handleDetection(detectionId, confidence);
+				logger.debug("FeedbackManager triggered from BurstDetector", {
+					detectionId,
+					confidence,
+					velocity: event.velocity,
+				});
+			} catch (error) {
+				logger.warn("Failed to trigger FeedbackManager from BurstDetector", {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		});
+
+		// Wire burst-end → POST checkpoint (initial callback without session tracking)
+		// Will be rewired after phase3 to include sessionCoordinator.addCandidate()
+		burstDetector.setOnBurstEnd((filePath) => {
+			void prwManager?.onBurstEnd(filePath);
+			logger.debug("BurstDetector triggered POST checkpoint", { filePath });
+		});
+
+		context.subscriptions.push(burstDetector);
+		logger.info("BurstDetector initialized with PRWManager integration");
+
 		// Phase 3: Business logic managers
 		const phase3Start = Date.now();
 		const telemetryProxy = new TelemetryProxy(context); // Ensure telemetryProxy is defined here
@@ -289,6 +358,29 @@ export async function activate(context: vscode.ExtensionContext) {
 			eventBus, // GREEN PHASE: Pass event bus for SNAPSHOT_CREATED publishing
 		);
 		phaseTimings["Phase 3 (Managers)"] = Date.now() - phase3Start;
+
+		// 🐛 CRITICAL FIX: Rewire burst-end callback to include session tracking
+		// Now that phase3Result.sessionCoordinator is available, update the callback
+		// to call addCandidate() when POST checkpoints are created.
+		// This prevents 0-file sessions from PRE/POST flow.
+		burstDetector?.setOnBurstEnd(async (filePath) => {
+			try {
+				const post = await prwManager?.onBurstEnd(filePath);
+				if (post?.id) {
+					// Track POST checkpoint in session
+					phase3Result.sessionCoordinator.addCandidate(filePath, post.id);
+					logger.debug("BurstDetector: POST checkpoint tracked in session", {
+						filePath,
+						postId: post.id,
+					});
+				}
+			} catch (error) {
+				logger.error(
+					`BurstDetector: POST checkpoint failed for ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+				);
+			}
+		});
+		logger.info("BurstDetector rewired with SessionCoordinator tracking");
 
 		// Initialize additional components that were missing
 		const fileHealthDecorationProvider = new FileHealthDecorationProvider();

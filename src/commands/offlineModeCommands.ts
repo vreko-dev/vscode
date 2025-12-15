@@ -14,7 +14,7 @@
 import * as vscode from "vscode";
 import { RulesManager } from "../rules/RulesManager";
 import { logger } from "../utils/logger";
-import type { CommandContext } from "./index";
+import type { CommandContext } from "./types";
 
 /**
  * Register all offline mode management commands.

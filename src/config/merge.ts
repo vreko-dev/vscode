@@ -34,8 +34,9 @@ function getCachedPattern(pattern: string): (filePath: string) => boolean {
 		patternCache.set(pattern, mm);
 	}
 
-	// Return a closure that uses the cached Minimatch object
-	return (filePath: string) => mm!.match(filePath);
+	// mm is guaranteed to be defined at this point (either from cache or just created)
+	// Using optional chaining to satisfy linter, with fallback to false for safety
+	return (filePath: string) => mm?.match(filePath) ?? false;
 }
 
 /**

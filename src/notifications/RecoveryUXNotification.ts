@@ -112,19 +112,27 @@ export class RecoveryUXNotification {
 	/**
 	 * Open VS Code diff viewer showing before/after snapshot.
 	 *
-	 * @param event The protection event with snapshot ID
+	 * 🐛 FIX: Command expects a vscode.Uri, not a snapshotId string
+	 * Previously: passed snapshotId which caused type mismatch and silent failure
+	 * Now: pass the file URI so compareWithSnapshot can find the latest snapshot
+	 *
+	 * @param event The protection event with file path and snapshot ID
 	 */
 	private async openDiffView(event: ProtectionEvent): Promise<void> {
-		if (!event.snapshotId) {
-			logger.warn("Cannot open diff view without snapshot ID");
+		if (!event.filePath) {
+			logger.warn("Cannot open diff view without file path");
 			return;
 		}
 
 		try {
-			await vscode.commands.executeCommand("snapback.compareWithSnapshot", event.snapshotId);
-			logger.info("Opened diff view", { snapshotId: event.snapshotId });
+			// 🐛 FIX: Pass file URI instead of snapshotId
+			// The compareWithSnapshot command expects a vscode.Uri to find the file's latest snapshot
+			const fileUri = vscode.Uri.file(event.filePath);
+			await vscode.commands.executeCommand("snapback.compareWithSnapshot", fileUri);
+			logger.info("Opened diff view", { filePath: event.filePath, snapshotId: event.snapshotId });
 		} catch (error) {
 			logger.error("Failed to open diff view", error instanceof Error ? error : undefined);
+			vscode.window.showErrorMessage("Failed to open diff view. Please try from the Snapshots panel.");
 		}
 	}
 

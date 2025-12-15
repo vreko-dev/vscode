@@ -27,6 +27,14 @@ export class TelemetryService {
 	}
 
 	/**
+	 * Check if TelemetryService has been initialized.
+	 * Useful for guarding against race conditions in async callbacks.
+	 */
+	public static isInitialized(): boolean {
+		return TelemetryService.instance !== undefined;
+	}
+
+	/**
 	 * One-way hash of a file path to preserve privacy while allowing correlation.
 	 * We use SHA-256 (same as blob hash) for consistency.
 	 */

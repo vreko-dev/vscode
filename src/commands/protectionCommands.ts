@@ -24,7 +24,7 @@ import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { logger } from "../utils/logger";
 import type { ProtectionLevel } from "../views/types";
 import { PROTECTION_LEVELS } from "../views/types";
-import type { CommandContext } from "./index";
+import type { CommandContext } from "./types";
 
 /**
  * Module-level ProtectionNotifications instance

@@ -14,6 +14,7 @@ import * as vscode from "vscode";
 import { COMMANDS } from "../constants/commands";
 import { SNAPBACK_ICONS } from "../constants/icons";
 import type { IStorageManager, SnapshotManifest } from "../storage/types";
+import { createTreeItemBadgeProvider, type TreeItemBadgeProvider } from "../utils/treeItemBadgeProvider";
 import { TimeGroupingStrategy } from "./grouping/TimeGroupingStrategy";
 import type { GroupingMode, ProblemItem, QuickAction, SnapshotDisplayItem, TimeGroup, TreeViewConfig } from "./types";
 import { DEFAULT_TREE_CONFIG } from "./types";
@@ -69,19 +70,33 @@ class SnapBackTreeItem extends vscode.TreeItem {
 // PROVIDER
 // ============================================
 
-export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTreeItem> {
+export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTreeItem>, vscode.Disposable {
 	private _onDidChangeTreeData = new vscode.EventEmitter<SnapBackTreeItem | undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
 	private problems: ProblemItem[] = [];
 	private config: TreeViewConfig;
 	private cachedSnapshots: SnapshotDisplayItem[] = [];
+	private readonly badgeProvider: TreeItemBadgeProvider;
 
 	constructor(
 		private storageManager: IStorageManager,
 		private configManager: IConfigManager,
 	) {
 		this.config = { ...DEFAULT_TREE_CONFIG };
+
+		// Initialize badge provider with auto-refresh callback
+		this.badgeProvider = createTreeItemBadgeProvider({
+			onRefreshNeeded: () => this.refresh(),
+		});
+	}
+
+	/**
+	 * Dispose resources (badge provider timers)
+	 */
+	dispose(): void {
+		this.badgeProvider.dispose();
+		this._onDidChangeTreeData.dispose();
 	}
 
 	// ============================================
@@ -275,8 +290,14 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 			const manifests = await this.storageManager.listSnapshots({ limit: 100 });
 			this.cachedSnapshots = manifests.map((m) => this.toDisplayItem(m));
 
+			// Count NEW badges for telemetry
+			const newBadgeCount = this.cachedSnapshots.filter(
+				(s) => this.badgeProvider.getBadge(s.timestamp.getTime())?.type === "new",
+			).length;
+
 			logger.debug("Snapshots loaded for TreeView", {
 				count: this.cachedSnapshots.length,
+				newBadgeCount,
 				hasAI: this.cachedSnapshots.some((s) => s.trigger === "ai-detected"),
 				hasManual: this.cachedSnapshots.some((s) => s.trigger === "manual"),
 				duration: Date.now() - startTime,
@@ -346,14 +367,25 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 
 	private createSnapshotItem(snapshot: SnapshotDisplayItem): SnapBackTreeItem {
 		const icon = this.getSnapshotIcon(snapshot);
+		const createdAt = snapshot.timestamp.getTime();
 
+		// Get badge state for this snapshot
+		const badge = this.badgeProvider.getBadge(createdAt);
+
+		// Track snapshot for auto-refresh when badge expires
+		this.badgeProvider.trackSnapshot(snapshot.id, createdAt);
+
+		// Build label with optional badge
+		const badgeText = badge?.type === "new" ? " NEW" : "";
 		const item = new SnapBackTreeItem(
-			`${icon} ${snapshot.name}`,
+			`${icon} ${snapshot.name}${badgeText}`,
 			{ type: "snapshot", id: snapshot.id },
 			vscode.TreeItemCollapsibleState.None,
 		);
 
-		item.description = snapshot.description;
+		// Show relative time, with badge indicator in description if stale
+		const staleIndicator = badge?.type === "stale" ? " (old)" : "";
+		item.description = `${snapshot.description}${staleIndicator}`;
 		item.tooltip = this.getSnapshotTooltip(snapshot);
 		item.contextValue = "snapshot";
 
@@ -424,22 +456,22 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	private getActionItems(): SnapBackTreeItem[] {
 		const actions: QuickAction[] = [
 			{
+				id: "undo-session",
+				label: "Undo AI Session",
+				icon: "⏪",
+				command: "snapback.session.restore",
+			},
+			{
 				id: "create",
 				label: "Create Snapshot",
 				icon: SNAPBACK_ICONS.CAMERA,
 				command: COMMANDS.SNAPSHOT.CREATE,
 			},
 			{
-				id: "restore",
-				label: "Restore Last",
+				id: "browse",
+				label: "Browse Snapshots",
 				icon: SNAPBACK_ICONS.RESTORE,
 				command: COMMANDS.SNAPSHOT.RESTORE_LEGACY,
-			},
-			{
-				id: "search",
-				label: "Search Snapshots...",
-				icon: SNAPBACK_ICONS.SEARCH,
-				command: COMMANDS.SNAPSHOT.SHOW_ALL,
 			},
 			{
 				id: "configure",

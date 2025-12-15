@@ -17,7 +17,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import type { SessionManifest } from "../snapshot/sessionTypes";
 import { logger } from "../utils/logger";
-import type { CommandContext } from "./index";
+import type { CommandContext } from "./types";
 
 /**
  * Session tree item interface (matches the tree view item structure)

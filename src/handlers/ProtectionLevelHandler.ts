@@ -583,8 +583,12 @@ A snapshot will be created before saving.`,
 		const cursor = vscode.extensions.getExtension("cursor.cursor");
 		const copilot = vscode.extensions.getExtension("github.copilot");
 
-		if (cursor?.isActive) return "Cursor";
-		if (copilot?.isActive) return "Copilot";
+		if (cursor?.isActive) {
+			return "Cursor";
+		}
+		if (copilot?.isActive) {
+			return "Copilot";
+		}
 
 		return "AI";
 	}
@@ -877,6 +881,41 @@ A snapshot will be created before saving.`,
 		// Convert absolute path to relative path
 		const relativePath = path.relative(workspaceRoot, filePath);
 
+		// 🐛 FIX: Compute actual line changes for meaningful snapshot names
+		// Previously linesAdded/linesDeleted were hardcoded to 0
+		let linesAdded = 0;
+		let linesDeleted = 0;
+		try {
+			// Read current file content from disk to compare with pre-save content
+			const fileUri = vscode.Uri.file(filePath);
+			const currentBytes = await vscode.workspace.fs.readFile(fileUri);
+			const currentContent = Buffer.from(currentBytes).toString("utf8");
+
+			// Simple line diff: count lines in each version
+			const preSaveLines = preSaveContent.split(/\r?\n/).length;
+			const currentLines = currentContent.split(/\r?\n/).length;
+
+			// If current has more lines, those were added; if fewer, those were deleted
+			if (currentLines > preSaveLines) {
+				linesAdded = currentLines - preSaveLines;
+			} else if (currentLines < preSaveLines) {
+				linesDeleted = preSaveLines - currentLines;
+			} else {
+				// Same line count but content changed - mark as 1 line modified
+				if (currentContent !== preSaveContent) {
+					linesAdded = 1;
+					linesDeleted = 1;
+				}
+			}
+		} catch (error) {
+			// File doesn't exist yet (new file) or read failed - use content length estimate
+			linesAdded = preSaveContent.split(/\r?\n/).length;
+			logger.debug("Could not compare files for line diff", {
+				filePath,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+
 		// Use intelligent snapshot naming strategy for GitLens parity
 		const namingStrategy = new SnapshotNamingStrategy(workspaceRoot);
 		const snapshotInfo = {
@@ -884,8 +923,8 @@ A snapshot will be created before saving.`,
 				{
 					path: relativePath,
 					status: "modified" as const,
-					linesAdded: 0,
-					linesDeleted: 0,
+					linesAdded,
+					linesDeleted,
 				},
 			],
 			workspaceRoot,

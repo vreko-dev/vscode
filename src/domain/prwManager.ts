@@ -35,6 +35,7 @@ export interface ActivePREState {
 export interface PRWSnapshotStore {
 	createPRE(options: CreatePREOptions): Promise<SnapshotManifestV2>;
 	createPOST(options: CreatePOSTOptions): Promise<SnapshotManifestV2>;
+	createPreRollbackCheckpoint(targetId: string): Promise<SnapshotManifestV2>;
 }
 
 /** Minimal RateLimiter interface needed by PRWManager */
@@ -221,6 +222,16 @@ export class PRWManager {
 	 */
 	getActiveCount(): number {
 		return this.activePREs.size;
+	}
+
+	/**
+	 * Create PRE_ROLLBACK checkpoint before executing a rollback.
+	 *
+	 * @param targetId - The snapshot ID we're rolling back TO
+	 * @returns The PRE_ROLLBACK manifest
+	 */
+	async onBeforeRollback(targetId: string): Promise<SnapshotManifestV2> {
+		return this.snapshotStore.createPreRollbackCheckpoint(targetId);
 	}
 
 	/**

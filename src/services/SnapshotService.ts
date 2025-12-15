@@ -8,7 +8,6 @@ import { logger } from "../utils/logger";
 export interface SnapshotServiceEvents {
 	"snapshot-created": (snapshot: Snapshot) => void;
 	"snapshot-deleted": (snapshotId: string) => void;
-	"snapshot-restored": (snapshotId: string) => void;
 }
 
 export class SnapshotService extends EventEmitter {
@@ -54,20 +53,6 @@ export class SnapshotService extends EventEmitter {
 		this.emit("snapshot-created", snapshot);
 
 		return snapshot;
-	}
-
-	async restoreSnapshot(snapshotId: string): Promise<void> {
-		const snapshot = await this.getSnapshot(snapshotId);
-		if (!snapshot) {
-			throw new Error(`Snapshot ${snapshotId} not found`);
-		}
-
-		// Restore each file
-		for (const file of snapshot.files || []) {
-			await this.restoreFile(snapshotId, file);
-		}
-
-		this.emit("snapshot-restored", snapshotId);
 	}
 
 	async listSnapshots(filePath?: string): Promise<Snapshot[]> {
@@ -121,16 +106,6 @@ export class SnapshotService extends EventEmitter {
 		}
 	}
 
-	private async getSnapshot(id: string): Promise<Snapshot | null> {
-		try {
-			const metaPath = vscode.Uri.joinPath(vscode.Uri.file(this.snapshotsDir), `${id}.json`);
-			const content = await vscode.workspace.fs.readFile(metaPath);
-			return JSON.parse(content.toString());
-		} catch {
-			return null;
-		}
-	}
-
 	private async saveSnapshotData(snapshot: Snapshot, files: string[]): Promise<void> {
 		// Save actual file contents for restoration
 		for (const file of files) {
@@ -155,21 +130,6 @@ export class SnapshotService extends EventEmitter {
 		const metaPath = vscode.Uri.joinPath(vscode.Uri.file(this.snapshotsDir), `${snapshot.id}.json`);
 		const content = JSON.stringify(snapshot, null, 2);
 		await vscode.workspace.fs.writeFile(metaPath, Buffer.from(content, "utf-8"));
-	}
-
-	private async restoreFile(snapshotId: string, filePath: string): Promise<void> {
-		try {
-			const snapshotPath = vscode.Uri.joinPath(
-				vscode.Uri.file(this.snapshotsDir),
-				`${snapshotId}-${this.sanitizeFileName(filePath)}`,
-			);
-			const content = await vscode.workspace.fs.readFile(snapshotPath);
-			const fileUri = vscode.Uri.file(filePath);
-			await vscode.workspace.fs.writeFile(fileUri, content);
-		} catch (error) {
-			logger.error(`Error restoring file ${filePath} from snapshot ${snapshotId}:`, toError(error));
-			throw error;
-		}
 	}
 
 	private sanitizeFileName(filePath: string): string {

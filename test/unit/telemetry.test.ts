@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { VSCodeTelemetry } from "../../src/telemetry";
+import { createMockExtensionContext } from "../__mocks__/factories";
 
 // Mock VS Code API
 vi.mock("vscode", () => {
@@ -35,13 +36,13 @@ describe("VSCodeTelemetry", () => {
 		// Clear all mocks before each test
 		vi.clearAllMocks();
 
-		mockContext = {
+		mockContext = createMockExtensionContext({
 			extension: {
 				packageJSON: {
 					version: "0.1.0",
 				},
 			},
-		};
+		});
 
 		vscodeTelemetry = new VSCodeTelemetry(mockContext);
 	});

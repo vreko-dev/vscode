@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
 import type { SnapshotFileNode } from "../views/snapshotNavigatorProvider";
 import { compareWithSnapshot } from "./compareWithSnapshot";
-import type { CommandContext } from "./index";
+import type { CommandContext } from "./types";
 
 export function registerViewCommands(_context: vscode.ExtensionContext, ctx: CommandContext): vscode.Disposable[] {
 	return [
@@ -249,8 +249,14 @@ This will overwrite current files.`,
 			await vscode.commands.executeCommand("snapback.viewSnapshot");
 		}),
 
-		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.VIEW, async () => {
-			// Focus the SnapBack view
+		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.VIEW, async (snapshotId?: string) => {
+			// If snapshotId is provided (from tree view click), show the snapshot diff/restore flow
+			if (snapshotId) {
+				// Use the existing restoreSnapshot command which shows diff preview
+				await vscode.commands.executeCommand("snapback.restoreSnapshot", snapshotId);
+				return;
+			}
+			// If no snapshotId, just focus the SnapBack view
 			await vscode.commands.executeCommand("workbench.view.extension.snapback");
 		}),
 

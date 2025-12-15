@@ -1,23 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MCPLifecycleManager } from "../../src/services/MCPLifecycleManager";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		workspace: {
-			getConfiguration: vi.fn().mockReturnValue({
-				get: vi.fn((key: string, defaultValue?: unknown) => {
-					if (key === "mcp.enabled") return true;
-					if (key === "mcp.serverUrl") return "https://mcp.snapback.dev";
-					if (key === "mcp.authToken") return "test-token";
-					if (key === "mcp.timeout") return 5000;
-					return defaultValue;
-				}),
-			}),
-		},
-	};
-});
+// Use global vscode mock from setup.ts - do NOT re-mock here!
+// If you need to customize mock behavior, use vi.mocked() to override specific methods
 
 // Mock fetch API
 const mockFetch = vi.fn();

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { ConfigDetector } from "../config-detector";
 import { COMMANDS } from "../constants/index";
-import type { CommandContext } from "./index";
+import type { CommandContext } from "./types";
 import { UpdateConfigurationCommand } from "./updateConfiguration";
 
 export function registerUtilityCommands(_context: vscode.ExtensionContext, ctx: CommandContext): vscode.Disposable[] {

@@ -118,7 +118,7 @@ describe("SnapshotStorageAdapter (Legacy Bridge)", () => {
 			iconColor: "#fff",
 		};
 
-		await expect(adapter.save(mockSnapshot)).rejects.toThrow("Direct save not supported - use SnapshotManager");
+		await expect(adapter.save(mockSnapshot)).rejects.toThrow("Direct save not supported");
 	});
 
 	// Happy Path
@@ -180,9 +180,9 @@ describe("SnapshotStorageAdapter (Legacy Bridge)", () => {
 		const snapshot = await adapter.get(created.id);
 		expect(snapshot).toBeDefined();
 
-		// Update should throw (calls save internally)
+		// Update should throw (update is also not supported)
 		await expect(adapter.update(created.id, { name: "Updated" })).rejects.toThrow(
-			"Direct save not supported",
+			"Direct update not supported",
 		);
 	});
 });

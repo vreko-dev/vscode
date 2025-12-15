@@ -89,6 +89,8 @@ export class FeedbackManager {
 		this.registerDismissalTriggers();
 
 		// 3. Fallback Timeout
+		// Note: TelemetryService.getInstance() is guarded in logImplicitAcceptance() with try/catch
+		// to prevent race conditions when timer fires before initialization
 		this.activeTimeout = setTimeout(() => {
 			this.logImplicitAcceptance();
 			this.dismiss(false);
@@ -180,6 +182,10 @@ export class FeedbackManager {
 		this.resetState();
 	}
 
+	/**
+	 * Logs implicit acceptance when user doesn't report false positive.
+	 * Guards against TelemetryService race condition - timer can fire before initialization.
+	 */
 	private logImplicitAcceptance() {
 		if (!this.currentDetection) {
 			return;
@@ -189,6 +195,13 @@ export class FeedbackManager {
 		}
 
 		try {
+			// Guard: Check if TelemetryService is initialized before calling getInstance()
+			// This prevents "TelemetryService not initialized" error when setTimeout fires early
+			if (!TelemetryService.isInitialized()) {
+				console.warn("[FeedbackManager] TelemetryService not initialized, skipping implicit acceptance log");
+				return;
+			}
+
 			const telemetry = TelemetryService.getInstance();
 			telemetry.track("feedback_ignored", {
 				detection_id: this.currentDetection.id,
@@ -198,7 +211,8 @@ export class FeedbackManager {
 			});
 			this.addToHandledCache(this.currentDetection.id);
 		} catch (e) {
-			console.error(e);
+			// Catch any remaining errors (network issues, etc.)
+			console.error("[FeedbackManager] Failed to log implicit acceptance:", e);
 		}
 	}
 

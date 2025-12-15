@@ -4,6 +4,7 @@ import { SnapBackEvent, type SnapBackEventBus } from "@snapback/events";
 import * as vscode from "vscode";
 import { AuditLog } from "./AuditLog";
 import { BlobStore } from "./BlobStore";
+import { ConfigStore } from "./ConfigStore";
 import { CooldownCache } from "./CooldownCache";
 import { SessionStore } from "./SessionStore";
 import { SnapshotStore } from "./SnapshotStore";
@@ -16,9 +17,11 @@ import type {
 	SessionManifest,
 	SnapshotFilters,
 	SnapshotManifest,
+	SnapshotManifestV2,
 	SnapshotWithContent,
 	StorageMetadata,
 } from "./types";
+import { normalizeToV1, triggerToReasons } from "./types";
 import { readJsonFile, writeJsonFile } from "./utils/atomicWrite";
 import { WriterLock } from "./writerLock";
 
@@ -40,6 +43,7 @@ export class StorageManager implements IStorageManager {
 	private snapshotStore: SnapshotStore;
 	private sessionStore: SessionStore;
 	private auditLog: AuditLog;
+	private configStore: ConfigStore;
 
 	// Writer lock for single-writer guarantee on storage files
 	private readonly writerLock: WriterLock;
@@ -59,6 +63,7 @@ export class StorageManager implements IStorageManager {
 		this.snapshotStore = new SnapshotStore(this.storageUri, this.blobStore);
 		this.sessionStore = new SessionStore(this.storageUri);
 		this.auditLog = new AuditLog(this.storageUri);
+		this.configStore = new ConfigStore(this.storageUri);
 		this.writerLock = new WriterLock();
 	}
 
@@ -149,6 +154,7 @@ export class StorageManager implements IStorageManager {
 			await this.snapshotStore.initialize();
 			await this.sessionStore.initialize();
 			await this.auditLog.initialize();
+			await this.configStore.initialize();
 
 			// Detect orphan PREs for observability (non-blocking)
 			this.snapshotStore.detectOrphanPREs().catch((err) => {
@@ -349,20 +355,38 @@ export class StorageManager implements IStorageManager {
 		// Lazy-initialize components on first use
 		await this.ensureComponentsInitialized();
 
-		const manifest = await this.snapshotStore.create(files, options);
+		// Route through V2 createPOST for unified storage
+		// Convert V1 trigger to V2 reason codes
+		const reasons = triggerToReasons(options.trigger);
+
+		const v2Manifest = await this.snapshotStore.createPOST({
+			files,
+			name: options.name,
+			anchorFile: options.anchorFile,
+			parentSeq: null, // No parent for direct createSnapshot calls
+			parentId: null,
+			metadata: {
+				riskScore: options.metadata?.riskScore ?? 0,
+				origin: options.trigger === "manual" ? "INTERACTIVE" : "AUTOMATED",
+				reasons,
+				aiDetection: options.metadata?.aiDetection,
+				sessionId: options.metadata?.sessionId,
+			},
+		});
 
 		// Update metadata stats (fire and forget)
 		this.updateStats().catch(console.error);
 
 		// Publish event
 		this.publishEvent(SnapBackEvent.SNAPSHOT_CREATED, {
-			id: manifest.id,
-			timestamp: manifest.timestamp,
-			trigger: manifest.trigger,
-			anchorFile: manifest.anchorFile,
+			id: v2Manifest.id,
+			timestamp: v2Manifest.timestamp,
+			trigger: options.trigger,
+			anchorFile: v2Manifest.anchorFile,
 		});
 
-		return manifest;
+		// Return V1-compatible manifest for backward compatibility
+		return normalizeToV1(v2Manifest, options.trigger);
 	}
 
 	async getSnapshot(id: string): Promise<SnapshotWithContent | null> {
@@ -406,6 +430,42 @@ export class StorageManager implements IStorageManager {
 		// Lazy-initialize components on first use
 		await this.ensureComponentsInitialized();
 		return this.snapshotStore.exists(id);
+	}
+
+	/**
+	 * Create a PRE_ROLLBACK checkpoint before executing a rollback.
+	 * This captures current state BEFORE overwriting files, allowing undo.
+	 *
+	 * @param targetId - The snapshot ID we're rolling back TO
+	 * @returns The PRE_ROLLBACK manifest
+	 */
+	async createPreRollbackCheckpoint(targetId: string): Promise<SnapshotManifestV2> {
+		await this.ensureComponentsInitialized();
+		return this.snapshotStore.createPreRollbackCheckpoint(targetId);
+	}
+
+	/**
+	 * Get the internal SnapshotStore for PRWManager integration.
+	 * Returns the store typed as PRWSnapshotStore interface.
+	 *
+	 * @internal Use for PRWManager only
+	 */
+	getPRWSnapshotStore(): {
+		createPRE(options: import("./SnapshotStore").CreatePREOptions): Promise<SnapshotManifestV2>;
+		createPOST(options: import("./SnapshotStore").CreatePOSTOptions): Promise<SnapshotManifestV2>;
+		createPreRollbackCheckpoint(targetId: string): Promise<SnapshotManifestV2>;
+	} {
+		return this.snapshotStore;
+	}
+
+	/**
+	 * Get the internal ConfigStore for BurstDetector integration.
+	 * Returns the store for engine config and protection checks.
+	 *
+	 * @internal Use for BurstDetector only
+	 */
+	getConfigStore(): ConfigStore {
+		return this.configStore;
 	}
 
 	// ============================================

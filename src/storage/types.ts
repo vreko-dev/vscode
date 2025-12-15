@@ -209,6 +209,129 @@ export function isSnapshotManifestV2(value: unknown): value is SnapshotManifestV
 	return true;
 }
 
+/**
+ * Alias isV2Manifest for compatibility with spec naming
+ */
+export const isV2Manifest = isSnapshotManifestV2;
+
+/**
+ * Check if checkpoint is a pointer (PRE or PRE_ROLLBACK).
+ * Pointer checkpoints have no content - resolve via parent chain.
+ */
+export function isPointerCheckpoint(m: SnapshotManifest | SnapshotManifestV2): boolean {
+	if (!isSnapshotManifestV2(m)) {
+		return false;
+	}
+	return m.type === "PRE" || m.type === "PRE_ROLLBACK";
+}
+
+/**
+ * Check if checkpoint is a POST (has actual content).
+ * V1 manifests are always treated as POST since they contain content.
+ */
+export function isPostCheckpoint(m: SnapshotManifest | SnapshotManifestV2): boolean {
+	if (!isSnapshotManifestV2(m)) {
+		return true; // V1 manifests always have content
+	}
+	return m.type === "POST";
+}
+
+/**
+ * Check if checkpoint has content (either POST or V1).
+ * Alias for isPostCheckpoint for semantic clarity.
+ */
+export function hasContent(m: SnapshotManifest | SnapshotManifestV2): boolean {
+	return isPostCheckpoint(m);
+}
+
+/**
+ * Normalize a V1 manifest to V2 format in-memory.
+ * Does NOT modify the original file on disk.
+ *
+ * V1 manifests are treated as POST checkpoints with:
+ * - Virtual seq from timestamp (seconds since epoch)
+ * - No parent (null)
+ * - origin: AUTOMATED (default, since we don't know)
+ */
+export function normalizeToV2(manifest: SnapshotManifest): SnapshotManifestV2 {
+	return {
+		schemaVersion: 2,
+		id: manifest.id,
+		// Virtual seq based on timestamp (seconds since epoch)
+		seq: Math.floor(manifest.timestamp / 1000),
+		parentSeq: null,
+		parentId: null,
+		type: "POST", // V1 manifests always have content
+		timestamp: manifest.timestamp,
+		name: manifest.name,
+		anchorFile: manifest.anchorFile,
+		files: Object.fromEntries(
+			Object.entries(manifest.files).map(([path, ref]) => [path, { blobHash: ref.blob, size: ref.size }]),
+		),
+		metadata: {
+			riskScore: manifest.metadata?.riskScore ?? 0,
+			origin: "AUTOMATED", // Default since V1 doesn't track origin
+			reasons: [],
+			aiDetection: manifest.metadata?.aiDetection,
+			sessionId: manifest.metadata?.sessionId,
+		},
+	};
+}
+
+/**
+ * Convert V2 manifest to V1 format for backward compatibility.
+ * Used when V2 manifests need to be returned through V1 APIs.
+ *
+ * @param v2 - V2 manifest to convert
+ * @param triggerOverride - Optional trigger to use (otherwise inferred from reasons)
+ */
+export function normalizeToV1(v2: SnapshotManifestV2, triggerOverride?: SnapshotManifest["trigger"]): SnapshotManifest {
+	// Infer trigger from reasons if not provided
+	let trigger: SnapshotManifest["trigger"] = triggerOverride ?? "auto";
+	if (!triggerOverride && v2.metadata?.reasons) {
+		if (v2.metadata.reasons.includes("AI_DETECTED")) {
+			trigger = "ai-detected";
+		} else if (v2.metadata.reasons.includes("MANUAL_CHECKPOINT")) {
+			trigger = "manual";
+		} else if (v2.metadata.reasons.includes("CRITICAL_FILE")) {
+			trigger = "pre-save";
+		}
+	}
+
+	return {
+		id: v2.id,
+		timestamp: v2.timestamp,
+		name: v2.name,
+		trigger,
+		anchorFile: v2.anchorFile,
+		files: Object.fromEntries(
+			Object.entries(v2.files).map(([path, ref]) => [path, { blob: ref.blobHash, size: ref.size }]),
+		),
+		metadata: {
+			riskScore: v2.metadata?.riskScore,
+			aiDetection: v2.metadata?.aiDetection,
+			sessionId: v2.metadata?.sessionId,
+		},
+	};
+}
+
+/**
+ * Convert V1 trigger type to V2 reason codes.
+ * Shared utility for V1→V2 metadata conversion.
+ */
+export function triggerToReasons(trigger: SnapshotManifest["trigger"]): ReasonCode[] {
+	switch (trigger) {
+		case "ai-detected":
+			return ["AI_DETECTED"];
+		case "pre-save":
+			return ["CRITICAL_FILE"];
+		case "manual":
+			return ["MANUAL_CHECKPOINT"];
+		default:
+			return ["MANUAL_SAVE"];
+	}
+}
+
 // ============================================
 // Cooldown Types
 // ============================================

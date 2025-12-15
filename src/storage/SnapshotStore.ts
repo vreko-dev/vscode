@@ -13,8 +13,8 @@ import {
 } from "./storeState";
 import {
 	isSnapshotManifestV2,
+	normalizeToV1,
 	SCHEMA_VERSION_V2,
-	type SnapshotFileRef,
 	type SnapshotFileRefV2,
 	type SnapshotFilters,
 	type SnapshotManifest,
@@ -24,6 +24,30 @@ import {
 import { ensureDirectory, fileExists, readJsonFile, writeJsonFile } from "./utils/atomicWrite";
 import { generateSnapshotId, parseTimestampFromId } from "./utils/fileId";
 import { WriterLock, withLock } from "./writerLock";
+
+// ============================================
+// Constants for chain resolution
+// ============================================
+
+const MAX_CHAIN_DEPTH = 100; // Prevent infinite loops on corrupted chains
+
+// ============================================
+// Custom Error Classes
+// ============================================
+
+/**
+ * Error thrown when snapshot parent chain is broken or corrupted.
+ */
+export class SnapshotChainError extends Error {
+	constructor(
+		message: string,
+		public readonly snapshotId: string,
+		public readonly brokenAtId: string | null,
+	) {
+		super(message);
+		this.name = "SnapshotChainError";
+	}
+}
 
 /**
  * Snapshot storage using content-addressable blobs.
@@ -94,7 +118,7 @@ export class SnapshotStore {
 	}
 
 	/**
-	 * Load state and index from disk
+	 * Load state and index from disk, rebuilding if necessary
 	 */
 	private async loadState(): Promise<void> {
 		if (this.stateLoaded) {
@@ -107,10 +131,12 @@ export class SnapshotStore {
 		const loadedState = await readJsonFile<StoreState>(stateUri);
 		const loadedIndex = await readJsonFile<SeqIndex>(indexUri);
 
-		if (loadedState) {
+		// If state or index is missing/corrupted, rebuild from manifests
+		if (!loadedState || !loadedIndex) {
+			console.debug("[SnapshotStore] State or index missing, rebuilding from disk...");
+			await this.rebuildStateFromDisk();
+		} else {
 			this.state = loadedState;
-		}
-		if (loadedIndex) {
 			this.index = loadedIndex;
 		}
 
@@ -342,72 +368,34 @@ export class SnapshotStore {
 	}
 
 	/**
-	 * Create a new snapshot from file contents
-	 */
-	async create(
-		files: Map<string, string>,
-		options: {
-			name: string;
-			trigger: SnapshotManifest["trigger"];
-			anchorFile?: string;
-			metadata?: SnapshotManifest["metadata"];
-		},
-	): Promise<SnapshotManifest> {
-		const id = generateSnapshotId();
-		const timestamp = Date.now();
-
-		// Resolve and validate anchor file
-		let resolvedAnchorFile = options.anchorFile;
-
-		if (!resolvedAnchorFile) {
-			if (files.size === 1) {
-				resolvedAnchorFile = files.keys().next().value;
-			} else {
-				throw new Error("Anchor file must be specified for multi-file snapshots");
-			}
-		}
-
-		// Ensure anchor (inferred or explicit) exists in files
-		if (!resolvedAnchorFile || !files.has(resolvedAnchorFile)) {
-			throw new Error(`Anchor file ${resolvedAnchorFile} not found in snapshot files`);
-		}
-
-		// Store each file in blob store
-		const fileRefs: Record<string, SnapshotFileRef> = {};
-
-		for (const [filePath, content] of files) {
-			const { hash, size } = await this.blobStore.store(content);
-			fileRefs[filePath] = { blob: hash, size };
-		}
-
-		// Create manifest
-		const manifest: SnapshotManifest = {
-			id,
-			timestamp,
-			name: options.name,
-			trigger: options.trigger,
-			anchorFile: resolvedAnchorFile,
-			files: fileRefs,
-			metadata: options.metadata,
-		};
-
-		// Write manifest
-		const manifestUri = vscode.Uri.joinPath(this.snapshotsUri, `${id}.json`);
-		await writeJsonFile(manifestUri, manifest);
-
-		return manifest;
-	}
-
-	/**
-	 * Get snapshot manifest by ID
+	 * Get snapshot manifest by ID (any version, filters pointer checkpoints)
+	 * Returns V1 manifests or V2 POST checkpoints.
+	 * Filters out PRE and PRE_ROLLBACK (pointer-only checkpoints).
 	 */
 	async getManifest(id: string): Promise<SnapshotManifest | null> {
 		const manifestUri = vscode.Uri.joinPath(this.snapshotsUri, `${id}.json`);
-		return readJsonFile<SnapshotManifest>(manifestUri);
+		const data = await readJsonFile<unknown>(manifestUri);
+
+		if (!data) {
+			return null;
+		}
+
+		// Handle V2 manifests
+		if (isSnapshotManifestV2(data)) {
+			// Filter out pointer checkpoints (PRE, PRE_ROLLBACK)
+			// Only POST checkpoints have content and should be visible
+			if (data.type === "PRE" || data.type === "PRE_ROLLBACK") {
+				return null;
+			}
+			// Convert V2 POST to V1 format for backward compatibility
+			return normalizeToV1(data);
+		}
+
+		return data as SnapshotManifest;
 	}
 
 	/**
-	 * Get snapshot with resolved file contents
+	 * Get snapshot with resolved file contents (V1 manifests only)
 	 */
 	async getWithContent(id: string): Promise<SnapshotWithContent | null> {
 		const manifest = await this.getManifest(id);
@@ -431,6 +419,199 @@ export class SnapshotStore {
 			...manifest,
 			contents,
 		};
+	}
+
+	// ============================================
+	// V2 Chain Resolution
+	// ============================================
+
+	/**
+	 * Create a PRE_ROLLBACK checkpoint before executing a rollback.
+	 *
+	 * Captures current state BEFORE overwriting files, allowing undo.
+	 *
+	 * @param targetId - The snapshot ID we're rolling back TO
+	 * @returns The PRE_ROLLBACK manifest
+	 */
+	async createPreRollbackCheckpoint(targetId: string): Promise<SnapshotManifestV2> {
+		return this.createPRE({
+			name: `Pre-rollback (target: ${targetId})`,
+			anchorFile: targetId, // Use target as anchor reference
+			parentSeq: this.state.lastSeq,
+			parentId: this.state.headId,
+			type: "PRE_ROLLBACK",
+			metadata: {
+				origin: "INTERACTIVE",
+				riskScore: 0,
+				reasons: ["PRE_ROLLBACK"],
+			},
+		});
+	}
+
+	/**
+	 * Get V2 snapshot with resolved file contents.
+	 *
+	 * For POST checkpoints: Load content directly from blobs.
+	 * For PRE/PRE_ROLLBACK: Walk parentId chain until finding POST.
+	 *
+	 * @param id - Snapshot ID to retrieve
+	 * @returns Manifest with resolved contents, or null if not found
+	 * @throws SnapshotChainError if chain is broken or too deep
+	 */
+	async getWithContentV2(
+		id: string,
+	): Promise<{ manifest: SnapshotManifestV2; contents: Record<string, string> } | null> {
+		const manifest = await this.getManifestV2(id);
+		if (!manifest) {
+			return null;
+		}
+
+		// If POST, load content directly
+		if (manifest.type === "POST") {
+			const contents = await this.loadContentsFromV2Manifest(manifest);
+			return { manifest, contents };
+		}
+
+		// For PRE/PRE_ROLLBACK, walk parent chain to find content
+		const contentManifest = await this.resolveContentAncestor(manifest);
+		if (!contentManifest) {
+			throw new SnapshotChainError(
+				`Cannot resolve content for checkpoint ${id}: parent chain broken`,
+				id,
+				manifest.parentId,
+			);
+		}
+
+		const contents = await this.loadContentsFromV2Manifest(contentManifest);
+		return { manifest, contents };
+	}
+
+	/**
+	 * Walk parent chain to find the nearest POST checkpoint with content.
+	 */
+	private async resolveContentAncestor(manifest: SnapshotManifestV2): Promise<SnapshotManifestV2 | null> {
+		let current: SnapshotManifestV2 | null = manifest;
+		let depth = 0;
+
+		while (current && depth < MAX_CHAIN_DEPTH) {
+			// If POST, we found content
+			if (current.type === "POST") {
+				return current;
+			}
+
+			// Move to parent
+			if (!current.parentId) {
+				console.warn("[SnapshotStore] Chain broken: no parentId", {
+					id: current.id,
+					depth,
+				});
+				return null;
+			}
+
+			const parent = await this.getManifestV2(current.parentId);
+			if (!parent) {
+				console.warn("[SnapshotStore] Chain broken: parent not found", {
+					id: current.id,
+					parentId: current.parentId,
+					depth,
+				});
+				return null;
+			}
+
+			current = parent;
+			depth++;
+		}
+
+		if (depth >= MAX_CHAIN_DEPTH) {
+			console.error("[SnapshotStore] Chain too deep, possible corruption", {
+				startId: manifest.id,
+				depth,
+			});
+			throw new SnapshotChainError(
+				`Parent chain exceeded max depth (${MAX_CHAIN_DEPTH})`,
+				manifest.id,
+				current?.id ?? null,
+			);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Load file contents from a V2 manifest's blob references.
+	 */
+	private async loadContentsFromV2Manifest(manifest: SnapshotManifestV2): Promise<Record<string, string>> {
+		const contents: Record<string, string> = {};
+
+		for (const [filePath, ref] of Object.entries(manifest.files)) {
+			try {
+				const content = await this.blobStore.retrieve(ref.blobHash);
+				if (content !== null) {
+					contents[filePath] = content;
+				} else {
+					console.warn("[SnapshotStore] Blob not found", {
+						filePath,
+						blobHash: ref.blobHash,
+					});
+				}
+			} catch (error) {
+				console.error("[SnapshotStore] Failed to load blob", {
+					filePath,
+					blobHash: ref.blobHash,
+					error,
+				});
+			}
+		}
+
+		return contents;
+	}
+
+	/**
+	 * Find orphaned PRE/PRE_ROLLBACK checkpoints (broken parent chains).
+	 * Use during startup recovery or maintenance.
+	 */
+	async findOrphanedCheckpoints(): Promise<string[]> {
+		const orphans: string[] = [];
+		const manifests = await this.listV2({ limit: 500 });
+
+		for (const manifest of manifests) {
+			// Only check pointer checkpoints
+			if (manifest.type === "POST") {
+				continue;
+			}
+
+			// Try to resolve content - if it fails, it's orphaned
+			try {
+				await this.resolveContentAncestor(manifest);
+			} catch (error) {
+				if (error instanceof SnapshotChainError) {
+					orphans.push(manifest.id);
+					console.debug("[SnapshotStore] Found orphan", { id: manifest.id });
+				}
+			}
+		}
+
+		return orphans;
+	}
+
+	/**
+	 * Clean up orphaned checkpoints.
+	 * WARNING: This deletes data. Use with caution.
+	 */
+	async cleanupOrphans(orphanIds: string[]): Promise<number> {
+		let cleaned = 0;
+
+		for (const id of orphanIds) {
+			try {
+				await this.delete(id);
+				cleaned++;
+			} catch (error) {
+				console.error("[SnapshotStore] Failed to delete orphan", { id, error });
+			}
+		}
+
+		console.log("[SnapshotStore] Cleaned up orphans", { count: cleaned });
+		return cleaned;
 	}
 
 	/**
@@ -495,16 +676,19 @@ export class SnapshotStore {
 
 	/**
 	 * Delete a snapshot (manifest only, blobs may still be referenced)
+	 * Protected by WriterLock to prevent concurrent state corruption.
 	 */
 	async delete(id: string): Promise<boolean> {
-		const manifestUri = vscode.Uri.joinPath(this.snapshotsUri, `${id}.json`);
+		return withLock(this.lock, async () => {
+			const manifestUri = vscode.Uri.joinPath(this.snapshotsUri, `${id}.json`);
 
-		try {
-			await vscode.workspace.fs.delete(manifestUri);
-			return true;
-		} catch {
-			return false;
-		}
+			try {
+				await vscode.workspace.fs.delete(manifestUri);
+				return true;
+			} catch {
+				return false;
+			}
+		});
 	}
 
 	/**
@@ -548,5 +732,79 @@ export class SnapshotStore {
 	 */
 	async getByTrigger(trigger: SnapshotManifest["trigger"], limit = 50): Promise<SnapshotManifest[]> {
 		return this.list({ trigger, limit });
+	}
+
+	// ============================================
+	// State Recovery
+	// ============================================
+
+	/**
+	 * Rebuild state and index from manifest files on disk.
+	 * Called during initialization if state.json or index.json is missing/corrupted.
+	 * This enables crash recovery - even if state files are lost, manifests remain.
+	 */
+	private async rebuildStateFromDisk(): Promise<void> {
+		console.debug("[SnapshotStore] Starting state rebuild from disk...");
+
+		const manifests: { manifest: SnapshotManifest | SnapshotManifestV2; timestamp: number }[] = [];
+
+		try {
+			const entries = await vscode.workspace.fs.readDirectory(this.snapshotsUri);
+
+			for (const [name, type] of entries) {
+				if (type !== vscode.FileType.File || !name.endsWith(".json")) {
+					continue;
+				}
+
+				const id = name.replace(".json", "");
+				const manifest = await this.getManifest(id);
+				if (manifest) {
+					manifests.push({ manifest, timestamp: manifest.timestamp });
+				}
+			}
+		} catch {
+			// No snapshots directory yet - start fresh
+			console.debug("[SnapshotStore] No snapshots directory found, starting fresh");
+		}
+
+		// Sort by timestamp to ensure consistent seq assignment
+		manifests.sort((a, b) => a.timestamp - b.timestamp);
+
+		// Rebuild state and index
+		let maxSeq = 0;
+		let headId: string | null = null;
+		const newIndex: SeqIndex = {
+			schemaVersion: 1,
+			bySeq: {},
+			byId: {},
+			rebuiltAt: Date.now(),
+		};
+
+		for (let i = 0; i < manifests.length; i++) {
+			const { manifest } = manifests[i];
+			// Use V2 seq if available, otherwise assign based on sorted position
+			const seq = isSnapshotManifestV2(manifest) ? manifest.seq : i + 1;
+			maxSeq = Math.max(maxSeq, seq);
+			headId = manifest.id;
+
+			// Add to index
+			addToIndex(newIndex, seq, manifest.id);
+		}
+
+		// Update state
+		this.state = {
+			schemaVersion: 1,
+			lastSeq: maxSeq,
+			headId,
+			lastUpdatedAt: Date.now(),
+		};
+		this.index = newIndex;
+
+		// Persist rebuilt state
+		await this.saveState();
+
+		console.debug(
+			`[SnapshotStore] State rebuilt: ${manifests.length} manifests, lastSeq=${maxSeq}, headId=${headId}`,
+		);
 	}
 }

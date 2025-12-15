@@ -39,10 +39,17 @@ export class SnapshotRestoreUI {
 	 */
 	async showRestoreWorkflow(): Promise<boolean> {
 		try {
-			// Phase 1: Select snapshot
-			const snapshot = await this.selectSnapshot();
-			if (!snapshot) {
+			// Phase 1: Select snapshot (metadata only)
+			const selectedMeta = await this.selectSnapshot();
+			if (!selectedMeta) {
 				return false; // User cancelled
+			}
+
+			// Phase 1.5: Fetch full content for selected snapshot
+			const snapshot = await this.fetchSnapshotContent(selectedMeta.id, selectedMeta.name);
+			if (!snapshot) {
+				vscode.window.showErrorMessage("Failed to load snapshot content");
+				return false;
 			}
 
 			// Phase 2: Analyze changes and select files
@@ -83,9 +90,10 @@ export class SnapshotRestoreUI {
 	/**
 	 * Phase 1: Snapshot Selection
 	 *
-	 * Shows a rich QuickPick with snapshot metadata
+	 * Shows a rich QuickPick with snapshot metadata.
+	 * Returns just the ID/name - content is fetched separately.
 	 */
-	private async selectSnapshot(): Promise<SnapshotInfo | undefined> {
+	private async selectSnapshot(): Promise<{ id: string; name: string; timestamp: number } | undefined> {
 		return vscode.window.withProgress(
 			{
 				location: vscode.ProgressLocation.Window,
@@ -100,18 +108,15 @@ export class SnapshotRestoreUI {
 					return undefined;
 				}
 
-				// Create rich QuickPick items
-				const items: SnapshotQuickPickItem[] = snapshots
+				// Create rich QuickPick items (metadata only, no content)
+				const items = snapshots
 					.sort((a, b) => b.timestamp - a.timestamp)
 					.map((cp) => ({
 						label: `$(clock) ${cp.name}`,
 						description: this.formatTimeAgo(cp.timestamp),
-						detail: `Snapshot ID: ${cp.id.substring(0, 8)}... • ${
-							Object.keys(cp.fileContents || {}).length
-						} files`,
+						detail: `Snapshot ID: ${cp.id.substring(0, 8)}... • ${cp.fileCount} files`,
 						id: cp.id,
 						timestamp: cp.timestamp,
-						fileContents: cp.fileContents || {},
 						name: cp.name,
 					}));
 
@@ -126,9 +131,38 @@ export class SnapshotRestoreUI {
 							id: selected.id,
 							name: selected.name,
 							timestamp: selected.timestamp,
-							fileContents: selected.fileContents,
 						}
 					: undefined;
+			},
+		);
+	}
+
+	/**
+	 * Phase 1.5: Fetch Full Content
+	 *
+	 * After user selects a snapshot, fetch its full content from blob storage.
+	 * This is the KEY fix - content is fetched on-demand, not in list.
+	 */
+	private async fetchSnapshotContent(snapshotId: string, snapshotName: string): Promise<SnapshotInfo | undefined> {
+		return vscode.window.withProgress(
+			{
+				location: vscode.ProgressLocation.Window,
+				title: "Loading snapshot content...",
+				cancellable: false,
+			},
+			async () => {
+				const snapshot = await this.coordinator.getSnapshotWithContent(snapshotId);
+				if (!snapshot) {
+					logger.error("Failed to fetch snapshot content", undefined, { snapshotId });
+					return undefined;
+				}
+
+				return {
+					id: snapshot.id,
+					name: snapshotName,
+					timestamp: snapshot.timestamp,
+					fileContents: snapshot.fileContents,
+				};
 			},
 		);
 	}
@@ -323,27 +357,18 @@ export class SnapshotRestoreUI {
 			 * uses inline banners with "Allow once · Mark wrong · Details" chips that store
 			 * rationale without flow break.
 			 */
-			/*
-			// Also show the modal dialog as a fallback
+
+			// MVP implementation: Show non-modal information message for restore decision
+			// User can click status bar OR respond to this message
 			vscode.window
-				.showInformationMessage(
-					"Review the diffs. Restore these changes?",
-					{ modal: true },
-					"SnapBack to Snapshot",
-					"Cancel",
-				)
+				.showInformationMessage("Review the diffs in the editor. Ready to restore?", "Restore Files", "Cancel")
 				.then((decision) => {
 					// Clean up command handlers
 					restoreCommand.dispose();
 					cancelCommand.dispose();
 					// Resolve based on user decision
-					resolve(decision === "SnapBack to Snapshot");
+					resolve(decision === "Restore Files");
 				});
-			*/
-
-			// MVP implementation uses inline CodeLens + status-bar toast instead of modals
-			// For now, we'll resolve with false to prevent restoration via modal
-			resolve(false);
 		});
 	}
 
@@ -459,16 +484,6 @@ interface SnapshotInfo {
 	name: string;
 	timestamp: number;
 	fileContents: Record<string, string>;
-}
-
-/**
- * QuickPick item for snapshot selection
- */
-interface SnapshotQuickPickItem extends vscode.QuickPickItem {
-	id: string;
-	timestamp: number;
-	fileContents: Record<string, string>;
-	name: string;
 }
 
 /**

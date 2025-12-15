@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { BRAND_SIGNAGE, getProtectionLevelSignage } from "../signage/index";
-import type { CommandContext } from "./index";
+import type { CommandContext } from "./types";
 
 interface EnhancedQuickPickItem extends vscode.QuickPickItem {
 	action?: () => void | Promise<void>;

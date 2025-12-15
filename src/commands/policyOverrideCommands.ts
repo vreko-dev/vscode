@@ -15,7 +15,7 @@ import { PolicyManager } from "../policy/PolicyManager";
 import { getProtectionLevelSignage } from "../signage/index";
 import type { OverrideRationale } from "../types/policy.types";
 import { logger } from "../utils/logger";
-import type { CommandContext } from "./index";
+import type { CommandContext } from "./types";
 
 /**
  * Register all policy override management commands.

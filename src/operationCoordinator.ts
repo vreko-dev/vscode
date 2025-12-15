@@ -946,13 +946,14 @@ export class OperationCoordinator {
 	/**
 	 * List all available snapshots from storage
 	 *
-	 * @returns Array of snapshot objects with id, name, timestamp, and fileContents
+	 * @returns Array of snapshot objects with id, name, timestamp, fileCount, and fileContents
 	 */
 	async listSnapshots(): Promise<
 		Array<{
 			id: string;
 			name: string;
 			timestamp: number;
+			fileCount: number;
 			fileContents?: Record<string, string>;
 		}>
 	> {
@@ -962,11 +963,45 @@ export class OperationCoordinator {
 				id: manifest.id,
 				name: manifest.name || new Date(manifest.timestamp).toISOString(),
 				timestamp: manifest.timestamp,
-				fileContents: undefined, // Manifests don't include content
+				fileCount: Object.keys(manifest.files).length,
+				fileContents: undefined, // Use getSnapshotWithContent() to fetch content
 			}));
 		} catch (error) {
 			logger.error("Failed to list snapshots", error as Error);
 			throw new Error("Failed to list snapshots");
+		}
+	}
+
+	/**
+	 * Get a single snapshot with its file contents resolved from blob storage.
+	 * Use this when you need actual file content (e.g., for restore, diff preview).
+	 *
+	 * @param snapshotId - The snapshot ID to retrieve
+	 * @returns Snapshot with contents, or null if not found
+	 */
+	async getSnapshotWithContent(snapshotId: string): Promise<{
+		id: string;
+		name: string;
+		timestamp: number;
+		fileCount: number;
+		fileContents: Record<string, string>;
+	} | null> {
+		try {
+			const snapshot = await this.storage.getSnapshot(snapshotId);
+			if (!snapshot) {
+				return null;
+			}
+			// SnapshotWithContent uses 'contents' field, normalize to 'fileContents' for UI
+			return {
+				id: snapshot.id,
+				name: snapshot.name || new Date(snapshot.timestamp).toISOString(),
+				timestamp: snapshot.timestamp,
+				fileCount: Object.keys(snapshot.files).length,
+				fileContents: snapshot.contents || {}, // Map 'contents' to 'fileContents'
+			};
+		} catch (error) {
+			logger.error("Failed to get snapshot with content", error as Error, { snapshotId });
+			return null;
 		}
 	}
 
@@ -997,6 +1032,20 @@ export class OperationCoordinator {
 			const snapshot = await this.storage.getSnapshot(snapshotId);
 			if (!snapshot) {
 				throw new Error(`Missing snapshot: ${snapshotId}`);
+			}
+
+			// Phase 1.5: Create PRE_ROLLBACK checkpoint (captures current state before restore)
+			if (!options?.dryRun) {
+				try {
+					const preRollback = await this.storage.createPreRollbackCheckpoint(snapshotId);
+					logger.debug("Created PRE_ROLLBACK checkpoint", {
+						id: preRollback.id,
+						targetId: snapshotId,
+					});
+				} catch (err) {
+					// Log but don't block restore - PRE_ROLLBACK is optional safety
+					logger.warn("Failed to create PRE_ROLLBACK checkpoint", { error: err });
+				}
 			}
 
 			// Phase 2: Dry run conflict detection (if requested)

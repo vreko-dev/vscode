@@ -99,7 +99,7 @@ export class WorkspaceContextManager {
 			this.disposables.push(
 				vscode.workspace.onDidChangeConfiguration((e) => {
 					// If any snapback-related config changed, refresh context
-					if (e && e.affectsConfiguration && e.affectsConfiguration("snapback")) {
+					if (e?.affectsConfiguration?.("snapback")) {
 						this.refresh();
 					}
 				}),
