@@ -9,35 +9,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 
-// Mock the specific functions we need
-vi.mock("vscode", () => ({
-	workspace: {
-		workspaceFolders: undefined as any,
-		asRelativePath: vi.fn(),
-	},
-	window: {
-		activeTextEditor: undefined as any,
-		showErrorMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-		tabGroups: {
-			onDidChangeTabs: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-			all: [],
-		},
-	},
-	commands: {
-		executeCommand: vi.fn(),
-	},
-	Uri: {
-		parse: vi.fn().mockImplementation((str) => ({
-			scheme: "snapback-checkpoint",
-			path: str.replace("snapback-checkpoint:", ""),
-		})),
-		file: vi
-			.fn()
-			.mockImplementation((uriPath: string) => ({ fsPath: uriPath })),
-	},
-	TabInputTextDiff: class {},
-}));
+// vscode mock provided by setup.ts
 
 describe("Compare With Checkpoint Command", () => {
 	// Import the function after mocking

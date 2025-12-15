@@ -18,24 +18,7 @@ import type { ProtectedFileRegistry } from "../../../src/services/protectedFileR
 import type { ProtectionDecorationProvider } from "../../../src/ui/ProtectionDecorationProvider";
 import type { ProtectionLevel } from "../../../src/views/types";
 
-// Mock vscode
-vi.mock("vscode", () => ({
-	Uri: {
-		file: vi.fn((path: string) => ({ fsPath: path, scheme: "file" })),
-	},
-	window: {
-		activeTextEditor: null,
-		showWarningMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-		showErrorMessage: vi.fn(),
-	},
-	workspace: {
-		asRelativePath: vi.fn((path: string) => path),
-	},
-	commands: {
-		registerCommand: vi.fn((id, handler) => ({ dispose: vi.fn() })),
-	},
-}));
+// vscode mock provided by setup.ts
 
 describe("Protection Level Commands", () => {
 	let mockRegistry: {

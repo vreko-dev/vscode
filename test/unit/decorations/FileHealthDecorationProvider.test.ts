@@ -3,64 +3,7 @@ import * as vscode from "vscode";
 import { FileHealthDecorationProvider } from "@vscode/decorations/FileHealthDecorationProvider";
 import type { FileHealthLevel } from "@vscode/decorations/types";
 
-// Mock VS Code APIs
-vi.mock("vscode", () => ({
-	window: {
-		showInformationMessage: vi.fn(),
-		showErrorMessage: vi.fn(),
-		showQuickPick: vi.fn(),
-		withProgress: vi
-			.fn()
-			.mockImplementation((_options, task) => task({ report: vi.fn() })),
-		createStatusBarItem: vi.fn().mockReturnValue({
-			text: "",
-			tooltip: "",
-			command: "",
-			show: vi.fn(),
-			dispose: vi.fn(),
-		}),
-	},
-	commands: {
-		registerCommand: vi.fn(),
-		executeCommand: vi.fn(),
-	},
-	Uri: {
-		file: vi.fn().mockImplementation((path) => ({
-			fsPath: path,
-			toString: () => `file://${path}`,
-		})),
-	},
-	FileDecoration: vi.fn().mockImplementation((badge, tooltip, color) => ({
-		badge,
-		tooltip,
-		color,
-		propagate: false,
-	})),
-	ThemeColor: vi.fn().mockImplementation((color) => ({ id: color })),
-	EventEmitter: vi.fn().mockImplementation(() => {
-		const listeners: Array<
-			(data?: vscode.Uri | vscode.Uri[] | undefined) => void
-		> = [];
-		return {
-			event: (fn: (data?: vscode.Uri | vscode.Uri[] | undefined) => void) => {
-				listeners.push(fn);
-				return {
-					dispose: () => {
-						/* noop */
-					},
-				};
-			},
-			fire: vi
-				.fn()
-				.mockImplementation((data?: vscode.Uri | vscode.Uri[] | undefined) => {
-					listeners.forEach((fn) => {
-						fn(data);
-					});
-				}),
-			dispose: vi.fn(),
-		};
-	}),
-}));
+// vscode mock provided by setup.ts
 
 describe("FileHealthDecorationProvider", () => {
 	let provider: FileHealthDecorationProvider;

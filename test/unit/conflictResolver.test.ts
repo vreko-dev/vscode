@@ -9,32 +9,7 @@ import {
 	showConflictResolutionUI,
 } from "../../src/conflictResolver";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		showQuickPick: vi.fn(),
-		showErrorMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-	},
-	workspace: {
-		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
-		fs: {
-			readFile: vi.fn(),
-			writeFile: vi.fn(),
-			delete: vi.fn(),
-		},
-	},
-	Uri: {
-		file: vi.fn().mockImplementation((path) => ({
-			fsPath: path,
-			toString: () => `file://${path}`,
-		})),
-		parse: vi.fn().mockImplementation((str) => ({ toString: () => str })),
-	},
-	commands: {
-		executeCommand: vi.fn(),
-	},
-}));
+// vscode mock provided by setup.ts
 
 describe("ConflictResolver", () => {
 	let resolver: ConflictResolver;

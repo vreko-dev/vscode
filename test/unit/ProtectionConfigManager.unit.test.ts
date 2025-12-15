@@ -18,52 +18,7 @@ vi.mock("../../src/protection/ConfigFileManager", () => {
 	};
 });
 
-// Mock vscode module
-vi.mock("vscode", () => {
-	// Create a mock file watcher
-	const mockWatcher = {
-		onDidChange: vi.fn((_callback) => {
-			// Return a disposable object
-			return { dispose: vi.fn() };
-		}),
-		onDidCreate: vi.fn((_callback) => {
-			// Return a disposable object
-			return { dispose: vi.fn() };
-		}),
-		onDidDelete: vi.fn((_callback) => {
-			// Return a disposable object
-			return { dispose: vi.fn() };
-		}),
-		dispose: vi.fn(),
-	};
-
-	return {
-		default: {
-			workspace: {
-				asRelativePath: vi.fn(),
-				findFiles: vi.fn(),
-				createFileSystemWatcher: vi.fn(() => mockWatcher),
-			},
-			window: {
-				showWarningMessage: vi.fn(),
-				showInformationMessage: vi.fn(),
-				setStatusBarMessage: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-			},
-			RelativePattern: vi.fn(),
-		},
-		workspace: {
-			asRelativePath: vi.fn(),
-			findFiles: vi.fn(),
-			createFileSystemWatcher: vi.fn(() => mockWatcher),
-		},
-		window: {
-			showWarningMessage: vi.fn(),
-			showInformationMessage: vi.fn(),
-			setStatusBarMessage: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-		},
-		RelativePattern: vi.fn(),
-	};
-});
+// vscode mock provided by setup.ts
 
 // Mock ProtectedFileRegistry
 const mockRegistry = {
