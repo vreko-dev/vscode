@@ -367,6 +367,84 @@ vi.mock("../../src/utils/logger", () => ({
 }));
 
 // ============================================
+// Mock @snapback/engine - Prevent real filesystem operations
+// ============================================
+vi.mock("@snapback/engine", () => {
+	// Mock SnapshotManifest type
+	const mockSnapshotManifest = {
+		id: "mock_snap_123",
+		createdAt: Date.now(),
+		files: [],
+		totalSize: 0,
+		description: "Mock snapshot",
+		trigger: "manual" as const,
+	};
+
+	// Mock BurstDetector class
+	class MockBurstDetector {
+		constructor(_config: any) {}
+		analyze() {
+			return { score: 0, changeCount: 0, largeChanges: [] };
+		}
+		processChange(filePath: string, charCount: number, timestamp: number) {
+			return null; // Return null for no burst
+		}
+		setThreshold() {}
+		updateThreshold() {}
+		reset() {}
+		clear() {}
+		cleanup() {}
+	}
+
+	// Mock AIDetector class
+	class MockAIDetector {
+		constructor(_config: any) {}
+		detect(input: any) {
+			// Detect GitHub Copilot from extension IDs
+			if (input.extensionIds && input.extensionIds.includes("github.copilot")) {
+				return {
+					tool: "GitHub Copilot",
+					confidence: 0.95,
+					method: "extension",
+					indicators: ["GitHub Copilot extension active"],
+				};
+			}
+			return {
+				tool: null,
+				confidence: 0,
+				method: null,
+				indicators: [],
+			};
+		}
+		processChange(content: string, filePath: string) {
+			return { detected: false, tool: null, confidence: 0 };
+		}
+		reset() {}
+		cleanup() {}
+	}
+
+	return {
+		Storage: vi.fn().mockImplementation(() => ({
+			createSnapshot: vi.fn().mockResolvedValue(mockSnapshotManifest),
+			restore: vi.fn().mockResolvedValue([]),
+			getSnapshot: vi.fn().mockReturnValue(null),
+			listSnapshots: vi.fn().mockReturnValue([]),
+			deleteSnapshot: vi.fn().mockReturnValue(false),
+		})),
+		BurstDetector: MockBurstDetector,
+		AIDetector: MockAIDetector,
+		eventBus: {
+			emit: vi.fn(),
+			on: vi.fn(),
+			off: vi.fn(),
+		},
+		orchestrator: {},
+		Orchestrator: vi.fn(),
+		VERSION: "2.0.0-alpha.1",
+	};
+});
+
+// ============================================
 // Mock PostHog / Analytics
 // ============================================
 vi.mock("posthog-node", () => ({
