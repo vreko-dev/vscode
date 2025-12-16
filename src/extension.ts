@@ -21,6 +21,7 @@ import { createAuthedApiClient } from "./api/authedApiClient";
 import { AnonymousIdManager } from "./auth/AnonymousIdManager";
 import { AuthState } from "./auth/AuthState";
 import { createCredentialsManager } from "./auth/credentials";
+import { EventBridge } from "./bridges/EventBridge";
 // SnapBackOAuthProvider is now used by UnifiedAuthProvider internally
 import { registerAllCommands } from "./commands/index";
 import { initializeProtectionNotifications } from "./commands/protectionCommands";
@@ -75,6 +76,8 @@ let userIdentityService: UserIdentityService | null = null;
 let prwManager: PRWManager | null = null;
 // 🆕 Global reference to BurstDetector for AI paste detection
 let burstDetector: BurstDetector | null = null;
+// 🆕 Global reference to EventBridge for V2 engine telemetry
+let eventBridge: EventBridge | null = null;
 
 // 🆕 Global reference to refresh views function
 let refreshViews = () => {};
@@ -348,6 +351,18 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Phase 3: Business logic managers
 		const phase3Start = Date.now();
 		const telemetryProxy = new TelemetryProxy(context); // Ensure telemetryProxy is defined here
+
+		// 🆕 Initialize EventBridge for V2 engine telemetry mapping
+		// This routes engine events to PostHog with PII scrubbing
+		eventBridge = new EventBridge({
+			context,
+			telemetryProxy,
+			eventBus,
+			useV2Engine: true, // Explicitly enable V2 engine events
+		});
+		context.subscriptions.push(eventBridge);
+		logger.info("EventBridge initialized for V2 engine telemetry");
+
 		const phase3Result = await initializePhase3Managers(
 			context,
 			workspaceRoot,
@@ -1000,6 +1015,13 @@ export async function deactivate() {
 			autoDecisionIntegration.deactivate();
 			autoDecisionIntegration = null;
 			logger.info("AutoDecisionIntegration deactivated");
+		}
+
+		// 🆕 Dispose EventBridge
+		if (eventBridge) {
+			eventBridge.dispose();
+			eventBridge = null;
+			logger.info("EventBridge disposed");
 		}
 
 		logger.info("Extension deactivated successfully");

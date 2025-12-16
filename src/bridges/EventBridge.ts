@@ -24,11 +24,18 @@
  * Time budget: 2-3 hours (actual implementation time)
  */
 
-import type { EventEmitter } from "node:events";
 import type { SnapBackEvents } from "@snapback/engine/runtime";
 import * as vscode from "vscode";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
 import { hashContent } from "../storage/utils/hash";
+
+/**
+ * Event bus interface compatible with both node EventEmitter and EventEmitter2
+ */
+interface EventBusLike {
+	on(event: string | string[], listener: (...args: any[]) => void): any;
+	off(event: string | string[], listener: (...args: any[]) => void): any;
+}
 
 /**
  * Privacy scrubbing utilities
@@ -60,8 +67,8 @@ export interface EventBridgeOptions {
 	context: vscode.ExtensionContext;
 	/** Telemetry proxy for PostHog integration */
 	telemetryProxy: TelemetryProxy;
-	/** Engine event bus (EventEmitter from @snapback/engine) */
-	eventBus: EventEmitter;
+	/** Engine event bus (EventEmitter-like interface) */
+	eventBus: EventBusLike;
 	/** Feature flag: Enable V2 engine event forwarding */
 	useV2Engine?: boolean;
 	/** Privacy scrubbing options (defaults to maximum privacy) */
@@ -96,7 +103,7 @@ export class EventBridge {
 	private readonly scrubOptions: ScrubOptions;
 	private readonly deduplication: EventDeduplication;
 	private readonly telemetryProxy: TelemetryProxy;
-	private readonly eventBus: EventEmitter;
+	private readonly eventBus: EventBusLike;
 	private readonly workspaceRoot: string;
 	private readonly eventListeners: Array<{ event: keyof SnapBackEvents; listener: (...args: any[]) => void }> = [];
 
