@@ -5,7 +5,7 @@ import { THRESHOLDS } from "@snapback/sdk";
 import type { Disposable, Memento } from "vscode";
 import * as vscode from "vscode";
 import { EventEmitter, workspace } from "vscode";
-import type { StorageManager } from "../storage/StorageManager";
+import type { IStorageManager } from "../storage/types";
 import { logger } from "../utils/logger";
 import type { ProtectedFileEntry, ProtectedFileProvider, ProtectionLevel } from "../views/types";
 
@@ -64,7 +64,7 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	 * StorageManager - Single source for cooldowns, snapshots, and audit
 	 * Per arch_remediation.md Task 2.3: Consolidated cooldown management
 	 */
-	private storageManager: StorageManager | null = null;
+	private storageManager: IStorageManager | null = null;
 	private eventBus?: SnapBackEventBus;
 
 	constructor(
@@ -136,7 +136,7 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	 * Initialize StorageManager for cooldown and audit operations
 	 * Per arch_remediation.md Task 2.3: Consolidated cooldown management
 	 */
-	initializeStorageManager(storageManager: StorageManager): void {
+	initializeStorageManager(storageManager: IStorageManager): void {
 		this.storageManager = storageManager;
 		logger.info("StorageManager initialized in ProtectedFileRegistry");
 	}

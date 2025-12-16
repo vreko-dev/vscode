@@ -485,12 +485,18 @@ export interface IStorageManager {
 	// Lifecycle
 	initialize(): Promise<void>;
 	dispose(): void;
+	isInitialized(): boolean;
+	getStorageUri(): import("vscode").Uri;
 
 	// Cooldowns (in-memory)
 	setCooldown(entry: CooldownEntry): void;
 	getCooldown(filePath: string, level: string): CooldownEntry | null;
 	isInCooldown(filePath: string, level: string): boolean;
+	getRemainingCooldownTime(filePath: string, level: string): number;
 	clearCooldowns(): void;
+	getActiveCooldowns(): CooldownEntry[];
+	removeCooldownByPath(filePath: string): boolean;
+	getCooldownByPath(filePath: string): CooldownEntry | null;
 
 	// Snapshots
 	createSnapshot(
@@ -503,8 +509,16 @@ export interface IStorageManager {
 		},
 	): Promise<SnapshotManifest>;
 	getSnapshot(id: string): Promise<SnapshotWithContent | null>;
+	getSnapshotManifest(id: string): Promise<SnapshotManifest | null>;
 	listSnapshots(filters?: SnapshotFilters): Promise<SnapshotManifest[]>;
 	deleteSnapshot(id: string): Promise<void>;
+	getSnapshotsForFile(filePath: string, limit?: number): Promise<SnapshotManifest[]>;
+	snapshotExists(id: string): Promise<boolean>;
+	persistSnapshot(
+		cluster: { anchorFile: string; clusterFiles: Map<string, string> },
+		trigger: SnapshotManifest["trigger"],
+		options?: { name?: string; metadata?: any },
+	): Promise<SnapshotManifest | null>;
 
 	// V2 Checkpoint support (optional - implemented by StorageManager)
 	createPreRollbackCheckpoint?(targetId: string): Promise<SnapshotManifestV2>;
@@ -512,11 +526,14 @@ export interface IStorageManager {
 	// Sessions
 	createSession(startedAt: number): Promise<string>;
 	getActiveSessionId?(): string | null;
+	hasActiveSession?(): boolean;
+	cancelSession?(): void;
 	finalizeSession(
 		id: string,
 		endedAt: number,
 		reason: SessionManifest["reason"],
 		files: SessionFileEntry[],
+		options?: { tags?: string[]; summary?: string },
 	): Promise<SessionManifest>;
 	getSession(id: string): Promise<SessionManifest | null>;
 	listSessions(filters?: SessionFilters): Promise<SessionManifest[]>;
@@ -524,9 +541,17 @@ export interface IStorageManager {
 	// Audit
 	recordAudit(entry: Omit<AuditEntry, "id" | "timestamp">): Promise<void>;
 	getAuditTrail(filePath: string, limit?: number): Promise<AuditEntry[]>;
+	getAllAuditEntries?(limit?: number): Promise<AuditEntry[]>;
+	getAuditEntriesByAction?(action: AuditEntry["action"], limit?: number): Promise<AuditEntry[]>;
 
 	// Metadata
 	getStorageMetadata(): Promise<StorageMetadata>;
+	refreshStats?(): Promise<StorageMetadata>;
+	getQuickStats?(): Promise<{ snapshots: number; sessions: number; blobs: number; totalBytes: number }>;
+
+	// Internal access (for PRWManager and BurstDetector)
+	getPRWSnapshotStore?(): any;
+	getConfigStore?(): any;
 }
 
 // ============================================

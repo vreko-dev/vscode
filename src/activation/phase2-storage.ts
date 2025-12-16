@@ -125,10 +125,10 @@ export async function initializePhase2Storage(
 
 		// 🆕 Initialize StorageManager for ProtectedFileRegistry
 		// Per arch_remediation.md Task 2.3: CooldownCache is single source for cooldowns
-		// NOTE: Using v1Storage directly since StorageBridge doesn't implement full StorageManager interface yet
+		// StorageBridge routes to V1 or V2 transparently
 		try {
-			protectedFileRegistry.initializeStorageManager(v1Storage);
-			logger.info("StorageManager wired to ProtectedFileRegistry (cooldowns, audit)");
+			protectedFileRegistry.initializeStorageManager(storage);
+			logger.info("StorageBridge wired to ProtectedFileRegistry (cooldowns, audit)");
 		} catch (cooldownError) {
 			const err = cooldownError instanceof Error ? cooldownError : new Error(String(cooldownError));
 			logger.error("[StorageManager] Failed to wire to ProtectedFileRegistry", err);
