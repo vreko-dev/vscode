@@ -302,14 +302,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		});
 		logger.info("PRWManager initialized for PRE/POST checkpoint coordination");
 
-		// 🆕 Initialize SignalBridge for AI paste/burst detection
-		// Routes to V1 (legacy BurstDetector) or V2 (@snapback/engine) based on feature flag
-		const configStore = phase2Result.storage.getConfigStore();
-		const useV2Engine = vscode.workspace.getConfiguration("snapback").get<boolean>("useV2Engine", false);
-		signalBridge = new SignalBridge({
-			configStore,
-			useV2Engine,
-		});
+		// 🆕 Initialize SignalBridge for AI paste/burst detection (V2 engine only)
+		signalBridge = new SignalBridge({ burstThreshold: 30 });
 
 		// Subscribe to document changes for burst detection
 		context.subscriptions.push(
@@ -359,7 +353,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			}),
 		);
 
-		logger.info("SignalBridge initialized", { useV2Engine });
+		logger.info("SignalBridge initialized (V2 engine)");
 
 		// Phase 3: Business logic managers
 		const phase3Start = Date.now();
