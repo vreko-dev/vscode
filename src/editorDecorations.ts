@@ -1,23 +1,15 @@
-import { RiskAnalyzer } from "@snapback/core/risk";
+import type { FileChange } from "@snapback/engine";
+import { calculateRiskScore, detectThreats } from "@snapback/engine/signals";
 import * as vscode from "vscode";
-import { LazyLoader } from "./services/LazyLoader";
 import { logger } from "./utils/logger";
 
 export class EditorDecorations {
-	private riskAnalyzerLoader: LazyLoader<typeof RiskAnalyzer>;
 	private protectedDecorationType: vscode.TextEditorDecorationType;
 	private riskyDecorationType: vscode.TextEditorDecorationType;
 	private sensitiveDecorationType: vscode.TextEditorDecorationType;
 	private disposables: vscode.Disposable[] = [];
 
 	constructor() {
-		// Lazy load RiskAnalyzer to optimize activation time
-		this.riskAnalyzerLoader = new LazyLoader<typeof RiskAnalyzer>(async () => {
-			logger.info("RiskAnalyzer loading (lazy)...");
-			logger.info("RiskAnalyzer loaded successfully");
-			return RiskAnalyzer;
-		}, "RiskAnalyzer");
-
 		// Create decoration types for different risk levels
 		this.protectedDecorationType = vscode.window.createTextEditorDecorationType({
 			backgroundColor: new vscode.ThemeColor("editor.wordHighlightBackground"),
@@ -127,34 +119,35 @@ export class EditorDecorations {
 				return;
 			}
 
-			// Analyze the document for risks
-			const fileChanges = [
+			// Analyze the document for risks using V2 engine signals
+			const content = document.getText();
+			const fileChanges: FileChange[] = [
 				{
-					filePath: document.fileName,
+					path: document.fileName,
 					lineCount: document.lineCount,
-					content: document.getText(),
+					content,
+					changeType: "modify",
 				},
 			];
 
-			// Get RiskAnalyzer (loads on first access)
-			const RiskAnalyzerClass = await this.riskAnalyzerLoader.get();
-			const riskAnalyzer = new RiskAnalyzerClass();
-			const riskAnalysis = await riskAnalyzer.analyzeFileChanges(fileChanges, undefined);
+			// V2 Engine: Calculate risk score (0-10 scale)
+			const riskResult = calculateRiskScore(fileChanges);
+			const threats = detectThreats(content);
 
 			// Collect decoration ranges
 			const protectedRanges: vscode.Range[] = [];
 			const riskyRanges: vscode.Range[] = [];
 			const sensitiveRanges: vscode.Range[] = [];
 
-			// Add decorations based on risk analysis
-			if (riskAnalysis.score > 0.7) {
+			// Add decorations based on risk analysis (V2: 0-10 scale)
+			if (riskResult.score > 7) {
 				// High risk - decorate the entire document
 				const fullRange = new vscode.Range(
 					new vscode.Position(0, 0),
 					new vscode.Position(document.lineCount - 1, 0),
 				);
 				riskyRanges.push(fullRange);
-			} else if (riskAnalysis.score > 0.4) {
+			} else if (riskResult.score > 4) {
 				// Medium risk - decorate specific lines
 				// For now, we'll just decorate the first 10 lines as an example
 				const partialRange = new vscode.Range(
@@ -164,8 +157,8 @@ export class EditorDecorations {
 				riskyRanges.push(partialRange);
 			}
 
-			// Check for security threats
-			if (riskAnalysis.threats.length > 0) {
+			// Check for security threats (V2 detectThreats)
+			if (threats.length > 0) {
 				// Decorate lines with security threats
 				// For now, we'll just decorate the first few lines as an example
 				const threatRange = new vscode.Range(
