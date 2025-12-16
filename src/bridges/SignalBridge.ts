@@ -132,7 +132,7 @@ export class SignalBridge {
 	 * @param changes The content changes
 	 * @returns BurstState indicating if rapid changes detected
 	 */
-	computeBurst(document: vscode.TextDocument, changes: vscode.TextDocumentContentChangeEvent[]): BurstState {
+	computeBurst(document: vscode.TextDocument, changes: readonly vscode.TextDocumentContentChangeEvent[]): BurstState {
 		if (!this.useV2) {
 			return this.v1ComputeBurst(document, changes);
 		}
@@ -145,7 +145,10 @@ export class SignalBridge {
 	 * @param changes The content changes
 	 * @returns AIDetectionResult with tool identification
 	 */
-	detectAI(document: vscode.TextDocument, changes: vscode.TextDocumentContentChangeEvent[]): AIDetectionResult {
+	detectAI(
+		document: vscode.TextDocument,
+		changes: readonly vscode.TextDocumentContentChangeEvent[],
+	): AIDetectionResult {
 		if (!this.useV2) {
 			return this.v1DetectAI(document, changes);
 		}
@@ -202,7 +205,7 @@ export class SignalBridge {
 
 	private v1ComputeBurst(
 		document: vscode.TextDocument,
-		changes: vscode.TextDocumentContentChangeEvent[],
+		changes: readonly vscode.TextDocumentContentChangeEvent[],
 	): BurstState {
 		// V1 BurstDetector uses onDidChangeTextDocument callback
 		// We simulate the behavior here for compatibility
@@ -221,7 +224,7 @@ export class SignalBridge {
 
 	private v1DetectAI(
 		_document: vscode.TextDocument,
-		_changes: vscode.TextDocumentContentChangeEvent[],
+		_changes: readonly vscode.TextDocumentContentChangeEvent[],
 	): AIDetectionResult {
 		// V1 doesn't have AI detection, return no detection
 		return {
@@ -237,7 +240,7 @@ export class SignalBridge {
 
 	private v2ComputeBurst(
 		document: vscode.TextDocument,
-		changes: vscode.TextDocumentContentChangeEvent[],
+		changes: readonly vscode.TextDocumentContentChangeEvent[],
 	): BurstState {
 		if (!this.v2BurstDetector) {
 			return { detected: false };
@@ -270,7 +273,7 @@ export class SignalBridge {
 
 	private v2DetectAI(
 		_document: vscode.TextDocument,
-		changes: vscode.TextDocumentContentChangeEvent[],
+		changes: readonly vscode.TextDocumentContentChangeEvent[],
 	): AIDetectionResult {
 		if (!this.v2AIDetector) {
 			return {

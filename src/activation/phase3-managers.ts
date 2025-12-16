@@ -12,7 +12,7 @@ import { SessionCoordinator } from "../snapshot/SessionCoordinator";
 import { SnapshotManager } from "../snapshot/SnapshotManager";
 import { SnapshotStorageAdapter } from "../snapshot/SnapshotStorageAdapter";
 import { VSCodeConfirmationService } from "../snapshot/VSCodeConfirmationService";
-import type { StorageManager } from "../storage/StorageManager";
+import type { IStorageManager } from "../storage/types";
 import type { IEventEmitter } from "../types/snapshot";
 import { StatusBarController } from "../ui/statusBar";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
@@ -43,7 +43,7 @@ import type { TelemetryProxy } from "../services/telemetry-proxy";
 export async function initializePhase3Managers(
 	_context: vscode.ExtensionContext,
 	workspaceRoot: string,
-	storage: StorageManager,
+	storage: IStorageManager,
 	telemetryProxy: TelemetryProxy,
 	protectedFileRegistry?: ProtectedFileRegistry,
 	snapbackrcLoader?: import("../protection/SnapBackRCLoader.js").SnapBackRCLoader,

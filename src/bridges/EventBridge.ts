@@ -124,7 +124,7 @@ export class EventBridge {
 		// Event deduplication configuration
 		this.deduplication = {
 			lastEventTime: new Map(),
-			dedupeWindow: options.dedupeWindowMs ?? 1000, // 1 second default
+			dedupeWindow: options.dedupeWindowMs ?? 100, // 100ms default (per spec)
 		};
 
 		// Get workspace root for path scrubbing
@@ -165,6 +165,24 @@ export class EventBridge {
 				score: payload.score,
 				factorCount: payload.factorCount,
 				threatCount: payload.threatCount,
+			});
+		});
+
+		// Map: burst.detected → burst_detected (PostHog - AI paste detection)
+		this.on("burst.detected", (payload) => {
+			this.emit("burst.detected", {
+				velocity: payload.velocity,
+				charCount: payload.charCount,
+				fileExtension: payload.fileExtension,
+			});
+		});
+
+		// Map: ai.detected → ai_presence_detected (PostHog - AI tool detection)
+		this.on("ai.detected", (payload) => {
+			this.emit("ai.detected", {
+				tool: payload.tool,
+				confidence: payload.confidence,
+				method: payload.method,
 			});
 		});
 
@@ -218,6 +236,17 @@ export class EventBridge {
 				duration: payload.duration,
 				filesModified: payload.filesModified,
 				snapshotsCreated: payload.snapshotsCreated,
+			});
+		});
+
+		// Map: feedback.collected → feedback_collected (PostHog - user feedback on AI detection)
+		this.on("feedback.collected", (payload) => {
+			this.emit("feedback.collected", {
+				detectionId: this.scrubIdentifier(payload.detectionId),
+				verdict: payload.verdict,
+				confidence: payload.confidence,
+				reason: payload.reason,
+				durationMs: payload.durationMs,
 			});
 		});
 	}
@@ -361,6 +390,8 @@ export class EventBridge {
 				case "filesModified":
 				case "snapshotsCreated":
 				case "totalBytes":
+				case "velocity": // AI burst detection: chars per ms
+				case "tool": // AI tool name (e.g., "copilot", "cursor")
 					scrubbed[key] = value;
 					break;
 

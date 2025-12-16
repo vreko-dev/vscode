@@ -78,7 +78,7 @@ import type { NotificationManager } from "./notificationManager";
 import type { MilestoneService } from "./services/MilestoneService";
 import type { TelemetryProxy } from "./services/telemetry-proxy";
 import type { SessionCoordinator } from "./snapshot/SessionCoordinator";
-import type { StorageManager } from "./storage/StorageManager";
+import type { IStorageManager } from "./storage/types.js";
 import { logger } from "./utils/logger";
 import type { WorkspaceMemoryManager } from "./workspaceMemory";
 
@@ -245,7 +245,7 @@ export class OperationCoordinator {
 	constructor(
 		private workspaceMemory: WorkspaceMemoryManager,
 		private notificationManager: NotificationManager,
-		private storage: StorageManager,
+		private storage: IStorageManager,
 		private telemetryProxy: TelemetryProxy,
 		private conflictResolver: ConflictResolver,
 		private milestoneService: MilestoneService,
@@ -1037,11 +1037,13 @@ export class OperationCoordinator {
 			// Phase 1.5: Create PRE_ROLLBACK checkpoint (captures current state before restore)
 			if (!options?.dryRun) {
 				try {
-					const preRollback = await this.storage.createPreRollbackCheckpoint(snapshotId);
-					logger.debug("Created PRE_ROLLBACK checkpoint", {
-						id: preRollback.id,
-						targetId: snapshotId,
-					});
+					if (this.storage.createPreRollbackCheckpoint) {
+						const preRollback = await this.storage.createPreRollbackCheckpoint(snapshotId);
+						logger.debug("Created PRE_ROLLBACK checkpoint", {
+							id: preRollback.id,
+							targetId: snapshotId,
+						});
+					}
 				} catch (err) {
 					// Log but don't block restore - PRE_ROLLBACK is optional safety
 					logger.warn("Failed to create PRE_ROLLBACK checkpoint", { error: err });

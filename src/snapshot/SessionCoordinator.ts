@@ -23,7 +23,7 @@ import {
 import type * as vscode from "vscode";
 import { VscodeEventEmitterAdapter } from "../adapters/VscodeEventEmitterAdapter";
 import { getSessionPerfMonitor } from "../performance/sessionPerfMonitor";
-import type { StorageManager } from "../storage/StorageManager";
+import type { IStorageManager } from "../storage/types.js";
 import { logger } from "../utils/logger";
 
 /**
@@ -47,7 +47,7 @@ class VscodeLoggerAdapter implements ILogger {
  * VSCode-specific storage adapter
  */
 class VscodeStorageAdapter implements ISessionStorage {
-	constructor(private storage: StorageManager) {}
+	constructor(private storage: IStorageManager) {}
 
 	/**
 	 * Store session manifest - TRUST SDK DECISION COMPLETELY
@@ -71,7 +71,7 @@ class VscodeStorageAdapter implements ISessionStorage {
 		// Note: SDK SessionCoordinator uses its own session IDs (session-XXX)
 		// while SessionStore uses different IDs (sess-XXX). This creates a session
 		// in SessionStore when SDK is ready to finalize its session.
-		const activeSessionId = this.storage.getActiveSessionId();
+		const activeSessionId = this.storage.getActiveSessionId?.();
 		if (!activeSessionId) {
 			console.log("[VscodeStorageAdapter] No active SessionStore session, starting one");
 			await this.storage.createSession(manifest.startedAt);
@@ -116,7 +116,7 @@ export class SessionCoordinator {
 	 *
 	 * @param storage - Storage adapter for persisting session manifests
 	 */
-	constructor(storage: StorageManager) {
+	constructor(storage: IStorageManager) {
 		// Create VSCode-specific adapters
 		this.eventEmitter = new VscodeEventEmitterAdapter<SessionManifest>();
 		const vscodeLogger = new VscodeLoggerAdapter();

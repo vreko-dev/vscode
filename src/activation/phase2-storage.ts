@@ -3,6 +3,7 @@ import type { ProtectionConfig } from "@snapback/contracts";
 import { ProtectionManager as SDKProtectionManager } from "@snapback/sdk";
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
+import { StorageBridge } from "../bridges/StorageBridge";
 import { migrateConfigIfNeeded } from "../config/migrate";
 import { SNAPBACK_ICONS } from "../constants/index";
 import { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator";
@@ -18,7 +19,8 @@ import { MigrationService } from "./migration-service";
 import { PhaseLogger } from "./phaseLogger";
 
 export interface Phase2Result {
-	storage: StorageManager;
+	/** Storage interface - routes to V1 or V2 via StorageBridge */
+	storage: StorageManager | StorageBridge;
 	protectedFileRegistry: ProtectedFileRegistry;
 	configManager: ConfigFileManager;
 	autoProtectConfig: AutoProtectConfig;
@@ -43,9 +45,21 @@ export async function initializePhase2Storage(
 
 	try {
 		const storageStart = Date.now();
-		const storage = new StorageManager(context, eventBus); // GREEN: Pass eventBus
-		console.log("[PERF] StorageManager created", {
+
+		// 🆕 Use StorageBridge to route to V1 or V2 based on feature flag
+		const useV2Engine = vscode.workspace.getConfiguration("snapback").get<boolean>("useV2Engine", false);
+		const v1Storage = new StorageManager(context, eventBus); // V1 storage instance
+
+		const storage = new StorageBridge({
+			context,
+			eventBus,
+			v1Storage,
+			useV2Engine,
+		});
+
+		console.log("[PERF] StorageBridge created", {
 			ms: Date.now() - storageStart,
+			useV2: useV2Engine,
 		});
 
 		const initStart = Date.now();
@@ -111,8 +125,9 @@ export async function initializePhase2Storage(
 
 		// 🆕 Initialize StorageManager for ProtectedFileRegistry
 		// Per arch_remediation.md Task 2.3: CooldownCache is single source for cooldowns
+		// NOTE: Using v1Storage directly since StorageBridge doesn't implement full StorageManager interface yet
 		try {
-			protectedFileRegistry.initializeStorageManager(storage);
+			protectedFileRegistry.initializeStorageManager(v1Storage);
 			logger.info("StorageManager wired to ProtectedFileRegistry (cooldowns, audit)");
 		} catch (cooldownError) {
 			const err = cooldownError instanceof Error ? cooldownError : new Error(String(cooldownError));

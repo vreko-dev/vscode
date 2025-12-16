@@ -24,7 +24,7 @@ import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import type { StorageSnapshotSummaryProvider } from "../services/snapshotSummaryProvider";
 import type { WorkspaceManager } from "../services/WorkspaceManager";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
-import type { StorageManager } from "../storage/StorageManager";
+import type { IStorageManager } from "../storage/types";
 import type { CooldownIndicator } from "../ui/cooldownIndicator";
 import type { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
 import type { SnapshotRestoreUI } from "../ui/SnapshotRestoreUI";
@@ -155,7 +155,7 @@ export interface CommandContext {
 
 	// Storage Layer
 	/** File-based storage manager for persistent snapshot and session storage */
-	storage: StorageManager;
+	storage: IStorageManager;
 
 	// Event bus
 	/** Event bus for inter-component communication */

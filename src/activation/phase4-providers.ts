@@ -9,7 +9,7 @@ import { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider"
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { StorageManager as ServiceStorageManager } from "../services/StorageManager";
 import { WorkspaceSafetyService } from "../services/WorkspaceSafetyService";
-import type { StorageManager } from "../storage/StorageManager";
+import type { IStorageManager } from "../storage/types";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
 import type { StatusBarController } from "../ui/statusBar";
@@ -42,7 +42,7 @@ export interface Phase4Result {
 export async function initializePhase4Providers(
 	context: vscode.ExtensionContext,
 	phase3Result: Phase3Result,
-	storage: StorageManager,
+	storage: IStorageManager,
 	protectedFileRegistry: ProtectedFileRegistry,
 	workspaceRoot: string,
 	apiClient?: AuthedApiClient,

@@ -498,6 +498,7 @@ export interface IStorageManager {
 		options: {
 			name: string;
 			trigger: SnapshotManifest["trigger"];
+			anchorFile?: string;
 			metadata?: SnapshotManifest["metadata"];
 		},
 	): Promise<SnapshotManifest>;
@@ -505,8 +506,12 @@ export interface IStorageManager {
 	listSnapshots(filters?: SnapshotFilters): Promise<SnapshotManifest[]>;
 	deleteSnapshot(id: string): Promise<void>;
 
+	// V2 Checkpoint support (optional - implemented by StorageManager)
+	createPreRollbackCheckpoint?(targetId: string): Promise<SnapshotManifestV2>;
+
 	// Sessions
 	createSession(startedAt: number): Promise<string>;
+	getActiveSessionId?(): string | null;
 	finalizeSession(
 		id: string,
 		endedAt: number,

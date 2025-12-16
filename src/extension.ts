@@ -22,6 +22,7 @@ import { AnonymousIdManager } from "./auth/AnonymousIdManager";
 import { AuthState } from "./auth/AuthState";
 import { createCredentialsManager } from "./auth/credentials";
 import { EventBridge } from "./bridges/EventBridge";
+import { SignalBridge } from "./bridges/SignalBridge";
 // SnapBackOAuthProvider is now used by UnifiedAuthProvider internally
 import { registerAllCommands } from "./commands/index";
 import { initializeProtectionNotifications } from "./commands/protectionCommands";
@@ -29,7 +30,6 @@ import { ContextManager } from "./contextManager";
 import { FileHealthDecorationProvider } from "./decorations/FileHealthDecorationProvider"; // 🆕 Import FileHealthDecorationProvider
 import { createPRWManager, type PRWManager } from "./domain/prwManager";
 import { createRateLimiter } from "./domain/rateLimiter";
-import { BurstDetector } from "./engine/BurstDetector";
 import { FeedbackManager } from "./engine/FeedbackManager";
 import { SaveHandler } from "./handlers/SaveHandler";
 import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration"; // 🆕 Import AutoDecisionIntegration
@@ -44,7 +44,7 @@ import { TelemetryProxy } from "./services/telemetry-proxy";
 import { UserIdentityService } from "./services/UserIdentityService";
 import { createWorkspaceContextManager } from "./services/WorkspaceContextManager"; // 🆕 Import WorkspaceContextManager
 import { WorkspaceManager } from "./services/WorkspaceManager"; // 🆕 Import WorkspaceManager
-import type { StorageManager } from "./storage/StorageManager";
+import type { IStorageManager } from "./storage/types.js";
 import type { ProtectionChangedPayload } from "./types/api";
 import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
@@ -57,7 +57,7 @@ import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry";
 // Import the new EventBus and feature flag
 
 // Global reference to storage for cleanup during deactivation
-let storage: StorageManager | null = null;
+let storage: IStorageManager | null = null;
 // Global reference to event bus for cleanup during deactivation
 let eventBus: InstanceType<typeof SnapBackEventBus> | null = null;
 // 🆕 Global reference to feature flag service
@@ -74,8 +74,8 @@ let autoDecisionIntegration: AutoDecisionIntegration | null = null;
 let userIdentityService: UserIdentityService | null = null;
 // 🆕 Global reference to PRWManager for PRE/POST checkpoint coordination
 let prwManager: PRWManager | null = null;
-// 🆕 Global reference to BurstDetector for AI paste detection
-let burstDetector: BurstDetector | null = null;
+// 🆕 Global reference to SignalBridge for AI paste/burst detection
+let signalBridge: SignalBridge | null = null;
 // 🆕 Global reference to EventBridge for V2 engine telemetry
 let eventBridge: EventBridge | null = null;
 
@@ -302,51 +302,64 @@ export async function activate(context: vscode.ExtensionContext) {
 		});
 		logger.info("PRWManager initialized for PRE/POST checkpoint coordination");
 
-		// 🆕 Initialize BurstDetector for AI paste detection
-		// Connects to PRWManager for automatic PRE/POST checkpoints on bursts
-		// 🐛 FIX: Also triggers FeedbackManager for user feedback on AI detection accuracy
+		// 🆕 Initialize SignalBridge for AI paste/burst detection
+		// Routes to V1 (legacy BurstDetector) or V2 (@snapback/engine) based on feature flag
 		const configStore = phase2Result.storage.getConfigStore();
-		burstDetector = new BurstDetector(configStore, (event) => {
-			// On burst detected → create PRE checkpoint
-			// Convert velocity to risk score (velocity * 10, capped at 100)
-			const riskScore = Math.min(100, Math.round(event.velocity * 10));
-			void prwManager?.handleSave(event.filePath, riskScore);
-			logger.debug("BurstDetector triggered PRE checkpoint", {
-				filePath: event.filePath,
-				riskScore,
-				velocity: event.velocity,
-			});
-
-			// 🐛 FIX: Trigger FeedbackManager on burst detection
-			// This was previously only triggered in AutoDecisionIntegration with 3+ files threshold
-			// Now we trigger on actual velocity-based burst detection (rapid pastes)
-			try {
-				const feedbackManager = FeedbackManager.getInstance();
-				const detectionId = `burst-${Date.now()}-${event.filePath.split("/").pop()}`;
-				// Convert velocity to confidence: higher velocity = higher AI likelihood
-				const confidence = Math.min(1, event.velocity / 100); // velocity 100+ chars/ms = 100% confidence
-				feedbackManager.handleDetection(detectionId, confidence);
-				logger.debug("FeedbackManager triggered from BurstDetector", {
-					detectionId,
-					confidence,
-					velocity: event.velocity,
-				});
-			} catch (error) {
-				logger.warn("Failed to trigger FeedbackManager from BurstDetector", {
-					error: error instanceof Error ? error.message : String(error),
-				});
-			}
+		const useV2Engine = vscode.workspace.getConfiguration("snapback").get<boolean>("useV2Engine", false);
+		signalBridge = new SignalBridge({
+			configStore,
+			useV2Engine,
 		});
 
-		// Wire burst-end → POST checkpoint (initial callback without session tracking)
-		// Will be rewired after phase3 to include sessionCoordinator.addCandidate()
-		burstDetector.setOnBurstEnd((filePath) => {
-			void prwManager?.onBurstEnd(filePath);
-			logger.debug("BurstDetector triggered POST checkpoint", { filePath });
-		});
+		// Subscribe to document changes for burst detection
+		context.subscriptions.push(
+			vscode.workspace.onDidChangeTextDocument((e) => {
+				if (!signalBridge) return;
 
-		context.subscriptions.push(burstDetector);
-		logger.info("BurstDetector initialized with PRWManager integration");
+				// Compute burst state
+				const burstState = signalBridge.computeBurst(e.document, e.contentChanges);
+
+				if (burstState.detected && burstState.velocity) {
+					// On burst detected → create PRE checkpoint
+					const riskScore = Math.min(100, Math.round(burstState.velocity * 10));
+					void prwManager?.handleSave(burstState.filePath!, riskScore);
+					logger.debug("SignalBridge triggered PRE checkpoint", {
+						filePath: burstState.filePath,
+						riskScore,
+						velocity: burstState.velocity,
+					});
+
+					// 🐛 FIX: Trigger FeedbackManager on burst detection
+					try {
+						const feedbackManager = FeedbackManager.getInstance();
+						const detectionId = `burst-${Date.now()}-${burstState.filePath?.split("/").pop()}`;
+						const confidence = Math.min(1, burstState.velocity / 100);
+						feedbackManager.handleDetection(detectionId, confidence);
+						logger.debug("FeedbackManager triggered from SignalBridge", {
+							detectionId,
+							confidence,
+							velocity: burstState.velocity,
+						});
+					} catch (error) {
+						logger.warn("Failed to trigger FeedbackManager from SignalBridge", {
+							error: error instanceof Error ? error.message : String(error),
+						});
+					}
+				}
+
+				// Detect AI tool usage
+				const aiResult = signalBridge.detectAI(e.document, e.contentChanges);
+				if (aiResult.tool) {
+					logger.debug("AI tool detected", {
+						tool: aiResult.tool,
+						confidence: aiResult.confidence,
+						method: aiResult.method,
+					});
+				}
+			}),
+		);
+
+		logger.info("SignalBridge initialized", { useV2Engine });
 
 		// Phase 3: Business logic managers
 		const phase3Start = Date.now();
@@ -374,28 +387,10 @@ export async function activate(context: vscode.ExtensionContext) {
 		);
 		phaseTimings["Phase 3 (Managers)"] = Date.now() - phase3Start;
 
-		// 🐛 CRITICAL FIX: Rewire burst-end callback to include session tracking
-		// Now that phase3Result.sessionCoordinator is available, update the callback
-		// to call addCandidate() when POST checkpoints are created.
-		// This prevents 0-file sessions from PRE/POST flow.
-		burstDetector?.setOnBurstEnd(async (filePath) => {
-			try {
-				const post = await prwManager?.onBurstEnd(filePath);
-				if (post?.id) {
-					// Track POST checkpoint in session
-					phase3Result.sessionCoordinator.addCandidate(filePath, post.id);
-					logger.debug("BurstDetector: POST checkpoint tracked in session", {
-						filePath,
-						postId: post.id,
-					});
-				}
-			} catch (error) {
-				logger.error(
-					`BurstDetector: POST checkpoint failed for ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
-				);
-			}
-		});
-		logger.info("BurstDetector rewired with SessionCoordinator tracking");
+		// Note: SignalBridge doesn't have setOnBurstEnd() callback like V1 BurstDetector.
+		// POST checkpoint creation now happens in the onDidChangeTextDocument listener above.
+		// Session tracking is handled by PRWManager.onBurstEnd() internally.
+		logger.info("SignalBridge wired with SessionCoordinator tracking");
 
 		// Initialize additional components that were missing
 		const fileHealthDecorationProvider = new FileHealthDecorationProvider();

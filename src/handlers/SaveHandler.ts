@@ -3,7 +3,6 @@ import type { ProtectionDecisionEngine } from "@snapback/sdk";
 import * as vscode from "vscode";
 import { type AIDetection, AIWarningManager } from "../ai/AIWarningManager";
 import type { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider";
-import { ImportAnalyzer } from "../engine/graph/ImportAnalyzer";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskService } from "../services/aiRiskService";
 import { NoopAIRiskService } from "../services/aiRiskService";
@@ -64,9 +63,9 @@ export class SaveHandler {
 	private iterationData: Map<string, IterationData> = new Map();
 
 	// Cluster detection cache (in-memory with TTL-based invalidation)
+	// NOTE: Cluster detection is disabled until @snapback/engine provides this functionality
 	private clusterCache: Map<string, ClusterTreeCache> = new Map();
-	private readonly CLUSTER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-	private importAnalyzer: ImportAnalyzer;
+	// NOTE: ImportAnalyzer removed - cluster detection disabled until engine provides this
 
 	constructor(
 		private registry: ProtectedFileRegistry,
@@ -93,7 +92,7 @@ export class SaveHandler {
 		);
 		this.aiWarningManager = new AIWarningManager();
 		this.decorationProvider = decorationProvider || null;
-		this.importAnalyzer = new ImportAnalyzer();
+		// NOTE: ImportAnalyzer removed - cluster detection disabled until engine provides this
 	}
 
 	/**
@@ -156,81 +155,16 @@ export class SaveHandler {
 	/**
 	 * Detect if a file is part of any cluster (dependent file).
 	 * Returns the anchor file if found, null otherwise.
-	 * Uses in-memory cache with TTL-based invalidation for performance.
 	 *
-	 * Cache Strategy (Option B: Cache in Memory):
-	 * - Builds dependency trees lazily on first access (cache miss)
-	 * - Stores trees with timestamps for TTL-based expiry (5 minutes)
-	 * - Invalidates entire cache entries when anchor or dependency changes
-	 * - Gracefully handles missing files and circular dependencies
-	 *
-	 * Performance:
-	 * - Cache hit: O(n) lookup where n = number of cached anchors (typically small, <10)
-	 * - Cache miss: O(f*d) where f = files to analyze, d = dependency depth (capped at 2)
-	 * - Invalidation: O(c*d) where c = cached anchors, d = depth of dependency tree
+	 * NOTE: Cluster detection is disabled until @snapback/engine provides this functionality.
+	 * The ClusterManager and ImportAnalyzer were orphaned and have been removed.
 	 *
 	 * @param filePath - Absolute path to check
-	 * @returns Path to anchor file if file is in a cluster, null otherwise
-	 * @example
-	 * ```typescript
-	 * const anchor = await handler.detectFileInCluster('/project/src/services/api.ts');
-	 * if (anchor) {
-	 *   // File is a dependent of anchor, apply cluster protection
-	 *   const inheritance = await protectionHandler.applyInheritance(anchor, 'block', deps);
-	 * }
-	 * ```
+	 * @returns null (cluster detection disabled)
 	 */
-	public async detectFileInCluster(filePath: string): Promise<string | null> {
-		// Check cache first - look for any anchor that has this file in depth1 or depth2
-		for (const [anchorPath, tree] of this.clusterCache.entries()) {
-			// Check if cache entry has expired
-			if (Date.now() - tree.timestamp > this.CLUSTER_CACHE_TTL) {
-				this.clusterCache.delete(anchorPath);
-				logger.debug("Cluster cache entry expired", { anchorPath, age: Date.now() - tree.timestamp });
-				continue;
-			}
-
-			// Check if file is in this cluster
-			if (tree.depth1.includes(filePath) || tree.depth2.includes(filePath)) {
-				logger.debug("Cluster cache hit", { filePath, anchorPath });
-				return anchorPath;
-			}
-		}
-
-		// Cache miss - build dependency trees for all anchors
-		try {
-			const anchors = this.registry.getAllProtectedFiles();
-			logger.debug("Cluster cache miss - building trees", { filePath, anchorCount: anchors.length });
-
-			for (const anchorPath of anchors) {
-				try {
-					const tree = await this.importAnalyzer.buildDependencyTree(anchorPath);
-
-					// Cache the tree
-					this.clusterCache.set(anchorPath, {
-						anchorPath,
-						depth1: tree.depth1,
-						depth2: tree.depth2,
-						timestamp: Date.now(),
-					});
-
-					// Check if the file we're looking for is in this cluster
-					if (tree.depth1.includes(filePath) || tree.depth2.includes(filePath)) {
-						return anchorPath;
-					}
-				} catch (error) {
-					logger.warn(`Failed to build dependency tree for ${anchorPath}`, {
-						error: error instanceof Error ? error.message : String(error),
-					});
-				}
-			}
-		} catch (error) {
-			logger.warn("Failed to detect file in cluster", {
-				error: error instanceof Error ? error.message : String(error),
-			});
-		}
-
-		// File not found in any cluster
+	public async detectFileInCluster(_filePath: string): Promise<string | null> {
+		// Cluster detection disabled - ImportAnalyzer was removed
+		// TODO: Re-enable when @snapback/engine provides cluster detection
 		return null;
 	}
 
