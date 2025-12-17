@@ -18,12 +18,14 @@ export class ApiClient {
 			const config = vscode.workspace.getConfiguration("snapback");
 			this.baseUrl = config.get("api.baseUrl", "https://api.snapback.dev/api");
 			this.apiKey = config.get("api.key");
-		} catch (_error) {
+		} catch (error) {
 			// In test environments, vscode.workspace might not be available
 			// Use default values
 			this.baseUrl = "https://api.snapback.dev/api";
 			this.apiKey = undefined;
-			logger.debug("Using default API configuration due to test environment");
+			logger.debug("Using default API configuration", {
+				reason: error instanceof Error ? error.message : "test environment",
+			});
 		}
 	}
 

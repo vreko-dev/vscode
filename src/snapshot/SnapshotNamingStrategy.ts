@@ -2,6 +2,7 @@ import { exec } from "node:child_process";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { promisify } from "node:util";
+import { logger } from "../utils/logger";
 
 const execAsync = promisify(exec);
 
@@ -582,7 +583,13 @@ export class SnapshotNamingStrategy {
 				if (matches) {
 					importCount += matches.length;
 				}
-			} catch (_error) {}
+			} catch (error) {
+				// File read failures are expected for deleted/moved files, log at debug level
+				logger.debug("Failed to read file for import analysis", {
+					path: file.path,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
 		}
 
 		return importCount;
@@ -605,7 +612,13 @@ export class SnapshotNamingStrategy {
 				if (matches) {
 					structureCount += matches.length;
 				}
-			} catch (_error) {}
+			} catch (error) {
+				// File read failures are expected for deleted/moved files, log at debug level
+				logger.debug("Failed to read file for structure analysis", {
+					path: file.path,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
 		}
 
 		return structureCount;

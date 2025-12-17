@@ -9,6 +9,7 @@ import { registerMcpCommands } from "./mcpCommands";
 import { registerOfflineModeCommands } from "./offlineModeCommands";
 import { registerPolicyOverrideCommands } from "./policyOverrideCommands";
 import { registerProtectionCommands } from "./protectionCommands";
+import { registerSecurityCommands } from "./securityCommands";
 import { registerSessionCommands } from "./sessionCommands";
 import { registerSnapshotCommands } from "./snapshotCommands";
 import { registerSnapshotCreationCommands } from "./snapshotCreationCommands";
@@ -114,6 +115,7 @@ export function registerAllCommands(
 		...registerDecorationCommands(context, commandContext), // 🆕 Register decoration commands
 		...mcpCommandDisposables, // 🆕 Register MCP commands if available
 		...registerFeedbackCommands(context), // 🆕 Register feedback commands
+		...registerSecurityCommands(context), // 🆕 Register security commands (API key migration)
 		// 🆕 Register Explorer Tree commands (cloud features) - only if available
 		...(commandContext.explorerTreeProvider
 			? [

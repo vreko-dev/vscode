@@ -119,7 +119,12 @@ export class WorkspaceSafetyService {
 						},
 					});
 				}
-			} catch (_error) {}
+			} catch (error) {
+				logger.debug("Failed to get protection level for file", {
+					file,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
 		}
 	}
 
@@ -220,7 +225,12 @@ export class WorkspaceSafetyService {
 			try {
 				const found = await vscode.workspace.findFiles(pattern, "**/node_modules/**");
 				files.push(...found.map((uri) => uri.fsPath));
-			} catch (_error) {}
+			} catch (error) {
+				logger.debug("Failed to find files matching pattern", {
+					pattern,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
 		}
 
 		return files;

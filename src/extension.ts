@@ -35,6 +35,7 @@ import { SaveHandler } from "./handlers/SaveHandler";
 import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration"; // 🆕 Import AutoDecisionIntegration
 import { FileSystemWatcher } from "./protection/FileSystemWatcher";
 import { RulesManager } from "./rules/RulesManager";
+import { initializeSecureConfig } from "./security/SecureConfigService"; // 🆕 Import SecureConfigService
 import { NoopAIRiskService, RemoteAIRiskService } from "./services/aiRiskService";
 import { ApiClient } from "./services/api-client";
 import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService
@@ -182,6 +183,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// 🆕 Initialize CredentialsManager early
 	const credentialsManager = createCredentialsManager(context.secrets);
+
+	// 🆕 Initialize SecureConfigService for API key migration
+	initializeSecureConfig(context.secrets);
+	logger.info("SecureConfigService initialized");
 
 	// 🔗 Register URI Handler for authentication deep links (early in activation)
 	// This must be registered before async operations so deep links work even if extension is activating

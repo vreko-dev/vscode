@@ -305,6 +305,24 @@
         "command": "snapback.test.restoreSnapshot",
         "title": "Test: Restore Snapshot",
         "category": "SnapBack Test"
+      },
+      {
+        "command": "snapback.migrateSecureConfig",
+        "title": "Migrate API Keys to Secure Storage",
+        "category": "SnapBack",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "snapback.setApiKey",
+        "title": "Set API Key (Secure)",
+        "category": "SnapBack",
+        "icon": "$(key)"
+      },
+      {
+        "command": "snapback.setMcpAuthToken",
+        "title": "Set MCP Auth Token (Secure)",
+        "category": "SnapBack",
+        "icon": "$(key)"
       }
     ],
     "viewsContainers": {
