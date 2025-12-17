@@ -41,8 +41,9 @@ export class ContextManager {
 		const canProtect = !filePath.includes("Untitled");
 
 		// Set context variables
+		// Note: Use empty string instead of undefined to avoid "Illegal argument" errors in some VS Code forks
 		await vscode.commands.executeCommand("setContext", "snapback.isProtected", isProtected);
-		await vscode.commands.executeCommand("setContext", "snapback.currentLevel", protectionLevel);
+		await vscode.commands.executeCommand("setContext", "snapback.currentLevel", protectionLevel ?? "");
 		await vscode.commands.executeCommand("setContext", "snapback.canProtect", canProtect);
 
 		logger.info(`[SnapBack] Context updated for ${filePath}:`, {
@@ -57,7 +58,8 @@ export class ContextManager {
 	 */
 	private async clearFileContext(): Promise<void> {
 		await vscode.commands.executeCommand("setContext", "snapback.isProtected", false);
-		await vscode.commands.executeCommand("setContext", "snapback.currentLevel", undefined);
+		// Use empty string instead of undefined to avoid "Illegal argument" errors in some VS Code forks
+		await vscode.commands.executeCommand("setContext", "snapback.currentLevel", "");
 		await vscode.commands.executeCommand("setContext", "snapback.canProtect", false);
 	}
 

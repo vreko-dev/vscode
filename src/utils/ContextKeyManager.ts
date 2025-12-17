@@ -193,11 +193,27 @@ export class ContextKeyManager {
 
 	/**
 	 * Resets all context keys (for testing)
+	 * Uses false for boolean keys instead of undefined to avoid "Illegal argument" errors
 	 */
 	resetAllContextKeys(): void {
-		for (const key of Object.values(CONTEXT_KEYS)) {
-			this.setContextKey(key, undefined);
-		}
+		// Reset each key to its default/falsy value
+		this.setContextKey(CONTEXT_KEYS.EXPERIENCE_TIER, "unknown");
+		this.setContextKey(CONTEXT_KEYS.IS_EXPLORER, false);
+		this.setContextKey(CONTEXT_KEYS.IS_INTERMEDIATE, false);
+		this.setContextKey(CONTEXT_KEYS.IS_POWER, false);
+		this.setContextKey(CONTEXT_KEYS.AI_CHECKPOINTING_ENABLED, false);
+		this.setContextKey(CONTEXT_KEYS.AI_DETECTED, false);
+		this.setContextKey(CONTEXT_KEYS.GITHUB_COPILOT_DETECTED, false);
+		this.setContextKey(CONTEXT_KEYS.CLAUDE_DETECTED, false);
+		this.setContextKey(CONTEXT_KEYS.TABNINE_DETECTED, false);
+		this.setContextKey(CONTEXT_KEYS.CODEIUM_DETECTED, false);
+		this.setContextKey(CONTEXT_KEYS.IS_ACTIVE, false);
+		this.setContextKey(CONTEXT_KEYS.HAS_PROTECTED_FILES, false);
+		this.setContextKey(CONTEXT_KEYS.HAS_SNAPSHOTS, false);
+		this.setContextKey(CONTEXT_KEYS.HAS_SESSIONS, false);
+		this.setContextKey(CONTEXT_KEYS.HAS_POLICY_OVERRIDES, false);
+		this.setContextKey(CONTEXT_KEYS.OFFLINE_MODE, false);
+		this.setContextKey(CONTEXT_KEYS.TELEMETRY_ENABLED, false);
 
 		logger.info("All context keys reset");
 	}
