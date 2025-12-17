@@ -41,8 +41,6 @@ import { initializeSecureConfig } from "./security/SecureConfigService"; // 🆕
 import { NoopAIRiskService, RemoteAIRiskService } from "./services/aiRiskService";
 import { ApiClient } from "./services/api-client";
 import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService
-import { ProtectionManager } from "./services/protectionPolicy";
-import { ProtectionService } from "./services/protectionService";
 import { TelemetryProxy } from "./services/telemetry-proxy";
 import { UserIdentityService } from "./services/UserIdentityService";
 import { createWorkspaceContextManager } from "./services/WorkspaceContextManager"; // 🆕 Import WorkspaceContextManager
@@ -107,10 +105,25 @@ export async function activate(context: vscode.ExtensionContext) {
 	// 🛡️ CRITICAL: Install global error handlers to prevent process.exit()
 	// These handlers catch unhandled promise rejections and uncaught exceptions
 	// that could otherwise trigger process.exit() and crash the extension
+	//
+	// NOTE: These handlers catch ALL errors in the extension host, including from other extensions.
+	// We filter by stack trace to only log/show errors that originate from SnapBack code.
+	const isSnapBackError = (stack: string | undefined): boolean => {
+		if (!stack) return false;
+		// Check if error originates from SnapBack extension code
+		return stack.includes("/snapback/") || stack.includes("\\snapback\\") || stack.includes("@snapback");
+	};
+
 	process.on("unhandledRejection", (reason, promise) => {
 		const errorMessage = reason instanceof Error ? reason.message : String(reason);
 		const errorStack = reason instanceof Error ? reason.stack : undefined;
 		const error = reason instanceof Error ? reason : new Error(String(reason));
+
+		// Only log and notify for SnapBack errors - ignore errors from other extensions
+		if (!isSnapBackError(errorStack)) {
+			// Silently ignore errors from other extensions to avoid polluting our logs
+			return;
+		}
 
 		logger.error("CRITICAL: Unhandled Promise Rejection during activation", error, {
 			promise: String(promise),
@@ -125,6 +138,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 
 	process.on("uncaughtException", (error) => {
+		// Only log and notify for SnapBack errors - ignore errors from other extensions
+		if (!isSnapBackError(error.stack)) {
+			// Silently ignore errors from other extensions
+			return;
+		}
+
 		logger.error("CRITICAL: Uncaught Exception during activation", error, {
 			errorName: error.name,
 		});
@@ -658,7 +677,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			dispose: () => autoDecisionIntegration?.deactivate(),
 		});
 		phaseTimings["Phase 14 (AutoDecision)"] = Date.now() - phase14Start;
-		logger.info("AutoDecisionIntegration activated");
+		// AutoDecisionIntegration.activate() already logs activation message
 		if (offlineModeEnabled) {
 			phase4Result.statusBarController.setOfflineMode(true);
 		}
@@ -709,42 +728,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Create ContextManager
 		const contextManager = new ContextManager(phase2Result.protectedFileRegistry);
 
-		// Phase 2 Slice 5: Initialize ProtectionService for repo audit
-		const existingProtectionManager = phase2Result.snapbackrcLoader?.getProtectionManager();
-		const protectionManagerInstance =
-			existingProtectionManager ||
-			new ProtectionManager(
-				phase2Result.protectedFileRegistry,
-				() => phase2Result.snapbackrcLoader?.getMergedConfig() ?? null,
-			);
-		const protectionService = new ProtectionService(
-			phase2Result.protectedFileRegistry,
-			protectionManagerInstance,
-			aiRiskService,
-			(key: string, value: any) => {
-				vscode.commands.executeCommand("setContext", key, value);
-			},
-		);
-
-		// ⚡ PERF: Defer audit to background (after UI becomes responsive)
-		// Don't await - this can take 10-20 seconds on large repos
-		setTimeout(() => {
-			logger.debug("[PERF] Running deferred auditRepo...");
-			const auditStart = Date.now();
-			protectionService
-				.auditRepo()
-				.catch((err) => {
-					logger.error("Deferred protection audit failed", err as Error);
-					logger.debug("[PERF] auditRepo failed", {
-						ms: Date.now() - auditStart,
-					});
-				})
-				.then(() => {
-					logger.debug("[PERF] auditRepo completed", {
-						ms: Date.now() - auditStart,
-					});
-				});
-		}, 50); // Run early but after UI is responsive
+		// ⚡ Use ProtectionService from Phase 3 (already initialized with deferred audit)
+		// Removed duplicate instance that was causing double audits and race conditions
 
 		// Create refreshViews function and assign to global ref
 		refreshViews = () => {

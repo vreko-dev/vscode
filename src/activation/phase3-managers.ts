@@ -161,8 +161,10 @@ export async function initializePhase3Managers(
 				protectedFileRegistry,
 				protectionManager,
 				aiRiskService,
-				async (key, value) => {
-					await vscode.commands.executeCommand("setContext", key, value);
+				(key, value) => {
+					// Fire-and-forget for performance - IPC overhead adds 700-1000ms to activation
+					vscode.commands.executeCommand("setContext", key, value);
+					return Promise.resolve();
 				},
 			);
 			console.log("[PERF] ProtectionManager + ProtectionService", {
