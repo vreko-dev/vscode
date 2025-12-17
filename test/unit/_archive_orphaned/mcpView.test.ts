@@ -2,46 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { MCPStatusBar, MCPToolsView } from "../../src/mcpView";
 
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
+
 // Mock status bar item factory
 let mockStatusBarItem: any;
-
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		window: {
-			createStatusBarItem: vi.fn(() => {
-				mockStatusBarItem = {
-					text: "",
-					tooltip: "",
-					color: "",
-					command: "",
-					show: vi.fn(),
-					dispose: vi.fn(),
-				};
-				return mockStatusBarItem;
-			}),
-		},
-		ThemeIcon: vi.fn().mockImplementation((icon) => ({ id: icon })),
-		TreeItem: vi.fn().mockImplementation((label, collapsibleState) => ({
-			label,
-			collapsibleState,
-		})),
-		TreeItemCollapsibleState: {
-			None: 0,
-			Collapsed: 1,
-			Expanded: 2,
-		},
-		EventEmitter: vi.fn().mockImplementation(() => ({
-			fire: vi.fn(),
-			event: vi.fn(),
-		})),
-		StatusBarAlignment: {
-			Left: 1,
-			Right: 2,
-		},
-	};
-});
 
 // Mock MCP Client Manager
 const mockMCPClientManager = {

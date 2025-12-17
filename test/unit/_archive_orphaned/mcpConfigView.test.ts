@@ -1,34 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MCPToolsView } from "../../src/mcpView";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		window: {
-			createWebviewTextEditor: vi.fn(),
-			showInformationMessage: vi.fn(),
-			showErrorMessage: vi.fn(),
-		},
-		Uri: {
-			joinPath: vi.fn().mockImplementation((...paths) => {
-				return {
-					toString: () => paths.join("/"),
-				};
-			}),
-		},
-		WebviewView: vi.fn(),
-		EventEmitter: vi.fn(() => ({
-			event: vi.fn(),
-			fire: vi.fn(),
-		})),
-		TreeItemCollapsibleState: {
-			None: 0,
-			Collapsed: 1,
-			Expanded: 2,
-		},
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("MCPToolsView", () => {
 	let mcpToolsView: MCPToolsView;
