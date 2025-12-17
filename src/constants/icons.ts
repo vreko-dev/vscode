@@ -31,6 +31,12 @@ export const SNAPBACK_ICONS = {
 	AI: "🤖",
 	AI_TOOL: "✨",
 
+	// Event Types (for activity labels)
+	EVENT_AI: "✨", // AI-detected edits
+	EVENT_MANUAL: "💾", // Manual snapshot
+	EVENT_AUTO: "⏱️", // Auto-snapshot
+	EVENT_PRE_SAVE: "🛡️", // Pre-save protection
+
 	// Snapshots & Sessions
 	CAMERA: "📷",
 	RESTORE: "↩️",
@@ -45,6 +51,10 @@ export const SNAPBACK_ICONS = {
 	OVERVIEW: "📊",
 	SEARCH: "🔍",
 	FOLDER: "📦",
+
+	// Cloud Status
+	CLOUD_CONNECTED: "✅",
+	CLOUD_DISCONNECTED: "☁️",
 } as const;
 
 // Type helper for accessing icons

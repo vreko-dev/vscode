@@ -9,6 +9,7 @@
  * - Respect attention (minimal root items, problems only when needed)
  */
 
+import * as path from "node:path";
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/commands";
@@ -16,7 +17,7 @@ import { SNAPBACK_ICONS } from "../constants/icons";
 import type { IStorageManager, SnapshotManifest } from "../storage/types";
 import { createTreeItemBadgeProvider, type TreeItemBadgeProvider } from "../utils/treeItemBadgeProvider";
 import { TimeGroupingStrategy } from "./grouping/TimeGroupingStrategy";
-import type { GroupingMode, ProblemItem, QuickAction, SnapshotDisplayItem, TimeGroup, TreeViewConfig } from "./types";
+import type { GroupingMode, ProblemItem, SnapshotDisplayItem, TimeGroup, TreeViewConfig } from "./types";
 import { DEFAULT_TREE_CONFIG } from "./types";
 
 // ============================================
@@ -41,19 +42,22 @@ interface IConfigManager {
 type TreeItemType =
 	| "header"
 	| "header-detail"
+	| "activity-header"
 	| "time-group"
 	| "snapshot"
+	| "snapshot-file"
 	| "more-snapshots"
-	| "action"
-	| "actions-header"
 	| "problems-header"
-	| "problem";
+	| "problem"
+	| "cloud-cta"
+	| "cloud-status";
 
 interface SnapBackTreeItemData {
 	type: TreeItemType;
 	id?: string;
 	groupKey?: string;
 	count?: number;
+	filePath?: string;
 }
 
 class SnapBackTreeItem extends vscode.TreeItem {
@@ -65,6 +69,17 @@ class SnapBackTreeItem extends vscode.TreeItem {
 		super(label, collapsibleState);
 	}
 }
+
+// ============================================
+// STORAGE KEYS FOR EXPANSION STATE PERSISTENCE
+// ============================================
+
+const STORAGE_KEYS = {
+	activityExpanded: "snapback.treeView.activityExpanded",
+	protectedExpanded: "snapback.treeView.protectedExpanded",
+	historyExpanded: "snapback.treeView.historyExpanded",
+	isFirstRun: "snapback.treeView.isFirstRun",
+} as const;
 
 // ============================================
 // PROVIDER
@@ -80,6 +95,7 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	private readonly badgeProvider: TreeItemBadgeProvider;
 
 	constructor(
+		private context: vscode.ExtensionContext,
 		private storageManager: IStorageManager,
 		private configManager: IConfigManager,
 	) {
@@ -89,6 +105,13 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 		this.badgeProvider = createTreeItemBadgeProvider({
 			onRefreshNeeded: () => this.refresh(),
 		});
+
+		// Set first run flag if not already set
+		if (this.context.globalState.get(STORAGE_KEYS.isFirstRun) === undefined) {
+			this.context.globalState.update(STORAGE_KEYS.isFirstRun, true);
+			// On first run: Activity expanded, others collapsed
+			this.context.globalState.update(STORAGE_KEYS.activityExpanded, true);
+		}
 	}
 
 	/**
@@ -162,8 +185,10 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 				return this.getProtectionBreakdown();
 			case "time-group":
 				return this.getSnapshotsForTimeGroup(element.data.groupKey as TimeGroup);
-			case "actions-header":
-				return this.getActionItems();
+			case "snapshot":
+				return this.getSnapshotFiles(element.data.id!);
+			case "activity-header":
+				return this.getActivityTimeGroups();
 			case "problems-header":
 				return this.getProblemItems();
 			default:
@@ -191,8 +216,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 			const snapshotGroups = await this.createSnapshotGroups();
 			items.push(...snapshotGroups);
 
-			// 4. ACTIONS - Always available at bottom
-			items.push(this.createActionsSection());
+			// 4. CLOUD - Connection status
+			items.push(this.createCloudSection());
 		} catch (error) {
 			logger.error("Error loading SnapBack tree", error as Error);
 			items.push(this.createErrorItem());
@@ -271,13 +296,43 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	// SNAPSHOT GROUPS (Strategy Pattern)
 	// ============================================
 
+	/**
+	 * Get expansion state from global state, defaulting to first run behavior
+	 */
+	private getExpansionState(key: keyof typeof STORAGE_KEYS): boolean {
+		const isFirstRun = this.context.globalState.get<boolean>(STORAGE_KEYS.isFirstRun, true);
+
+		if (isFirstRun) {
+			// First run: Activity expanded, others collapsed
+			return key === "activityExpanded";
+		}
+
+		return this.context.globalState.get<boolean>(STORAGE_KEYS[key], key === "activityExpanded");
+	}
+
+	/**
+	 * Create the unified ACTIVITY section with snapshot count
+	 */
 	private async createSnapshotGroups(): Promise<SnapBackTreeItem[]> {
 		try {
 			// Load snapshots
 			await this.loadSnapshots();
 
-			// Use time grouping (only implemented strategy)
-			return this.createTimeGroups();
+			// Only show ACTIVITY section if there are snapshots
+			if (this.cachedSnapshots.length === 0) {
+				return [];
+			}
+
+			// Create unified ACTIVITY header
+			const isExpanded = this.getExpansionState("activityExpanded");
+			const activityItem = new SnapBackTreeItem(
+				`ACTIVITY (${this.cachedSnapshots.length})`,
+				{ type: "activity-header", count: this.cachedSnapshots.length },
+				isExpanded ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed,
+			);
+			activityItem.contextValue = "activityHeader";
+
+			return [activityItem];
 		} catch (error) {
 			logger.error("Error creating snapshot groups", error as Error);
 			return [];
@@ -309,38 +364,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	}
 
 	// ============================================
-	// TIME GROUPING (Implemented)
+	// TIME GROUPING (Removed - replaced by getActivityTimeGroups)
 	// ============================================
-
-	private createTimeGroups(): SnapBackTreeItem[] {
-		const strategy = new TimeGroupingStrategy();
-		const grouped = strategy.group(this.cachedSnapshots);
-		const items: SnapBackTreeItem[] = [];
-
-		const groups: Array<{ key: TimeGroup; data: SnapshotDisplayItem[] }> = [
-			{ key: "recent", data: grouped.recent },
-			{ key: "yesterday", data: grouped.yesterday },
-			{ key: "this-week", data: grouped.thisWeek },
-			{ key: "older", data: grouped.older },
-		];
-
-		for (const { key, data } of groups) {
-			// HIDE EMPTY STATES - Only show groups with content
-			if (data.length > 0) {
-				const item = new SnapBackTreeItem(
-					strategy.getGroupLabel(key),
-					{ type: "time-group", groupKey: key, count: data.length },
-					strategy.isExpandedByDefault(key)
-						? vscode.TreeItemCollapsibleState.Expanded
-						: vscode.TreeItemCollapsibleState.Collapsed,
-				);
-				item.description = `${data.length}`;
-				items.push(item);
-			}
-		}
-
-		return items;
-	}
 
 	private async getSnapshotsForTimeGroup(groupKey: TimeGroup): Promise<SnapBackTreeItem[]> {
 		const strategy = new TimeGroupingStrategy();
@@ -348,6 +373,85 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 
 		const snapshots = grouped[groupKey === "this-week" ? "thisWeek" : groupKey];
 		return this.createSnapshotItems(snapshots);
+	}
+
+	/**
+	 * Get files for a specific snapshot
+	 * Called when user expands a snapshot node
+	 */
+	private async getSnapshotFiles(snapshotId: string): Promise<SnapBackTreeItem[]> {
+		try {
+			const manifest = await this.storageManager.getSnapshotManifest(snapshotId);
+			if (!manifest) return [];
+
+			return Object.keys(manifest.files).map((filePath) => {
+				const fileName = path.basename(filePath);
+				const dirName = path.dirname(filePath);
+
+				const item = new SnapBackTreeItem(
+					fileName,
+					{ type: "snapshot-file", id: snapshotId, filePath },
+					vscode.TreeItemCollapsibleState.None,
+				);
+
+				// Use iconPath for file icons (codicon syntax doesn't work in labels)
+				item.iconPath = this.getFileIcon(filePath);
+				// Show directory path only if not root
+				item.description = dirName === "." ? "" : dirName;
+				item.tooltip = `Click to compare with current file\n${filePath}`;
+				item.contextValue = "activityFile";
+				item.command = {
+					command: "snapback.snapshot.showFileDiff",
+					title: "Compare with Current",
+					arguments: [snapshotId, filePath],
+				};
+
+				return item;
+			});
+		} catch (error) {
+			logger.error("Error loading snapshot files", error as Error);
+			return [];
+		}
+	}
+
+	/**
+	 * Get appropriate file icon based on extension
+	 */
+	private getFileIcon(filePath: string): vscode.ThemeIcon {
+		const ext = path.extname(filePath).toLowerCase();
+		switch (ext) {
+			case ".ts":
+			case ".tsx":
+			case ".js":
+			case ".jsx":
+			case ".mjs":
+			case ".cjs":
+				return new vscode.ThemeIcon("file-code");
+			case ".json":
+				return new vscode.ThemeIcon("json");
+			case ".md":
+				return new vscode.ThemeIcon("markdown");
+			case ".css":
+			case ".scss":
+			case ".less":
+				return new vscode.ThemeIcon("file-code");
+			case ".html":
+			case ".htm":
+				return new vscode.ThemeIcon("file-code");
+			case ".yml":
+			case ".yaml":
+				return new vscode.ThemeIcon("file-code");
+			case ".env":
+				return new vscode.ThemeIcon("key");
+			case ".png":
+			case ".jpg":
+			case ".jpeg":
+			case ".gif":
+			case ".svg":
+				return new vscode.ThemeIcon("file-media");
+			default:
+				return new vscode.ThemeIcon("file");
+		}
 	}
 
 	// ============================================
@@ -365,8 +469,52 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 		return items;
 	}
 
+	/**
+	 * Get event type label for display
+	 * Event-first format: "AI Edit", "Manual", "Auto", "Pre-save"
+	 */
+	private getEventTypeLabel(trigger: SnapshotDisplayItem["trigger"]): string {
+		switch (trigger) {
+			case "ai-detected":
+				return "AI Edit";
+			case "manual":
+				return "Manual";
+			case "pre-save":
+				return "Pre-save";
+			case "auto":
+			default:
+				return "Auto";
+		}
+	}
+
+	/**
+	 * Get event icon using new event-first icons
+	 */
+	private getEventIcon(trigger: SnapshotDisplayItem["trigger"]): string {
+		switch (trigger) {
+			case "ai-detected":
+				return SNAPBACK_ICONS.EVENT_AI;
+			case "manual":
+				return SNAPBACK_ICONS.EVENT_MANUAL;
+			case "pre-save":
+				return SNAPBACK_ICONS.EVENT_PRE_SAVE;
+			case "auto":
+			default:
+				return SNAPBACK_ICONS.EVENT_AUTO;
+		}
+	}
+
+	/**
+	 * Create snapshot item with event-first label format
+	 * Format: "{icon} {type} — {filename} • {time}"
+	 * Examples:
+	 * - "✨ AI Edit — Button.tsx • 19m"
+	 * - "💾 Manual — useAuth.ts • 2h"
+	 */
 	private createSnapshotItem(snapshot: SnapshotDisplayItem): SnapBackTreeItem {
-		const icon = this.getSnapshotIcon(snapshot);
+		const icon = this.getEventIcon(snapshot.trigger);
+		const typeLabel = this.getEventTypeLabel(snapshot.trigger);
+		const fileName = path.basename(snapshot.primaryFile);
 		const createdAt = snapshot.timestamp.getTime();
 
 		// Get badge state for this snapshot
@@ -375,44 +523,39 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 		// Track snapshot for auto-refresh when badge expires
 		this.badgeProvider.trackSnapshot(snapshot.id, createdAt);
 
-		// Build label with optional badge
+		// Build label with optional badge (event-first format)
 		const badgeText = badge?.type === "new" ? " NEW" : "";
+
+		// Determine collapsibility: multi-file expands, single-file opens diff
+		const isMultiFile = snapshot.fileCount > 1;
+		const collapsibleState = isMultiFile
+			? vscode.TreeItemCollapsibleState.Collapsed
+			: vscode.TreeItemCollapsibleState.None;
+
 		const item = new SnapBackTreeItem(
-			`${icon} ${snapshot.name}${badgeText}`,
+			`${icon} ${typeLabel}${badgeText}`,
 			{ type: "snapshot", id: snapshot.id },
-			vscode.TreeItemCollapsibleState.None,
+			collapsibleState,
 		);
 
-		// Show relative time, with badge indicator in description if stale
+		// Description: "— {filename} • {time}"
 		const staleIndicator = badge?.type === "stale" ? " (old)" : "";
-		item.description = `${snapshot.description}${staleIndicator}`;
+		item.description = `— ${fileName} • ${snapshot.description}${staleIndicator}`;
 		item.tooltip = this.getSnapshotTooltip(snapshot);
-		item.contextValue = "snapshot";
 
-		item.command = {
-			command: COMMANDS.SNAPSHOT.VIEW,
-			title: "Show Snapshot Details",
-			arguments: [snapshot.id],
-		};
+		// Context value based on single/multi file for interaction model
+		item.contextValue = isMultiFile ? "activityEventMulti" : "activityEventSingle";
+
+		// Single-file events: click opens diff
+		if (!isMultiFile) {
+			item.command = {
+				command: "snapback.snapshot.showFileDiff",
+				title: "Compare with Current",
+				arguments: [snapshot.id, snapshot.primaryFile],
+			};
+		}
 
 		return item;
-	}
-
-	private getSnapshotIcon(snapshot: SnapshotDisplayItem): string {
-		if (!this.config.showAI) {
-			return SNAPBACK_ICONS.CAMERA;
-		}
-
-		switch (snapshot.trigger) {
-			case "ai-detected":
-				return SNAPBACK_ICONS.AI;
-			case "manual":
-				return SNAPBACK_ICONS.MANUAL;
-			case "pre-save":
-				return SNAPBACK_ICONS.BLOCK;
-			default:
-				return SNAPBACK_ICONS.CAMERA;
-		}
 	}
 
 	private getSnapshotTooltip(snapshot: SnapshotDisplayItem): string {
@@ -441,58 +584,40 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	}
 
 	// ============================================
-	// ACTIONS SECTION
+	// ACTIVITY TIME GROUPS
 	// ============================================
 
-	private createActionsSection(): SnapBackTreeItem {
-		const item = new SnapBackTreeItem(
-			"ACTIONS",
-			{ type: "actions-header" },
-			vscode.TreeItemCollapsibleState.Expanded,
-		);
-		return item;
-	}
+	/**
+	 * Get time-based sub-groups for the unified ACTIVITY section
+	 */
+	private getActivityTimeGroups(): SnapBackTreeItem[] {
+		const strategy = new TimeGroupingStrategy();
+		const grouped = strategy.group(this.cachedSnapshots);
+		const items: SnapBackTreeItem[] = [];
 
-	private getActionItems(): SnapBackTreeItem[] {
-		const actions: QuickAction[] = [
-			{
-				id: "undo-session",
-				label: "Undo AI Session",
-				icon: "⏪",
-				command: "snapback.session.restore",
-			},
-			{
-				id: "create",
-				label: "Create Snapshot",
-				icon: SNAPBACK_ICONS.CAMERA,
-				command: COMMANDS.SNAPSHOT.CREATE,
-			},
-			{
-				id: "browse",
-				label: "Browse Snapshots",
-				icon: SNAPBACK_ICONS.RESTORE,
-				command: COMMANDS.SNAPSHOT.RESTORE_LEGACY,
-			},
-			{
-				id: "configure",
-				label: "Configure Protection",
-				icon: SNAPBACK_ICONS.SETTINGS,
-				command: COMMANDS.PROTECTION.PROTECT_WORKSPACE,
-			},
+		const groups: Array<{ key: TimeGroup; data: SnapshotDisplayItem[] }> = [
+			{ key: "recent", data: grouped.recent },
+			{ key: "yesterday", data: grouped.yesterday },
+			{ key: "this-week", data: grouped.thisWeek },
+			{ key: "older", data: grouped.older },
 		];
 
-		return actions.map((action) => {
-			const item = new SnapBackTreeItem(
-				`${action.icon} ${action.label}`,
-				{ type: "action", id: action.id },
-				vscode.TreeItemCollapsibleState.None,
-			);
-			item.command = {
-				command: action.command,
-				title: action.label,
-			};
-			return item;
-		});
+		for (const { key, data } of groups) {
+			// HIDE EMPTY STATES - Only show groups with content
+			if (data.length > 0) {
+				const item = new SnapBackTreeItem(
+					strategy.getGroupLabel(key),
+					{ type: "time-group", groupKey: key, count: data.length },
+					strategy.isExpandedByDefault(key)
+						? vscode.TreeItemCollapsibleState.Expanded
+						: vscode.TreeItemCollapsibleState.Collapsed,
+				);
+				item.description = `${data.length}`;
+				items.push(item);
+			}
+		}
+
+		return items;
 	}
 
 	// ============================================
@@ -571,6 +696,46 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 		return `${days}d ago`;
 	}
 
+	// ============================================
+	// CLOUD SECTION
+	// ============================================
+
+	/**
+	 * Create cloud status section
+	 * Shows connection CTA or status when connected
+	 */
+	private createCloudSection(): SnapBackTreeItem {
+		// TODO: Integrate with actual auth state from CredentialsManager
+		// For now, show CTA to connect
+		const isConnected = false; // Will be replaced with actual auth check
+
+		if (isConnected) {
+			const item = new SnapBackTreeItem(
+				`${SNAPBACK_ICONS.CLOUD_CONNECTED} CLOUD`,
+				{ type: "cloud-status" },
+				vscode.TreeItemCollapsibleState.None,
+			);
+			item.description = "Connected";
+			item.tooltip = "SnapBack Cloud is connected. Your snapshots are synced.";
+			item.contextValue = "cloudConnected";
+			return item;
+		}
+
+		const item = new SnapBackTreeItem(
+			`${SNAPBACK_ICONS.CLOUD_DISCONNECTED} CLOUD`,
+			{ type: "cloud-cta" },
+			vscode.TreeItemCollapsibleState.None,
+		);
+		item.description = "Connect to sync snapshots";
+		item.tooltip = "Connect your SnapBack account to sync snapshots across devices";
+		item.contextValue = "cloudCta";
+		item.command = {
+			command: "snapback.connect",
+			title: "Connect Account",
+		};
+		return item;
+	}
+
 	private createErrorItem(): SnapBackTreeItem {
 		const item = new SnapBackTreeItem(
 			`${SNAPBACK_ICONS.ERROR} Error loading tree view`,
@@ -593,7 +758,7 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 		provider: SnapBackTreeProvider;
 		view: vscode.TreeView<SnapBackTreeItem>;
 	} {
-		const provider = new SnapBackTreeProvider(storageManager, configManager);
+		const provider = new SnapBackTreeProvider(context, storageManager, configManager);
 
 		const view = vscode.window.createTreeView(viewId, {
 			treeDataProvider: provider,

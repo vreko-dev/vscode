@@ -41,13 +41,13 @@ export class TimeGroupingStrategy implements GroupingStrategy<TimeGroupedSnapsho
 	getGroupLabel(groupKey: TimeGroup): string {
 		switch (groupKey) {
 			case "recent":
-				return "RECENT";
+				return "Today";
 			case "yesterday":
-				return "YESTERDAY";
+				return "Yesterday";
 			case "this-week":
-				return "THIS WEEK";
+				return "This Week";
 			case "older":
-				return "OLDER";
+				return "Earlier";
 		}
 	}
 
