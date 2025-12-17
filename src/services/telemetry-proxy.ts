@@ -126,7 +126,7 @@ export class TelemetryProxy {
 		properties: Record<string, unknown>,
 		options: { userId?: string; orgId?: string },
 	): Record<string, unknown> {
-		const extension = vscode.extensions.getExtension("snapback.snapback");
+		const extension = vscode.extensions.getExtension("MarcelleLabs.snapback-vscode");
 		const extensionVersion = extension?.packageJSON.version || "unknown";
 		const vscodeVersion = vscode.version;
 
@@ -237,7 +237,7 @@ export class TelemetryProxy {
 	 * Track extension activation
 	 */
 	async trackActivation(): Promise<void> {
-		const extension = vscode.extensions.getExtension("snapback.snapback");
+		const extension = vscode.extensions.getExtension("MarcelleLabs.snapback-vscode");
 		const extensionVersion = extension?.packageJSON.version || "unknown";
 
 		await this.trackEvent("extension_activated", {

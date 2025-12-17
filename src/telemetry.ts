@@ -382,9 +382,7 @@ export class VSCodeTelemetry {
 
 		// Close event bus connection
 		if (this.eventBus) {
-			if (this.eventBus) {
-				this.eventBus.close();
-			}
+			this.eventBus.close();
 		}
 
 		// The TelemetryClient doesn't have a shutdown method, but we can flush manually

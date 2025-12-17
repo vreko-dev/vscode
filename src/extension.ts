@@ -91,7 +91,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Initialize output channel and logger
 	const outputChannel = vscode.window.createOutputChannel("SnapBack");
 	context.subscriptions.push(outputChannel);
-	context.subscriptions.push(outputChannel);
 	logger.getInstance(outputChannel);
 
 	// 🛡️ Defensive Registration: Register views immediately so UI is never empty
@@ -165,7 +164,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Track extension installation
 		try {
-			const extension = vscode.extensions.getExtension("snapback.snapback");
+			const extension = vscode.extensions.getExtension("MarcelleLabs.snapback-vscode");
 			const extensionVersion = extension?.packageJSON.version || "unknown";
 
 			// Send installation event through telemetry proxy
@@ -1011,6 +1010,18 @@ export async function deactivate() {
 			eventBridge.dispose();
 			eventBridge = null;
 			logger.info("EventBridge disposed");
+		}
+
+		// 🆕 Clear SignalBridge (AI paste/burst detection)
+		if (signalBridge) {
+			signalBridge = null;
+			logger.info("SignalBridge cleared");
+		}
+
+		// 🆕 Clear UserIdentityService
+		if (userIdentityService) {
+			userIdentityService = null;
+			logger.info("UserIdentityService cleared");
 		}
 
 		logger.info("Extension deactivated successfully");

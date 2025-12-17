@@ -73,7 +73,7 @@ export class AuthUriHandler implements vscode.UriHandler {
 	private async exchangeToken(linkToken: string): Promise<void> {
 		try {
 			// Get extension version for device info
-			const extension = vscode.extensions.getExtension("snapback.snapback");
+			const extension = vscode.extensions.getExtension("MarcelleLabs.snapback-vscode");
 			const extensionVersion = extension?.packageJSON.version || "unknown";
 
 			// Call exchange endpoint
