@@ -26,7 +26,7 @@ export default defineConfig({
 			// "test/integration/**/*", // Exclude Mocha integration tests (we now include our own)
 			"test/e2e/**/*", // Exclude E2E tests
 		],
-		setupFiles: ["./test/unit/setup.ts"],
+		setupFiles: ["./test/unit/setup.ts", "./test/unit/msw-setup.ts"],
 		testTimeout: 30000, // 30s timeout for performance tests
 		coverage: {
 			provider: "v8",
