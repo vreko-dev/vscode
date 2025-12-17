@@ -1,6 +1,6 @@
+import * as path from "node:path";
 import * as vscode from "vscode";
-import type { FileState } from "../snapshot/SnapshotDeduplicator";
-import type { SnapshotManager } from "../snapshot/SnapshotManager";
+import type { IStorageManager } from "../storage/types";
 import { logger } from "../utils/logger";
 
 /**
@@ -25,7 +25,7 @@ interface CacheEntry {
  *
  * @example
  * ```typescript
- * const provider = new SnapshotContentProvider(snapshotManager);
+ * const provider = new SnapshotContentProvider(storageManager);
  * context.subscriptions.push(
  *   vscode.workspace.registerTextDocumentContentProvider('snapback', provider)
  * );
@@ -47,7 +47,7 @@ export class SnapshotContentProvider implements vscode.TextDocumentContentProvid
 	private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
 	readonly onDidChange = this._onDidChange.event;
 
-	constructor(private snapshotManager: SnapshotManager) {}
+	constructor(private storageManager: IStorageManager) {}
 
 	/**
 	 * Provide text document content for a snapback:// URI
@@ -72,8 +72,8 @@ export class SnapshotContentProvider implements vscode.TextDocumentContentProvid
 				return cached;
 			}
 
-			// Cache miss - read from SnapshotManager
-			const snapshot = await this.snapshotManager.get(snapshotId);
+			// Cache miss - read from StorageManager
+			const snapshot = await this.storageManager.getSnapshot(snapshotId);
 
 			if (!snapshot) {
 				logger.warn("Snapshot not found for content provider", {
@@ -83,18 +83,42 @@ export class SnapshotContentProvider implements vscode.TextDocumentContentProvid
 				return "";
 			}
 
-			// Find file in snapshot
-			const fileState = snapshot.fileStates?.find((f: FileState) => f.path === filePath);
+			// Find file content in snapshot with smart path matching
+			// Handles relative vs absolute path mismatches
+			let content = snapshot.contents?.[filePath];
 
-			if (!fileState) {
-				logger.warn("File not found in snapshot", { snapshotId, filePath });
+			if (content === undefined) {
+				// Try to find by matching key (handles relative/absolute path differences)
+				const matchingKey = Object.keys(snapshot.contents || {}).find(
+					(key) =>
+						key === filePath ||
+						path.basename(key) === path.basename(filePath) ||
+						key.endsWith(filePath) ||
+						filePath.endsWith(key),
+				);
+
+				if (matchingKey) {
+					content = snapshot.contents[matchingKey];
+					logger.debug("Found content via path matching", {
+						requestedPath: filePath,
+						matchedKey: matchingKey,
+					});
+				}
+			}
+
+			if (content === undefined) {
+				logger.warn("File not found in snapshot", {
+					snapshotId,
+					filePath,
+					availableKeys: Object.keys(snapshot.contents || {}).slice(0, 5),
+				});
 				return "";
 			}
 
 			// Update cache
-			this.updateCache(cacheKey, fileState.content);
+			this.updateCache(cacheKey, content);
 
-			return fileState.content;
+			return content;
 		} catch (error) {
 			logger.error("Failed to provide snapshot content", error instanceof Error ? error : undefined, {
 				uri: uri ? uri.toString() : "unknown",

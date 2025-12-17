@@ -23,6 +23,7 @@ import { AuthState } from "./auth/AuthState";
 import { createCredentialsManager } from "./auth/credentials";
 import { EventBridge } from "./bridges/EventBridge";
 import { SignalBridge } from "./bridges/SignalBridge";
+import { registerDiffCommands } from "./commands/diffCommands"; // 🆕 Import diff commands
 // SnapBackOAuthProvider is now used by UnifiedAuthProvider internally
 import { registerAllCommands } from "./commands/index";
 import { initializeProtectionNotifications } from "./commands/protectionCommands";
@@ -34,6 +35,7 @@ import { FeedbackManager } from "./engine/FeedbackManager";
 import { SaveHandler } from "./handlers/SaveHandler";
 import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration"; // 🆕 Import AutoDecisionIntegration
 import { FileSystemWatcher } from "./protection/FileSystemWatcher";
+import { SnapshotContentProvider } from "./providers/SnapshotContentProvider"; // 🆕 Import SnapshotContentProvider
 import { RulesManager } from "./rules/RulesManager";
 import { initializeSecureConfig } from "./security/SecureConfigService"; // 🆕 Import SecureConfigService
 import { NoopAIRiskService, RemoteAIRiskService } from "./services/aiRiskService";
@@ -54,6 +56,7 @@ import { logger } from "./utils/logger";
 import { findProjectRoot } from "./utils/projectRoot";
 import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver"; // 🆕 Import WorkspaceFolderResolver
 import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry";
+import { WelcomePanel } from "./welcome/WelcomePanel"; // 🆕 Fallback for 3rd party IDEs
 
 // Import the new EventBus and feature flag
 
@@ -221,11 +224,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Mark as installed
 		await context.globalState.update("snapback.installed", true);
 
+		// Get extension ID dynamically to support VS Code forks (Cursor, Qoder, etc.)
+		const extensionId = context.extension.id;
+		const extensionVersion = context.extension.packageJSON.version || "unknown";
+
 		// Track extension installation
 		try {
-			const extension = vscode.extensions.getExtension("MarcelleLabs.snapback-vscode");
-			const extensionVersion = extension?.packageJSON.version || "unknown";
-
 			// Send installation event through telemetry proxy
 			const telemetryProxy = new TelemetryProxy(context);
 			await telemetryProxy.trackEvent("extension_installed", {
@@ -239,13 +243,25 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		// 🆕 Show welcome walkthrough on first install (after a short delay for UI to settle)
-		setTimeout(() => {
-			vscode.commands.executeCommand(
-				"workbench.action.openWalkthrough",
-				"MarcelleLabs.snapback-vscode#snapback.welcome",
-				false, // Don't open in new editor group
-			);
-			logger.info("Welcome walkthrough opened for first-time user");
+		setTimeout(async () => {
+			try {
+				// Try to open the native walkthrough (may not be available in all VS Code forks)
+				await vscode.commands.executeCommand(
+					"workbench.action.openWalkthrough",
+					`${extensionId}#snapback.welcome`,
+					false, // Don't open in new editor group
+				);
+				logger.info("Welcome walkthrough opened for first-time user", { extensionId });
+			} catch (error) {
+				// Walkthrough not supported in this VS Code fork - show WelcomePanel instead
+				logger.warn("Native walkthrough not available, showing WelcomePanel fallback", {
+					extensionId,
+					error: error instanceof Error ? error.message : String(error),
+				});
+
+				// Fallback: Show custom WelcomePanel webview
+				WelcomePanel.createOrShow(context.extensionUri);
+			}
 		}, 1500); // Small delay to let extension fully activate
 	}
 
@@ -737,6 +753,18 @@ export async function activate(context: vscode.ExtensionContext) {
 			phase4Result.snapBackTreeProvider.refresh();
 			phase4Result.explorerTreeProvider?.refresh(); // Also refresh the main tree!
 		};
+
+		// 🆕 Register SnapshotContentProvider for snapback:// URIs (enables diff views)
+		const snapshotContentProvider = new SnapshotContentProvider(phase2Result.storage);
+		context.subscriptions.push(
+			vscode.workspace.registerTextDocumentContentProvider("snapback", snapshotContentProvider),
+		);
+		logger.info("SnapshotContentProvider registered for snapback:// URIs");
+
+		// 🆕 Register diff commands (showFileDiff, viewSnapshot)
+		const diffCommandDisposables = registerDiffCommands(phase2Result.storage);
+		context.subscriptions.push(...diffCommandDisposables);
+		logger.info("Diff commands registered");
 
 		// Register RPC handlers for MCP requests
 		if (eventBus) {
