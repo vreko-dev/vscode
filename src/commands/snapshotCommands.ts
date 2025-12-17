@@ -17,14 +17,17 @@
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
+import { extractSnapshotId } from "../utils/treeItemUtils";
 
 /**
  * Snapshot tree item interface (matches the tree view item structure)
  */
 interface SnapshotTreeItem {
-	id: string;
+	id: string; // Display ID for tree expansion persistence
 	label: string;
 	isProtected?: boolean;
+	// The actual snapshot ID - required when passed from tree view context
+	data?: { type: "snapshot" | "file"; id: string };
 }
 
 /**
@@ -87,13 +90,16 @@ export function registerSnapshotCommands(
 	disposables.push(
 		vscode.commands.registerCommand("snapback.deleteSnapshot", async (item?: SnapshotTreeItem) => {
 			try {
-				if (!item || !item.id) {
+				if (!item) {
 					vscode.window.showErrorMessage("No snapshot selected");
 					return;
 				}
 
+				// Extract actual snapshot ID using utility function
+				const snapshotId = extractSnapshotId(item);
+
 				// Delete with confirmation (handled by SnapshotManager)
-				const result = await snapshotManager.deleteSnapshot(item.id);
+				const result = await snapshotManager.deleteSnapshot(snapshotId);
 
 				if (result.success) {
 					vscode.window.showInformationMessage(`Snapshot "${item.label}" deleted successfully`);
@@ -211,13 +217,16 @@ export function registerSnapshotCommands(
 	disposables.push(
 		vscode.commands.registerCommand("snapback.unprotectAndDeleteSnapshot", async (item?: SnapshotTreeItem) => {
 			try {
-				if (!item || !item.id) {
+				if (!item) {
 					vscode.window.showErrorMessage("No snapshot selected");
 					return;
 				}
 
+				// Extract actual snapshot ID using utility function
+				const snapshotId = extractSnapshotId(item);
+
 				// Delete with unprotectFirst flag
-				const result = await snapshotManager.deleteSnapshot(item.id, {
+				const result = await snapshotManager.deleteSnapshot(snapshotId, {
 					unprotectFirst: true,
 				});
 
@@ -264,10 +273,13 @@ export function registerSnapshotCommands(
 	disposables.push(
 		vscode.commands.registerCommand("snapback.renameSnapshot", async (item?: SnapshotTreeItem) => {
 			try {
-				if (!item || !item.id) {
+				if (!item) {
 					vscode.window.showErrorMessage("No snapshot selected");
 					return;
 				}
+
+				// Extract actual snapshot ID using utility function
+				const snapshotId = extractSnapshotId(item);
 
 				// Get new name from user
 				const newName = await vscode.window.showInputBox({
@@ -288,7 +300,7 @@ export function registerSnapshotCommands(
 					return; // User cancelled
 				}
 
-				await snapshotManager.rename(item.id, newName.trim());
+				await snapshotManager.rename(snapshotId, newName.trim());
 
 				vscode.window.showInformationMessage(`Snapshot renamed to "${newName}"`);
 				refreshViews();
@@ -329,12 +341,15 @@ export function registerSnapshotCommands(
 	disposables.push(
 		vscode.commands.registerCommand("snapback.protectSnapshot", async (item?: SnapshotTreeItem) => {
 			try {
-				if (!item || !item.id) {
+				if (!item) {
 					vscode.window.showErrorMessage("No snapshot selected");
 					return;
 				}
 
-				await snapshotManager.protect(item.id);
+				// Extract actual snapshot ID using utility function
+				const snapshotId = extractSnapshotId(item);
+
+				await snapshotManager.protect(snapshotId);
 
 				vscode.window.showInformationMessage(`Snapshot "${item.label}" is now protected`);
 				refreshViews();
