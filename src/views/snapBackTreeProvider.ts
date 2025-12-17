@@ -71,17 +71,6 @@ class SnapBackTreeItem extends vscode.TreeItem {
 }
 
 // ============================================
-// STORAGE KEYS FOR EXPANSION STATE PERSISTENCE
-// ============================================
-
-const STORAGE_KEYS = {
-	activityExpanded: "snapback.treeView.activityExpanded",
-	protectedExpanded: "snapback.treeView.protectedExpanded",
-	historyExpanded: "snapback.treeView.historyExpanded",
-	isFirstRun: "snapback.treeView.isFirstRun",
-} as const;
-
-// ============================================
 // PROVIDER
 // ============================================
 
@@ -95,7 +84,7 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	private readonly badgeProvider: TreeItemBadgeProvider;
 
 	constructor(
-		private context: vscode.ExtensionContext,
+		_context: vscode.ExtensionContext,
 		private storageManager: IStorageManager,
 		private configManager: IConfigManager,
 	) {
@@ -106,12 +95,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 			onRefreshNeeded: () => this.refresh(),
 		});
 
-		// Set first run flag if not already set
-		if (this.context.globalState.get(STORAGE_KEYS.isFirstRun) === undefined) {
-			this.context.globalState.update(STORAGE_KEYS.isFirstRun, true);
-			// On first run: Activity expanded, others collapsed
-			this.context.globalState.update(STORAGE_KEYS.activityExpanded, true);
-		}
+		// NOTE: VS Code automatically persists expansion state via stable TreeItem.id
+		// No manual globalState tracking needed
 	}
 
 	/**
@@ -239,6 +224,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 			vscode.TreeItemCollapsibleState.Collapsed,
 		);
 
+		// Stable ID for automatic expansion persistence by VS Code
+		item.id = "snapback:root:header";
 		item.tooltip = "Click to see protection breakdown";
 		item.contextValue = "header";
 
@@ -297,21 +284,10 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	// ============================================
 
 	/**
-	 * Get expansion state from global state, defaulting to first run behavior
-	 */
-	private getExpansionState(key: keyof typeof STORAGE_KEYS): boolean {
-		const isFirstRun = this.context.globalState.get<boolean>(STORAGE_KEYS.isFirstRun, true);
-
-		if (isFirstRun) {
-			// First run: Activity expanded, others collapsed
-			return key === "activityExpanded";
-		}
-
-		return this.context.globalState.get<boolean>(STORAGE_KEYS[key], key === "activityExpanded");
-	}
-
-	/**
 	 * Create the unified ACTIVITY section with snapshot count
+	 *
+	 * NOTE: VS Code automatically persists expansion state via stable TreeItem.id.
+	 * Default to expanded for first-time visibility.
 	 */
 	private async createSnapshotGroups(): Promise<SnapBackTreeItem[]> {
 		try {
@@ -324,12 +300,14 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 			}
 
 			// Create unified ACTIVITY header
-			const isExpanded = this.getExpansionState("activityExpanded");
+			// Default to Expanded - VS Code will remember user's preference via stable ID
 			const activityItem = new SnapBackTreeItem(
 				`ACTIVITY (${this.cachedSnapshots.length})`,
 				{ type: "activity-header", count: this.cachedSnapshots.length },
-				isExpanded ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed,
+				vscode.TreeItemCollapsibleState.Expanded,
 			);
+			// Stable ID for automatic expansion persistence by VS Code
+			activityItem.id = "snapback:activity:header";
 			activityItem.contextValue = "activityHeader";
 
 			return [activityItem];
@@ -394,6 +372,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 					vscode.TreeItemCollapsibleState.None,
 				);
 
+				// Stable ID for automatic expansion persistence by VS Code
+				item.id = `snapback:activity:file:${snapshotId}:${filePath}`;
 				// Use iconPath for file icons (codicon syntax doesn't work in labels)
 				item.iconPath = this.getFileIcon(filePath);
 				// Show directory path only if not root
@@ -538,6 +518,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 			collapsibleState,
 		);
 
+		// Stable ID for automatic expansion persistence by VS Code
+		item.id = `snapback:activity:snapshot:${snapshot.id}`;
 		// Description: "— {filename} • {time}"
 		const staleIndicator = badge?.type === "stale" ? " (old)" : "";
 		item.description = `— ${fileName} • ${snapshot.description}${staleIndicator}`;
@@ -612,6 +594,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 						? vscode.TreeItemCollapsibleState.Expanded
 						: vscode.TreeItemCollapsibleState.Collapsed,
 				);
+				// Stable ID for automatic expansion persistence by VS Code
+				item.id = `snapback:activity:time-group:${key}`;
 				item.description = `${data.length}`;
 				items.push(item);
 			}
@@ -630,6 +614,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 			{ type: "problems-header", count: this.problems.length },
 			vscode.TreeItemCollapsibleState.Expanded,
 		);
+		// Stable ID for automatic expansion persistence by VS Code
+		item.id = "snapback:root:problems";
 		item.contextValue = "problems-header";
 		return item;
 	}
@@ -642,6 +628,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 				{ type: "problem", id: problem.id },
 				vscode.TreeItemCollapsibleState.None,
 			);
+			// Stable ID for automatic expansion persistence by VS Code
+			item.id = `snapback:problems:item:${problem.id}`;
 			item.description = problem.action?.label;
 			item.tooltip = problem.description;
 
@@ -715,6 +703,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 				{ type: "cloud-status" },
 				vscode.TreeItemCollapsibleState.None,
 			);
+			// Stable ID for automatic expansion persistence by VS Code
+			item.id = "snapback:root:cloud:connected";
 			item.description = "Connected";
 			item.tooltip = "SnapBack Cloud is connected. Your snapshots are synced.";
 			item.contextValue = "cloudConnected";
@@ -726,6 +716,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 			{ type: "cloud-cta" },
 			vscode.TreeItemCollapsibleState.None,
 		);
+		// Stable ID for automatic expansion persistence by VS Code
+		item.id = "snapback:root:cloud:cta";
 		item.description = "Connect to sync snapshots";
 		item.tooltip = "Connect your SnapBack account to sync snapshots across devices";
 		item.contextValue = "cloudCta";
