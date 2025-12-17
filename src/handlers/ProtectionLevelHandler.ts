@@ -413,7 +413,7 @@ export class ProtectionLevelHandler {
 		// 🔍 DIAGNOSTIC: Before showing modal
 		console.log("[ProtectionLevel] Showing modal: BLOCK confirmation dialog");
 
-		// Show confirmation dialog
+		// Show confirmation dialog (modal has its own dismiss/cancel)
 		const result = await vscode.window.showWarningMessage(
 			`🔴 This file is protected (BLOCK mode).
 
@@ -422,7 +422,6 @@ File: ${filename}
 A snapshot will be created before saving.`,
 			{ modal: true },
 			"Create Snapshot & Save",
-			"Cancel",
 		);
 
 		// 🔍 DIAGNOSTIC: After user responds
@@ -438,16 +437,78 @@ A snapshot will be created before saving.`,
 			throw new vscode.CancellationError();
 		}
 
+		// Prompt for reason - QuickPick with preset options
+		const reasons = [
+			{ label: "$(bug) Fixing a bug", value: "bug-fix" },
+			{ label: "$(key) Updating credentials/secrets", value: "credentials" },
+			{ label: "$(sync) Refactoring", value: "refactor" },
+			{ label: "$(beaker) Testing/experimentation", value: "testing" },
+			{ label: "$(pencil) Other...", value: "custom" },
+		];
+
+		const selected = await vscode.window.showQuickPick(reasons, {
+			title: "🔴 Protected File: Why are you modifying this?",
+			placeHolder: "Select a reason or choose 'Other' to type custom",
+			ignoreFocusOut: true, // Prevents accidental dismiss
+		});
+
+		if (!selected) {
+			// User cancelled the quick pick
+			logger.info("User cancelled BLOCK mode reason selection", { filePath });
+			vscode.window.setStatusBarMessage(`🔴 Save cancelled for ${filename}`, 2000);
+			await this.auditLogger.recordAudit(filePath, protectionLevel, "save_blocked", {
+				reason: "user_cancelled_reason_selection",
+			});
+			await this.restoreDocumentContents(document, preSaveContent);
+			throw new vscode.CancellationError();
+		}
+
+		let justification: string;
+
+		if (selected.value === "custom") {
+			// User chose "Other" - show input box for custom reason
+			const customReason = await vscode.window.showInputBox({
+				title: "Custom Reason",
+				prompt: "Why are you modifying this protected file?",
+				placeHolder: "Describe why you need to override protection...",
+				ignoreFocusOut: true,
+				validateInput: (value: string) => {
+					if (!value || value.trim().length < 5) {
+						return "Please provide a reason (at least 5 characters)";
+					}
+					return null;
+				},
+			});
+
+			if (!customReason) {
+				// User cancelled the input box
+				logger.info("User cancelled BLOCK mode custom reason input", { filePath });
+				vscode.window.setStatusBarMessage(`🔴 Save cancelled for ${filename}`, 2000);
+				await this.auditLogger.recordAudit(filePath, protectionLevel, "save_blocked", {
+					reason: "user_cancelled_custom_reason_input",
+				});
+				await this.restoreDocumentContents(document, preSaveContent);
+				throw new vscode.CancellationError();
+			}
+
+			justification = customReason;
+		} else {
+			// User selected a preset reason
+			justification = selected.value;
+		}
+
+		logger.info("User provided BLOCK mode justification", { filePath, justification });
+
 		// User confirmed - create snapshot
 		try {
-			const snapshotId = await this.createSnapshotForFile(filePath, filename, preSaveContent);
+			const snapshotId = await this.createSnapshotForFile(filePath, filename, preSaveContent, justification);
 			if (snapshotId) {
 				this.cooldownService.setCooldown(filePath, protectionLevel, "snapshot_created", snapshotId);
 				await this.auditLogger.recordAudit(
 					filePath,
 					protectionLevel,
 					"snapshot_created",
-					{ reason: "block_mode_confirmed" },
+					{ reason: "block_mode_confirmed", justification },
 					snapshotId,
 				);
 				vscode.window.setStatusBarMessage(`✅ Snapshot created for ${filename} - save allowed`, 3000);
@@ -609,7 +670,7 @@ A snapshot will be created before saving.`,
 			filename,
 		});
 
-		// Show confirmation dialog to user
+		// Show confirmation dialog (modal has its own dismiss/cancel)
 		const result = await vscode.window.showWarningMessage(
 			`🔴 This file is protected (BLOCK mode).
 
@@ -618,7 +679,6 @@ File: ${filename}
 A snapshot will be created before saving.`,
 			{ modal: true },
 			"Create Snapshot & Save",
-			"Cancel",
 		);
 
 		if (result !== "Create Snapshot & Save") {
@@ -635,9 +695,34 @@ A snapshot will be created before saving.`,
 			throw new vscode.CancellationError();
 		}
 
+		// Prompt for reason/justification
+		const justification = await vscode.window.showInputBox({
+			prompt: "Why are you modifying this protected file?",
+			placeHolder: "e.g., Updating API key rotation, fixing critical bug...",
+			ignoreFocusOut: true,
+			validateInput: (value: string) => {
+				if (!value || value.trim().length < 5) {
+					return "Please provide a reason (at least 5 characters)";
+				}
+				return null;
+			},
+		});
+
+		if (!justification) {
+			// User cancelled the input box
+			logger.info("User cancelled BLOCK mode justification input", { filePath });
+			vscode.window.setStatusBarMessage(`🔴 Save cancelled for ${filename}`, 2000);
+			await this.auditLogger.recordAudit(filePath, protectionLevel, "save_blocked", {
+				reason: "user_cancelled_justification_input",
+			});
+			await this.restoreDocumentContents(document, preSaveContent);
+			throw new vscode.CancellationError();
+		}
+
 		// User confirmed - create snapshot and allow save
 		logger.info("User confirmed BLOCK mode save - creating snapshot", {
 			filePath,
+			justification,
 		});
 
 		try {
@@ -651,7 +736,7 @@ A snapshot will be created before saving.`,
 					filePath,
 					protectionLevel,
 					"snapshot_created",
-					{ reason: "block_mode_confirmed" },
+					{ reason: "block_mode_confirmed", justification },
 					snapshotId,
 				);
 
@@ -860,12 +945,14 @@ A snapshot will be created before saving.`,
 	 * @param filePath - Absolute path to the file
 	 * @param filename - Base name for snapshot naming
 	 * @param preSaveContent - Pre-save content to snapshot (CRITICAL)
+	 * @param userContext - Optional user-provided context (e.g., 'bug-fix', custom reason)
 	 * @returns Promise with snapshot ID, or undefined if creation failed
 	 */
 	private async createSnapshotForFile(
 		filePath: string,
 		_filename: string,
 		preSaveContent: string,
+		userContext?: string,
 	): Promise<string | undefined> {
 		// 🔍 DIAGNOSTIC: Before snapshot creation
 		console.log(`[ProtectionLevel] Creating snapshot for: ${filePath}`);
@@ -874,6 +961,7 @@ A snapshot will be created before saving.`,
 		logger.info("Creating snapshot for file", {
 			filePath,
 			contentLength: preSaveContent.length,
+			userContext,
 		});
 
 		// Get workspace root
@@ -928,6 +1016,7 @@ A snapshot will be created before saving.`,
 				},
 			],
 			workspaceRoot,
+			userContext, // Include user-provided context for naming
 		};
 
 		const snapshotName = await namingStrategy.generateName(snapshotInfo);

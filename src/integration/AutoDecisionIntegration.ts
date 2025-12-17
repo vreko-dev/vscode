@@ -599,14 +599,14 @@ export class AutoDecisionIntegration {
 
 					const snapshot = await this.snapshotManager.createSnapshot([
 						{
-							path: primaryFile.path,
+							path: absolutePath, // Use absolute path for snapshot validation
 							content,
 							action: "modify" as const,
 						},
 					]);
 					logger.info("Snapshot created from AutoDecision", {
 						snapshotId: snapshot.id,
-						filePath: primaryFile.path,
+						filePath: absolutePath,
 					});
 
 					// Show recovery notification - the viral moment!

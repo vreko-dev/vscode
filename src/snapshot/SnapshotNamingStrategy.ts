@@ -22,6 +22,8 @@ export interface FileChange {
 export interface SnapshotInfo {
 	files: FileChange[];
 	workspaceRoot: string;
+	/** Optional user-provided context (e.g., 'bug-fix', 'credentials', or custom text) */
+	userContext?: string;
 }
 
 /**
@@ -56,26 +58,37 @@ export class SnapshotNamingStrategy {
 			return "No changes";
 		}
 
+		// Generate base name using existing intelligent strategy
+		let baseName: string;
+
 		// Tier 1: Git-based naming
 		const gitName = await this.tryGitNaming(info);
 		if (gitName) {
-			return gitName;
+			baseName = gitName;
+		} else {
+			// Tier 2: File operation pattern detection
+			const fileOpName = this.tryFileOperationNaming(info);
+			if (fileOpName) {
+				baseName = fileOpName;
+			} else {
+				// Tier 3: Content analysis
+				const contentName = await this.tryContentAnalysisNaming(info);
+				if (contentName) {
+					baseName = contentName;
+				} else {
+					// Tier 4: Fallback to line counts
+					baseName = this.fallbackNaming(info);
+				}
+			}
 		}
 
-		// Tier 2: File operation pattern detection
-		const fileOpName = this.tryFileOperationNaming(info);
-		if (fileOpName) {
-			return fileOpName;
+		// If user provided context, prepend it (Conventional Commits style)
+		if (info.userContext) {
+			const prefix = this.formatUserContext(info.userContext);
+			return `${prefix}: ${baseName}`;
 		}
 
-		// Tier 3: Content analysis
-		const contentName = await this.tryContentAnalysisNaming(info);
-		if (contentName) {
-			return contentName;
-		}
-
-		// Tier 4: Fallback to line counts
-		return this.fallbackNaming(info);
+		return baseName;
 	}
 
 	/**
@@ -653,5 +666,42 @@ export class SnapshotNamingStrategy {
 			.replace(/[@#$]+/g, " ")
 			.replace(/\s+/g, " ")
 			.trim();
+	}
+
+	/**
+	 * Format user-provided context into a snapshot name prefix
+	 * Follows Conventional Commits style: fix, feat, refactor, etc.
+	 *
+	 * @param context - User context (preset value like 'bug-fix' or custom text)
+	 * @returns Formatted prefix (max 20 chars)
+	 */
+	private formatUserContext(context: string): string {
+		// Map preset values to conventional commit types
+		const presetMap: Record<string, string> = {
+			"bug-fix": "fix",
+			credentials: "chore",
+			refactor: "refactor",
+			testing: "test",
+		};
+
+		// Check if it's a preset value
+		if (presetMap[context]) {
+			return presetMap[context];
+		}
+
+		// For custom text, truncate and clean
+		const cleaned = context
+			.toLowerCase()
+			.replace(/[^a-z0-9\s-]/g, "") // Remove special chars
+			.replace(/\s+/g, "-") // Convert spaces to hyphens
+			.trim();
+
+		// Truncate to max 20 chars
+		const maxLength = 20;
+		if (cleaned.length > maxLength) {
+			return cleaned.substring(0, maxLength);
+		}
+
+		return cleaned || "update";
 	}
 }

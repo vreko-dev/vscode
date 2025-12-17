@@ -179,6 +179,16 @@ export async function activate(context: vscode.ExtensionContext) {
 		} catch (error) {
 			logger.error("Failed to track extension installation", error as Error);
 		}
+
+		// 🆕 Show welcome walkthrough on first install (after a short delay for UI to settle)
+		setTimeout(() => {
+			vscode.commands.executeCommand(
+				"workbench.action.openWalkthrough",
+				"MarcelleLabs.snapback-vscode#snapback.welcome",
+				false, // Don't open in new editor group
+			);
+			logger.info("Welcome walkthrough opened for first-time user");
+		}, 1500); // Small delay to let extension fully activate
 	}
 
 	// 🆕 Initialize CredentialsManager early
@@ -578,6 +588,35 @@ export async function activate(context: vscode.ExtensionContext) {
 		if (offlineModeEnabled) {
 			phase4Result.statusBarController.setOfflineMode(true);
 		}
+
+		// 🆕 Phase 15: Initialize Onboarding & Progressive Disclosure
+		const phase15Start = Date.now();
+		try {
+			const { UserExperienceService } = await import("./services/UserExperienceService");
+			const { ProgressiveDisclosureController } = await import("./ui/ProgressiveDisclosureController");
+			const { OnboardingProgression } = await import("./onboardingProgression");
+
+			// Initialize user experience tracking
+			const userExperienceService = new UserExperienceService(context);
+
+			// Initialize progressive disclosure (shows hints to beginners, hides advanced features)
+			const progressiveDisclosure = new ProgressiveDisclosureController(context, userExperienceService);
+			context.subscriptions.push(progressiveDisclosure);
+
+			// Initialize onboarding progression tracking
+			const onboardingProgression = new OnboardingProgression(context.globalState);
+
+			// Track first activation
+			onboardingProgression.initialize();
+
+			logger.info("Onboarding & Progressive Disclosure initialized", {
+				experienceLevel: await userExperienceService.getExperienceLevel(),
+				onboardingPhase: onboardingProgression.getCurrentPhase(),
+			});
+		} catch (error) {
+			logger.warn("Failed to initialize onboarding services (non-critical)", { error });
+		}
+		phaseTimings["Phase 15 (Onboarding)"] = Date.now() - phase15Start;
 
 		// Create SnapshotRestoreUI now that SnapshotDocumentProvider is available
 		const snapshotRestoreUI = new SnapshotRestoreUI(
