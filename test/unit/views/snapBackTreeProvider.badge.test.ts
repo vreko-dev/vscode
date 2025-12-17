@@ -35,6 +35,13 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 	let provider: SnapBackTreeProvider;
 	let mockStorageManager: IStorageManager;
 	let mockConfigManager: { getProtectionCounts: ReturnType<typeof vi.fn> };
+	let mockContext: {
+		globalState: {
+			get: ReturnType<typeof vi.fn>;
+			update: ReturnType<typeof vi.fn>;
+		};
+		subscriptions: { push: ReturnType<typeof vi.fn> };
+	};
 
 	/**
 	 * Factory for creating mock snapshot manifests
@@ -81,7 +88,18 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 			}),
 		};
 
-		provider = new SnapBackTreeProvider(mockStorageManager, mockConfigManager);
+		// Mock ExtensionContext
+		mockContext = {
+			globalState: {
+				get: vi.fn().mockReturnValue(undefined),
+				update: vi.fn().mockResolvedValue(undefined),
+			},
+			subscriptions: {
+				push: vi.fn(),
+			},
+		};
+
+		provider = new SnapBackTreeProvider(mockContext as unknown as vscode.ExtensionContext, mockStorageManager, mockConfigManager);
 	});
 
 	afterEach(() => {
@@ -92,13 +110,54 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 	// ==================== HELPER FUNCTIONS ====================
 
 	/**
-	 * Helper to get snapshot items from tree
+	 * Helper to get snapshot items from tree for today's group
+	 * Now navigates through ACTIVITY header -> time-group -> snapshots
 	 */
 	async function getSnapshotItems() {
+		return getSnapshotItemsFromGroup("recent");
+	}
+
+	/**
+	 * Helper to get snapshot items from a specific time group
+	 */
+	async function getSnapshotItemsFromGroup(groupKey: string) {
 		const rootItems = await provider.getChildren(undefined);
-		const timeGroup = rootItems.find((item) => item.data.type === "time-group");
-		if (!timeGroup) return [];
-		return provider.getChildren(timeGroup);
+		
+		// First find the ACTIVITY header
+		const activityHeader = rootItems.find((item) => item.data.type === "activity-header");
+		if (!activityHeader) return [];
+		
+		// Then get time groups from ACTIVITY header
+		const timeGroups = await provider.getChildren(activityHeader);
+		const targetGroup = timeGroups.find((item) => item.data.type === "time-group" && item.data.groupKey === groupKey);
+		if (!targetGroup) return [];
+		
+		// Finally get snapshots from time group
+		return provider.getChildren(targetGroup);
+	}
+
+	/**
+	 * Helper to get all snapshot items across all time groups
+	 */
+	async function getAllSnapshotItems() {
+		const rootItems = await provider.getChildren(undefined);
+		
+		// First find the ACTIVITY header
+		const activityHeader = rootItems.find((item) => item.data.type === "activity-header");
+		if (!activityHeader) return [];
+		
+		// Then get time groups from ACTIVITY header
+		const timeGroups = await provider.getChildren(activityHeader);
+		
+		// Get all snapshots from all groups
+		const allSnapshots = [];
+		for (const group of timeGroups) {
+			if (group.data.type === "time-group") {
+				const snapshots = await provider.getChildren(group);
+				allSnapshots.push(...snapshots);
+			}
+		}
+		return allSnapshots;
 	}
 
 	// ==================== HAPPY PATH TESTS ====================
@@ -145,7 +204,7 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 			expect(snapshots[0].label).toMatch(/NEW$/);
 		});
 
-		it("should preserve snapshot name while adding NEW badge", async () => {
+		it("should show NEW badge with event-first label format", async () => {
 			const now = Date.now();
 			const snapshot = createMockManifest("snap-3", now - 60_000, {
 				name: "Important Backup",
@@ -157,8 +216,10 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 
 			const snapshots = await getSnapshotItems();
 
-			expect(snapshots[0].label).toContain("Important Backup");
-			expect(snapshots[0].label).toMatch(/Important Backup.*NEW$/);
+			// New format uses event-first labels: "{icon} {type}" with filename in description
+			expect(snapshots[0].label).toMatch(/NEW$/);
+			// Description contains filename and relative time
+			expect(snapshots[0].description).toContain("test.ts");
 		});
 	});
 
@@ -171,7 +232,8 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 				staleSnapshot,
 			]);
 
-			const snapshots = await getSnapshotItems();
+			// 48h old snapshots go to "this-week" group (2 days ago is within this week)
+			const snapshots = await getSnapshotItemsFromGroup("this-week");
 
 			expect(snapshots.length).toBe(1);
 			expect(snapshots[0].description).toContain("(old)");
@@ -185,7 +247,8 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 				oldSnapshot,
 			]);
 
-			const snapshots = await getSnapshotItems();
+			// 3-day-old snapshots go to "this-week" group
+			const snapshots = await getSnapshotItemsFromGroup("this-week");
 
 			expect(snapshots[0].description).toContain("(old)");
 		});
@@ -215,7 +278,9 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 				midAgeSnapshot,
 			]);
 
-			const snapshots = await getSnapshotItems();
+			// 12h old snapshots at noon would be at midnight - could be today or yesterday
+			// Use getAllSnapshotItems to find it regardless of group
+			const snapshots = await getAllSnapshotItems();
 
 			expect(snapshots[0].description).not.toContain("(old)");
 		});
@@ -281,7 +346,8 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 				justStale,
 			]);
 
-			const snapshots = await getSnapshotItems();
+			// Stale items end up in "yesterday" group
+			const snapshots = await getSnapshotItemsFromGroup("yesterday");
 
 			expect(snapshots[0].description).toContain("(old)");
 		});
@@ -297,7 +363,8 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 				notYetStale,
 			]);
 
-			const snapshots = await getSnapshotItems();
+			// This snapshot is close to 24h old but falls into yesterday group due to date calculation
+			const snapshots = await getSnapshotItemsFromGroup("yesterday");
 
 			expect(snapshots[0].description).not.toContain("(old)");
 		});
@@ -306,10 +373,11 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 			(mockStorageManager.listSnapshots as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
 			const rootItems = await provider.getChildren(undefined);
-			const timeGroups = rootItems.filter((item) => item.data.type === "time-group");
+			// With new structure, there's no ACTIVITY header when no snapshots
+			const activityHeader = rootItems.find((item) => item.data.type === "activity-header");
 
-			// No time groups when no snapshots
-			expect(timeGroups.length).toBe(0);
+			// No activity header when no snapshots
+			expect(activityHeader).toBeUndefined();
 		});
 
 		it("should handle multiple snapshots with mixed badge states", async () => {
@@ -324,7 +392,8 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 				snapshots,
 			);
 
-			const items = await getSnapshotItems();
+			// Snapshots are in different time groups - use getAllSnapshotItems
+			const items = await getAllSnapshotItems();
 
 			// Different snapshots may be in different time groups
 			// At minimum, verify we got items back
@@ -362,8 +431,9 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 				epochSnapshot,
 			]);
 
-			// Should not throw
-			await expect(getSnapshotItems()).resolves.toBeDefined();
+			// Epoch timestamp goes to "older" group - should not throw
+			const snapshots = await getSnapshotItemsFromGroup("older");
+			expect(snapshots.length).toBe(1);
 		});
 
 		it("should handle snapshot with future timestamp", async () => {

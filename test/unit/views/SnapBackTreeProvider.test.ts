@@ -23,6 +23,13 @@ describe("SnapBackTreeProvider", () => {
 	let provider: SnapBackTreeProvider;
 	let mockStorageManager: IStorageManager;
 	let mockConfigManager: IConfigManager;
+	let mockContext: {
+		globalState: {
+			get: ReturnType<typeof vi.fn>;
+			update: ReturnType<typeof vi.fn>;
+		};
+		subscriptions: { push: ReturnType<typeof vi.fn> };
+	};
 
 	// Sample test data
 	const mockSnapshots: SnapshotManifest[] = [
@@ -94,8 +101,20 @@ describe("SnapBackTreeProvider", () => {
 			}),
 		};
 
+		// Mock ExtensionContext
+		mockContext = {
+			globalState: {
+				get: vi.fn().mockReturnValue(undefined),
+				update: vi.fn().mockResolvedValue(undefined),
+			},
+			subscriptions: {
+				push: vi.fn(),
+			},
+		};
+
 		// Create provider instance
 		provider = new SnapBackTreeProvider(
+			mockContext as unknown as vscode.ExtensionContext,
 			mockStorageManager as unknown as IStorageManager,
 			mockConfigManager,
 		);
@@ -156,23 +175,24 @@ describe("SnapBackTreeProvider", () => {
 			expect(protectionSection).toBeDefined();
 		});
 
-		it("should include snapshots section when snapshots exist", async () => {
+		it("should include ACTIVITY section when snapshots exist", async () => {
 			const children = await provider.getChildren();
 
-			const snapshotsSection = children.find(
-				(item) =>
-					typeof item.label === "string" && item.label.includes("Snapshots"),
+			// New UX: ACTIVITY header replaces old Snapshots section
+			const activitySection = children.find(
+				(item) => item.data.type === "activity-header",
 			);
 
-			expect(snapshotsSection).toBeDefined();
+			expect(activitySection).toBeDefined();
 		});
 
-		it("should include actions section", async () => {
+		it("should NOT include ACTIONS section in tree (moved to toolbar)", async () => {
 			const children = await provider.getChildren();
 
+			// Actions are now in toolbar, not in tree
 			const actionsSection = children.find((item) => item.label === "Actions");
 
-			expect(actionsSection).toBeDefined();
+			expect(actionsSection).toBeUndefined();
 		});
 
 		it("should NOT include problems section when no problems exist", async () => {
@@ -222,11 +242,12 @@ describe("SnapBackTreeProvider", () => {
 			const breakdown = await provider.getChildren(protectionSection);
 			const blockItem = breakdown.find((item) => {
 				const label = item.label?.toString() || "";
-				return label.includes("Protected");
+				return label.includes("Block");
 			});
 
 			expect(blockItem).toBeDefined();
-			expect(blockItem?.label).toContain("5 files");
+			// Format: "{icon} Block: 5"
+			expect(blockItem?.label).toContain("5");
 		});
 
 		it("should show correct warn count", async () => {
@@ -236,11 +257,12 @@ describe("SnapBackTreeProvider", () => {
 			const breakdown = await provider.getChildren(protectionSection);
 			const warnItem = breakdown.find((item) => {
 				const label = item.label?.toString() || "";
-				return label.includes("Warning");
+				return label.includes("Warn");
 			});
 
 			expect(warnItem).toBeDefined();
-			expect(warnItem?.label).toContain("3 files");
+			// Format: "{icon} Warn: 3"
+			expect(warnItem?.label).toContain("3");
 		});
 
 		it("should show correct watch count", async () => {
@@ -250,45 +272,49 @@ describe("SnapBackTreeProvider", () => {
 			const breakdown = await provider.getChildren(protectionSection);
 			const watchItem = breakdown.find((item) => {
 				const label = item.label?.toString() || "";
-				return label.includes("Watched");
+				return label.includes("Watch");
 			});
 
 			expect(watchItem).toBeDefined();
-			expect(watchItem?.label).toContain("2 files");
+			// Format: "{icon} Watch: 2"
+			expect(watchItem?.label).toContain("2");
 		});
 	});
 
 	describe("getChildren - time grouping", () => {
-		it("should group snapshots by time periods", async () => {
+		it("should group snapshots by time periods under ACTIVITY header", async () => {
 			const rootChildren = await provider.getChildren();
-			const snapshotsSection = rootChildren.find(
-				(item) =>
-					typeof item.label === "string" && item.label.includes("Snapshots"),
+			const activitySection = rootChildren.find(
+				(item) => item.data.type === "activity-header",
 			);
 
-			expect(snapshotsSection).toBeDefined();
+			expect(activitySection).toBeDefined();
 
-			const timeGroups = await provider.getChildren(snapshotsSection!);
+			const timeGroups = await provider.getChildren(activitySection!);
 
-			// Should have groups: Recent, Yesterday, This Week, Older
+			// Should have time groups: Today, Yesterday, This Week, Earlier
 			expect(timeGroups.length).toBeGreaterThan(0);
 		});
 
-		it("should show 'Recent' group for snapshots < 24h old", async () => {
+		it("should show 'Today' group for snapshots from today", async () => {
 			const rootChildren = await provider.getChildren();
-			const snapshotsSection = rootChildren[1];
+			const activitySection = rootChildren.find(
+				(item) => item.data.type === "activity-header",
+			);
 
-			const groups = await provider.getChildren(snapshotsSection);
-			const recentGroup = groups.find((g) => g.label === "Recent");
+			const groups = await provider.getChildren(activitySection!);
+			const todayGroup = groups.find((g) => g.label === "Today");
 
-			expect(recentGroup).toBeDefined();
+			expect(todayGroup).toBeDefined();
 		});
 
 		it("should show 'Yesterday' group for snapshots 24-48h old", async () => {
 			const rootChildren = await provider.getChildren();
-			const snapshotsSection = rootChildren[1];
+			const activitySection = rootChildren.find(
+				(item) => item.data.type === "activity-header",
+			);
 
-			const groups = await provider.getChildren(snapshotsSection);
+			const groups = await provider.getChildren(activitySection!);
 			const yesterdayGroup = groups.find((g) => g.label === "Yesterday");
 
 			expect(yesterdayGroup).toBeDefined();
@@ -296,67 +322,41 @@ describe("SnapBackTreeProvider", () => {
 
 		it("should show 'This Week' group for snapshots < 7 days old", async () => {
 			const rootChildren = await provider.getChildren();
-			const snapshotsSection = rootChildren[1];
+			const activitySection = rootChildren.find(
+				(item) => item.data.type === "activity-header",
+			);
 
-			const groups = await provider.getChildren(snapshotsSection);
+			const groups = await provider.getChildren(activitySection!);
 			const weekGroup = groups.find((g) => g.label === "This Week");
 
 			expect(weekGroup).toBeDefined();
 		});
 
-		it("should show 'Older' group for snapshots > 7 days old", async () => {
+		it("should show 'Earlier' group for snapshots > 7 days old", async () => {
 			const rootChildren = await provider.getChildren();
-			const snapshotsSection = rootChildren[1];
+			const activitySection = rootChildren.find(
+				(item) => item.data.type === "activity-header",
+			);
 
-			const groups = await provider.getChildren(snapshotsSection);
-			const olderGroup = groups.find((g) => g.label === "Older");
+			const groups = await provider.getChildren(activitySection!);
+			const earlierGroup = groups.find((g) => g.label === "Earlier");
 
-			expect(olderGroup).toBeDefined();
+			expect(earlierGroup).toBeDefined();
 		});
 	});
 
-	describe("getChildren - actions section", () => {
-		it("should show action items", async () => {
+	// NOTE: Actions section removed from tree per UX refactor.
+	// Actions are now in the toolbar (package.json view/title menu).
+	// Keeping test structure for documentation purposes.
+	describe("getChildren - actions (moved to toolbar)", () => {
+		it("should NOT show Actions section in tree (moved to toolbar)", async () => {
 			const rootChildren = await provider.getChildren();
 			const actionsSection = rootChildren.find(
 				(item) => item.label === "Actions",
 			);
 
-			expect(actionsSection).toBeDefined();
-
-			const actionItems = await provider.getChildren(actionsSection!);
-
-			expect(actionItems.length).toBeGreaterThan(0);
-		});
-
-		it("should include 'Create Snapshot' action", async () => {
-			const rootChildren = await provider.getChildren();
-			const actionsSection = rootChildren.find(
-				(item) => item.label === "Actions",
-			);
-
-			const actions = await provider.getChildren(actionsSection!);
-			const createAction = actions.find((a) => {
-				const label = a.label?.toString() || "";
-				return label.includes("Create Snapshot");
-			});
-
-			expect(createAction).toBeDefined();
-		});
-
-		it("should include 'View All Snapshots' action", async () => {
-			const rootChildren = await provider.getChildren();
-			const actionsSection = rootChildren.find(
-				(item) => item.label === "Actions",
-			);
-
-			const actions = await provider.getChildren(actionsSection!);
-			const viewAction = actions.find((a) => {
-				const label = a.label?.toString() || "";
-				return label.includes("View All Snapshots");
-			});
-
-			expect(viewAction).toBeDefined();
+			// Actions are now in toolbar, not in tree
+			expect(actionsSection).toBeUndefined();
 		});
 	});
 
@@ -394,13 +394,20 @@ describe("SnapBackTreeProvider", () => {
 	// Config is managed through setGroupingMode and setProblems instead
 
 	describe("static register method", () => {
+		// Create a full mock context with globalState for register tests
+		const createRegisterMockContext = () => ({
+			subscriptions: [] as any[],
+			globalState: {
+				get: vi.fn().mockReturnValue(undefined),
+				update: vi.fn().mockResolvedValue(undefined),
+			},
+		}) as unknown as vscode.ExtensionContext;
+
 		it("should create provider and TreeView", () => {
-			const mockContext = {
-				subscriptions: [] as any[],
-			} as vscode.ExtensionContext;
+			const registerContext = createRegisterMockContext();
 
 			const result = SnapBackTreeProvider.register(
-				mockContext,
+				registerContext,
 				mockStorageManager,
 				mockConfigManager,
 			);
@@ -410,12 +417,10 @@ describe("SnapBackTreeProvider", () => {
 		});
 
 		it("should register TreeView with correct view ID", () => {
-			const mockContext = {
-				subscriptions: [] as any[],
-			} as vscode.ExtensionContext;
+			const registerContext = createRegisterMockContext();
 
 			SnapBackTreeProvider.register(
-				mockContext,
+				registerContext,
 				mockStorageManager as unknown as IStorageManager,
 				mockConfigManager,
 			);
@@ -430,26 +435,22 @@ describe("SnapBackTreeProvider", () => {
 		});
 
 		it("should add view to context subscriptions", () => {
-			const mockContext = {
-				subscriptions: [] as any[],
-			} as vscode.ExtensionContext;
+			const registerContext = createRegisterMockContext();
 
 			SnapBackTreeProvider.register(
-				mockContext,
+				registerContext,
 				mockStorageManager as unknown as IStorageManager,
 				mockConfigManager,
 			);
 
-			expect(mockContext.subscriptions.length).toBeGreaterThan(0);
+			expect(registerContext.subscriptions.length).toBeGreaterThan(0);
 		});
 
 		it("should allow custom view ID", () => {
-			const mockContext = {
-				subscriptions: [] as any[],
-			} as vscode.ExtensionContext;
+			const registerContext = createRegisterMockContext();
 
 			SnapBackTreeProvider.register(
-				mockContext,
+				registerContext,
 				mockStorageManager as unknown as IStorageManager,
 				mockConfigManager,
 				"custom.view.id",
@@ -477,24 +478,25 @@ describe("SnapBackTreeProvider", () => {
 			expect(rootChildren.length).toBeGreaterThan(0);
 		});
 
-		it("should not show snapshots section when no snapshots exist", async () => {
+		it("should not show ACTIVITY section when no snapshots exist", async () => {
 			mockStorageManager.listSnapshots = vi.fn().mockResolvedValue([]);
 
 			// Need to create new provider to reset cache
 			const emptyProvider = new SnapBackTreeProvider(
+				mockContext as unknown as vscode.ExtensionContext,
 				mockStorageManager as unknown as IStorageManager,
 				mockConfigManager,
 			);
 
 			const rootChildren = await emptyProvider.getChildren();
 
-			const snapshotsSection = rootChildren.find(
-				(item) =>
-					typeof item.label === "string" && item.label.includes("Snapshots"),
+			// New UX uses ACTIVITY header instead of Snapshots section
+			const activitySection = rootChildren.find(
+				(item) => item.data.type === "activity-header",
 			);
 
-			// Following "no news is good news" - hide empty snapshots section
-			expect(snapshotsSection).toBeUndefined();
+			// Following "no news is good news" - hide empty ACTIVITY section
+			expect(activitySection).toBeUndefined();
 		});
 
 		it("should handle zero protected files gracefully", async () => {
@@ -524,6 +526,7 @@ describe("SnapBackTreeProvider", () => {
 
 			// Create new provider to avoid cached data
 			const errorProvider = new SnapBackTreeProvider(
+				mockContext as unknown as vscode.ExtensionContext,
 				mockStorageManager as unknown as IStorageManager,
 				mockConfigManager,
 			);
@@ -541,6 +544,7 @@ describe("SnapBackTreeProvider", () => {
 
 			// Create new provider
 			const errorProvider = new SnapBackTreeProvider(
+				mockContext as unknown as vscode.ExtensionContext,
 				mockStorageManager as unknown as IStorageManager,
 				mockConfigManager,
 			);
