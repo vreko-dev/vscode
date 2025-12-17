@@ -6,7 +6,7 @@
  * These tests verify the complete OAuth 2.0 flow with:
  * - PKCE (Proof Key for Code Exchange) for code challenge/verifier
  * - CSRF protection using state parameter
- * - Token exchange and refresh logic  
+ * - Token exchange and refresh logic
  * - Session persistence in secure storage
  *
  * Uses MSW (Mock Service Worker) for all HTTP mocking.
@@ -91,7 +91,7 @@ describe("OAuthProvider - OAuth 2.0 Flow Integration Tests", () => {
 				http.post(`${AUTH_BASE_URL}/oauth/token`, async ({ request }) => {
 					const body = await request.text();
 					tokenExchangeSpy(body);
-					
+
 					// Verify request contains expected PKCE parameters
 					const params = new URLSearchParams(body);
 					expect(params.get("grant_type")).toBe("authorization_code");
@@ -482,7 +482,7 @@ describe("OAuthProvider - OAuth 2.0 Flow Integration Tests", () => {
 		 * Multiple sequential sign-ins:
 		 * 1. User signs in
 		 * 2. Session A stored
-		 * 3. User switches accounts and signs in again  
+		 * 3. User switches accounts and signs in again
 		 * 4. Session B stored
 		 * 5. Both sessions accessible
 		 */

@@ -19,6 +19,13 @@ describe("SnapBackTreeProvider", () => {
 	let provider: SnapBackTreeProvider;
 	let mockStorageManager: IStorageManager;
 	let mockConfigManager: IConfigManager;
+	let mockContext: {
+		globalState: {
+			get: ReturnType<typeof vi.fn>;
+			update: ReturnType<typeof vi.fn>;
+		};
+		subscriptions: { push: ReturnType<typeof vi.fn> };
+	};
 
 	// Sample test data
 	const mockSnapshots: SnapshotManifest[] = [
@@ -104,8 +111,20 @@ describe("SnapBackTreeProvider", () => {
 			}),
 		};
 
+		// Mock ExtensionContext
+		mockContext = {
+			globalState: {
+				get: vi.fn().mockReturnValue(undefined),
+				update: vi.fn().mockResolvedValue(undefined),
+			},
+			subscriptions: {
+				push: vi.fn(),
+			},
+		};
+
 		// Create provider instance
 		provider = new SnapBackTreeProvider(
+			mockContext as unknown as vscode.ExtensionContext,
 			mockStorageManager as unknown as IStorageManager,
 			mockConfigManager,
 		);
@@ -494,6 +513,7 @@ describe("SnapBackTreeProvider", () => {
 
 			// Need to create new provider to reset cache
 			const emptyProvider = new SnapBackTreeProvider(
+				mockContext as unknown as vscode.ExtensionContext,
 				mockStorageManager as unknown as IStorageManager,
 				mockConfigManager,
 			);
@@ -536,6 +556,7 @@ describe("SnapBackTreeProvider", () => {
 
 			// Create new provider to avoid cached data
 			const errorProvider = new SnapBackTreeProvider(
+				mockContext as unknown as vscode.ExtensionContext,
 				mockStorageManager as unknown as IStorageManager,
 				mockConfigManager,
 			);
@@ -553,6 +574,7 @@ describe("SnapBackTreeProvider", () => {
 
 			// Create new provider
 			const errorProvider = new SnapBackTreeProvider(
+				mockContext as unknown as vscode.ExtensionContext,
 				mockStorageManager as unknown as IStorageManager,
 				mockConfigManager,
 			);
