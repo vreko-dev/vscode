@@ -101,6 +101,64 @@ export async function activate(context: vscode.ExtensionContext) {
 	outputChannel.appendLine("🚀 SnapBack Extension Activating...");
 	outputChannel.appendLine("[PERF] Measuring activation phases...");
 
+	// 🛡️ CRITICAL: Install global error handlers to prevent process.exit()
+	// These handlers catch unhandled promise rejections and uncaught exceptions
+	// that could otherwise trigger process.exit() and crash the extension
+	process.on("unhandledRejection", (reason, promise) => {
+		const errorMessage = reason instanceof Error ? reason.message : String(reason);
+		const errorStack = reason instanceof Error ? reason.stack : undefined;
+		const error = reason instanceof Error ? reason : new Error(String(reason));
+
+		logger.error("CRITICAL: Unhandled Promise Rejection during activation", error, {
+			promise: String(promise),
+			errorMessage,
+			errorStack,
+		});
+
+		// DO NOT call process.exit() - log and attempt recovery
+		vscode.window.showErrorMessage(
+			"SnapBack encountered an unexpected error during activation. Some features may be unavailable. Check Output → SnapBack for details.",
+		);
+	});
+
+	process.on("uncaughtException", (error) => {
+		logger.error("CRITICAL: Uncaught Exception during activation", error, {
+			errorName: error.name,
+		});
+
+		// DO NOT call process.exit() - log and attempt recovery
+		vscode.window.showErrorMessage(
+			"SnapBack encountered a critical error. Extension may be unstable. Please reload VS Code.",
+		);
+	});
+
+	// 🛡️ CRITICAL: Install process.exit() guard to prevent accidental crashes
+	// Task 5: Remove or Guard process.exit() Calls
+	function preventProcessExit() {
+		process.exit = ((code?: number) => {
+			const stack = new Error().stack;
+			logger.error("PREVENTED: process.exit() call blocked", new Error(`process.exit(${code}) attempted`), {
+				exitCode: code,
+				stack,
+			});
+
+			// Show error to user
+			vscode.window.showErrorMessage(
+				"SnapBack: Prevented process.exit() call. This would have crashed VS Code. Check Output → SnapBack for details.",
+			);
+
+			// Throw error instead of exiting
+			throw new Error(
+				`process.exit(${code}) blocked. Extension code must not call process.exit(). Stack trace logged.`,
+			);
+		}) as typeof process.exit;
+
+		logger.info("process.exit() guard installed - accidental exit calls will be blocked");
+	}
+
+	// Install the guard immediately after error handlers
+	preventProcessExit();
+
 	// 🔐 UNIFIED AUTH PROVIDER (Proxy Pattern)
 	// Registers ONCE with VS Code, delegates to Real or Mock based on test mode.
 	// This solves the "Provider Locking" limitation where VS Code doesn't allow

@@ -38,6 +38,9 @@ vitest.config.ts
 # Note: We exclude scripts but need to keep dist/node_modules for native modules
 scripts/
 
+# Spike/experimental code (CRITICAL - contains process.exit())
+spike/
+
 # IMPORTANT: Include dist/node_modules ONLY for native dependencies like better-sqlite3
 !dist/node_modules/
 # But exclude sql.js - we copy only minimal WASM file to dist/sql-wasm.wasm manually
