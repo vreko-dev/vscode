@@ -20,22 +20,9 @@ vi.mock("../../../src/utils/AIPresenceDetector.js", () => ({
 	detectAIPresence: vi.fn(),
 }));
 
-// Mock vscode module
-vi.mock("vscode", () => {
-	return {
-		workspace: {
-			getConfiguration: vi.fn(() => ({
-				get: vi.fn((key: string, defaultValue: any) => defaultValue),
-			})),
-			asRelativePath: vi.fn((uri: any) => uri.path || uri.fsPath),
-			onDidChangeTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
-			onDidCloseTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
-		},
-		window: {
-			onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
-		},
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 import { detectAIPresence } from "@vscode/utils/AIPresenceDetector.js";
 

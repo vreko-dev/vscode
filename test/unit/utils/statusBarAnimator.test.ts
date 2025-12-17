@@ -25,19 +25,9 @@ import {
 	ANIMATION_PRESETS,
 } from "@vscode/utils/statusBarAnimator";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	workspace: {
-		getConfiguration: vi.fn(),
-	},
-	window: {
-		createStatusBarItem: vi.fn(),
-	},
-	StatusBarAlignment: {
-		Left: 1,
-		Right: 2,
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("StatusBarAnimator", () => {
 	let animator: StatusBarAnimator;

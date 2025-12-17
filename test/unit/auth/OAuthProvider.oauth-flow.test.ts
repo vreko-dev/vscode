@@ -14,37 +14,13 @@
  * @see apps/vscode/src/auth/OAuthProvider.ts
  */
 
-import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { http, HttpResponse } from "msw";
-import { setupServer } from "msw/node";
-
-// ============================================================================
-// MSW Setup - Mock OAuth Server Endpoints
-// ============================================================================
-
-const AUTH_BASE_URL = "https://auth.snapback.dev";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+// Import centralized MSW server - DO NOT call mswServer.listen() or mswServer.close() here!
+import { mswServer, http, HttpResponse, AUTH_BASE_URL, createTokenResponse } from "../msw-setup";
 
 // ============================================================================
 // Helper Functions - Test Utilities
 // ============================================================================
-
-/**
- * Create standard token response for successful OAuth flow
- */
-function createTokenResponse(overrides?: Partial<{
-	access_token: string;
-	refresh_token: string;
-	expires_in: number;
-	token_type: string;
-}>) {
-	return {
-		access_token: "test_access_token_123",
-		refresh_token: "test_refresh_token_456",
-		expires_in: 3600,
-		token_type: "Bearer",
-		...overrides,
-	};
-}
 
 /**
  * Create standard error response for OAuth failures
@@ -76,42 +52,8 @@ function createStateValidator() {
 	};
 }
 
-/**
- * MSW Server with default successful OAuth responses
- * Can be overridden in individual tests using mswServer.use()
- */
-const mswServer = setupServer(
-	// Token endpoint - handles both authorization_code and refresh_token grants
-	http.post(`${AUTH_BASE_URL}/oauth/token`, async ({ request }) => {
-		const body = await request.text();
-		const params = new URLSearchParams(body);
-		const grantType = params.get("grant_type");
-
-		// HAPPY PATH: Authorization code exchange
-		if (grantType === "authorization_code") {
-			return HttpResponse.json(createTokenResponse());
-		}
-
-		// HAPPY PATH: Refresh token exchange
-		if (grantType === "refresh_token") {
-			return HttpResponse.json(createTokenResponse({
-				access_token: "test_access_token_new_789",
-				refresh_token: "test_refresh_token_new_012",
-			}));
-		}
-
-		// Default error for unhandled grant types
-		return createErrorResponse(
-			"unsupported_grant_type",
-			"Grant type not supported",
-		);
-	}),
-
-	// Revoke endpoint - for session logout
-	http.post(`${AUTH_BASE_URL}/oauth/revoke`, () => {
-		return HttpResponse.json({ revoked: true });
-	}),
-);
+// Token endpoint handlers are configured in msw-setup.ts
+// Tests can override specific handlers using mswServer.use()
 
 // ============================================================================
 // Test Suite: OAuthProvider
@@ -119,17 +61,11 @@ const mswServer = setupServer(
 
 describe("OAuthProvider - OAuth 2.0 Flow Integration Tests", () => {
 	beforeEach(() => {
-		// Start MSW server for this test
-		mswServer.listen({ onUnhandledRequest: "error" });
+		// MSW server is started globally in msw-setup.ts - no need to call listen() here
 		vi.clearAllMocks();
 	});
 
-	afterEach(async () => {
-		// Clean up MSW server
-		mswServer.resetHandlers();
-		mswServer.close();
-		vi.clearAllMocks();
-	});
+	// afterEach handler reset is done globally in msw-setup.ts
 
 	// ========================================================================
 	// HAPPY PATH: Successful OAuth Flows

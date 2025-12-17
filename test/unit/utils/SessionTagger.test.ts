@@ -10,38 +10,9 @@ import {
 	updateSessionWithTags,
 } from "@vscode/utils/SessionTagger";
 
-// Mock VS Code extensions API
-vi.mock("vscode", () => ({
-	extensions: {
-		all: [
-			{
-				id: "github.copilot",
-				packageJSON: { name: "GitHub Copilot" },
-				extensionUri: {} as any,
-				extensionPath: "",
-				isActive: true,
-				extensionKind: 1,
-				exports: {},
-				activate: vi.fn(),
-			},
-			{
-				id: "some.other.extension",
-				packageJSON: { name: "Other Extension" },
-				extensionUri: {} as any,
-				extensionPath: "",
-				isActive: true,
-				extensionKind: 1,
-				exports: {},
-				activate: vi.fn(),
-			},
-		],
-	},
-	workspace: {
-		getConfiguration: vi.fn().mockReturnValue({
-			get: vi.fn().mockReturnValue(undefined),
-		}),
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 // Mock AI presence detection
 vi.mock("../../../src/utils/AIPresenceDetector.js", () => ({

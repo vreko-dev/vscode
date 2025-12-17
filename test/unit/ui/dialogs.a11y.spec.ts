@@ -2,16 +2,9 @@ import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { SnapBackDialogs } from "@vscode/ui/dialogs";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		window: {
-			showErrorMessage: vi.fn(),
-			showInputBox: vi.fn(),
-			showWarningMessage: vi.fn(),
-		},
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("Dialogs Accessibility", () => {
 	beforeEach(() => {

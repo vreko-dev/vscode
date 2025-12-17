@@ -3,21 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PolicyManager } from "@vscode/policy/PolicyManager";
 import type { PolicyConfig } from "@vscode/types/policy.types";
 
-// Mock VS Code APIs
-vi.mock("vscode", () => ({
-	workspace: {
-		createFileSystemWatcher: vi.fn().mockReturnValue({
-			onDidChange: vi.fn(),
-			onDidCreate: vi.fn(),
-			onDidDelete: vi.fn(),
-		}),
-	},
-	window: {
-		showWarningMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-		showQuickPick: vi.fn(),
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 // Mock logger
 vi.mock("../../../src/utils/logger", () => ({

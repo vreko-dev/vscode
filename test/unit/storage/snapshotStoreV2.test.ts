@@ -13,36 +13,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
 
-// Mock vscode with proper fs behavior
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 const mockReadFile = vi.fn();
 const mockWriteFile = vi.fn();
 const mockReadDirectory = vi.fn();
 const mockCreateDirectory = vi.fn();
 const mockRename = vi.fn();
-
-vi.mock("vscode", () => ({
-	workspace: {
-		fs: {
-			readFile: (uri: { fsPath: string }) => mockReadFile(uri),
-			writeFile: (uri: { fsPath: string }, content: Uint8Array) => mockWriteFile(uri, content),
-			readDirectory: (uri: { fsPath: string }) => mockReadDirectory(uri),
-			delete: vi.fn().mockResolvedValue(undefined),
-			stat: vi.fn().mockResolvedValue({ type: 1, size: 100 }),
-			createDirectory: (uri: { fsPath: string }) => mockCreateDirectory(uri),
-			rename: (source: any, target: any, options?: any) => mockRename(source, target, options),
-		},
-	},
-	Uri: {
-		joinPath: vi.fn((base: { fsPath: string }, ...segments: string[]) => ({
-			fsPath: [base.fsPath, ...segments].join("/"),
-		})),
-		file: vi.fn((path: string) => ({ fsPath: path })),
-	},
-	FileType: {
-		File: 1,
-		Directory: 2,
-	},
-}));
 
 // Import after mocks
 import type { SnapshotManifestV2 } from "../../../src/storage/types";

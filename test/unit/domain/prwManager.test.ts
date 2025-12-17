@@ -22,16 +22,9 @@ const mockCanSnapshot = vi.fn();
 const mockRecordSnapshot = vi.fn();
 const mockReadFile = vi.fn();
 
-vi.mock("vscode", () => ({
-	workspace: {
-		fs: {
-			readFile: (...args: unknown[]) => mockReadFile(...args),
-		},
-	},
-	Uri: {
-		file: (path: string) => ({ fsPath: path, path }),
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("PRWManager", () => {
 	// Will import after mocks are set up

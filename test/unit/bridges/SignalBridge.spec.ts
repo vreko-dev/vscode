@@ -16,23 +16,9 @@ import * as vscodeModule from "vscode";
 import { SignalBridge } from "../../../src/bridges/SignalBridge";
 import type { ConfigStore } from "../../../src/storage/ConfigStore";
 
-// Mock VS Code module
-vi.mock("vscode", () => ({
-	workspace: {
-		getConfiguration: vi.fn(() => ({
-			get: vi.fn((key: string, defaultValue: boolean) => defaultValue),
-		})),
-	},
-	extensions: {
-		all: [
-			{ id: "github.copilot" },
-			{ id: "ms-vscode.vscode-typescript-next" },
-		],
-	},
-	Uri: {
-		file: (path: string) => ({ fsPath: path }),
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 // Mock V1 BurstDetector
 vi.mock("../../../src/engine/BurstDetector", () => ({

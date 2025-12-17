@@ -14,51 +14,9 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock vscode with inline factory (ESM compatible)
-vi.mock("vscode", () => {
-	// Mock EventEmitter class
-	class MockEventEmitter {
-		private listeners: Array<(e: unknown) => void> = [];
-		event = (listener: (e: unknown) => void) => {
-			this.listeners.push(listener);
-			return { dispose: () => {} };
-		};
-		fire = (e?: unknown) => {
-			for (const listener of this.listeners) listener(e);
-		};
-		dispose = () => {
-			this.listeners = [];
-		};
-	}
-
-	return {
-		TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
-		TreeItem: class MockTreeItem {
-			label: string;
-			collapsibleState: number;
-			description?: string;
-			tooltip?: string;
-			contextValue?: string;
-			command?: unknown;
-			constructor(label: string, collapsibleState = 0) {
-				this.label = label;
-				this.collapsibleState = collapsibleState;
-			}
-		},
-		EventEmitter: MockEventEmitter,
-		window: {
-			showInformationMessage: vi.fn(),
-			showErrorMessage: vi.fn(),
-			createTreeView: vi.fn(() => ({ dispose: vi.fn() })),
-		},
-		workspace: {
-			getConfiguration: vi.fn().mockReturnValue({
-				get: vi.fn().mockReturnValue(undefined),
-			}),
-		},
-		ThemeColor: vi.fn().mockImplementation((id: string) => ({ id })),
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 // Mock infrastructure logger
 vi.mock("@snapback/infrastructure", () => ({

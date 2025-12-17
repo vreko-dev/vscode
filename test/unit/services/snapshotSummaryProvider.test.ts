@@ -3,21 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { StorageSnapshotSummaryProvider } from "@vscode/services/snapshotSummaryProvider";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		workspace: {
-			workspaceFolders: [
-				{
-					uri: {
-						fsPath: "/test/workspace",
-					},
-				},
-			],
-		},
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 // Mock the storage implementation
 const mockStorage: SnapshotStorage = {

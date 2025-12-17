@@ -5,27 +5,14 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as vscode from "vscode";
 import type { CommandContext } from "@vscode/commands/index";
 import { registerSessionCommands } from "@vscode/commands/sessionCommands";
 import type { SessionManifest } from "@vscode/snapshot/sessionTypes";
 
-// Mock VS Code APIs
-const mockVscode = {
-	commands: {
-		registerCommand: vi.fn(),
-	},
-	window: {
-		showErrorMessage: vi.fn(),
-		showWarningMessage: vi.fn(),
-		showInformationMessage: vi.fn(),
-	},
-	workspace: {
-		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
-	},
-};
-
-// Use the global mock from setup.ts
-vi.mock("vscode", () => mockVscode);
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("Session Commands", () => {
 	let commandContext: CommandContext;
@@ -63,7 +50,7 @@ describe("Session Commands", () => {
 			const disposables = registerSessionCommands({} as any, commandContext);
 
 			// Assert
-			expect(mockVscode.commands.registerCommand).toHaveBeenCalledWith(
+			expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
 				"snapback.restoreSession",
 				expect.any(Function),
 			);
@@ -74,15 +61,15 @@ describe("Session Commands", () => {
 			// Arrange
 			const _disposables = registerSessionCommands({} as any, commandContext);
 			const restoreCommand =
-				mockVscode.commands.registerCommand.mock.calls.find(
+				vi.mocked(vscode.commands.registerCommand).mock.calls.find(
 					(call) => call[0] === "snapback.restoreSession",
-				)[1];
+				)?.[1];
 
 			// Act
-			await restoreCommand();
+			await restoreCommand?.();
 
 			// Assert
-			expect(mockVscode.window.showErrorMessage).toHaveBeenCalledWith(
+			expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
 				"No session selected",
 			);
 		});
@@ -108,9 +95,9 @@ describe("Session Commands", () => {
 
 			const _disposables = registerSessionCommands({} as any, commandContext);
 			const restoreCommand =
-				mockVscode.commands.registerCommand.mock.calls.find(
+				vi.mocked(vscode.commands.registerCommand).mock.calls.find(
 					(call) => call[0] === "snapback.restoreSession",
-				)[1];
+				)?.[1];
 
 			// Mock snapshot manager to return snapshots
 			mockSnapshotManager.get
@@ -121,20 +108,20 @@ describe("Session Commands", () => {
 			mockStorage.restore.mockResolvedValue({ success: true });
 
 			// Mock user confirmation
-			mockVscode.window.showWarningMessage.mockResolvedValue("Restore Session");
+			vi.mocked(vscode.window.showWarningMessage).mockResolvedValue("Restore Session" as any);
 
 			// Act
-			await restoreCommand({ session });
+			await restoreCommand?.({ session });
 
 			// Assert
-			expect(mockVscode.window.showWarningMessage).toHaveBeenCalledWith(
+			expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
 				`Restore 2 files from session "${session.id}"?`,
 				{ modal: true },
 				"Restore Session",
 			);
 			expect(mockSnapshotManager.get).toHaveBeenCalledTimes(2);
 			expect(mockStorage.restore).toHaveBeenCalledTimes(2);
-			expect(mockVscode.window.showInformationMessage).toHaveBeenCalledWith(
+			expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
 				`Restored 2 files from session ${session.id}`,
 			);
 		});
@@ -156,9 +143,9 @@ describe("Session Commands", () => {
 
 			const _disposables = registerSessionCommands({} as any, commandContext);
 			const restoreCommand =
-				mockVscode.commands.registerCommand.mock.calls.find(
+				vi.mocked(vscode.commands.registerCommand).mock.calls.find(
 					(call) => call[0] === "snapback.restoreSession",
-				)[1];
+				)?.[1];
 
 			// Mock snapshot manager to return a snapshot
 			mockSnapshotManager.get.mockResolvedValue({ id: "snapshot-1" });
@@ -170,13 +157,13 @@ describe("Session Commands", () => {
 			});
 
 			// Mock user confirmation
-			mockVscode.window.showWarningMessage.mockResolvedValue("Restore Session");
+			vi.mocked(vscode.window.showWarningMessage).mockResolvedValue("Restore Session" as any);
 
 			// Act
-			await restoreCommand({ session });
+			await restoreCommand?.({ session });
 
 			// Assert
-			expect(mockVscode.window.showErrorMessage).toHaveBeenCalledWith(
+			expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
 				expect.stringContaining("Failed to restore session"),
 			);
 		});
@@ -188,7 +175,7 @@ describe("Session Commands", () => {
 			const _disposables = registerSessionCommands({} as any, commandContext);
 
 			// Assert
-			expect(mockVscode.commands.registerCommand).toHaveBeenCalledWith(
+			expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
 				"snapback.previewRestoreSession",
 				expect.any(Function),
 			);
@@ -198,15 +185,15 @@ describe("Session Commands", () => {
 			// Arrange
 			const _disposables = registerSessionCommands({} as any, commandContext);
 			const previewCommand =
-				mockVscode.commands.registerCommand.mock.calls.find(
+				vi.mocked(vscode.commands.registerCommand).mock.calls.find(
 					(call) => call[0] === "snapback.previewRestoreSession",
-				)[1];
+				)?.[1];
 
 			// Act
-			await previewCommand();
+			await previewCommand?.();
 
 			// Assert
-			expect(mockVscode.window.showErrorMessage).toHaveBeenCalledWith(
+			expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
 				"No session selected",
 			);
 		});

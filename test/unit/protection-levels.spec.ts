@@ -1,22 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useFakeTimers } from "../setup/globals";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		window: {
-			showInformationMessage: vi.fn(),
-			showWarningMessage: vi.fn(),
-			showErrorMessage: vi.fn(),
-		},
-		workspace: {
-			getConfiguration: vi.fn().mockReturnValue({
-				get: vi.fn().mockReturnValue(true),
-			}),
-		},
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("Protection Levels (46-72)", () => {
 	let _clock: ReturnType<typeof useFakeTimers>;

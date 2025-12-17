@@ -2,76 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SuppressionCodeActionsProvider } from "@vscode/suppressions/code-actions";
 import { SuppressionManager } from "@vscode/suppressions/manager";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	const mockRange = class {
-		start: any;
-		end: any;
-
-		constructor(
-			startLine: number,
-			startCharacter: number,
-			endLine: number,
-			endCharacter: number,
-		) {
-			this.start = { line: startLine, character: startCharacter };
-			this.end = { line: endLine, character: endCharacter };
-		}
-
-		intersection(_range: any) {
-			// Simple mock implementation that always returns a truthy value
-			return this;
-		}
-	};
-
-	const mockUri = {
-		toString: () => "file:///test.ts",
-		fsPath: "/test.ts",
-	};
-
-	return {
-		window: {
-			createStatusBarItem: vi.fn().mockReturnValue({
-				text: "",
-				backgroundColor: undefined,
-				command: "",
-				tooltip: undefined,
-				show: vi.fn(),
-				hide: vi.fn(),
-				dispose: vi.fn(),
-			}),
-		},
-		ThemeColor: vi.fn(),
-		StatusBarAlignment: { Left: 1 },
-		CodeAction: class {
-			title: string;
-			kind: any;
-			command: any;
-
-			constructor(title: string, kind: any) {
-				this.title = title;
-				this.kind = kind;
-			}
-		},
-		CodeActionKind: {
-			QuickFix: { append: vi.fn().mockReturnValue({} as any) },
-		},
-		Range: mockRange,
-		Selection: class extends mockRange {},
-		Uri: mockUri,
-		MarkdownString: vi.fn().mockImplementation(() => {
-			const markdownString = {
-				value: "",
-				appendMarkdown: vi.fn().mockImplementation((content) => {
-					markdownString.value += content;
-				}),
-				supportHtml: false,
-				isTrusted: false,
-			};
-			return markdownString;
-		}),
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("Suppressions", () => {
 	let suppressionManager: SuppressionManager;

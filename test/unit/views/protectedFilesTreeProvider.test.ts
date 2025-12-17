@@ -6,74 +6,9 @@ import type {
 	ProtectedFileProvider,
 } from "@vscode/views/types";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	TreeItem: class TreeItem {
-		constructor(
-			public label: string,
-			public collapsibleState?: number,
-		) {}
-		id?: string;
-		contextValue?: string;
-		iconPath?:
-			| string
-			| vscode.Uri
-			| { light: string | vscode.Uri; dark: string | vscode.Uri }
-			| vscode.ThemeIcon;
-		description?: string;
-		tooltip?: string | vscode.MarkdownString;
-		command?: vscode.Command;
-	},
-	TreeItemCollapsibleState: {
-		None: 0,
-		Collapsed: 1,
-		Expanded: 2,
-	},
-	ThemeIcon: class ThemeIcon {
-		constructor(
-			public id: string,
-			public color?: vscode.ThemeColor,
-		) {}
-	},
-	ThemeColor: class ThemeColor {
-		constructor(public id: string) {}
-	},
-	MarkdownString: class MarkdownString {
-		value = "";
-		supportHtml = false;
-		isTrusted = false;
-		appendMarkdown(value: string) {
-			this.value += value;
-		}
-	},
-	Uri: {
-		file: (path: string) => ({ fsPath: path, scheme: "file", path }),
-	},
-	EventEmitter: class EventEmitter<T> {
-		private listeners: ((data: T) => void)[] = [];
-		event = (listener: (data: T) => void) => {
-			this.listeners.push(listener);
-			return { dispose: () => {} };
-		};
-		fire(data: T) {
-			this.listeners.forEach((l) => {
-				l(data);
-			});
-		}
-		dispose() {
-			this.listeners = [];
-		}
-	},
-	workspace: {
-		workspaceFolders: [
-			{
-				uri: { fsPath: "/test/workspace" },
-				name: "test-workspace",
-				index: 0,
-			},
-		],
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("ProtectedFilesTreeProvider", () => {
 	let provider: ProtectedFilesTreeProvider;

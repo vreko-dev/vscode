@@ -3,17 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { VSCodeTelemetry } from "../../src/telemetry";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		workspace: {
-			getConfiguration: vi.fn().mockReturnValue({
-				get: vi.fn().mockReturnValue(undefined),
-			}),
-		},
-		version: "1.75.0",
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Re-mocking would overwrite it with an incomplete version causing:
+// "No 'extensions' export is defined on the 'vscode' mock" errors
 
 // Mock the telemetry client to capture all tracking calls
 const capturedEvents: Array<{

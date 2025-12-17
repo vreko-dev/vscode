@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import type {
 	IStorageManager,
@@ -6,47 +6,9 @@ import type {
 } from "@vscode/storage/types";
 import { SnapBackTreeProvider } from "@vscode/views/SnapBackTreeProvider";
 
-// Mock vscode module
-vi.mock("vscode", () => ({
-	TreeItemCollapsibleState: {
-		None: 0,
-		Collapsed: 1,
-		Expanded: 2,
-	},
-	TreeItem: class {
-		label: string;
-		collapsibleState: number;
-		description?: string;
-		tooltip?: string;
-		iconPath?: any;
-		contextValue?: string;
-		command?: any;
-		constructor(label: string, collapsibleState?: number) {
-			this.label = label;
-			this.collapsibleState = collapsibleState ?? 0;
-		}
-	},
-	ThemeIcon: class {
-		id: string;
-		constructor(id: string) {
-			this.id = id;
-		}
-	},
-	EventEmitter: class {
-		event: any;
-		constructor() {
-			this.event = vi.fn();
-		}
-		fire = vi.fn();
-		dispose = vi.fn();
-	},
-	window: {
-		createTreeView: vi.fn((_viewId, _options) => ({
-			dispose: vi.fn(),
-			visible: true,
-		})),
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 // Mock interfaces - matching actual implementation
 interface IConfigManager {

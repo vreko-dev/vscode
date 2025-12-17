@@ -30,61 +30,9 @@ const { mockSnapshots, mockShowQuickPick, mockShowWarningMessage, mockShowInform
 	};
 });
 
-// Mock vscode
-vi.mock("vscode", () => ({
-	window: {
-		showQuickPick: mockShowQuickPick,
-		showWarningMessage: mockShowWarningMessage,
-		showInformationMessage: mockShowInformationMessage,
-		showErrorMessage: mockShowErrorMessage,
-		withProgress: vi.fn((options, task) => task({ report: vi.fn() })),
-		createQuickPick: vi.fn(() => ({
-			title: "",
-			placeholder: "",
-			items: [],
-			selectedItems: [],
-			onDidAccept: vi.fn(),
-			onDidHide: vi.fn(),
-			show: vi.fn(),
-			dispose: vi.fn(),
-			canSelectMany: false,
-			matchOnDetail: false,
-			matchOnDescription: false,
-		})),
-		tabGroups: {
-			all: [],
-			close: vi.fn(),
-		},
-		createStatusBarItem: vi.fn(() => ({
-			show: vi.fn(),
-			hide: vi.fn(),
-			dispose: vi.fn(),
-			text: "",
-		})),
-	},
-	workspace: {
-		fs: {
-			writeFile: mockWriteFile,
-			readFile: mockReadFile,
-		},
-		workspaceFolders: [{ uri: { fsPath: "/test/workspace" } }],
-	},
-	commands: {
-		executeCommand: vi.fn(),
-	},
-	Uri: {
-		file: (path: string) => ({ fsPath: path, scheme: "file", path }),
-		parse: (str: string) => ({ fsPath: str, scheme: "snapback-snapshot", path: str }),
-	},
-	ProgressLocation: {
-		Window: 10,
-		Notification: 15,
-	},
-	StatusBarAlignment: {
-		Left: 1,
-		Right: 2,
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 // Mock infrastructure logger
 vi.mock("@snapback/infrastructure", () => ({

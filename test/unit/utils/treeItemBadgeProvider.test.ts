@@ -28,13 +28,9 @@ import {
 	DEFAULT_BADGE_CONFIG,
 } from "@vscode/utils/treeItemBadgeProvider";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	ThemeColor: vi.fn().mockImplementation((id: string) => ({ id })),
-	workspace: {
-		getConfiguration: vi.fn(),
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("TreeItemBadgeProvider", () => {
 	let badgeProvider: TreeItemBadgeProvider;

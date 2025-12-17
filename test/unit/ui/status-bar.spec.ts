@@ -1,37 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { StatusBarController } from "@vscode/ui/status-bar";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		createStatusBarItem: vi.fn().mockReturnValue({
-			text: "",
-			tooltip: "",
-			command: "",
-			backgroundColor: undefined,
-			show: vi.fn(),
-			hide: vi.fn(),
-			dispose: vi.fn(),
-		}),
-	},
-	StatusBarAlignment: {
-		Left: 1,
-		Right: 2,
-	},
-	ThemeColor: vi.fn().mockImplementation((id) => ({ id })),
-	MarkdownString: vi.fn().mockImplementation(() => {
-		const markdownString = {
-			value: "",
-			appendMarkdown: vi.fn().mockImplementation((content) => {
-				markdownString.value += content;
-			}),
-			supportHtml: false,
-			isTrusted: false,
-		};
-		return markdownString;
-	}),
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("StatusBarController", () => {
 	let controller: StatusBarController;

@@ -3,25 +3,9 @@ import * as vscode from "vscode";
 import type { ProtectedFileRegistry } from "@vscode/services/protectedFileRegistry";
 import { ProtectionDecorator } from "@vscode/services/protectionDecorator";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		Uri: {
-			file: vi.fn().mockImplementation((filePath: string) => ({
-				fsPath: filePath,
-			})),
-		},
-		ThemeColor: vi
-			.fn()
-			.mockImplementation((colorId: string) => ({ id: colorId })),
-		EventEmitter: vi.fn().mockImplementation(() => ({
-			event: vi.fn(),
-			fire: vi.fn(),
-			dispose: vi.fn(),
-		})),
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("ProtectionDecorator", () => {
 	let decorator: ProtectionDecorator;

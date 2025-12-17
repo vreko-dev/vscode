@@ -5,10 +5,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TipBudgetManager } from "@vscode/utils/TipBudgetManager";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	ExtensionContext: vi.fn(),
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("TipBudgetManager", () => {
 	let tipBudgetManager: TipBudgetManager;

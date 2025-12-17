@@ -6,12 +6,9 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock vscode before importing
-vi.mock("vscode", () => ({
-	window: {
-		showInformationMessage: vi.fn().mockResolvedValue("Got it"),
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 import * as vscode from "vscode";
 import { ProtectionNotifications } from "@vscode/notifications/protectionNotifications";

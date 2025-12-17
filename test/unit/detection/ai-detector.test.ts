@@ -19,18 +19,9 @@ const { mockExtensions } = vi.hoisted(() => {
 	};
 });
 
-// Mock vscode before importing anything that uses it
-vi.mock("vscode", () => ({
-	extensions: {
-		get all() {
-			return mockExtensions;
-		},
-	},
-	window: {
-		showInformationMessage: vi.fn(),
-		setStatusBarMessage: vi.fn(),
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 // Import after mocks are set up - use dynamic imports since this uses mocked vscode
 let detectAIPresence: () => { hasAI: boolean; detectedAssistants: string[]; assistantDetails: Record<string, string> };

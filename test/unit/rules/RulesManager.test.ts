@@ -21,10 +21,9 @@ vi.mock("../../../src/rules/SnapbackAPI", () => ({
 	},
 }));
 
-// Mock vscode
-vi.mock("vscode", () => ({
-	ExtensionContext: vi.fn(),
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("RulesManager - Signature Verification", () => {
 	let rulesManager: RulesManager;

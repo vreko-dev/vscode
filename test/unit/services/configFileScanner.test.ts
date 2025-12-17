@@ -2,23 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { ConfigFileScanner } from "@vscode/services/configFileScanner";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		Uri: {
-			file: vi.fn().mockImplementation((filePath: string) => ({
-				fsPath: filePath,
-			})),
-		},
-		workspace: {
-			fs: {
-				readFile: vi.fn(),
-				stat: vi.fn(),
-			},
-		},
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 // Mock fast-glob
 vi.mock("fast-glob", () => ({

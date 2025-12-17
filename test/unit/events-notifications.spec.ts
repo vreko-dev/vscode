@@ -1,26 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useFakeTimers } from "../setup/globals";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		window: {
-			showInformationMessage: vi.fn(),
-			showWarningMessage: vi.fn(),
-			showErrorMessage: vi.fn(),
-		},
-		workspace: {
-			onDidChangeConfiguration: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-			onDidSaveTextDocument: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-		},
-		EventEmitter: vi.fn().mockImplementation(() => ({
-			event: vi.fn(),
-			fire: vi.fn(),
-			dispose: vi.fn(),
-		})),
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("Events + Notifications (73-99)", () => {
 	let _clock: ReturnType<typeof useFakeTimers>;

@@ -1,22 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-// Mock VS Code API
-vi.mock("vscode", () => {
-	return {
-		default: {},
-		extensions: {
-			getExtension: vi.fn().mockReturnValue({
-				packageJSON: { version: "1.0.0" },
-				isActive: true,
-			}),
-		},
-		workspace: {
-			getConfiguration: vi.fn().mockReturnValue({
-				get: vi.fn().mockReturnValue(true),
-			}),
-		},
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("Extension API (301-315)", () => {
 	it("301. should handle extension API initialization", () => {

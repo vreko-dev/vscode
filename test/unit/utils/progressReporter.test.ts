@@ -23,22 +23,9 @@ import {
 	createProgressReporter,
 } from "@vscode/utils/progressReporter";
 
-// Mock VS Code API
-vi.mock("vscode", () => ({
-	window: {
-		withProgress: vi.fn(),
-	},
-	ProgressLocation: {
-		Notification: 15,
-		Window: 10,
-		SourceControl: 1,
-	},
-	CancellationTokenSource: vi.fn().mockImplementation(() => ({
-		token: { isCancellationRequested: false },
-		cancel: vi.fn(),
-		dispose: vi.fn(),
-	})),
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("ProgressReporter", () => {
 	let progressReporter: ProgressReporter;

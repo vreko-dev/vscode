@@ -16,49 +16,12 @@
  * @see apps/vscode/src/auth/OAuthProvider.ts
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
-import { http, HttpResponse } from "msw";
-import { setupServer } from "msw/node";
 import { SnapBackOAuthProvider } from "@vscode/auth/OAuthProvider";
 import type { SnapBackSession } from "@vscode/auth/OAuthProvider";
-
-// ============================================================================
-// MSW Setup - Mock OAuth Server
-// ============================================================================
-
-const AUTH_BASE_URL = "https://auth.snapback.dev";
-
-const mswServer = setupServer(
-	// Default successful token exchange handler
-	http.post(`${AUTH_BASE_URL}/oauth/token`, async ({ request }) => {
-		const body = await request.text();
-		const params = new URLSearchParams(body);
-		const grantType = params.get("grant_type");
-
-		// Authorization code exchange
-		if (grantType === "authorization_code") {
-			return HttpResponse.json({
-				access_token: "test_access_token_123",
-				refresh_token: "test_refresh_token_456",
-				expires_in: 3600,
-				token_type: "Bearer",
-			});
-		}
-
-		// Refresh token exchange
-		if (grantType === "refresh_token") {
-			return HttpResponse.json({
-				access_token: "test_access_token_new",
-				refresh_token: "test_refresh_token_new",
-				expires_in: 3600,
-				token_type: "Bearer",
-			});
-		}
-
-		return HttpResponse.json({ error: "invalid_grant" }, { status: 400 });
-	}),
-);
+// Import centralized MSW server - DO NOT call mswServer.listen() or mswServer.close() here!
+import { mswServer, http, HttpResponse, AUTH_BASE_URL } from "../msw-setup";
 
 // ============================================================================
 // VSCode Mock Setup
@@ -109,20 +72,12 @@ describe("OAuthProvider - OAuth 2.0 Flow Integration Tests", () => {
 
 	beforeEach(() => {
 		mockContext = createMockExtensionContext();
-
-		// Start MSW server
-		mswServer.listen({ onUnhandledRequest: "error" });
-
-		// Mock vscode module functions
-		vi.spyOn(global, "fetch" as any);
-	});
-
-	afterEach(async () => {
-		mswServer.resetHandlers();
-		mswServer.close();
+		// MSW server is started globally in msw-setup.ts - no need to call listen() here
 		vi.clearAllMocks();
-		uriHandlerCallback = null;
 	});
+
+	// afterEach handler reset is done globally in msw-setup.ts
+	// No need for local afterEach for MSW lifecycle
 
 	// ========================================================================
 	// HAPPY PATH: OAuth Flow Success

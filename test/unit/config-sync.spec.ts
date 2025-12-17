@@ -1,53 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 
-// Mock VS Code APIs
-vi.mock("vscode", () => {
-	// Create a mock configuration object
-	const mockConfiguration = {
-		get: vi.fn((key, defaultValue) => {
-			const configMap: Record<string, any> = {
-				enabled: true,
-				syncInterval: 30000,
-				version: "1.0.0",
-				"settings.theme": "dark",
-				"settings.fontSize": 14,
-				"ui.theme": "custom-dark",
-				"ui.accentColor": "#ff0000",
-				"ui.fontFamily": "monospace",
-				"behavior.autoSave": true,
-				"behavior.notifications": false,
-				"git.enabled": true,
-				"git.autoCommit": true,
-				"storage.type": "local",
-				"storage.path": "/user/storage",
-				monitoring: true,
-				testMode: true,
-				debug: false,
-				environment: "development",
-				logging: "verbose",
-				legacySetting: "old-value",
-				newSetting: "new-value",
-				migratedSetting: "migrated-value",
-				features: ["basic"],
-			};
-			return configMap[key] !== undefined ? configMap[key] : defaultValue;
-		}),
-	};
-
-	return {
-		workspace: {
-			getConfiguration: vi.fn(() => mockConfiguration),
-			onDidChangeConfiguration: vi.fn(),
-		},
-		EventEmitter: vi.fn().mockImplementation(() => {
-			return {
-				fire: vi.fn(),
-				event: vi.fn(),
-			};
-		}),
-	};
-});
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("Config Sync (256-270)", () => {
 	beforeEach(() => {

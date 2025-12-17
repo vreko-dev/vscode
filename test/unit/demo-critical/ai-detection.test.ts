@@ -21,11 +21,9 @@ import {
 // Mock vscode.extensions.all
 const mockExtensions: any[] = [];
 
-vi.mock("vscode", () => ({
-	extensions: {
-		all: mockExtensions,
-	},
-}));
+// IMPORTANT: DO NOT re-mock vscode here!
+// The global setup.ts provides a complete vscode mock.
+// Use vi.mocked() to override specific methods if needed.
 
 describe("[DEMO-CRITICAL] AI Detection", () => {
 	beforeEach(() => {
