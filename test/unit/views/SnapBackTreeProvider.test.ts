@@ -555,4 +555,233 @@ describe("SnapBackTreeProvider", () => {
 			expect(rootChildren).toBeDefined();
 		});
 	});
+
+	/**
+	 * Stable TreeItem.id Tests
+	 *
+	 * VS Code uses stable TreeItem.id values to automatically persist expansion state.
+	 * Pattern: snapback:{section}:{type}:{unique_id}
+	 *
+	 * Examples:
+	 * - snapback:root:header
+	 * - snapback:activity:header
+	 * - snapback:activity:time-group:recent
+	 * - snapback:activity:snapshot:snap-123
+	 * - snapback:activity:file:snap-123:/src/config.ts
+	 *
+	 * @see https://code.visualstudio.com/api/references/vscode-api#TreeItem.id
+	 */
+	describe("stable TreeItem.id for expansion persistence", () => {
+		it("should set stable id on header item", async () => {
+			const rootItems = await provider.getChildren();
+			const header = rootItems.find((item) => item.data.type === "header");
+
+			expect(header).toBeDefined();
+			expect(header!.id).toBe("snapback:root:header");
+		});
+
+		it("should set stable id on activity header", async () => {
+			const rootItems = await provider.getChildren();
+			const activityHeader = rootItems.find(
+				(item) => item.data.type === "activity-header",
+			);
+
+			expect(activityHeader).toBeDefined();
+			expect(activityHeader!.id).toBe("snapback:activity:header");
+		});
+
+		it("should set stable id on time-group items", async () => {
+			const rootItems = await provider.getChildren();
+			const activityHeader = rootItems.find(
+				(item) => item.data.type === "activity-header",
+			);
+
+			const timeGroups = await provider.getChildren(activityHeader!);
+			const recentGroup = timeGroups.find(
+				(item) => item.data.groupKey === "recent",
+			);
+
+			expect(recentGroup).toBeDefined();
+			expect(recentGroup!.id).toBe("snapback:activity:time-group:recent");
+		});
+
+		it("should set stable id on snapshot items", async () => {
+			const rootItems = await provider.getChildren();
+			const activityHeader = rootItems.find(
+				(item) => item.data.type === "activity-header",
+			);
+
+			const timeGroups = await provider.getChildren(activityHeader!);
+			const recentGroup = timeGroups.find(
+				(item) => item.data.groupKey === "recent",
+			);
+
+			const snapshots = await provider.getChildren(recentGroup!);
+
+			expect(snapshots.length).toBeGreaterThan(0);
+			const snapshot = snapshots[0];
+			expect(snapshot.id).toBe(`snapback:activity:snapshot:${snapshot.data.id}`);
+		});
+
+		it("should set stable id on snapshot file items", async () => {
+			// Need multi-file snapshot for this test
+			mockStorageManager.listSnapshots = vi.fn().mockResolvedValue([
+				{
+					id: "snap-multi",
+					timestamp: Date.now() - 1000 * 60 * 30,
+					name: "Multi-file snapshot",
+					files: {
+						"/test/file1.ts": { blob: "hash1", size: 100 },
+						"/test/file2.ts": { blob: "hash2", size: 200 },
+					},
+					trigger: "manual",
+					metadata: { sessionId: "session-1" },
+				},
+			]);
+
+			mockStorageManager.getSnapshotManifest = vi.fn().mockResolvedValue({
+				id: "snap-multi",
+				timestamp: Date.now() - 1000 * 60 * 30,
+				name: "Multi-file snapshot",
+				files: {
+					"/test/file1.ts": { blob: "hash1", size: 100 },
+					"/test/file2.ts": { blob: "hash2", size: 200 },
+				},
+				trigger: "manual",
+				metadata: { sessionId: "session-1" },
+			});
+
+			const multiProvider = new SnapBackTreeProvider(
+				mockContext as unknown as vscode.ExtensionContext,
+				mockStorageManager as unknown as IStorageManager,
+				mockConfigManager,
+			);
+
+			const rootItems = await multiProvider.getChildren();
+			const activityHeader = rootItems.find(
+				(item) => item.data.type === "activity-header",
+			);
+
+			const timeGroups = await multiProvider.getChildren(activityHeader!);
+			const recentGroup = timeGroups.find(
+				(item) => item.data.groupKey === "recent",
+			);
+
+			const snapshots = await multiProvider.getChildren(recentGroup!);
+			const multiSnapshot = snapshots[0];
+
+			// Expand multi-file snapshot to get file items
+			const fileItems = await multiProvider.getChildren(multiSnapshot);
+
+			expect(fileItems.length).toBe(2);
+			// Files should have stable IDs with encoded path
+			const fileItem = fileItems[0];
+			expect(fileItem.id).toMatch(
+				/^snapback:activity:file:snap-multi:\/test\/file[12]\.ts$/,
+			);
+		});
+
+		it("should set stable id on cloud section", async () => {
+			const rootItems = await provider.getChildren();
+			const cloudItem = rootItems.find(
+				(item) =>
+					item.data.type === "cloud-cta" || item.data.type === "cloud-status",
+			);
+
+			expect(cloudItem).toBeDefined();
+			expect(cloudItem!.id).toMatch(/^snapback:root:cloud/);
+		});
+
+		it("should set stable id on problems header", async () => {
+			// Add a problem to show problems section
+			provider.setProblems([
+				{
+					id: "prob-1",
+					title: "Test Problem",
+					description: "A test problem",
+					severity: "warning",
+				},
+			]);
+
+			const rootItems = await provider.getChildren();
+			const problemsHeader = rootItems.find(
+				(item) => item.data.type === "problems-header",
+			);
+
+			expect(problemsHeader).toBeDefined();
+			expect(problemsHeader!.id).toBe("snapback:root:problems");
+		});
+
+		it("should set stable id on problem items", async () => {
+			// Add a problem
+			provider.setProblems([
+				{
+					id: "prob-1",
+					title: "Test Problem",
+					description: "A test problem",
+					severity: "warning",
+				},
+			]);
+
+			const rootItems = await provider.getChildren();
+			const problemsHeader = rootItems.find(
+				(item) => item.data.type === "problems-header",
+			);
+
+			const problems = await provider.getChildren(problemsHeader!);
+
+			expect(problems.length).toBe(1);
+			expect(problems[0].id).toBe("snapback:problems:item:prob-1");
+		});
+
+		it("should generate consistent ids across refreshes", async () => {
+			// Get items before refresh
+			const itemsBefore = await provider.getChildren();
+			const headerBefore = itemsBefore.find(
+				(item) => item.data.type === "header",
+			);
+			const activityBefore = itemsBefore.find(
+				(item) => item.data.type === "activity-header",
+			);
+
+			// Refresh
+			provider.refresh();
+
+			// Get items after refresh
+			const itemsAfter = await provider.getChildren();
+			const headerAfter = itemsAfter.find(
+				(item) => item.data.type === "header",
+			);
+			const activityAfter = itemsAfter.find(
+				(item) => item.data.type === "activity-header",
+			);
+
+			// IDs should be identical
+			expect(headerAfter!.id).toBe(headerBefore!.id);
+			expect(activityAfter!.id).toBe(activityBefore!.id);
+		});
+
+		it("should NOT use globalState for expansion tracking (VS Code handles it via stable IDs)", async () => {
+			// After implementing stable IDs, globalState should NOT be called for expansion tracking
+			// Only for first-run detection
+			const provider2 = new SnapBackTreeProvider(
+				mockContext as unknown as vscode.ExtensionContext,
+				mockStorageManager as unknown as IStorageManager,
+				mockConfigManager,
+			);
+
+			// Get items (this previously called globalState.get for expansion)
+			await provider2.getChildren();
+
+			// globalState.get should only be called for isFirstRun check, not expansion state
+			const getCalls = mockContext.globalState.get.mock.calls;
+			const expansionCalls = getCalls.filter((call: string[]) =>
+				call[0].includes("Expanded"),
+			);
+
+			// Should NOT have any expansion-related globalState calls
+			// (VS Code persists expansion via stable TreeItem.id automatically)
+			expect(expansionCalls.length).toBe(0);
+		});
+	});
 });

@@ -17,7 +17,6 @@
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
-import { getSnapshotLabel } from "../utils/snapshotLabeling";
 
 /**
  * Snapshot tree item interface (matches the tree view item structure)
@@ -386,31 +385,13 @@ export function registerSnapshotCommands(
 				// Select the most recent snapshot (first in sorted array)
 				const latestSnapshot = allSnapshots[0];
 				const fileCount = (latestSnapshot.files || []).length;
-				const snapshotLabel = getSnapshotLabel(latestSnapshot);
 
-				logger.info("Restoring last snapshot", {
+				logger.info("Opening restore preview for last snapshot", {
 					snapshotId: latestSnapshot.id,
 					fileCount,
 				});
 
-				// Show confirmation dialog
-				const answer = await vscode.window.showWarningMessage(
-					`Restore ${fileCount} file(s) from this snapshot?\n${snapshotLabel.short}`,
-					{ modal: true },
-					"Restore",
-					"Cancel",
-				);
-
-				if (answer !== "Restore") {
-					logger.debug("User cancelled restore last snapshot", {
-						snapshotId: latestSnapshot.id,
-					});
-					return;
-				}
-
-				vscode.window.showInformationMessage(`Restoring snapshot: ${snapshotLabel.primary}...`);
-
-				// Trigger restore via command (will be handled by viewCommands.restoreSnapshot)
+				// Delegate to restoreSnapshot which opens diff + deferred confirmation
 				await vscode.commands.executeCommand("snapback.restoreSnapshot", latestSnapshot.id);
 
 				refreshViews();

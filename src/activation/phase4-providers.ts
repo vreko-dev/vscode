@@ -13,7 +13,6 @@ import type { IStorageManager } from "../storage/types";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
 import type { StatusBarController } from "../ui/statusBar";
-import { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider";
 import { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
 import { SessionsTreeProvider } from "../views/SessionsTreeProvider";
 import { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
@@ -36,7 +35,6 @@ export interface Phase4Result {
 	fileHealthDecorationProvider: FileHealthDecorationProvider;
 	sessionsTreeProvider: SessionsTreeProvider;
 	workspaceSafetyService: WorkspaceSafetyService;
-	explorerTreeProvider?: SnapBackExplorerTreeProvider;
 }
 
 export async function initializePhase4Providers(
@@ -45,8 +43,8 @@ export async function initializePhase4Providers(
 	storage: IStorageManager,
 	protectedFileRegistry: ProtectedFileRegistry,
 	workspaceRoot: string,
-	apiClient?: AuthedApiClient,
-	credentialsManager?: CredentialsManager,
+	_apiClient?: AuthedApiClient,
+	_credentialsManager?: CredentialsManager,
 	telemetryProxy?: any,
 ): Promise<Phase4Result> {
 	const phase4Start = Date.now();
@@ -134,16 +132,6 @@ export async function initializePhase4Providers(
 		workspaceSafetyService.startAutoRefresh(); // Auto-refresh every 60s
 		console.log("[PERF] WorkspaceSafetyService", { ms: Date.now() - t });
 
-		// 🌐 Initialize SnapBack Explorer Tree (cloud features)
-		let explorerTreeProvider: SnapBackExplorerTreeProvider | undefined;
-		if (apiClient && credentialsManager) {
-			t = Date.now();
-			explorerTreeProvider = new SnapBackExplorerTreeProvider(apiClient, credentialsManager);
-			console.log("[PERF] SnapBackExplorerTreeProvider", {
-				ms: Date.now() - t,
-			});
-		}
-
 		console.log("[PERF] Phase 4 completed", { ms: Date.now() - phase4Start });
 		PhaseLogger.logPhase("4: UI Providers");
 
@@ -161,7 +149,6 @@ export async function initializePhase4Providers(
 			fileHealthDecorationProvider,
 			sessionsTreeProvider,
 			workspaceSafetyService,
-			explorerTreeProvider,
 		};
 	} catch (error) {
 		PhaseLogger.logError("4: UI Providers", error as Error);

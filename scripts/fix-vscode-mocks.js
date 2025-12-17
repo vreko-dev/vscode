@@ -42,7 +42,6 @@ const filesToFix = [
 	"test/unit/utils/progressReporter.test.ts",
 	"test/unit/utils/statusBarAnimator.test.ts",
 	"test/unit/utils/treeItemBadgeProvider.test.ts",
-	"test/unit/views/SnapBackExplorerTreeProvider.test.ts",
 	"test/unit/views/SnapBackTreeProvider.test.ts",
 	"test/unit/views/protectedFilesTreeProvider.test.ts",
 	"test/unit/views/protectedFilesTreeProvider.tierAware.test.ts",

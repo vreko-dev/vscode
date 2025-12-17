@@ -2,15 +2,21 @@
  * Authentication Commands
  *
  * Provides commands for signing in/out of SnapBack using OAuth 2.0
+ * Also includes connect command (moved from explorerTree.ts after cloud view removal)
  */
 
+import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
-import { logger } from "../utils/logger";
 
 // Auth provider constants
 const AUTH_PROVIDER_ID = "snapback" as const;
 const AUTH_SCOPES = ["read", "write"] as const;
+
+/**
+ * Callback type for refreshing views after auth state change
+ */
+type RefreshCallback = () => void;
 
 /**
  * Shared sign-in handler implementation
@@ -100,7 +106,6 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 					const hasApiKey = !!config.get("api.key");
 
 					const authMethod = hasApiKey ? "OAuth (with API key fallback)" : "OAuth";
-
 					vscode.window.showInformationMessage(
 						`Signed in as ${session.account.label} (${authMethod})`,
 						"View Account",
@@ -141,4 +146,85 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 			return true;
 		}),
 	];
+}
+
+/**
+ * Command: snapback.connect
+ *
+ * Initiates OAuth flow to connect SnapBack account
+ * Uses VS Code's authentication API
+ * Moved from explorerTree.ts after cloud view removal.
+ */
+export function registerConnectCommand(
+	_context: vscode.ExtensionContext,
+	onAuthSuccess?: RefreshCallback,
+): vscode.Disposable {
+	try {
+		return vscode.commands.registerCommand(COMMANDS.ACCOUNT.CONNECT, async () => {
+			try {
+				logger.info("Starting SnapBack OAuth connection");
+
+				// Use VS Code's authentication API with SnapBack provider
+				const session = await vscode.authentication.getSession(
+					"snapback",
+					["workspace:read", "snapshots:read"],
+					{
+						createIfNone: true,
+					},
+				);
+
+				if (session) {
+					logger.info("OAuth connection successful", {
+						userId: session.account.id,
+					});
+
+					vscode.window.showInformationMessage(`Connected to SnapBack as ${session.account.label}`);
+
+					// Refresh views to show authenticated state
+					onAuthSuccess?.();
+				}
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : String(error);
+				logger.error("OAuth connection failed", error as Error);
+
+				vscode.window.showErrorMessage(`Failed to connect to SnapBack: ${errorMsg}`);
+			}
+		});
+	} catch (error) {
+		if (error instanceof Error && error.message.includes("already exists")) {
+			// Command already exists, return no-op disposable
+			return { dispose: () => {} };
+		}
+		throw error;
+	}
+}
+
+/**
+ * Command: snapback.openSnapshotInWeb
+ *
+ * Opens snapshot detail page in web browser
+ * Context menu action for snapshot nodes
+ */
+export function registerOpenSnapshotInWebCommand(_context: vscode.ExtensionContext): vscode.Disposable {
+	try {
+		return vscode.commands.registerCommand(COMMANDS.VIEW.OPEN_IN_WEB, async (snapshotId?: string) => {
+			if (!snapshotId) {
+				vscode.window.showWarningMessage("No snapshot selected");
+				return;
+			}
+
+			logger.info("Opening snapshot in web", { snapshotId });
+
+			// Build web URL
+			const webUrl = `https://snapback.dev/snapshots/${snapshotId}`;
+
+			// Open in external browser
+			await vscode.env.openExternal(vscode.Uri.parse(webUrl));
+		});
+	} catch (error) {
+		if (error instanceof Error && error.message.includes("already exists")) {
+			return { dispose: () => {} };
+		}
+		throw error;
+	}
 }

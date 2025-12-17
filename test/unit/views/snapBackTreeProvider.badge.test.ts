@@ -122,16 +122,16 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 	 */
 	async function getSnapshotItemsFromGroup(groupKey: string) {
 		const rootItems = await provider.getChildren(undefined);
-		
+
 		// First find the ACTIVITY header
 		const activityHeader = rootItems.find((item) => item.data.type === "activity-header");
 		if (!activityHeader) return [];
-		
+
 		// Then get time groups from ACTIVITY header
 		const timeGroups = await provider.getChildren(activityHeader);
 		const targetGroup = timeGroups.find((item) => item.data.type === "time-group" && item.data.groupKey === groupKey);
 		if (!targetGroup) return [];
-		
+
 		// Finally get snapshots from time group
 		return provider.getChildren(targetGroup);
 	}
@@ -141,14 +141,14 @@ describe("SnapBackTreeProvider - Badge Integration", () => {
 	 */
 	async function getAllSnapshotItems() {
 		const rootItems = await provider.getChildren(undefined);
-		
+
 		// First find the ACTIVITY header
 		const activityHeader = rootItems.find((item) => item.data.type === "activity-header");
 		if (!activityHeader) return [];
-		
+
 		// Then get time groups from ACTIVITY header
 		const timeGroups = await provider.getChildren(activityHeader);
-		
+
 		// Get all snapshots from all groups
 		const allSnapshots = [];
 		for (const group of timeGroups) {

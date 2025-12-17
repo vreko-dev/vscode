@@ -56,6 +56,7 @@ export const COMMANDS = {
 		SHOW_HISTORY: "snapback.view.history",
 		SHOW_SETTINGS: "snapback.view.settings",
 		REFRESH: "snapback.view.refresh",
+		OPEN_IN_WEB: "snapback.openSnapshotInWeb",
 		// Legacy commands
 		REFRESH_LEGACY: "snapback.refreshViews",
 		REFRESH_DASHBOARD: "snapback.refreshSafetyDashboard",

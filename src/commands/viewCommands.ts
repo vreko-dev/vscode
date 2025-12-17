@@ -155,7 +155,7 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 						`Snapshot ← ${fileName} → Current`,
 					);
 
-					// Build file list for confirmation dialog
+					// Build file list for context
 					const fileList =
 						files.length <= 3
 							? files.join(", ")
@@ -165,19 +165,24 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 					const snapshotLabel =
 						(snapshot as any).name || `Snapshot from ${new Date(snapshot.timestamp).toLocaleString()}`;
 
-					// Ask for confirmation with context
-					const answer = await vscode.window.showWarningMessage(
-						`Restore ${files.length} file(s) from "${snapshotLabel}"?
+					// Show status bar with restore action (deferred confirmation)
+					const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
+					statusBarItem.text = `$(history) Reviewing: ${snapshotLabel} (${files.length} files)`;
+					statusBarItem.tooltip = "Click to restore all files from this snapshot";
+					statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+					statusBarItem.show();
 
-${fileList}
-
-This will overwrite current files.`,
-						{ modal: true },
-						"Restore",
+					// Show non-modal prompt - user can review diff first, then decide
+					const answer = await vscode.window.showInformationMessage(
+						`Review the diff. Ready to restore ${files.length} file(s)?\n${fileList}`,
+						"Restore All",
 						"Cancel",
 					);
 
-					if (answer !== "Restore") {
+					// Clean up status bar
+					statusBarItem.dispose();
+
+					if (answer !== "Restore All") {
 						return;
 					}
 

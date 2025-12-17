@@ -29,8 +29,8 @@ import type { CooldownIndicator } from "../ui/cooldownIndicator";
 import type { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
 import type { SnapshotRestoreUI } from "../ui/SnapshotRestoreUI";
 import type { StatusBarController } from "../ui/statusBar";
-import type { SnapBackExplorerTreeProvider } from "../views/explorerTree/SnapBackExplorerTreeProvider";
 import type { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
+import type { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
 import type { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
 import type { WelcomeView } from "../welcomeView";
 import type { WorkflowIntegration } from "../workflowIntegration";
@@ -119,8 +119,8 @@ export interface CommandContext {
 	snapshotNavigatorProvider?: SnapshotNavigatorProvider;
 	/** Provides snapshot metadata and summaries */
 	snapshotSummaryProvider: StorageSnapshotSummaryProvider;
-	/** 🆕 Provides Explorer tree view data for workspace safety and snapshots */
-	explorerTreeProvider?: SnapBackExplorerTreeProvider;
+	/** 🆕 Primary dashboard tree view provider */
+	snapBackTreeProvider?: SnapBackTreeProvider;
 
 	// Configuration Management
 	/** Manages .snapbackrc configuration files */

@@ -1,9 +1,5 @@
 import * as vscode from "vscode";
-import {
-	registerConnectCommand,
-	registerOpenSnapshotInWebCommand,
-	registerRefreshTreeCommand,
-} from "../commands/explorerTree";
+import { registerConnectCommand, registerOpenSnapshotInWebCommand } from "../commands/authCommands";
 import { registerToggleGroupingModeCommand } from "../commands/toggleGroupingMode";
 import { COMMANDS } from "../constants/index";
 import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
@@ -29,17 +25,12 @@ export async function initializePhase5Registration(
 		// Register sessions tree provider
 		vscode.window.registerTreeDataProvider(VIEW_IDS.SESSIONS, phase4Result.sessionsTreeProvider);
 
-		// 🆕 Register SnapBack Explorer (Cloud Features) tree provider
-		if (phase4Result.explorerTreeProvider) {
-			vscode.window.registerTreeDataProvider(VIEW_IDS.EXPLORER, phase4Result.explorerTreeProvider);
-
-			// Register Explorer tree commands
-			context.subscriptions.push(
-				registerConnectCommand(context, phase4Result.explorerTreeProvider),
-				registerRefreshTreeCommand(context, phase4Result.explorerTreeProvider),
-				registerOpenSnapshotInWebCommand(context),
-			);
-		}
+		// NOTE: SnapBack Cloud view removed - Pioneer status shown in status bar
+		// Connect commands still available via command palette
+		context.subscriptions.push(
+			registerConnectCommand(context, () => phase4Result.snapBackTreeProvider.refresh()),
+			registerOpenSnapshotInWebCommand(context),
+		);
 
 		// 🆕 v1.1: Register Safety Dashboard tree provider
 		// Note: Replaced by SnapBackTreeProvider in Phase 2

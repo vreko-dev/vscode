@@ -136,6 +136,12 @@
         "icon": "$(history)"
       },
       {
+        "command": "snapback.session.restore",
+        "title": "Restore Session",
+        "category": "SnapBack",
+        "icon": "$(debug-step-back)"
+      },
+      {
         "command": "snapback.viewSnapshot",
         "title": "View Snapshot Details",
         "category": "SnapBack",
@@ -376,12 +382,6 @@
           "id": "snapback.sessions",
           "name": "Sessions",
           "when": "snapback.isActive"
-        },
-        {
-          "id": "snapback.explorer",
-          "name": "SnapBack Cloud",
-          "when": "snapback.isActive",
-          "icon": "$(cloud)"
         }
       ]
     },

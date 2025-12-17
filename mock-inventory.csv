@@ -65,7 +65,6 @@ test/unit/views/snapBackTreeProvider.badge.test.ts,28,window|workspace
 test/unit/views/protectedFilesTreeProvider.test.ts,0
 0,Uri|workspace
 test/unit/views/protectedFilesTreeProvider.tierAware.test.ts,49,
-test/unit/views/SnapBackExplorerTreeProvider.test.ts,5,window|workspace
 test/unit/restore/restore-manager.test.ts,15,Uri|commands|window|workspace
 test/unit/domain/prwManager.test.ts,26,Uri|workspace
 test/unit/conflictResolver.test.ts,22,Uri|commands|fs.|window|workspace

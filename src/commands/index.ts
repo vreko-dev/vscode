@@ -1,9 +1,8 @@
 import type { ServiceFederation } from "@snapback/core";
 import type * as vscode from "vscode";
-import { registerAuthCommands } from "./authCommands";
+import { registerAuthCommands, registerConnectCommand, registerOpenSnapshotInWebCommand } from "./authCommands";
 import { registerDecorationCommands } from "./decorationCommands";
 import { registerDetectionCommands } from "./detectionCommands";
-import { registerConnectCommand, registerOpenSnapshotInWebCommand, registerRefreshTreeCommand } from "./explorerTree";
 import { registerFeedbackCommands } from "./feedbackCommands";
 import { registerMcpCommands } from "./mcpCommands";
 import { registerOfflineModeCommands } from "./offlineModeCommands";
@@ -116,14 +115,9 @@ export function registerAllCommands(
 		...mcpCommandDisposables, // 🆕 Register MCP commands if available
 		...registerFeedbackCommands(context), // 🆕 Register feedback commands
 		...registerSecurityCommands(context), // 🆕 Register security commands (API key migration)
-		// 🆕 Register Explorer Tree commands (cloud features) - only if available
-		...(commandContext.explorerTreeProvider
-			? [
-					registerConnectCommand(context, commandContext.explorerTreeProvider),
-					registerRefreshTreeCommand(context, commandContext.explorerTreeProvider),
-					registerOpenSnapshotInWebCommand(context),
-				]
-			: []),
+		// 🆕 Register auth commands (connect, open in web)
+		registerConnectCommand(context, () => commandContext.snapBackTreeProvider?.refresh()),
+		registerOpenSnapshotInWebCommand(context),
 		// NOTE: snapback.createSnapshot is registered in registerSnapshotCreationCommands above
 	];
 }

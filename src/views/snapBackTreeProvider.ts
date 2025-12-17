@@ -48,9 +48,7 @@ type TreeItemType =
 	| "snapshot-file"
 	| "more-snapshots"
 	| "problems-header"
-	| "problem"
-	| "cloud-cta"
-	| "cloud-status";
+	| "problem";
 
 interface SnapBackTreeItemData {
 	type: TreeItemType;
@@ -176,6 +174,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 				return this.getActivityTimeGroups();
 			case "problems-header":
 				return this.getProblemItems();
+			case "more-snapshots":
+				return this.getMoreSnapshots(element.data.groupKey as TimeGroup);
 			default:
 				return [];
 		}
@@ -201,8 +201,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 			const snapshotGroups = await this.createSnapshotGroups();
 			items.push(...snapshotGroups);
 
-			// 4. CLOUD - Connection status
-			items.push(this.createCloudSection());
+			// NOTE: Cloud section removed - Pioneer status is shown in status bar (PioneerStatusItem)
+			// Users can see connection status there without duplicating in tree view
 		} catch (error) {
 			logger.error("Error loading SnapBack tree", error as Error);
 			items.push(this.createErrorItem());
@@ -350,7 +350,7 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 		const grouped = strategy.group(this.cachedSnapshots);
 
 		const snapshots = grouped[groupKey === "this-week" ? "thisWeek" : groupKey];
-		return this.createSnapshotItems(snapshots);
+		return this.createSnapshotItems(snapshots, groupKey);
 	}
 
 	/**
@@ -438,15 +438,29 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	// SNAPSHOT ITEMS
 	// ============================================
 
-	private createSnapshotItems(snapshots: SnapshotDisplayItem[]): SnapBackTreeItem[] {
+	private createSnapshotItems(snapshots: SnapshotDisplayItem[], groupKey: TimeGroup): SnapBackTreeItem[] {
 		const maxVisible = this.config.maxPerGroup;
 		const items = snapshots.slice(0, maxVisible).map((snap) => this.createSnapshotItem(snap));
 
 		if (snapshots.length > maxVisible) {
-			items.push(this.createMoreItem(snapshots.length - maxVisible));
+			items.push(this.createMoreItem(snapshots.length - maxVisible, groupKey));
 		}
 
 		return items;
+	}
+
+	/**
+	 * Get remaining snapshots when "more snapshots" is expanded
+	 */
+	private getMoreSnapshots(groupKey: TimeGroup): SnapBackTreeItem[] {
+		const strategy = new TimeGroupingStrategy();
+		const grouped = strategy.group(this.cachedSnapshots);
+
+		const snapshots = grouped[groupKey === "this-week" ? "thisWeek" : groupKey];
+		const maxVisible = this.config.maxPerGroup;
+
+		// Return only the remaining snapshots (those after maxVisible)
+		return snapshots.slice(maxVisible).map((snap) => this.createSnapshotItem(snap));
 	}
 
 	/**
@@ -552,16 +566,15 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 		return lines.join("\n");
 	}
 
-	private createMoreItem(remaining: number): SnapBackTreeItem {
+	private createMoreItem(remaining: number, groupKey: TimeGroup): SnapBackTreeItem {
 		const item = new SnapBackTreeItem(
 			`⋯ ${remaining} more snapshots`,
-			{ type: "more-snapshots", count: remaining },
-			vscode.TreeItemCollapsibleState.None,
+			{ type: "more-snapshots", count: remaining, groupKey },
+			vscode.TreeItemCollapsibleState.Collapsed,
 		);
-		item.command = {
-			command: COMMANDS.SNAPSHOT.SHOW_ALL,
-			title: "Search Snapshots",
-		};
+		// Stable ID for automatic expansion persistence by VS Code
+		item.id = `snapback:activity:more:${groupKey}`;
+		item.tooltip = `Click to expand ${remaining} more snapshots`;
 		return item;
 	}
 
@@ -685,48 +698,8 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	}
 
 	// ============================================
-	// CLOUD SECTION
+	// ERROR HANDLING
 	// ============================================
-
-	/**
-	 * Create cloud status section
-	 * Shows connection CTA or status when connected
-	 */
-	private createCloudSection(): SnapBackTreeItem {
-		// TODO: Integrate with actual auth state from CredentialsManager
-		// For now, show CTA to connect
-		const isConnected = false; // Will be replaced with actual auth check
-
-		if (isConnected) {
-			const item = new SnapBackTreeItem(
-				`${SNAPBACK_ICONS.CLOUD_CONNECTED} CLOUD`,
-				{ type: "cloud-status" },
-				vscode.TreeItemCollapsibleState.None,
-			);
-			// Stable ID for automatic expansion persistence by VS Code
-			item.id = "snapback:root:cloud:connected";
-			item.description = "Connected";
-			item.tooltip = "SnapBack Cloud is connected. Your snapshots are synced.";
-			item.contextValue = "cloudConnected";
-			return item;
-		}
-
-		const item = new SnapBackTreeItem(
-			`${SNAPBACK_ICONS.CLOUD_DISCONNECTED} CLOUD`,
-			{ type: "cloud-cta" },
-			vscode.TreeItemCollapsibleState.None,
-		);
-		// Stable ID for automatic expansion persistence by VS Code
-		item.id = "snapback:root:cloud:cta";
-		item.description = "Connect to sync snapshots";
-		item.tooltip = "Connect your SnapBack account to sync snapshots across devices";
-		item.contextValue = "cloudCta";
-		item.command = {
-			command: "snapback.connect",
-			title: "Connect Account",
-		};
-		return item;
-	}
 
 	private createErrorItem(): SnapBackTreeItem {
 		const item = new SnapBackTreeItem(

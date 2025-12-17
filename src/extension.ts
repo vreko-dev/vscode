@@ -751,7 +751,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			phase4Result.protectedFilesTreeProvider.refresh();
 			phase4Result.snapshotNavigatorProvider.refresh();
 			phase4Result.snapBackTreeProvider.refresh();
-			phase4Result.explorerTreeProvider?.refresh(); // Also refresh the main tree!
 		};
 
 		// 🆕 Register SnapshotContentProvider for snapback:// URIs (enables diff views)
@@ -930,7 +929,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			protectedFilesTreeProvider: phase4Result.protectedFilesTreeProvider,
 			snapshotNavigatorProvider: phase4Result.snapshotNavigatorProvider,
 			snapshotSummaryProvider: phase3Result.snapshotSummaryProvider,
-			explorerTreeProvider: phase4Result.explorerTreeProvider,
+			snapBackTreeProvider: phase4Result.snapBackTreeProvider,
 
 			// Configuration
 			configManager: phase2Result.configManager,

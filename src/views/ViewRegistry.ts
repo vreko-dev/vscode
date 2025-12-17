@@ -8,7 +8,6 @@ export const VIEW_IDS = {
 	PROTECTED_FILES: "snapback.protectedFiles",
 	DASHBOARD: "snapback.dashboard",
 	SESSIONS: "snapback.sessions",
-	EXPLORER: "snapback.explorer",
 } as const;
 
 /**
@@ -44,7 +43,13 @@ class ErrorTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 		const item = new vscode.TreeItem("❌ Activation Failed");
 		item.description = this.error.message;
 		item.tooltip = new vscode.MarkdownString(
-			`**Error**: ${this.error.message}\n\n` + `**Stack**:\n\`\`\`\n${this.error.stack}\n\`\`\``,
+			`**Error**: ${this.error.message}
+
+` +
+				`**Stack**:
+\`\`\`
+${this.error.stack}
+\`\`\``,
 		);
 		return [item];
 	}

@@ -547,14 +547,31 @@ export function registerProtectionCommands(
 		),
 	);
 
-	// Command: Show All Protected Files
+	// Command: Show All Protected Files (optionally filtered by level)
 	disposables.push(
-		vscode.commands.registerCommand("snapback.showAllProtectedFiles", async () => {
-			const entries = await protectedFileRegistry.list();
-			if (entries.length === 0) {
+		vscode.commands.registerCommand("snapback.showAllProtectedFiles", async (filterLevel?: string) => {
+			const allEntries = await protectedFileRegistry.list();
+			if (allEntries.length === 0) {
 				vscode.window.setStatusBarMessage("No protected files yet", 3000);
 				return;
 			}
+
+			// Filter by protection level if specified
+			const entries = filterLevel
+				? allEntries.filter((entry) => {
+						const entryLevel = entry.protectionLevel || "watch";
+						return entryLevel === filterLevel;
+					})
+				: allEntries;
+
+			if (entries.length === 0) {
+				const levelLabel = filterLevel ? filterLevel.charAt(0).toUpperCase() + filterLevel.slice(1) : "";
+				vscode.window.setStatusBarMessage(`No ${levelLabel} level files`, 3000);
+				return;
+			}
+
+			// Build title based on filter
+			const levelLabel = filterLevel ? filterLevel.charAt(0).toUpperCase() + filterLevel.slice(1) : "All";
 
 			const pick = await vscode.window.showQuickPick<{
 				label: string;
@@ -566,7 +583,10 @@ export function registerProtectionCommands(
 					description: vscode.workspace.asRelativePath(entry.path, false),
 					entry,
 				})),
-				{ placeHolder: "Select a protected file to open" },
+				{
+					title: `${levelLabel} Protected Files (${entries.length})`,
+					placeHolder: "Select a file to open",
+				},
 			);
 
 			if (pick?.entry) {
