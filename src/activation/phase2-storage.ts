@@ -9,6 +9,7 @@ import { SNAPBACK_ICONS } from "../constants/index";
 import { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator";
 import { AutoProtectConfig } from "../protection/autoProtectConfig";
 import { ConfigFileManager } from "../protection/ConfigFileManager";
+import { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
 import { MCPLifecycleManager } from "../services/MCPLifecycleManager";
 import { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { migrateExistingSnapshots } from "../snapshot/migration/encrypt-existing-snapshots";
@@ -25,8 +26,8 @@ export interface Phase2Result {
 	configManager: ConfigFileManager;
 	autoProtectConfig: AutoProtectConfig;
 	snapbackrcDecorator: SnapBackRCDecorator;
-	/** @deprecated Use ConfigStore from @snapback/config instead */
-	snapbackrcLoader?: any;
+	/** Loads and parses .snapbackrc configuration files */
+	snapbackrcLoader: SnapBackRCLoader;
 	mcpManager?: MCPLifecycleManager;
 	/** SDK ProtectionManager - Single Source of Truth for protection decisions */
 	sdkProtectionManager: SDKProtectionManager;
@@ -242,6 +243,17 @@ export async function initializePhase2Storage(
 		// Register for cleanup:
 		context.subscriptions.push(mcpManager);
 
+		// ⚡ Initialize SnapBackRCLoader for loading .snapbackrc configuration
+		const loaderStart = Date.now();
+		const snapbackrcLoader = new SnapBackRCLoader(protectedFileRegistry, workspaceRoot);
+		// Don't await - load config asynchronously
+		snapbackrcLoader.loadConfig().catch((err) => {
+			logger.warn("Failed to load .snapbackrc in background", err as Error);
+		});
+		console.log("[PERF] SnapBackRCLoader created", {
+			ms: Date.now() - loaderStart,
+		});
+
 		return {
 			storage,
 			protectedFileRegistry,
@@ -250,6 +262,8 @@ export async function initializePhase2Storage(
 			mcpManager,
 			snapbackrcDecorator,
 			sdkProtectionManager,
+			// Must make snapbackrcLoader non-optional in Phase2Result since it's now always created
+			snapbackrcLoader: snapbackrcLoader,
 		};
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -354,6 +368,13 @@ Check the Output panel for details.`,
 		await initializeConfigStore(workspaceRoot);
 		context.subscriptions.push({ dispose: disposeConfigStore });
 
+		// Create a fallback SnapBackRCLoader
+		const fallbackSnapbackrcLoader = new SnapBackRCLoader(protectedFileRegistry, workspaceRoot);
+		// Try to load config asynchronously (non-blocking)
+		fallbackSnapbackrcLoader.loadConfig().catch((err) => {
+			logger.warn("Failed to load .snapbackrc in fallback mode", err as Error);
+		});
+
 		// Create a fallback storage adapter using the new file-based system
 		const storage = new StorageManager(context);
 		await storage.initialize();
@@ -371,6 +392,7 @@ Check the Output panel for details.`,
 			mcpManager: undefined,
 			snapbackrcDecorator,
 			sdkProtectionManager: fallbackSdkManager,
+			snapbackrcLoader: fallbackSnapbackrcLoader,
 		};
 	}
 }

@@ -11,6 +11,7 @@
  * 4. RepoProtectionStatus - Status enumeration for repo-level protection
  */
 
+import { DEFAULT_SNAPBACK_CONFIG } from "../config/defaultConfig";
 import type { ProtectionLevel } from "../types/protection";
 import type { SnapBackRC } from "../types/snapbackrc.types";
 import { logger } from "../utils/logger";
@@ -123,14 +124,18 @@ export class ProtectionManager {
 	/**
 	 * Get the effective protection policy
 	 * Builds or returns cached policy from merged config + stack detection
+	 * Falls back to DEFAULT_SNAPBACK_CONFIG when no user config is loaded
 	 *
-	 * @returns Current effective policy or null if no config loaded
+	 * @returns Current effective policy (never null - uses defaults)
 	 */
 	async getEffectivePolicy(): Promise<ProtectionPolicy | null> {
-		const mergedConfig = this.getMergedConfig();
+		let mergedConfig = this.getMergedConfig();
 
+		// Fall back to defaults if no user config loaded
+		// This prevents "No protection policy available" warnings during activation
 		if (!mergedConfig) {
-			return null;
+			logger.debug("No user config loaded, using default protection policy");
+			mergedConfig = DEFAULT_SNAPBACK_CONFIG as SnapBackRC;
 		}
 
 		// Rebuild policy if config changed or cache expired
