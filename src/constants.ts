@@ -8,6 +8,15 @@
 
 import { THRESHOLDS } from "@snapback/sdk";
 
+/** Default API base URL for SnapBack services */
+export const API_BASE_URL = "https://api.snapback.dev";
+
+/** WebSocket ping interval in milliseconds */
+export const WS_PING_INTERVAL = 25000;
+
+/** WebSocket reconnect delay in milliseconds */
+export const WS_RECONNECT_DELAY = 3000;
+
 /**
  * Timing-related constants
  *

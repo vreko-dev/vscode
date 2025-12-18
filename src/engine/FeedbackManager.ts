@@ -134,7 +134,7 @@ export class FeedbackManager {
 			});
 
 			const pointsTracker = new PointsTracker();
-			pointsTracker.addPoints("false_positive_report", 50);
+			pointsTracker.addPoints("feedback", { type: "false_positive_report", detection_id: id });
 
 			vscode.window.showInformationMessage("Thanks! +50 pts awarded.");
 		} catch (error) {
