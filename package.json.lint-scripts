@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "// Array Safety Scripts": "Scripts for detecting unsafe array access patterns",
+    "lint:array-safety": "node scripts/check-unsafe-array-access.js",
+    "lint:array-safety:strict": "node scripts/check-unsafe-array-access.js --strict",
+    "lint:all": "biome lint . && npm run lint:array-safety",
+    "precommit": "biome lint . && npm run lint:array-safety:strict"
+  }
+}
