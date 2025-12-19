@@ -114,6 +114,19 @@ async function main() {
 							loader: "js",
 						};
 					});
+
+					// Handle import.meta.url polyfill for @snapback/engine package
+					// The engine package uses import.meta.url which becomes undefined in CommonJS bundles
+					build.onLoad({ filter: /packages\/engine\/dist\/index\.js$/ }, async (args) => {
+						const contents = await fs.promises.readFile(args.path, "utf8");
+						// Replace fileURLToPath(import.meta.url) with safe fallback
+						// This prevents "Received undefined" errors during extension loading
+						const transformed = contents.replace(
+							/var __filename = fileURLToPath\(import\.meta\.url\);/g,
+							"var __filename = __filename || '';"
+						);
+						return { contents: transformed, loader: "js" };
+					});
 				},
 			},
 		],
