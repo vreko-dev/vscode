@@ -17,18 +17,20 @@ export async function initializePioneerInfrastructure(context: vscode.ExtensionC
 	auth.setContext(context);
 	pointsTracker.setAuth(auth);
 
-	// Initial profile fetch (if session exists)
-	try {
-		const profile = await auth.getProfile();
-		gatekeeper.setProfile(profile);
-		logger.info("Pioneer profile loaded", {
-			hasProfile: !!profile,
-			tier: profile?.tier,
+	// Initial profile fetch (if session exists) - DEFERRED to not block activation
+	// Per ROUTER.md performance pattern: fire-and-forget for network calls
+	auth.getProfile()
+		.then((profile) => {
+			gatekeeper.setProfile(profile);
+			logger.info("Pioneer profile loaded", {
+				hasProfile: !!profile,
+				tier: profile?.tier,
+			});
+		})
+		.catch((e) => {
+			const err = e instanceof Error ? e : new Error(String(e));
+			logger.error("Failed to fetch initial profile", err);
 		});
-	} catch (e) {
-		const err = e instanceof Error ? e : new Error(String(e));
-		logger.error("Failed to fetch initial profile", err);
-	}
 
 	// Register login command
 	context.subscriptions.push(

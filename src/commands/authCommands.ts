@@ -8,6 +8,7 @@
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
+import { getSecureConfig } from "../security/SecureConfigService";
 
 // Auth provider constants
 const AUTH_PROVIDER_ID = "snapback" as const;
@@ -101,9 +102,9 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 				});
 
 				if (session) {
-					// Check if API key is also configured
-					const config = vscode.workspace.getConfiguration(AUTH_PROVIDER_ID);
-					const hasApiKey = !!config.get("api.key");
+					// ✅ SECURITY (AUTH-030): Check if API key is also configured using SecretStorage
+					const secureConfig = getSecureConfig();
+					const hasApiKey = await secureConfig.hasSecure("api.key");
 
 					const authMethod = hasApiKey ? "OAuth (with API key fallback)" : "OAuth";
 					vscode.window.showInformationMessage(
@@ -111,9 +112,9 @@ export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.
 						"View Account",
 					);
 				} else {
-					// Check for API key
-					const config = vscode.workspace.getConfiguration(AUTH_PROVIDER_ID);
-					const hasApiKey = !!config.get("api.key");
+					// ✅ SECURITY (AUTH-030): Check for API key using SecretStorage
+					const secureConfig = getSecureConfig();
+					const hasApiKey = await secureConfig.hasSecure("api.key");
 
 					if (hasApiKey) {
 						vscode.window.showInformationMessage(

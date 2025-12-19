@@ -322,6 +322,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	// we get a single workspace root. In multi-root scenarios, this will be
 	// the first workspace (sorted by depth).
 	const workspaceFolders = workspaceFolderResolver.getAllWorkspaceFolders();
+
+	// 🛡️ DEFENSIVE: Double-check workspaceFolders is not empty
+	// This should never happen due to hasWorkspace() check above, but add guard for safety
+	if (workspaceFolders.length === 0) {
+		const errorMsg = "SnapBack requires an open workspace folder (workspaceFolders empty)";
+		vscode.window.showErrorMessage(errorMsg);
+		throw new Error(errorMsg);
+	}
+
 	let workspaceRoot = workspaceFolders[0].uri.fsPath;
 
 	// Try to find the actual project root if we're in a subdirectory

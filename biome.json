@@ -9,7 +9,22 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"correctness": {
+				"noUndeclaredVariables": "error",
+				"noUnusedVariables": "warn"
+			},
+			"suspicious": {
+				"noDoubleEquals": "error",
+				"noExplicitAny": "warn",
+				"noArrayIndexKey": "warn"
+			},
+			"style": {
+				"useTemplate": "error"
+			},
+			"complexity": {
+				"noExtraBooleanCast": "error"
+			}
 		}
 	},
 	"files": {
