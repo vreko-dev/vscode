@@ -18,6 +18,7 @@ export interface EncryptedData {
  */
 export class EncryptionService {
 	private deviceKey: Buffer;
+	private initialized = false;
 	private readonly ALGORITHM = "aes-256-gcm";
 	private readonly KEY_LENGTH = 32; // 256 bits
 	private readonly IV_LENGTH = 16; // 128 bits
@@ -26,12 +27,28 @@ export class EncryptionService {
 	private telemetry: VSCodeTelemetry | null = null;
 
 	constructor() {
+		// Initialize with empty buffer - real key derived lazily on first use
+		// This prevents crashes during extension loading when workspace isn't ready
+		this.deviceKey = Buffer.alloc(0);
+	}
+
+	/**
+	 * Lazy initialization of device key - called automatically on first use
+	 * This prevents crashes during extension loading when workspace isn't ready
+	 */
+	private ensureInitialized(): void {
+		if (this.initialized) {
+			return; // Already initialized
+		}
+
 		try {
 			// Derive device-specific encryption key
 			const machineId = machineIdSync(true);
 
 			// PBKDF2 with 100,000 iterations for key stretching
 			this.deviceKey = pbkdf2Sync(machineId, this.SALT, this.PBKDF2_ITERATIONS, this.KEY_LENGTH, "sha256");
+
+			this.initialized = true;
 
 			logger.info("Encryption service initialized", {
 				algorithm: this.ALGORITHM,
@@ -51,6 +68,8 @@ export class EncryptionService {
 	 * @returns Encrypted data with IV and authentication tag
 	 */
 	encrypt(plaintext: string): EncryptedData {
+		this.ensureInitialized(); // Lazy initialization on first use
+
 		try {
 			// Generate random IV for this encryption operation
 			const iv = randomBytes(this.IV_LENGTH);
@@ -85,6 +104,8 @@ export class EncryptionService {
 	 * @throws Error if authentication fails (tampered data)
 	 */
 	decrypt(encrypted: EncryptedData): string {
+		this.ensureInitialized(); // Lazy initialization on first use
+
 		try {
 			// Validate algorithm
 			if (encrypted.algorithm !== this.ALGORITHM) {

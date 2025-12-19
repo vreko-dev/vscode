@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { analyze, type Envelope, evaluatePolicy, ingestTelemetry, SnapbackClient } from "./sdk-types";
+import { getSecureConfig } from "./security/SecureConfigService";
 
 /**
  * SDK Adapter for VS Code Extension
@@ -7,7 +8,7 @@ import { analyze, type Envelope, evaluatePolicy, ingestTelemetry, SnapbackClient
  */
 
 export class VSCodeSDKAdapter {
-	private _client: SnapbackClient;
+	private _clientPromise: Promise<SnapbackClient>;
 	private sessionId: string;
 	private workspaceId: string | undefined;
 
@@ -21,12 +22,24 @@ export class VSCodeSDKAdapter {
 			this.workspaceId = workspaceFolders[0].uri.fsPath;
 		}
 
-		// Initialize the Snapback client
+		// ✅ SECURITY (AUTH-030): Initialize client asynchronously with SecretStorage
+		this._clientPromise = this.initializeClient();
+	}
+
+	/**
+	 * Initialize SDK client with API key from SecretStorage
+	 *
+	 * ✅ SECURITY (AUTH-030): Loads API key from encrypted storage
+	 */
+	private async initializeClient(): Promise<SnapbackClient> {
 		const config = vscode.workspace.getConfiguration("snapback");
 		const baseUrl = config.get("api.baseUrl", "https://api.snapback.dev");
-		const apiKey = config.get("api.key", "");
 
-		this._client = new SnapbackClient({
+		// ✅ Load API key from SecretStorage (not workspace config)
+		const secureConfig = getSecureConfig();
+		const apiKey = await secureConfig.get("api.key");
+
+		return new SnapbackClient({
 			endpoint: baseUrl,
 			apiKey: apiKey,
 			privacy: {
@@ -42,6 +55,13 @@ export class VSCodeSDKAdapter {
 				backoffMs: 1000,
 			},
 		});
+	}
+
+	/**
+	 * Ensure client is initialized before use
+	 */
+	private async ensureClientReady(): Promise<SnapbackClient> {
+		return await this._clientPromise;
 	}
 
 	/**
@@ -81,9 +101,10 @@ export class VSCodeSDKAdapter {
 	 * Analyze code content
 	 */
 	async analyzeContent(content: string, filePath: string, language?: string): Promise<unknown> {
+		const client = await this.ensureClientReady();
 		const envelope = this.createEnvelope();
 
-		return await analyze(this._client, envelope, {
+		return await analyze(client, envelope, {
 			content,
 			filePath,
 			language,
@@ -94,9 +115,10 @@ export class VSCodeSDKAdapter {
 	 * Evaluate policy
 	 */
 	async evaluatePolicy(context: Record<string, unknown>): Promise<unknown> {
+		const client = await this.ensureClientReady();
 		const envelope = this.createEnvelope();
 
-		return await evaluatePolicy(this._client, envelope, {
+		return await evaluatePolicy(client, envelope, {
 			context,
 		});
 	}
@@ -105,9 +127,10 @@ export class VSCodeSDKAdapter {
 	 * Ingest telemetry data
 	 */
 	async ingestTelemetry(eventType: string, payload: Record<string, unknown>): Promise<unknown> {
+		const client = await this.ensureClientReady();
 		const envelope = this.createEnvelope();
 
-		return await ingestTelemetry(this._client, envelope, {
+		return await ingestTelemetry(client, envelope, {
 			eventType,
 			payload,
 			timestamp: Date.now(),

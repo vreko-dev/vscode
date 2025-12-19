@@ -1,12 +1,14 @@
 import * as vscode from "vscode";
 import type { NetworkAdapter } from "../network/NetworkAdapter";
 import { QueuedNetworkAdapter } from "../network/QueuedNetworkAdapter";
+import { getSecureConfig } from "../security/SecureConfigService";
 import { logger } from "../utils/logger";
 
 // API client for SnapBack backend
 export class ApiClient {
 	private baseUrl: string;
 	private apiKey: string | undefined;
+	private apiKeyInitialized = false;
 	private networkAdapter: NetworkAdapter;
 
 	constructor(networkAdapter?: NetworkAdapter) {
@@ -17,21 +19,63 @@ export class ApiClient {
 			// Get API configuration from VS Code settings
 			const config = vscode.workspace.getConfiguration("snapback");
 			this.baseUrl = config.get("api.baseUrl", "https://api.snapback.dev/api");
-			this.apiKey = config.get("api.key");
+
+			// ✅ SECURITY (AUTH-030): API key now loaded lazily from SecureConfigService
+			// No longer retrieved from workspace config to prevent exposure in settings.json
 		} catch (error) {
 			// In test environments, vscode.workspace might not be available
 			// Use default values
 			this.baseUrl = "https://api.snapback.dev/api";
-			this.apiKey = undefined;
 			logger.debug("Using default API configuration", {
 				reason: error instanceof Error ? error.message : "test environment",
 			});
 		}
 	}
 
-	// Update API key
-	public setApiKey(apiKey: string): void {
-		this.apiKey = apiKey;
+	/**
+	 * Lazy initialization of API key from SecretStorage
+	 * Called automatically before API requests
+	 *
+	 * ✅ SECURITY (AUTH-030): Uses SecretStorage instead of workspace config
+	 */
+	private async ensureApiKeyLoaded(): Promise<void> {
+		if (this.apiKeyInitialized) {
+			return;
+		}
+
+		try {
+			// ✅ Retrieve from SecretStorage (OS-level encrypted storage)
+			const secureConfig = getSecureConfig();
+			this.apiKey = await secureConfig.get("api.key");
+			this.apiKeyInitialized = true;
+
+			if (this.apiKey) {
+				logger.debug("API key loaded from secure storage");
+			}
+		} catch (error) {
+			logger.warn("Failed to load API key from secure storage", {
+				error: error instanceof Error ? error.message : "unknown",
+			});
+			this.apiKeyInitialized = true; // Mark as attempted to avoid repeated failures
+		}
+	}
+
+	/**
+	 * Update API key and store securely
+	 *
+	 * ✅ SECURITY (AUTH-030): Stores in SecretStorage, not workspace config
+	 */
+	public async setApiKey(apiKey: string): Promise<void> {
+		try {
+			const secureConfig = getSecureConfig();
+			await secureConfig.set("api.key", apiKey);
+			this.apiKey = apiKey;
+			this.apiKeyInitialized = true;
+			logger.info("API key securely stored");
+		} catch (error) {
+			logger.error("Failed to store API key securely", error as Error);
+			throw error;
+		}
 	}
 
 	// Analyze files using the backend API
@@ -49,6 +93,9 @@ export class ApiClient {
 			branchName?: string;
 		},
 	): Promise<unknown> {
+		// ✅ SECURITY (AUTH-030): Load API key from SecretStorage before use
+		await this.ensureApiKeyLoaded();
+
 		if (!this.apiKey) {
 			// Return neutral result instead of throwing
 			// This allows fallback to basic pattern detection
@@ -97,6 +144,9 @@ export class ApiClient {
 			branchName?: string;
 		},
 	): Promise<unknown> {
+		// ✅ SECURITY (AUTH-030): Load API key from SecretStorage before use
+		await this.ensureApiKeyLoaded();
+
 		if (!this.apiKey) {
 			// Return neutral result instead of throwing
 			// This allows fallback to basic pattern detection
@@ -139,6 +189,9 @@ export class ApiClient {
 		filePath?: string,
 		workspaceId?: string,
 	): Promise<unknown> {
+		// ✅ SECURITY (AUTH-030): Load API key from SecretStorage before use
+		await this.ensureApiKeyLoaded();
+
 		if (!this.apiKey) {
 			// Return neutral policy result instead of throwing
 			// This allows operations to continue in offline mode
