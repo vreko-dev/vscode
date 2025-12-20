@@ -667,6 +667,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		logger.info("WorkspaceContextManager initialized");
 
 		// 🆕 Phase 14: Initialize AutoDecisionIntegration (session-level AI protection)
+		// FIX: Pass OperationCoordinator to enable proper event bus integration for UI refresh
 		const phase14Start = Date.now();
 		autoDecisionIntegration = new AutoDecisionIntegration(
 			phase3Result.snapshotManager,
@@ -680,6 +681,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			},
 			context, // Pass context for globalState storage persistence
 			aiRiskService, // GREEN: Pass AIRiskService for risk assessment
+			phase3Result.operationCoordinator, // 🔧 FIX: Wire OperationCoordinator for UI refresh
 		);
 		autoDecisionIntegration.activate();
 		context.subscriptions.push({

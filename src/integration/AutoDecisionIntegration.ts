@@ -28,6 +28,7 @@ import { DEFAULT_CONFIG } from "../domain/types";
 import { FeedbackManager } from "../engine/FeedbackManager";
 import type { NotificationManager } from "../notificationManager";
 import { RecoveryUXNotification } from "../notifications/RecoveryUXNotification";
+import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskAssessment, AIRiskService, ChangeToAssess } from "../services/aiRiskService";
 import type { WorkspaceContextManager } from "../services/WorkspaceContextManager";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
@@ -51,6 +52,7 @@ export class AutoDecisionIntegration {
 	private signalAggregator: SignalAggregator;
 	private settingsLoader: SettingsLoader | null = null;
 	private snapshotManager: SnapshotManager;
+	private operationCoordinator: OperationCoordinator | null = null;
 	private workspaceContextManager: WorkspaceContextManager;
 	private aiRiskService: AIRiskService | null = null;
 
@@ -86,9 +88,11 @@ export class AutoDecisionIntegration {
 		config?: Partial<AutoDecisionConfig>,
 		context?: vscode.ExtensionContext,
 		aiRiskService?: AIRiskService,
+		operationCoordinator?: OperationCoordinator,
 	) {
 		// Store dependencies
 		this.snapshotManager = snapshotManager;
+		this.operationCoordinator = operationCoordinator ?? null;
 		this.workspaceContextManager = workspaceContextManager;
 		this.aiRiskService = aiRiskService ?? null;
 
@@ -131,6 +135,7 @@ export class AutoDecisionIntegration {
 
 		logger.info("AutoDecisionIntegration initialized", {
 			config: mergedConfig,
+			hasOperationCoordinator: !!operationCoordinator,
 		});
 	}
 
@@ -572,14 +577,18 @@ export class AutoDecisionIntegration {
 
 	/**
 	 * Execute decision: create snapshot and/or show notification
+	 *
+	 * CRITICAL FIX: Uses OperationCoordinator instead of SnapshotManager
+	 * to ensure events are emitted on the correct event bus for UI refresh.
 	 */
 	private async executeDecision(decision: ProtectionDecision, context: SaveContext): Promise<void> {
 		try {
 			// Create snapshot if needed
 			if (decision.createSnapshot && context.files.length > 0) {
-				logger.info("Creating snapshot from decision", {
+				logger.info("Creating snapshot from AutoDecision", {
 					reasons: decision.reasons,
 					confidence: decision.confidence,
+					hasOperationCoordinator: !!this.operationCoordinator,
 				});
 
 				// Create snapshot for the first file in context
@@ -593,30 +602,71 @@ export class AutoDecisionIntegration {
 						: workspaceFolder
 							? path.join(workspaceFolder, primaryFile.path)
 							: primaryFile.path;
+
 					const fileUri = vscode.Uri.file(absolutePath);
 					const document = await vscode.workspace.openTextDocument(fileUri);
 					const content = document.getText();
 
-					const snapshot = await this.snapshotManager.createSnapshot([
-						{
-							path: absolutePath, // Use absolute path for snapshot validation
-							content,
-							action: "modify" as const,
-						},
-					]);
-					logger.info("Snapshot created from AutoDecision", {
-						snapshotId: snapshot.id,
-						filePath: absolutePath,
-					});
+					let snapshotId: string | undefined;
 
-					// Show recovery notification - the viral moment!
-					const notification = new RecoveryUXNotification();
-					void notification.showProtectionAlert({
-						filePath: primaryFile.path,
-						snapshotId: snapshot.id,
-						aiTool: detectAIPresence().detectedAssistants[0] || "AI",
-						operationType: "auto-detected",
-					});
+					// FIX: Use OperationCoordinator for proper event bus integration
+					if (this.operationCoordinator) {
+						// Build file contents map with workspace-relative path as key
+						const relativePath = workspaceFolder
+							? path.relative(workspaceFolder, absolutePath)
+							: absolutePath;
+
+						const fileContents: Record<string, string> = {
+							[relativePath]: content,
+						};
+
+						// Create snapshot through OperationCoordinator
+						// This ensures SNAPSHOT_CREATED event is emitted on the global eventBus
+						snapshotId = await this.operationCoordinator.coordinateSnapshotCreation(
+							false, // showNotification - we show our own notification
+							[absolutePath], // specificFiles
+							fileContents, // providedFileContents
+							`AI-detected: ${path.basename(absolutePath)}`, // customSnapshotName
+						);
+
+						logger.info("Snapshot created via OperationCoordinator", {
+							snapshotId,
+							filePath: absolutePath,
+						});
+					} else {
+						// Fallback: Use SnapshotManager directly (UI won't refresh)
+						logger.warn(
+							"OperationCoordinator not available - snapshot will be created but UI may not refresh",
+						);
+						try {
+							const snapshot = await this.snapshotManager.createSnapshot([
+								{
+									path: absolutePath,
+									content,
+									action: "modify" as const,
+								},
+							]);
+							snapshotId = snapshot.id;
+						} catch (fallbackError) {
+							// SnapshotStorageAdapter throws "Direct save not supported"
+							// This is expected when OperationCoordinator is not wired
+							logger.error(
+								"Fallback snapshot creation failed - wire OperationCoordinator to fix",
+								fallbackError as Error,
+							);
+						}
+					}
+
+					if (snapshotId) {
+						// Show recovery notification - the viral moment!
+						const notification = new RecoveryUXNotification();
+						void notification.showProtectionAlert({
+							filePath: primaryFile.path,
+							snapshotId,
+							aiTool: detectAIPresence().detectedAssistants[0] || "AI",
+							operationType: "auto-detected",
+						});
+					}
 				} catch (snapshotError) {
 					logger.error("Failed to create snapshot from AutoDecision", snapshotError as Error);
 				}
@@ -681,6 +731,15 @@ export function createAutoDecisionIntegration(
 	notificationManager: NotificationManager,
 	workspaceContextManager: WorkspaceContextManager,
 	config?: Partial<AutoDecisionConfig>,
+	operationCoordinator?: OperationCoordinator,
 ): AutoDecisionIntegration {
-	return new AutoDecisionIntegration(snapshotManager, notificationManager, workspaceContextManager, config);
+	return new AutoDecisionIntegration(
+		snapshotManager,
+		notificationManager,
+		workspaceContextManager,
+		config,
+		undefined,
+		undefined,
+		operationCoordinator,
+	);
 }

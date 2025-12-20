@@ -304,6 +304,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 
 	/**
 	 * Add a protection rule to .snapbackrc
+	 * Also immediately updates the registry and triggers decoration refresh
 	 */
 	async addProtectionRule(filePath: string, level: string, reason?: string): Promise<void> {
 		const configPath = path.join(this.workspaceRoot, this.configFileName);
@@ -345,6 +346,19 @@ export class SnapBackRCLoader implements vscode.Disposable {
 			// Write back to file
 			await this.writeConfig(configPath, config);
 			logger.info(`Added protection rule to .snapbackrc: ${relativePath} (${level})`);
+
+			// CRITICAL FIX: Immediately update registry to trigger decoration refresh
+			// This ensures UI updates instantly without waiting for file watcher
+			const isProtected = this.protectedFileRegistry.isProtected(filePath);
+			if (isProtected) {
+				// File already protected - update level
+				await this.protectedFileRegistry.updateProtectionLevel(filePath, level as ProtectionLevel);
+			} else {
+				// File not protected - add it
+				await this.protectedFileRegistry.add(filePath, {
+					protectionLevel: level as ProtectionLevel,
+				});
+			}
 		} catch (error) {
 			logger.error("Failed to add protection rule to .snapbackrc", error as Error);
 			throw error;
