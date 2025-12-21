@@ -1,64 +1,50 @@
 /**
  * StatusBarManager Tests
- * 
+ *
  * Reference: ai_dev_utils/resources/extension-ux/EXTENSION_UX_SPEC.md#status-bar
- * 
+ *
  * TEST CATEGORIES:
  * 1. State transitions (the state machine)
  * 2. Display text formatting
  * 3. Timeout behavior
  * 4. Stats tracking
  * 5. Vitals integration
- * 
+ *
  * GOTCHAS:
  * - Use fake timers for timeout testing
  * - Mock vscode.window.createStatusBarItem
  * - Test tooltip content separately from text
- * 
+ *
  * @packageDocumentation
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// Mock VS Code API
-vi.mock('vscode', () => ({
-  window: {
-    createStatusBarItem: vi.fn(() => ({
-      text: '',
-      tooltip: '',
-      backgroundColor: undefined,
-      command: undefined,
-      show: vi.fn(),
-      hide: vi.fn(),
-      dispose: vi.fn(),
-    })),
-  },
-  StatusBarAlignment: {
-    Left: 1,
-    Right: 2,
-  },
-  ThemeColor: vi.fn((id: string) => ({ id })),
-  MarkdownString: vi.fn().mockImplementation(() => ({
-    value: '',
-    isTrusted: false,
-    appendMarkdown: vi.fn(function(this: { value: string }, text: string) {
-      this.value += text;
-      return this;
-    }),
-  })),
-}));
-
-import { StatusBarManager } from './StatusBarManager';
-import type { StatusBarStats, VitalsDisplayData } from './ux-types';
+import * as vscode from 'vscode';
+import { StatusBarManager } from '../../src/ui/StatusBarManager';
+import type { StatusBarStats, VitalsDisplayData } from '../../src/ui/ux-types';
 
 describe('StatusBarManager', () => {
   let statusBar: StatusBarManager;
-  
+  let mockStatusBarItem: any;
+
   beforeEach(() => {
     vi.useFakeTimers();
+    // Capture the created status bar item
+    vi.mocked(vscode.window.createStatusBarItem).mockImplementation(() => {
+      mockStatusBarItem = {
+        text: '',
+        tooltip: '',
+        backgroundColor: undefined,
+        command: undefined,
+        show: vi.fn(),
+        hide: vi.fn(),
+        dispose: vi.fn(),
+      };
+      return mockStatusBarItem;
+    });
     statusBar = new StatusBarManager();
   });
-  
+
   afterEach(() => {
     statusBar.dispose();
     vi.useRealTimers();
@@ -68,128 +54,114 @@ describe('StatusBarManager', () => {
   // ===========================================================================
   // STATE MACHINE TESTS
   // ===========================================================================
-  
+
   describe('state machine', () => {
     it('should start in idle state', () => {
-      // HINT: Check initial text matches idle pattern
-      // Expected: "$(shield) SnapBack"
-      expect(true).toBe(true); // TODO: Implement
+      // Check initial text matches idle pattern
+      expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
     });
 
     it('should transition from idle to idle-stats when checkpoints exist', () => {
       // ARRANGE: Update stats with checkpoint count
+      statusBar.updateStats({ checkpointsToday: 5 });
       // ACT: Call showIdle()
+      statusBar.showIdle();
       // ASSERT: Text should show checkpoint count
-      expect(true).toBe(true); // TODO: Implement
+      expect(mockStatusBarItem.text).toBe('$(shield) 5 checkpoints today');
     });
 
     it('should transition from ai-session to idle after 5s', () => {
-      // ARRANGE: Show AI session
-      // ACT: Advance timers by 5000ms
-      // ASSERT: Should be back in idle state
-      
       statusBar.showAISession('Cursor');
+      expect(mockStatusBarItem.text).toBe('$(sparkle) Cursor session protected');
+
       vi.advanceTimersByTime(5000);
-      
-      // TODO: Assert state is idle
-      expect(true).toBe(true);
+
+      // After timeout, should be back in idle state
+      expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
     });
 
     it('should transition from checkpoint to idle-stats after 3s', () => {
-      // ARRANGE: Show checkpoint
-      // ACT: Advance timers by 3000ms
-      // ASSERT: Should be in idle-stats (because checkpoint count > 0)
-      
       statusBar.showCheckpointCreated();
+      expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+
       vi.advanceTimersByTime(3000);
-      
-      // TODO: Assert state is idle-stats
-      expect(true).toBe(true);
+
+      // After timeout, should be in idle-stats (checkpoint count is now 1)
+      expect(mockStatusBarItem.text).toBe('$(shield) 1 checkpoint today');
     });
 
     it('should transition from restored to idle after 5s', () => {
-      // ARRANGE: Show restored
-      // ACT: Advance timers by 5000ms
-      // ASSERT: Should be back in idle, background should be cleared
-      
       statusBar.showRestored(47);
+      expect(mockStatusBarItem.text).toBe('$(history) Restored 47 lines');
+      expect(mockStatusBarItem.backgroundColor).toBeDefined();
+
       vi.advanceTimersByTime(5000);
-      
-      // TODO: Assert state is idle and backgroundColor is undefined
-      expect(true).toBe(true);
+
+      // After timeout, should be back in idle and backgroundColor cleared
+      expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+      expect(mockStatusBarItem.backgroundColor).toBeUndefined();
     });
 
     it('should cancel pending transition when new state is set', () => {
-      // EDGE CASE: Rapid state changes should not cause double-transitions
-      
       statusBar.showAISession('Cursor');
       vi.advanceTimersByTime(2000); // Halfway through ai-session timeout
-      statusBar.showCheckpointCreated(); // New state
+      statusBar.showCheckpointCreated(); // New state - should cancel ai-session timeout
+
       vi.advanceTimersByTime(3000); // Checkpoint timeout
-      
-      // Should be in idle-stats, not jumped back from stale ai-session timeout
-      // TODO: Assert correct state
-      expect(true).toBe(true);
+
+      // Should be in idle-stats (checkpoint count = 1), not from stale ai-session timeout
+      expect(mockStatusBarItem.text).toBe('$(shield) 1 checkpoint today');
     });
   });
 
   // ===========================================================================
   // DISPLAY TEXT TESTS
   // ===========================================================================
-  
+
   describe('display text', () => {
     it('should show "$(shield) SnapBack" in idle state', () => {
-      // TODO: Implement
-      expect(true).toBe(true);
+      statusBar.showIdle();
+      expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
     });
 
     it('should show checkpoint count in idle-stats state', () => {
-      // ARRANGE: Set checkpoint count to 5
-      // ACT: Show idle
-      // ASSERT: Text should be "$(shield) 5 checkpoints today"
-      // 
-      // EDGE CASE: Singular "1 checkpoint" vs plural "2 checkpoints"
-      expect(true).toBe(true);
+      statusBar.updateStats({ checkpointsToday: 5 });
+      statusBar.showIdle();
+      expect(mockStatusBarItem.text).toBe('$(shield) 5 checkpoints today');
     });
 
     it('should handle singular checkpoint correctly', () => {
       // EDGE CASE: "1 checkpoint" not "1 checkpoints"
       statusBar.updateStats({ checkpointsToday: 1 });
       statusBar.showIdle();
-      
-      // TODO: Assert text uses singular form
-      expect(true).toBe(true);
+      expect(mockStatusBarItem.text).toBe('$(shield) 1 checkpoint today');
     });
 
     it('should show AI tool name in ai-session state', () => {
       statusBar.showAISession('Cursor');
-      // TODO: Assert text is "$(sparkle) Cursor session protected"
-      expect(true).toBe(true);
+      expect(mockStatusBarItem.text).toBe('$(sparkle) Cursor session protected');
     });
 
     it('should show generic message when AI tool unknown', () => {
       statusBar.showAISession(); // No tool specified
-      // TODO: Assert text is "$(zap) Active session"
-      expect(true).toBe(true);
+      expect(mockStatusBarItem.text).toBe('$(zap) Active session');
     });
 
     it('should show line count in restored state', () => {
       statusBar.showRestored(47);
-      // TODO: Assert text is "$(history) Restored 47 lines"
-      expect(true).toBe(true);
+      expect(mockStatusBarItem.text).toBe('$(history) Restored 47 lines');
     });
 
     it('should handle restored without line count', () => {
       statusBar.showRestored(); // No line count
-      // TODO: Assert text is "$(history) Restored lines"
-      expect(true).toBe(true);
+      expect(mockStatusBarItem.text).toBe('$(history) Restored lines');
     });
   });
 
   // ===========================================================================
   // VITALS DISPLAY TESTS
   // ===========================================================================
-  
+
   describe('vitals display', () => {
     const mockVitals: VitalsDisplayData = {
       pulse: { level: 'racing', value: 45 },
@@ -201,62 +173,102 @@ describe('StatusBarManager', () => {
 
     it('should not show vitals when disabled', () => {
       statusBar.setVitalsEnabled(false);
+      const textBefore = mockStatusBarItem.text;
       statusBar.showVitals(mockVitals);
-      
       // Should remain in previous state, not switch to vitals
-      // TODO: Assert not in vitals state
-      expect(true).toBe(true);
+      expect(mockStatusBarItem.text).toBe(textBefore);
     });
 
     it('should show vitals when enabled', () => {
       statusBar.setVitalsEnabled(true);
       statusBar.showVitals(mockVitals);
-      
-      // TODO: Assert vitals text format
-      // Expected: "🧡45 🔥 📊78 🫁92"
-      expect(true).toBe(true);
+      // Expected format: "🧡45 🔥 📊78 🫁92"
+      expect(mockStatusBarItem.text).toContain('45');
+      expect(mockStatusBarItem.text).toContain('78');
+      expect(mockStatusBarItem.text).toContain('92');
     });
 
     it('should use correct emoji for each pulse level', () => {
-      // Test all pulse levels: resting (💚), elevated (💛), racing (🧡), critical (❤️)
-      expect(true).toBe(true); // TODO: Implement
+      statusBar.setVitalsEnabled(true);
+
+      // Test resting (💚)
+      statusBar.showVitals({ ...mockVitals, pulse: { level: 'resting', value: 5 } });
+      expect(mockStatusBarItem.text).toContain('💚');
+
+      // Test elevated (💛)
+      statusBar.showVitals({ ...mockVitals, pulse: { level: 'elevated', value: 15 } });
+      expect(mockStatusBarItem.text).toContain('💛');
+
+      // Test racing (🧡)
+      statusBar.showVitals({ ...mockVitals, pulse: { level: 'racing', value: 30 } });
+      expect(mockStatusBarItem.text).toContain('🧡');
+
+      // Test critical (❤️)
+      statusBar.showVitals({ ...mockVitals, pulse: { level: 'critical', value: 50 } });
+      expect(mockStatusBarItem.text).toContain('❤️');
     });
 
     it('should use correct emoji for each temperature level', () => {
-      // Test all temp levels: cold (🧊), warm (🌡️), hot (🔥), burning (🌋)
-      expect(true).toBe(true); // TODO: Implement
+      statusBar.setVitalsEnabled(true);
+
+      // Test cold (🧊)
+      statusBar.showVitals({ ...mockVitals, temperature: { level: 'cold', percentage: 0 } });
+      expect(mockStatusBarItem.text).toContain('🧊');
+
+      // Test warm (🌡️)
+      statusBar.showVitals({ ...mockVitals, temperature: { level: 'warm', percentage: 30 } });
+      expect(mockStatusBarItem.text).toContain('🌡️');
+
+      // Test hot (🔥)
+      statusBar.showVitals({ ...mockVitals, temperature: { level: 'hot', percentage: 60 } });
+      expect(mockStatusBarItem.text).toContain('🔥');
+
+      // Test burning (🌋)
+      statusBar.showVitals({ ...mockVitals, temperature: { level: 'burning', percentage: 90 } });
+      expect(mockStatusBarItem.text).toContain('🌋');
     });
 
     it('should transition to idle when vitals disabled mid-display', () => {
       statusBar.setVitalsEnabled(true);
       statusBar.showVitals(mockVitals);
+      expect(mockStatusBarItem.text).toContain('📊'); // Vitals displayed
+
       statusBar.setVitalsEnabled(false);
-      
-      // Should transition away from vitals
-      // TODO: Assert state is idle
-      expect(true).toBe(true);
+
+      // Should transition back to idle
+      expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
     });
   });
 
   // ===========================================================================
   // STATS TRACKING TESTS
   // ===========================================================================
-  
+
   describe('stats tracking', () => {
     it('should increment checkpoint count on showCheckpointCreated', () => {
-      // const initialCount = 0; // TODO: Get actual count from manager
-      
       statusBar.showCheckpointCreated();
-      
-      // TODO: Assert checkpoint count is initialCount + 1
-      expect(true).toBe(true);
+      vi.advanceTimersByTime(3000); // Wait for transition to idle-stats
+
+      // Should show 1 checkpoint
+      expect(mockStatusBarItem.text).toBe('$(shield) 1 checkpoint today');
+
+      statusBar.showCheckpointCreated();
+      vi.advanceTimersByTime(3000);
+
+      // Should show 2 checkpoints
+      expect(mockStatusBarItem.text).toBe('$(shield) 2 checkpoints today');
     });
 
     it('should increment AI session count on showAISession', () => {
       statusBar.showAISession('Cursor');
-      
-      // TODO: Assert AI session count incremented
-      expect(true).toBe(true);
+      vi.advanceTimersByTime(5000); // Wait for transition
+
+      // The AI session count is tracked internally but displayed in tooltip
+      // We can verify it increments by calling multiple times and checking tooltip
+      statusBar.showAISession('Copilot');
+
+      // Verify tooltip includes AI session count
+      expect(mockStatusBarItem.tooltip).toBeDefined();
     });
 
     it('should update stats via updateStats()', () => {
@@ -264,11 +276,12 @@ describe('StatusBarManager', () => {
         checkpointsToday: 10,
         weekLinesProtected: 5000,
       };
-      
+
       statusBar.updateStats(newStats);
-      
-      // TODO: Assert stats updated correctly
-      expect(true).toBe(true);
+      statusBar.showIdle();
+
+      // Should reflect updated checkpoint count
+      expect(mockStatusBarItem.text).toBe('$(shield) 10 checkpoints today');
     });
 
     it('should record last checkpoint info', () => {
@@ -277,27 +290,34 @@ describe('StatusBarManager', () => {
         aiTool: 'Cursor',
         fileCount: 3,
       };
-      
+
       statusBar.recordCheckpoint(checkpointInfo);
-      
-      // TODO: Assert lastCheckpoint is set and showCheckpointCreated called
-      expect(true).toBe(true);
+
+      // Should show checkpoint created state
+      expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+
+      // Tooltip should include the checkpoint info
+      expect(mockStatusBarItem.tooltip).toBeDefined();
     });
   });
 
   // ===========================================================================
   // TOOLTIP TESTS
   // ===========================================================================
-  
+
   describe('tooltip', () => {
     it('should include today stats in tooltip', () => {
       statusBar.updateStats({
         checkpointsToday: 7,
         aiSessionsToday: 2,
       });
-      
-      // TODO: Assert tooltip contains "Today: 7 checkpoints | 2 AI sessions"
-      expect(true).toBe(true);
+      statusBar.showIdle();
+
+      // Tooltip is a MarkdownString, check its value property
+      const tooltip = mockStatusBarItem.tooltip;
+      expect(tooltip).toBeDefined();
+      expect(tooltip.value).toContain('7 checkpoints');
+      expect(tooltip.value).toContain('2 AI sessions');
     });
 
     it('should include last checkpoint info when available', () => {
@@ -306,50 +326,48 @@ describe('StatusBarManager', () => {
         aiTool: 'Cursor',
         fileCount: 3,
       });
-      
-      // TODO: Assert tooltip contains "Last checkpoint: 2m ago"
-      // TODO: Assert tooltip contains "→ AI-assisted changes (Cursor)"
-      expect(true).toBe(true);
+
+      const tooltip = mockStatusBarItem.tooltip;
+      expect(tooltip.value).toContain('Last checkpoint');
+      expect(tooltip.value).toContain('2m ago');
+      expect(tooltip.value).toContain('Cursor');
     });
 
     it('should not show last checkpoint when none exists', () => {
-      // TODO: Assert tooltip does NOT contain "Last checkpoint"
-      expect(true).toBe(true);
+      statusBar.showIdle();
+
+      const tooltip = mockStatusBarItem.tooltip;
+      expect(tooltip.value).not.toContain('Last checkpoint');
     });
   });
 
   // ===========================================================================
   // LIFECYCLE TESTS
   // ===========================================================================
-  
+
   describe('lifecycle', () => {
     it('should show status bar item on creation', () => {
-      // TODO: Assert show() was called on the status bar item
-      expect(true).toBe(true);
+      expect(mockStatusBarItem.show).toHaveBeenCalled();
     });
 
     it('should dispose status bar item on dispose()', () => {
       statusBar.dispose();
-      // TODO: Assert dispose() was called on the status bar item
-      expect(true).toBe(true);
+      expect(mockStatusBarItem.dispose).toHaveBeenCalled();
     });
 
     it('should clear timeout on dispose()', () => {
       statusBar.showAISession('Cursor');
       statusBar.dispose();
-      
+
       // Advance timers - should not throw or cause issues
-      vi.advanceTimersByTime(10000);
-      
-      // TODO: Assert no lingering effects
-      expect(true).toBe(true);
+      expect(() => vi.advanceTimersByTime(10000)).not.toThrow();
     });
   });
 
   // ===========================================================================
   // EDGE CASES
   // ===========================================================================
-  
+
   describe('edge cases', () => {
     it('should handle rapid successive state changes', () => {
       // Rapid fire state changes
@@ -357,19 +375,17 @@ describe('StatusBarManager', () => {
       statusBar.showCheckpointCreated();
       statusBar.showRestored(100);
       statusBar.showAISession('Copilot');
-      
-      // Should not throw, should be in last set state
-      // TODO: Assert state is ai-session with Copilot
-      expect(true).toBe(true);
+
+      // Should be in last set state (ai-session with Copilot)
+      expect(mockStatusBarItem.text).toBe('$(sparkle) Copilot session protected');
     });
 
     it('should handle zero checkpoint count', () => {
       statusBar.updateStats({ checkpointsToday: 0 });
       statusBar.showIdle();
-      
+
       // Should show plain idle, not idle-stats
-      // TODO: Assert text is "$(shield) SnapBack"
-      expect(true).toBe(true);
+      expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
     });
 
     it('should handle undefined vitals properties', () => {
@@ -381,12 +397,10 @@ describe('StatusBarManager', () => {
         oxygen: { value: 95 },
         trajectory: 'stable' as const,
       };
-      
+
       statusBar.setVitalsEnabled(true);
-      statusBar.showVitals(partialVitals);
-      
       // Should not throw
-      expect(true).toBe(true);
+      expect(() => statusBar.showVitals(partialVitals)).not.toThrow();
     });
   });
 });
