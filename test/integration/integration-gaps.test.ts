@@ -12,7 +12,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SnapBackEvent } from "@snapback/events";
+import { SnapBackEvent } from "@snapback/contracts";
 
 // ============================================================
 // FIX 1: RemoteAIRiskService Integration Tests

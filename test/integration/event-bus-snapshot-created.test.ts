@@ -10,7 +10,7 @@
  */
 
 import { beforeAll, beforeEach, afterAll, describe, expect, it, vi } from 'vitest';
-import { SnapBackEvent, SnapBackEventBus } from '@snapback/events';
+import { SnapBackEvent, SnapBackEventBus } from '@snapback/contracts';
 
 describe('Event Bus - SNAPSHOT_CREATED Integration (RED Phase)', () => {
 	let eventBus: SnapBackEventBus;

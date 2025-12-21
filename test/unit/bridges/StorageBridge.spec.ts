@@ -13,7 +13,7 @@
  */
 
 import { Storage as V2Storage, type SnapshotManifest as V2Manifest } from "@snapback/engine";
-import type { SnapBackEventBus } from "@snapback/events";
+import type { SnapBackEventBus } from "@snapback/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import type { StorageManager } from "../../../src/storage/StorageManager";
