@@ -1148,7 +1148,6 @@
     "@snapback/contracts": "workspace:*",
     "@snapback/core": "workspace:*",
     "@snapback/engine": "workspace:*",
-    "@snapback/events": "workspace:*",
     "@snapback/infrastructure": "workspace:*",
     "@snapback/sdk": "workspace:*",
     "ajv": "catalog:",
