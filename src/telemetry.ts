@@ -14,8 +14,7 @@ import type {
 	LegacyViewActivatedEvent,
 	LegacyWalkthroughStepCompletedEvent,
 } from "@snapback/contracts";
-import { LEGACY_TELEMETRY_EVENTS } from "@snapback/contracts";
-import { SnapBackEventBus } from "@snapback/events";
+import { LEGACY_TELEMETRY_EVENTS, SnapBackEventBus } from "@snapback/contracts";
 import { TelemetryClient } from "@snapback/infrastructure/tracing";
 import * as vscode from "vscode";
 import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService

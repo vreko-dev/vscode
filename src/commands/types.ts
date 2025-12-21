@@ -7,7 +7,7 @@
  * @see commands/index.ts for command registration
  */
 
-import type { SnapBackEventBus } from "@snapback/events";
+import type { SnapBackEventBus } from "@snapback/contracts";
 import type * as vscodeType from "vscode";
 import * as vscode from "vscode";
 import type { ConflictResolver } from "../conflictResolver";

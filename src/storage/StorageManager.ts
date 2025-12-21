@@ -1,6 +1,6 @@
 // apps/vscode/src/storage/StorageManager.ts
 
-import { SnapBackEvent, type SnapBackEventBus } from "@snapback/events";
+import { SnapBackEvent, type SnapBackEventBus } from "@snapback/contracts";
 import * as vscode from "vscode";
 import { AuditLog } from "./AuditLog";
 import { BlobStore } from "./BlobStore";
