@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { StorageManager } from "../../../src/storage/StorageManager";
-import { SnapBackEventBus } from "@snapback/events";
+import { SnapBackEventBus } from "@snapback/contracts";
 import type * as VSCode from "vscode";
 
 // Mock vscode module
