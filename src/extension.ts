@@ -8,8 +8,8 @@
  * @version 1.0.0
  */
 
-// Import real EventBus from @snapback/events
-import { SnapBackEvent, SnapBackEventBus } from "@snapback/events";
+// Import real EventBus from @snapback/contracts (consolidated from @snapback/events)
+import { SnapBackEvent, SnapBackEventBus } from "@snapback/contracts";
 import * as vscode from "vscode";
 import { initializePhase1Services } from "./activation/phase1-services";
 import { initializePhase2Storage } from "./activation/phase2-storage";

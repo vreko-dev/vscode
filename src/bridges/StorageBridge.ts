@@ -16,8 +16,8 @@
  * TARGET: ~200 LOC
  */
 
+import type { SnapBackEventBus } from "@snapback/contracts";
 import { Storage as V2Storage } from "@snapback/engine";
-import type { SnapBackEventBus } from "@snapback/events";
 import * as vscode from "vscode";
 import type { StorageManager as V1Storage } from "../storage/StorageManager";
 import type {

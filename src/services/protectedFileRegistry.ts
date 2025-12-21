@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import type { ProtectionLevel as SDKProtectionLevel } from "@snapback/contracts";
-import { SnapBackEvent, type SnapBackEventBus } from "@snapback/events";
+import { SnapBackEvent, type SnapBackEventBus } from "@snapback/contracts";
 import { THRESHOLDS } from "@snapback/sdk";
 import type { Disposable, Memento } from "vscode";
 import * as vscode from "vscode";

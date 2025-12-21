@@ -68,7 +68,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
 import type { Snapshot } from "@snapback/contracts";
-import { SnapBackEvent, type SnapBackEventBus } from "@snapback/events";
+import { SnapBackEvent, type SnapBackEventBus } from "@snapback/contracts";
 import { THRESHOLDS } from "@snapback/sdk";
 import { chunk } from "es-toolkit";
 import ignore from "ignore";
