@@ -14,15 +14,16 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 import {
 	atomicWriteFile,
 	ensureDirectory,
 	fileExists,
 	readJsonFile,
+	readJsonFileWithRecovery,
 	writeJsonFile,
-} from "@svscode/storage/utils/atomicWrite";
+} from "@vscode/storage/utils/atomicWrite";
 import {
 	generateAuditId,
 	generateSessionId,
@@ -335,6 +336,95 @@ describe("Storage Utilities", () => {
 
 			const read = await readJsonFile(fileUri);
 			expect(read).toBeNull(); // Should return null, not throw
+		});
+
+		it("should create backup of corrupted JSON file before returning null", async () => {
+			const fileUri = vscode.Uri.joinPath(storageUri, "corrupted-backup.json");
+			const corruptedContent = "not valid json {{{";
+			await atomicWriteFile(fileUri, corruptedContent);
+
+			// Read should return null
+			const read = await readJsonFile(fileUri);
+			expect(read).toBeNull();
+
+			// Verify backup was created via readJsonFileWithRecovery
+			const result = await readJsonFileWithRecovery(fileUri);
+			expect(result.wasCorrupted).toBe(true);
+			expect(result.backupPath).toBeDefined();
+			expect(result.backupPath).toContain(".corrupted.");
+		});
+
+		it("should provide recovery result with backup path when JSON is corrupted", async () => {
+			const fileUri = vscode.Uri.joinPath(storageUri, "corrupted-recovery.json");
+			const corruptedContent = '{"incomplete": ';
+			await atomicWriteFile(fileUri, corruptedContent);
+
+			// Use readJsonFileWithRecovery for detailed result
+			const result = await readJsonFileWithRecovery(fileUri);
+
+			expect(result.data).toBeNull();
+			expect(result.wasCorrupted).toBe(true);
+			expect(result.backupPath).toBeDefined();
+			expect(result.backupPath).toContain(".corrupted.");
+			expect(result.error).toBeInstanceOf(SyntaxError);
+		});
+
+		it("should return success result for valid JSON with readJsonFileWithRecovery", async () => {
+			// This test verifies the happy path where JSON parsing succeeds
+			// Mock vscode.workspace.fs.readFile to return valid JSON
+			const validData = { id: "test", value: 42 };
+			const fileUri = vscode.Uri.joinPath(storageUri, "valid-recovery.json");
+
+			// Override the mock to return valid JSON data for this specific call
+			(vscode.workspace.fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+				Buffer.from(JSON.stringify(validData))
+			);
+
+			const result = await readJsonFileWithRecovery<typeof validData>(fileUri);
+
+			expect(result.data).toEqual(validData);
+			expect(result.wasCorrupted).toBe(false);
+			expect(result.backupPath).toBeUndefined();
+			expect(result.error).toBeUndefined();
+		});
+
+		it("should return not found result for missing file with readJsonFileWithRecovery", async () => {
+			const fileUri = vscode.Uri.joinPath(storageUri, "missing-recovery.json");
+
+			// Mock vscode.workspace.fs.readFile to throw FileNotFound
+			const FileNotFoundError = new Error("FileNotFound") as Error & { code: string };
+			FileNotFoundError.code = "FileNotFound";
+			(vscode.workspace.fs.readFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(FileNotFoundError);
+
+			const result = await readJsonFileWithRecovery(fileUri);
+
+			expect(result.data).toBeNull();
+			expect(result.wasCorrupted).toBe(false);
+			expect(result.fileNotFound).toBe(true);
+			expect(result.backupPath).toBeUndefined();
+		});
+
+		it("should not throw when backup creation fails", async () => {
+			const fileUri = vscode.Uri.joinPath(storageUri, "backup-fails.json");
+			const corruptedContent = "invalid json {{{";
+
+			// Mock readFile to return corrupted content
+			(vscode.workspace.fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+				Buffer.from(corruptedContent)
+			);
+
+			// Mock writeFile to fail (simulating backup failure)
+			(vscode.workspace.fs.writeFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+				new Error("Permission denied")
+			);
+
+			// Should still return result without throwing
+			const result = await readJsonFileWithRecovery(fileUri);
+
+			expect(result.data).toBeNull();
+			expect(result.wasCorrupted).toBe(true);
+			expect(result.backupPath).toBeUndefined(); // Backup failed, so no path
+			expect(result.error).toBeInstanceOf(SyntaxError);
 		});
 
 		it("should write JSON with pretty formatting", async () => {

@@ -3,8 +3,14 @@
  *
  * Configures global mocks for VS Code extension testing.
  * Provides minimal setup to allow tests to run without external dependencies.
+ *
+ * NOTE: vscode.workspace.fs methods delegate to Node's fs module for real
+ * filesystem operations. This enables true integration testing where tests
+ * can verify actual file contents.
  */
 
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import { afterEach, beforeEach, vi } from "vitest";
 
 // ============================================
@@ -96,14 +102,72 @@ export const mockVscodeWorkspace = {
 	asRelativePath: vi.fn((p: string) => p),
 	isTrusted: true,
 	fs: {
-		readFile: vi.fn(() => Promise.resolve(Buffer.from(""))),
-		writeFile: vi.fn(() => Promise.resolve(undefined)),
-		stat: vi.fn(() => Promise.resolve({ type: 1, ctime: 0, mtime: 0, size: 0 })),
-		delete: vi.fn(() => Promise.resolve(undefined)),
-		readDirectory: vi.fn(() => Promise.resolve([])),
-		createDirectory: vi.fn(() => Promise.resolve(undefined)),
-		copy: vi.fn(() => Promise.resolve(undefined)),
-		rename: vi.fn(() => Promise.resolve(undefined)),
+		readFile: vi.fn(async (uri: { fsPath: string }) => {
+			try {
+				const content = await fs.readFile(uri.fsPath);
+				return new Uint8Array(content);
+			} catch (error: any) {
+				if (error.code === "ENOENT") {
+					const fsError = new Error("FileNotFound") as any;
+					fsError.code = "FileNotFound";
+					throw fsError;
+				}
+				throw error;
+			}
+		}),
+		writeFile: vi.fn(async (uri: { fsPath: string }, content: Uint8Array) => {
+			await fs.mkdir(path.dirname(uri.fsPath), { recursive: true });
+			await fs.writeFile(uri.fsPath, content);
+		}),
+		stat: vi.fn(async (uri: { fsPath: string }) => {
+			try {
+				const stats = await fs.stat(uri.fsPath);
+				return {
+					type: stats.isDirectory() ? 2 : 1, // FileType.Directory = 2, FileType.File = 1
+					ctime: stats.ctimeMs,
+					mtime: stats.mtimeMs,
+					size: stats.size,
+				};
+			} catch (error: any) {
+				if (error.code === "ENOENT") {
+					const fsError = new Error("FileNotFound") as any;
+					fsError.code = "FileNotFound";
+					throw fsError;
+				}
+				throw error;
+			}
+		}),
+		delete: vi.fn(async (uri: { fsPath: string }) => {
+			try {
+				const stats = await fs.stat(uri.fsPath);
+				if (stats.isDirectory()) {
+					await fs.rm(uri.fsPath, { recursive: true });
+				} else {
+					await fs.unlink(uri.fsPath);
+				}
+			} catch (error: any) {
+				if (error.code === "ENOENT") {
+					// Silently ignore if file doesn't exist
+					return;
+				}
+				throw error;
+			}
+		}),
+		readDirectory: vi.fn(async (uri: { fsPath: string }) => {
+			const entries = await fs.readdir(uri.fsPath, { withFileTypes: true });
+			return entries.map((entry) => [entry.name, entry.isDirectory() ? 2 : 1] as [string, number]);
+		}),
+		createDirectory: vi.fn(async (uri: { fsPath: string }) => {
+			await fs.mkdir(uri.fsPath, { recursive: true });
+		}),
+		copy: vi.fn(async (source: { fsPath: string }, target: { fsPath: string }) => {
+			await fs.mkdir(path.dirname(target.fsPath), { recursive: true });
+			await fs.copyFile(source.fsPath, target.fsPath);
+		}),
+		rename: vi.fn(async (source: { fsPath: string }, target: { fsPath: string }) => {
+			await fs.mkdir(path.dirname(target.fsPath), { recursive: true });
+			await fs.rename(source.fsPath, target.fsPath);
+		}),
 	},
 	createFileSystemWatcher: vi.fn(() => ({
 		onDidCreate: vi.fn(() => ({ dispose: vi.fn() })),
@@ -261,11 +325,12 @@ vi.mock("vscode", () => ({
 	},
 	FileType: { Unknown: 0, File: 1, Directory: 2, SymbolicLink: 64 },
 	Uri: {
-		file: (path: string) => ({ scheme: "file", fsPath: path, path }),
+		file: (filePath: string) => ({ scheme: "file", fsPath: filePath, path: filePath }),
 		parse: (value: string) => ({ scheme: "file", fsPath: value, path: value }),
 		joinPath: (base: { fsPath: string; scheme?: string }, ...segments: string[]) => {
-			const path = [base.fsPath, ...segments].join("/").replace(/\/+/g, "/");
-			return { scheme: base.scheme || "file", fsPath: path, path };
+			// Use path.join to properly normalize paths including ".." segments
+			const normalizedPath = path.join(base.fsPath, ...segments);
+			return { scheme: base.scheme || "file", fsPath: normalizedPath, path: normalizedPath };
 		},
 		from: (components: { scheme: string; path: string }) => ({
 			scheme: components.scheme,

@@ -61,28 +61,96 @@ export async function fileExists(uri: vscode.Uri): Promise<boolean> {
 }
 
 /**
- * Read JSON file with error handling
+ * Result of reading a JSON file with recovery information
  */
-export async function readJsonFile<T>(uri: vscode.Uri): Promise<T | null> {
+export interface JsonRecoveryResult<T> {
+	/** The parsed data, or null if parsing failed or file not found */
+	data: T | null;
+	/** Whether the file contained corrupted JSON */
+	wasCorrupted: boolean;
+	/** Path to the backup file if corruption was detected and backup succeeded */
+	backupPath?: string;
+	/** The parse error if JSON was corrupted */
+	error?: SyntaxError;
+	/** Whether the file was not found */
+	fileNotFound?: boolean;
+}
+
+/**
+ * Create a backup of a corrupted file
+ * @returns The backup file path, or undefined if backup failed
+ */
+async function createCorruptedBackup(uri: vscode.Uri, content: Uint8Array): Promise<string | undefined> {
+	try {
+		const timestamp = Date.now();
+		const backupUri = vscode.Uri.file(`${uri.fsPath}.corrupted.${timestamp}`);
+		await vscode.workspace.fs.writeFile(backupUri, content);
+		return backupUri.fsPath;
+	} catch {
+		// Backup failed silently - don't block the read operation
+		return undefined;
+	}
+}
+
+/**
+ * Read JSON file with error handling and corruption recovery
+ *
+ * When JSON parsing fails:
+ * 1. Creates a backup of the corrupted file with .corrupted.{timestamp} suffix
+ * 2. Logs the corruption with structured logging
+ * 3. Returns detailed recovery information
+ */
+export async function readJsonFileWithRecovery<T>(uri: vscode.Uri): Promise<JsonRecoveryResult<T>> {
 	try {
 		const data = await vscode.workspace.fs.readFile(uri);
 		const content = Buffer.from(data).toString("utf-8");
 
 		try {
-			return JSON.parse(content) as T;
+			return {
+				data: JSON.parse(content) as T,
+				wasCorrupted: false,
+			};
 		} catch (parseError) {
 			if (parseError instanceof SyntaxError) {
-				console.warn(`[Storage] Corrupted JSON file: ${uri.fsPath}`);
-				return null;
+				// Create backup before returning null
+				const backupPath = await createCorruptedBackup(uri, data);
+
+				console.warn(
+					`[Storage] Corrupted JSON file: ${uri.fsPath}${backupPath ? ` (backed up to ${backupPath})` : ""}`,
+				);
+
+				return {
+					data: null,
+					wasCorrupted: true,
+					backupPath,
+					error: parseError,
+				};
 			}
 			throw parseError;
 		}
 	} catch (error) {
 		if ((error as vscode.FileSystemError).code === "FileNotFound") {
-			return null;
+			return {
+				data: null,
+				wasCorrupted: false,
+				fileNotFound: true,
+			};
 		}
 		throw error;
 	}
+}
+
+/**
+ * Read JSON file with error handling
+ *
+ * When JSON parsing fails:
+ * 1. Creates a backup of the corrupted file with .corrupted.{timestamp} suffix
+ * 2. Logs the corruption
+ * 3. Returns null
+ */
+export async function readJsonFile<T>(uri: vscode.Uri): Promise<T | null> {
+	const result = await readJsonFileWithRecovery<T>(uri);
+	return result.data;
 }
 
 /**
