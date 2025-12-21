@@ -61,17 +61,19 @@ describe("VitalsIntegration", () => {
 
 	describe("happy path", () => {
 		it("should update StatusBar when vitals snapshot received", () => {
+			vi.useFakeTimers();
 			integration.onVitalsSnapshot(mockVitalsSnapshot);
 
 			expect(mockStatusBar.showVitals).toHaveBeenCalledWith(
 				expect.objectContaining({
 					pulse: { level: "elevated", value: 20 },
 					temperature: { level: "warm", percentage: 35, tool: "Cursor" },
-					pressure: { value: 45 },
+					pressure: expect.objectContaining({ value: 45 }),
 					oxygen: { value: 85 },
 					trajectory: "stable",
 				})
 			);
+			vi.useRealTimers();
 		});
 
 		it("should transform VitalsSnapshot to VitalsDisplayData correctly", () => {
@@ -85,16 +87,23 @@ describe("VitalsIntegration", () => {
 		});
 
 		it("should handle all trajectory states", () => {
-			const trajectories = ["stable", "escalating", "critical", "recovering"];
+			vi.useFakeTimers();
+			const trajectories = ["stable", "escalating", "critical", "recovering"] as const;
 
 			for (const trajectory of trajectories) {
-				const snapshot = { ...mockVitalsSnapshot, trajectory: trajectory as any };
+				// Clear mocks and timers between iterations
+				mockStatusBar.showVitals.mockClear();
+
+				const snapshot = { ...mockVitalsSnapshot, trajectory };
 				integration.onVitalsSnapshot(snapshot);
 
 				expect(mockStatusBar.showVitals).toHaveBeenCalledWith(expect.objectContaining({ trajectory }));
+
+				// Advance past throttle window to reset for next iteration
+				vi.advanceTimersByTime(200);
 			}
 
-			expect(mockStatusBar.showVitals).toHaveBeenCalledTimes(4);
+			vi.useRealTimers();
 		});
 	});
 

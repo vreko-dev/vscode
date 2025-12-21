@@ -1,14 +1,14 @@
 /**
  * ActivitySection Tests
- * 
+ *
  * Reference: ai_dev_utils/resources/extension-ux/EXTENSION_UX_SPEC.md#section-1-activity
- * 
+ *
  * TEST CATEGORIES:
  * 1. Event grouping (Today/Yesterday/Earlier)
  * 2. Tree item creation
  * 3. Formatting (labels, times, tooltips)
  * 4. Event management (add, clear, limit)
- * 
+ *
  * @packageDocumentation
  */
 
@@ -56,15 +56,15 @@ describe('ActivitySection', () => {
   // ===========================================================================
   // EVENT GROUPING TESTS
   // ===========================================================================
-  
+
   describe('groupEventsByDate', () => {
     it('should group events into Today, Yesterday, Earlier', () => {
       const events = createMockEvents();
       const groups = groupEventsByDate(events);
-      
+
       // Should have at least some groups
       expect(groups.size).toBeGreaterThan(0);
-      
+
       // TODO: Assert specific groupings based on mock data timestamps
     });
 
@@ -80,10 +80,10 @@ describe('ActivitySection', () => {
         { id: '2', type: 'ai-edit', timestamp: now - 120000, file: 'b.ts' },
         { id: '3', type: 'ai-edit', timestamp: now - 30000, file: 'c.ts' },
       ];
-      
+
       const groups = groupEventsByDate(events);
       const todayEvents = groups.get('Today');
-      
+
       // HINT: Events should be ordered c.ts, a.ts, b.ts (newest first)
       // TODO: Assert order
       expect(todayEvents).toBeDefined();
@@ -94,13 +94,13 @@ describe('ActivitySection', () => {
       const now = new Date();
       const midnight = new Date(now);
       midnight.setHours(0, 0, 0, 0);
-      
+
       const events: ActivityEvent[] = [
         { id: '1', type: 'ai-edit', timestamp: midnight.getTime(), file: 'a.ts' },
       ];
-      
+
       const groups = groupEventsByDate(events);
-      
+
       // Should be in Today (midnight of today is still today)
       expect(groups.has('Today')).toBe(true);
     });
@@ -108,13 +108,13 @@ describe('ActivitySection', () => {
     it('should handle very old events in Earlier group', () => {
       const now = Date.now();
       const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
-      
+
       const events: ActivityEvent[] = [
         { id: '1', type: 'ai-edit', timestamp: weekAgo, file: 'old.ts' },
       ];
-      
+
       const groups = groupEventsByDate(events);
-      
+
       expect(groups.has('Earlier')).toBe(true);
       expect(groups.get('Earlier')?.length).toBe(1);
     });
@@ -123,7 +123,7 @@ describe('ActivitySection', () => {
   // ===========================================================================
   // TREE ITEM CREATION TESTS
   // ===========================================================================
-  
+
   describe('createActivityEventItem', () => {
     it('should create tree item with correct label format', () => {
       const event: ActivityEvent = {
@@ -133,9 +133,9 @@ describe('ActivitySection', () => {
         file: 'Button.tsx',
         source: 'Cursor',
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // HINT: Label should be "✨ AI Edit — Button.tsx • 2h"
       // TODO: Assert label format
       expect(item).toBeDefined();
@@ -149,7 +149,7 @@ describe('ActivitySection', () => {
         'restore',         // ↩️
         'config-change',   // ⚙️
       ];
-      
+
       for (const type of types) {
         const event: ActivityEvent = {
           id: 'test',
@@ -157,9 +157,9 @@ describe('ActivitySection', () => {
           timestamp: Date.now(),
           file: 'test.ts',
         };
-        
+
         const item = createActivityEventItem(event);
-        
+
         // TODO: Assert icon is in label
         expect(item).toBeDefined();
       }
@@ -172,9 +172,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         fileCount: 247,
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // HINT: Label should include "247 files"
       // TODO: Assert label contains file count
       expect(item).toBeDefined();
@@ -187,9 +187,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         file: 'src/components/ui/forms/inputs/Button.tsx',
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // HINT: Should show just "Button.tsx", not full path
       // TODO: Assert truncated filename
       expect(item).toBeDefined();
@@ -202,9 +202,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         file: 'test.ts',
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       expect(item.contextValue).toBe('activity-event');
     });
   });
@@ -212,7 +212,7 @@ describe('ActivitySection', () => {
   describe('createActivityGroupItem', () => {
     it('should create group header with count', () => {
       const item = createActivityGroupItem('Today', 5);
-      
+
       // HINT: Label should be "Today (5)"
       // TODO: Assert label
       expect(item).toBeDefined();
@@ -220,21 +220,21 @@ describe('ActivitySection', () => {
 
     it('should be expanded by default', () => {
       const item = createActivityGroupItem('Today', 5);
-      
+
       // TODO: Assert collapsibleState is Expanded
       expect(item).toBeDefined();
     });
 
     it('should be collapsed when specified', () => {
       const item = createActivityGroupItem('Earlier', 10, true);
-      
+
       // TODO: Assert collapsibleState is Collapsed
       expect(item).toBeDefined();
     });
 
     it('should set contextValue for menu filtering', () => {
       const item = createActivityGroupItem('Today', 5);
-      
+
       expect(item.contextValue).toBe('activity-group');
     });
   });
@@ -242,7 +242,7 @@ describe('ActivitySection', () => {
   // ===========================================================================
   // TIME FORMATTING TESTS
   // ===========================================================================
-  
+
   describe('time formatting', () => {
     it('should show "now" for very recent events', () => {
       const event: ActivityEvent = {
@@ -251,9 +251,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now() - 30000, // 30 seconds ago
         file: 'test.ts',
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // HINT: Should show "now" not "0m"
       // TODO: Assert time format
       expect(item).toBeDefined();
@@ -266,9 +266,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now() - 45 * 60000, // 45 minutes ago
         file: 'test.ts',
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // HINT: Should show "45m"
       // TODO: Assert time format
       expect(item).toBeDefined();
@@ -281,9 +281,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now() - 5 * 60 * 60000, // 5 hours ago
         file: 'test.ts',
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // HINT: Should show "5h"
       // TODO: Assert time format
       expect(item).toBeDefined();
@@ -296,9 +296,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now() - 3 * 24 * 60 * 60000, // 3 days ago
         file: 'test.ts',
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // HINT: Should show "3d"
       // TODO: Assert time format
       expect(item).toBeDefined();
@@ -308,7 +308,7 @@ describe('ActivitySection', () => {
   // ===========================================================================
   // TOOLTIP TESTS
   // ===========================================================================
-  
+
   describe('tooltip content', () => {
     it('should include source in tooltip (not in label)', () => {
       const event: ActivityEvent = {
@@ -318,9 +318,9 @@ describe('ActivitySection', () => {
         file: 'test.ts',
         source: 'Cursor',
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // HINT: Source should be in tooltip, NOT in main label
       // TODO: Assert tooltip contains "Source: Cursor"
       expect(item.tooltip).toBeDefined();
@@ -334,9 +334,9 @@ describe('ActivitySection', () => {
         file: 'test.ts',
         linesChanged: 127,
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // TODO: Assert tooltip contains "Lines changed: 127"
       expect(item.tooltip).toBeDefined();
     });
@@ -348,9 +348,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         file: 'test.ts',
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // TODO: Assert tooltip contains formatted date/time
       expect(item.tooltip).toBeDefined();
     });
@@ -359,10 +359,10 @@ describe('ActivitySection', () => {
   // ===========================================================================
   // ACTIVITY SECTION CLASS TESTS
   // ===========================================================================
-  
+
   describe('ActivitySection', () => {
     let section: ActivitySection;
-    
+
     beforeEach(() => {
       section = new ActivitySection();
     });
@@ -378,9 +378,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         file: 'test.ts',
       };
-      
+
       section.addEvent(event);
-      
+
       expect(section.totalCount).toBe(1);
     });
 
@@ -397,13 +397,13 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         file: 'second.ts',
       };
-      
+
       section.addEvent(event1);
       section.addEvent(event2);
-      
+
       const groups = section.getGroupedEvents();
       const todayEvents = groups.get('Today');
-      
+
       // HINT: Second event should be first in list
       // TODO: Assert order
       expect(todayEvents?.length).toBe(2);
@@ -419,7 +419,7 @@ describe('ActivitySection', () => {
           file: `file${i}.ts`,
         });
       }
-      
+
       // Should be capped at 100
       expect(section.totalCount).toBeLessThanOrEqual(100);
     });
@@ -431,9 +431,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         file: 'test.ts',
       });
-      
+
       section.clear();
-      
+
       expect(section.totalCount).toBe(0);
     });
 
@@ -451,7 +451,7 @@ describe('ActivitySection', () => {
   // ===========================================================================
   // EDGE CASES
   // ===========================================================================
-  
+
   describe('edge cases', () => {
     it('should handle event with no file or fileCount', () => {
       const event: ActivityEvent = {
@@ -460,9 +460,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         // No file or fileCount
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // Should not throw, should show "undefined files" or similar
       expect(item).toBeDefined();
     });
@@ -474,9 +474,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         file: 'this_is_a_very_long_filename_that_might_cause_issues.tsx',
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // Should not throw
       expect(item).toBeDefined();
     });
@@ -488,9 +488,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         file: 'components/[id]/page.tsx', // Next.js dynamic route
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // Should handle brackets correctly
       expect(item).toBeDefined();
     });
@@ -502,9 +502,9 @@ describe('ActivitySection', () => {
         timestamp: Date.now(),
         file: 'src\\components\\Button.tsx', // Windows path
       };
-      
+
       const item = createActivityEventItem(event);
-      
+
       // HINT: Should still truncate to "Button.tsx"
       // TODO: Assert correct truncation
       expect(item).toBeDefined();

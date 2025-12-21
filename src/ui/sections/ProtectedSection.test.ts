@@ -1,8 +1,8 @@
 /**
  * ProtectedSection Tests
- * 
+ *
  * Reference: ai_dev_utils/resources/extension-ux/EXTENSION_UX_SPEC.md#section-2-protected
- * 
+ *
  * @packageDocumentation
  */
 
@@ -59,7 +59,7 @@ describe('ProtectedSection', () => {
   // ===========================================================================
   // TREE ITEM CREATION TESTS
   // ===========================================================================
-  
+
   describe('createProtectedFileItem', () => {
     it('should show filename (not full path)', () => {
       const file: ProtectedFileInfo = {
@@ -69,9 +69,9 @@ describe('ProtectedSection', () => {
         isInherited: false,
         snapshotCount: 3,
       };
-      
+
       const item = createProtectedFileItem(file);
-      
+
       // HINT: Label should be "Button.tsx", not full path
       // TODO: Assert label is just filename
       expect(item).toBeDefined();
@@ -86,9 +86,9 @@ describe('ProtectedSection', () => {
         anchorFile: 'src/components/Button.tsx',
         snapshotCount: 1,
       };
-      
+
       const item = createProtectedFileItem(file);
-      
+
       // HINT: Description should be "(from Button.tsx)"
       expect(item.description).toBe('(from Button.tsx)');
     });
@@ -101,9 +101,9 @@ describe('ProtectedSection', () => {
         isInherited: false,
         snapshotCount: 3,
       };
-      
+
       const item = createProtectedFileItem(file);
-      
+
       expect(item.description).toBeUndefined();
     });
 
@@ -115,9 +115,9 @@ describe('ProtectedSection', () => {
         isInherited: false,
         snapshotCount: 0,
       };
-      
+
       const item = createProtectedFileItem(file);
-      
+
       expect(item.contextValue).toBe('protected-file');
     });
 
@@ -129,9 +129,9 @@ describe('ProtectedSection', () => {
         isInherited: false,
         snapshotCount: 0,
       };
-      
+
       const item = createProtectedFileItem(file);
-      
+
       expect(item.command?.command).toBe('vscode.open');
     });
   });
@@ -139,7 +139,7 @@ describe('ProtectedSection', () => {
   describe('createLevelGroupItem', () => {
     it('should include badge and text for BLOCK', () => {
       const item = createLevelGroupItem('BLOCK', 2);
-      
+
       // HINT: Label should be "🛑 BLOCK (2)"
       // TODO: Assert label format
       expect(item).toBeDefined();
@@ -147,21 +147,21 @@ describe('ProtectedSection', () => {
 
     it('should include badge and text for WARN', () => {
       const item = createLevelGroupItem('WARN', 1);
-      
+
       // HINT: Label should be "⚠️ WARN (1)"
       expect(item).toBeDefined();
     });
 
     it('should include badge and text for WATCH', () => {
       const item = createLevelGroupItem('WATCH', 3);
-      
+
       // HINT: Label should be "👁️ WATCH (3)"
       expect(item).toBeDefined();
     });
 
     it('should be expanded by default', () => {
       const item = createLevelGroupItem('BLOCK', 2);
-      
+
       // TODO: Assert collapsibleState is Expanded
       expect(item).toBeDefined();
     });
@@ -170,7 +170,7 @@ describe('ProtectedSection', () => {
   describe('createAllFilesItem', () => {
     it('should show total count', () => {
       const item = createAllFilesItem(5);
-      
+
       // HINT: Label should be "All (5)"
       // TODO: Assert label
       expect(item).toBeDefined();
@@ -178,7 +178,7 @@ describe('ProtectedSection', () => {
 
     it('should be collapsed by default', () => {
       const item = createAllFilesItem(5);
-      
+
       // Users typically want grouped view, "All" is secondary
       // TODO: Assert collapsibleState is Collapsed
       expect(item).toBeDefined();
@@ -188,12 +188,12 @@ describe('ProtectedSection', () => {
   // ===========================================================================
   // GROUPING TESTS
   // ===========================================================================
-  
+
   describe('groupFilesByLevel', () => {
     it('should group files by protection level', () => {
       const files = createMockProtectedFiles();
       const groups = groupFilesByLevel(files);
-      
+
       expect(groups.has('BLOCK')).toBe(true);
       expect(groups.has('WARN')).toBe(true);
       expect(groups.has('WATCH')).toBe(true);
@@ -202,9 +202,9 @@ describe('ProtectedSection', () => {
     it('should return in severity order (BLOCK first)', () => {
       const files = createMockProtectedFiles();
       const groups = groupFilesByLevel(files);
-      
+
       const keys = Array.from(groups.keys());
-      
+
       // HINT: Order should be BLOCK, WARN, WATCH
       expect(keys[0]).toBe('BLOCK');
     });
@@ -219,9 +219,9 @@ describe('ProtectedSection', () => {
           snapshotCount: 0,
         },
       ];
-      
+
       const groups = groupFilesByLevel(files);
-      
+
       expect(groups.has('BLOCK')).toBe(true);
       expect(groups.has('WARN')).toBe(false);
       expect(groups.has('WATCH')).toBe(false);
@@ -233,10 +233,10 @@ describe('ProtectedSection', () => {
         { path: 'a.ts', absolutePath: '/a.ts', level: 'BLOCK', isInherited: false, snapshotCount: 0 },
         { path: 'm.ts', absolutePath: '/m.ts', level: 'BLOCK', isInherited: false, snapshotCount: 0 },
       ];
-      
+
       const groups = groupFilesByLevel(files);
       const blockFiles = groups.get('BLOCK')!;
-      
+
       expect(blockFiles[0].path).toBe('a.ts');
       expect(blockFiles[1].path).toBe('m.ts');
       expect(blockFiles[2].path).toBe('z.ts');
@@ -250,9 +250,9 @@ describe('ProtectedSection', () => {
         { path: 'block.ts', absolutePath: '/block.ts', level: 'BLOCK', isInherited: false, snapshotCount: 0 },
         { path: 'warn.ts', absolutePath: '/warn.ts', level: 'WARN', isInherited: false, snapshotCount: 0 },
       ];
-      
+
       const sorted = sortFilesBySeverity(files);
-      
+
       expect(sorted[0].level).toBe('BLOCK');
       expect(sorted[1].level).toBe('WARN');
       expect(sorted[2].level).toBe('WATCH');
@@ -263,9 +263,9 @@ describe('ProtectedSection', () => {
         { path: 'z.ts', absolutePath: '/z.ts', level: 'BLOCK', isInherited: false, snapshotCount: 0 },
         { path: 'a.ts', absolutePath: '/a.ts', level: 'BLOCK', isInherited: false, snapshotCount: 0 },
       ];
-      
+
       const sorted = sortFilesBySeverity(files);
-      
+
       expect(sorted[0].path).toBe('a.ts');
       expect(sorted[1].path).toBe('z.ts');
     });
@@ -275,10 +275,10 @@ describe('ProtectedSection', () => {
         { path: 'b.ts', absolutePath: '/b.ts', level: 'WARN', isInherited: false, snapshotCount: 0 },
         { path: 'a.ts', absolutePath: '/a.ts', level: 'BLOCK', isInherited: false, snapshotCount: 0 },
       ];
-      
+
       const original = [...files];
       sortFilesBySeverity(files);
-      
+
       expect(files[0].path).toBe(original[0].path);
     });
   });
@@ -286,10 +286,10 @@ describe('ProtectedSection', () => {
   // ===========================================================================
   // PROTECTED SECTION CLASS TESTS
   // ===========================================================================
-  
+
   describe('ProtectedSection', () => {
     let section: ProtectedSection;
-    
+
     beforeEach(() => {
       section = new ProtectedSection();
     });
@@ -301,7 +301,7 @@ describe('ProtectedSection', () => {
     it('should set files', () => {
       const files = createMockProtectedFiles();
       section.setFiles(files);
-      
+
       expect(section.totalCount).toBe(files.length);
     });
 
@@ -313,9 +313,9 @@ describe('ProtectedSection', () => {
         isInherited: false,
         snapshotCount: 0,
       });
-      
+
       expect(section.totalCount).toBe(1);
-      
+
       // Update same file
       section.setFile({
         path: 'test.ts',
@@ -324,7 +324,7 @@ describe('ProtectedSection', () => {
         isInherited: false,
         snapshotCount: 1,
       });
-      
+
       // Should still be 1, not 2
       expect(section.totalCount).toBe(1);
       expect(section.getFiles()[0].level).toBe('WARN');
@@ -338,34 +338,34 @@ describe('ProtectedSection', () => {
         isInherited: false,
         snapshotCount: 0,
       });
-      
+
       section.removeFile('test.ts');
-      
+
       expect(section.totalCount).toBe(0);
     });
 
     it('should get grouped files', () => {
       section.setFiles(createMockProtectedFiles());
-      
+
       const groups = section.getGroupedFiles();
-      
+
       expect(groups.size).toBeGreaterThan(0);
     });
 
     it('should get sorted files for "All" view', () => {
       section.setFiles(createMockProtectedFiles());
-      
+
       const sorted = section.getSortedFiles();
-      
+
       // First file should be BLOCK
       expect(sorted[0].level).toBe('BLOCK');
     });
 
     it('should get level counts', () => {
       section.setFiles(createMockProtectedFiles());
-      
+
       const counts = section.getLevelCounts();
-      
+
       expect(counts.BLOCK).toBeGreaterThan(0);
       expect(counts.WARN).toBeGreaterThanOrEqual(0);
       expect(counts.WATCH).toBeGreaterThanOrEqual(0);
