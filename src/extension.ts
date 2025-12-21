@@ -50,6 +50,8 @@ import type { ProtectionChangedPayload } from "./types/api";
 import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
 import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
+import { createStatusBarManager, type StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import Vitals StatusBar
+import { VitalsIntegration } from "./ui/VitalsIntegration"; // 🆕 Import Vitals Integration
 import { logger } from "./utils/logger";
 import { findProjectRoot } from "./utils/projectRoot";
 import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver"; // 🆕 Import WorkspaceFolderResolver
@@ -80,6 +82,10 @@ let prwManager: PRWManager | null = null;
 let signalBridge: SignalBridge | null = null;
 // 🆕 Global reference to EventBridge for V2 engine telemetry
 let eventBridge: EventBridge | null = null;
+// 🆕 Global reference to Vitals StatusBar
+let vitalsStatusBar: StatusBarManager | null = null;
+let vitalsIntegration: VitalsIntegration | null = null;
+let vitalsUpdateInterval: NodeJS.Timeout | null = null;
 
 // 🆕 Global reference to refresh views function
 let refreshViews = () => {};
@@ -722,6 +728,84 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 		phaseTimings["Phase 15 (Onboarding)"] = Date.now() - phase15Start;
 
+		// 🆕 Phase 16: Initialize Vitals StatusBar (power user feature)
+		const phase16Start = Date.now();
+		try {
+			// Create Vitals StatusBar (separate from protection StatusBarController)
+			vitalsStatusBar = createStatusBarManager();
+			context.subscriptions.push(vitalsStatusBar);
+
+			// Create VitalsIntegration bridge
+			vitalsIntegration = new VitalsIntegration(vitalsStatusBar);
+
+			// Read vitals display setting from configuration
+			const vitalsEnabled = config.get<boolean>("snapback.vitals.showInStatusBar", false);
+			vitalsIntegration.setVitalsEnabled(vitalsEnabled);
+
+			// Set up periodic vitals update with telemetry tracking
+			if (autoDecisionIntegration) {
+				const workspaceVitals = autoDecisionIntegration.getVitals();
+				let lastTrajectory: string | null = null;
+
+				vitalsUpdateInterval = setInterval(() => {
+					if (vitalsIntegration && workspaceVitals) {
+						const snapshot = workspaceVitals.current();
+						vitalsIntegration.onVitalsSnapshot(snapshot);
+
+						// Track trajectory changes for telemetry (privacy-safe: no file content)
+						if (lastTrajectory !== null && lastTrajectory !== snapshot.trajectory) {
+							telemetryProxy.trackEvent("vitals_trajectory_changed", {
+								from: lastTrajectory,
+								to: snapshot.trajectory,
+								pulseLevel: snapshot.pulse.level,
+								tempLevel: snapshot.temperature.level,
+								pressure: snapshot.pressure.value,
+								oxygen: snapshot.oxygen.value,
+							});
+
+							// Track critical state separately for alerting
+							if (snapshot.trajectory === "critical") {
+								telemetryProxy.trackEvent("vitals_critical_state", {
+									pressure: snapshot.pressure.value,
+									oxygen: snapshot.oxygen.value,
+									tempLevel: snapshot.temperature.level,
+									unsnapshotedChanges: snapshot.pressure.unsnapshotedChanges,
+								});
+							}
+						}
+						lastTrajectory = snapshot.trajectory;
+					}
+				}, 1000);
+
+				context.subscriptions.push({
+					dispose: () => {
+						if (vitalsUpdateInterval) {
+							clearInterval(vitalsUpdateInterval);
+							vitalsUpdateInterval = null;
+						}
+					},
+				});
+			}
+
+			// Listen for config changes to toggle vitals display
+			context.subscriptions.push(
+				vscode.workspace.onDidChangeConfiguration((e) => {
+					if (e.affectsConfiguration("snapback.vitals.showInStatusBar")) {
+						const enabled = vscode.workspace
+							.getConfiguration()
+							.get<boolean>("snapback.vitals.showInStatusBar", false);
+						vitalsIntegration?.setVitalsEnabled(enabled);
+						logger.info("Vitals status bar display updated", { enabled });
+					}
+				}),
+			);
+
+			logger.info("Vitals StatusBar initialized", { vitalsEnabled });
+		} catch (error) {
+			logger.warn("Failed to initialize Vitals StatusBar (non-critical)", { error });
+		}
+		phaseTimings["Phase 16 (Vitals)"] = Date.now() - phase16Start;
+
 		// Create SnapshotRestoreUI now that SnapshotDocumentProvider is available
 		const snapshotRestoreUI = new SnapshotRestoreUI(
 			phase3Result.operationCoordinator,
@@ -1147,6 +1231,22 @@ export async function deactivate() {
 		if (userIdentityService) {
 			userIdentityService = null;
 			logger.info("UserIdentityService cleared");
+		}
+
+		// 🆕 Dispose Vitals StatusBar
+		if (vitalsUpdateInterval) {
+			clearInterval(vitalsUpdateInterval);
+			vitalsUpdateInterval = null;
+		}
+		if (vitalsIntegration) {
+			vitalsIntegration.dispose();
+			vitalsIntegration = null;
+			logger.info("VitalsIntegration disposed");
+		}
+		if (vitalsStatusBar) {
+			vitalsStatusBar.dispose();
+			vitalsStatusBar = null;
+			logger.info("Vitals StatusBar disposed");
 		}
 
 		logger.info("Extension deactivated successfully");

@@ -33,6 +33,7 @@ export class VitalsIntegration {
 	/**
 	 * Handle vitals snapshot update
 	 * Throttles to prevent excessive StatusBar updates
+	 * First call is immediate, subsequent calls within THROTTLE_MS are queued
 	 */
 	onVitalsSnapshot(snapshot: VitalsSnapshot): void {
 		if (!this.vitalsEnabled) {
@@ -40,22 +41,24 @@ export class VitalsIntegration {
 			return;
 		}
 
-		// Queue for throttled update
-		this.pendingSnapshot = snapshot;
-
+		// If throttle timer is active, queue update for later
 		if (this.throttleTimer) {
-			// Already scheduled - will use latest snapshot
+			this.pendingSnapshot = snapshot;
 			return;
 		}
 
-		// Schedule throttled update
+		// First call: Execute immediately
+		const displayData = this.transformSnapshot(snapshot);
+		this.statusBar.showVitals(displayData);
+
+		// Schedule throttle window to process any queued updates
 		this.throttleTimer = setTimeout(() => {
 			if (this.pendingSnapshot) {
-				const displayData = this.transformSnapshot(this.pendingSnapshot);
-				this.statusBar.showVitals(displayData);
+				const queuedData = this.transformSnapshot(this.pendingSnapshot);
+				this.statusBar.showVitals(queuedData);
+				this.pendingSnapshot = null;
 			}
 			this.throttleTimer = null;
-			this.pendingSnapshot = null;
 		}, this.THROTTLE_MS);
 	}
 

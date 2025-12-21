@@ -17,6 +17,7 @@
 
 import * as crypto from "node:crypto";
 import * as path from "node:path";
+import { WorkspaceVitals } from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
 import { SettingsLoader } from "../config/settingsLoader";
 import { AutoDecisionEngine } from "../domain/engine";
@@ -55,6 +56,9 @@ export class AutoDecisionIntegration {
 	private operationCoordinator: OperationCoordinator | null = null;
 	private workspaceContextManager: WorkspaceContextManager;
 	private aiRiskService: AIRiskService | null = null;
+
+	/** Workspace Vitals - adaptive risk sensing for dynamic threshold adjustment */
+	private vitals: WorkspaceVitals;
 
 	private fileBuffer: FileChangeEvent[] = [];
 	private bufferTimeout: NodeJS.Timeout | null = null;
@@ -132,6 +136,10 @@ export class AutoDecisionIntegration {
 		// this.repoId = this.getRepoId();
 
 		this.signalAggregator = createSignalAggregator();
+
+		// Initialize WorkspaceVitals for this workspace (singleton per workspaceId)
+		const workspaceId = workspaceContextManager.getWorkspaceRoot() || "default";
+		this.vitals = WorkspaceVitals.for(workspaceId);
 
 		logger.info("AutoDecisionIntegration initialized", {
 			config: mergedConfig,
@@ -271,6 +279,14 @@ export class AutoDecisionIntegration {
 			return;
 		}
 
+		// Feed event to Vitals for real-time tracking
+		const aiPresence = detectAIPresence();
+		this.vitals.onFileChange({
+			path: event.filePath,
+			isAI: aiPresence.hasAI,
+			tool: aiPresence.detectedAssistants[0],
+		});
+
 		this.fileBuffer.push(event);
 
 		// Reset debounce timer
@@ -323,8 +339,28 @@ export class AutoDecisionIntegration {
 				burstDetected: saveContext.burstDetected,
 			});
 
-			// Step 3: Run AutoDecisionEngine
-			const decision = this.engine.makeDecision(saveContext);
+			// Step 3: Get Vitals threshold multiplier for dynamic adjustment
+			const thresholdMultiplier = this.vitals.getThresholdMultiplier();
+			const currentVitals = this.vitals.current();
+
+			logger.debug("Vitals state", {
+				pulse: currentVitals.pulse.level,
+				temperature: currentVitals.temperature.level,
+				pressure: currentVitals.pressure.value,
+				oxygen: currentVitals.oxygen.value,
+				trajectory: currentVitals.trajectory,
+				thresholdMultiplier,
+			});
+
+			// Apply threshold multiplier to risk score for vitals-informed decision
+			const adjustedRiskScore = Math.min(100, saveContext.riskScore / thresholdMultiplier);
+			const vitalsAdjustedContext: SaveContext = {
+				...saveContext,
+				riskScore: adjustedRiskScore,
+			};
+
+			// Step 4: Run AutoDecisionEngine with vitals-adjusted context
+			const decision = this.engine.makeDecision(vitalsAdjustedContext);
 
 			logger.debug("Decision made", {
 				createSnapshot: decision.createSnapshot,
@@ -633,6 +669,9 @@ export class AutoDecisionIntegration {
 							snapshotId,
 							filePath: absolutePath,
 						});
+
+						// Notify Vitals of snapshot creation (releases pressure)
+						this.vitals.onSnapshot({ filePath: relativePath });
 					} else {
 						// Fallback: Use SnapshotManager directly (UI won't refresh)
 						logger.warn(
@@ -647,6 +686,9 @@ export class AutoDecisionIntegration {
 								},
 							]);
 							snapshotId = snapshot.id;
+
+							// Notify Vitals of snapshot creation (releases pressure)
+							this.vitals.onSnapshot({ filePath: absolutePath });
 						} catch (fallbackError) {
 							// SnapshotStorageAdapter throws "Direct save not supported"
 							// This is expected when OperationCoordinator is not wired
@@ -720,6 +762,13 @@ export class AutoDecisionIntegration {
 			bufferedEvents: this.fileBuffer.length,
 			isProcessing: this.isProcessing,
 		};
+	}
+
+	/**
+	 * Get current Vitals snapshot (for testing and status display)
+	 */
+	getVitals(): WorkspaceVitals {
+		return this.vitals;
 	}
 }
 

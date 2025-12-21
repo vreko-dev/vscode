@@ -202,7 +202,9 @@ export class StatusBarManager implements vscode.Disposable {
 		this.state = state;
 
 		const template = STATUS_TEXT[state];
-		this.item.text = typeof template === "function" ? template(data ?? this.stats) : template;
+		// Only use stats as default for idle-stats state, otherwise pass data as-is
+		const templateData = state === "idle-stats" ? (data ?? this.stats) : data;
+		this.item.text = typeof template === "function" ? template(templateData) : template;
 
 		this.item.tooltip = this.buildTooltip();
 	}
