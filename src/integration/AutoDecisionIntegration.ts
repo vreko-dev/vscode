@@ -672,6 +672,8 @@ export class AutoDecisionIntegration {
 
 						// Notify Vitals of snapshot creation (releases pressure)
 						this.vitals.onSnapshot({ filePath: relativePath });
+						// Record behavior for learning (user/AI created snapshot)
+						this.vitals.recordBehavior(true);
 					} else {
 						// Fallback: Use SnapshotManager directly (UI won't refresh)
 						logger.warn(
@@ -689,6 +691,8 @@ export class AutoDecisionIntegration {
 
 							// Notify Vitals of snapshot creation (releases pressure)
 							this.vitals.onSnapshot({ filePath: absolutePath });
+							// Record behavior for learning (user/AI created snapshot)
+							this.vitals.recordBehavior(true);
 						} catch (fallbackError) {
 							// SnapshotStorageAdapter throws "Direct save not supported"
 							// This is expected when OperationCoordinator is not wired
