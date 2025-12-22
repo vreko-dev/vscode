@@ -1,8 +1,8 @@
 /**
  * HistorySection Tests
- * 
+ *
  * Reference: ai_dev_utils/resources/extension-ux/EXTENSION_UX_SPEC.md#section-3-history
- * 
+ *
  * @packageDocumentation
  */
 
@@ -21,7 +21,7 @@ describe('HistorySection', () => {
   // ===========================================================================
   // TREE ITEM CREATION TESTS
   // ===========================================================================
-  
+
   describe('createSessionItem', () => {
     it('should create item with correct format', () => {
       const session: SessionInfo = {
@@ -32,9 +32,9 @@ describe('HistorySection', () => {
         canRestore: true,
         files: [],
       };
-      
+
       const item = createSessionItem(session);
-      
+
       // Format: "[Time] • [Files] • [Duration] • [↩️]"
       // Example: "5:52 AM • 1 file • 53s • ↩️"
       const label = item.label as string;
@@ -52,10 +52,11 @@ describe('HistorySection', () => {
         canRestore: true,
         files: [],
       };
-      
+
       const item = createSessionItem(session);
-      
-      // TODO: Assert label contains ↩️
+
+      const label = item.label as string;
+      expect(label).toContain('↩️');
       expect(item.contextValue).toBe('session-restorable');
     });
 
@@ -68,10 +69,11 @@ describe('HistorySection', () => {
         canRestore: false,
         files: [],
       };
-      
+
       const item = createSessionItem(session);
-      
-      // TODO: Assert label does NOT contain ↩️
+
+      const label = item.label as string;
+      expect(label).not.toContain('↩️');
       expect(item.contextValue).toBe('session');
     });
 
@@ -84,9 +86,9 @@ describe('HistorySection', () => {
         canRestore: false,
         files: [],
       };
-      
+
       const item = createSessionItem(session);
-      
+
       const label = item.label as string;
       expect(label).toContain('1 file');
       expect(label).not.toContain('1 files');
@@ -101,9 +103,9 @@ describe('HistorySection', () => {
         canRestore: false,
         files: [],
       };
-      
+
       const item = createSessionItem(session);
-      
+
       const label = item.label as string;
       expect(label).toContain('5 files');
     });
@@ -117,9 +119,9 @@ describe('HistorySection', () => {
         linesAdded: 12,
         linesRemoved: 3,
       };
-      
+
       const item = createSessionFileItem(file);
-      
+
       // Format: "Button.tsx (+12, -3)"
       expect(item.label).toBe('Button.tsx (+12, -3)');
     });
@@ -131,9 +133,9 @@ describe('HistorySection', () => {
         linesAdded: 5,
         linesRemoved: 0,
       };
-      
+
       const item = createSessionFileItem(file);
-      
+
       // Shows filename only, not full path
       expect(item.label).toBe('Component.tsx (+5, -0)');
     });
@@ -145,9 +147,9 @@ describe('HistorySection', () => {
         linesAdded: 1,
         linesRemoved: 1,
       };
-      
+
       const item = createSessionFileItem(file);
-      
+
       expect(item.contextValue).toBe('session-file');
     });
   });
@@ -155,7 +157,7 @@ describe('HistorySection', () => {
   // ===========================================================================
   // DURATION FORMATTING TESTS
   // ===========================================================================
-  
+
   describe('duration formatting', () => {
     it('should format seconds correctly', () => {
       const session: SessionInfo = {
@@ -166,9 +168,9 @@ describe('HistorySection', () => {
         canRestore: false,
         files: [],
       };
-      
+
       const item = createSessionItem(session);
-      
+
       const label = item.label as string;
       expect(label).toContain('45s');
     });
@@ -182,9 +184,9 @@ describe('HistorySection', () => {
         canRestore: false,
         files: [],
       };
-      
+
       const item = createSessionItem(session);
-      
+
       const label = item.label as string;
       expect(label).toContain('2m 30s');
     });
@@ -198,9 +200,9 @@ describe('HistorySection', () => {
         canRestore: false,
         files: [],
       };
-      
+
       const item = createSessionItem(session);
-      
+
       const label = item.label as string;
       expect(label).toContain('1h 5m');
     });
@@ -209,10 +211,10 @@ describe('HistorySection', () => {
   // ===========================================================================
   // HISTORY SECTION CLASS TESTS
   // ===========================================================================
-  
+
   describe('HistorySection', () => {
     let section: HistorySection;
-    
+
     beforeEach(() => {
       section = new HistorySection();
     });
@@ -230,9 +232,9 @@ describe('HistorySection', () => {
         canRestore: true,
         files: [],
       };
-      
+
       section.addSession(session);
-      
+
       expect(section.totalCount).toBe(1);
     });
 
@@ -245,9 +247,9 @@ describe('HistorySection', () => {
         canRestore: true,
         files: [],
       };
-      
+
       section.addSession(emptySession);
-      
+
       // Empty sessions should be ignored
       expect(section.totalCount).toBe(0);
     });
@@ -261,9 +263,9 @@ describe('HistorySection', () => {
         canRestore: true,
         files: [],
       };
-      
+
       section.addSession(session);
-      
+
       const found = section.getSession('find-me');
       expect(found?.id).toBe('find-me');
       expect(found?.duration).toBe(60);
@@ -275,9 +277,9 @@ describe('HistorySection', () => {
       for (const session of mockSessions) {
         section.addSession(session);
       }
-      
+
       const groups = section.getGroupedSessions();
-      
+
       // Should have some groups
       expect(groups.size).toBeGreaterThan(0);
     });
@@ -299,9 +301,9 @@ describe('HistorySection', () => {
         canRestore: false,
         files: [],
       });
-      
+
       const restorable = section.getRestorableSessions();
-      
+
       expect(restorable.length).toBe(1);
       expect(restorable[0].id).toBe('restorable');
     });
@@ -315,9 +317,9 @@ describe('HistorySection', () => {
         canRestore: true,
         files: [],
       });
-      
+
       section.markRestored('test');
-      
+
       const session = section.getSession('test');
       expect(session?.canRestore).toBe(false);
     });
@@ -331,11 +333,11 @@ describe('HistorySection', () => {
         canRestore: true,
         files: [],
       });
-      
+
       expect(section.totalCount).toBe(1);
-      
+
       section.deleteSession('delete-me');
-      
+
       expect(section.totalCount).toBe(0);
     });
 
@@ -351,7 +353,7 @@ describe('HistorySection', () => {
           files: [],
         });
       }
-      
+
       expect(section.totalCount).toBeLessThanOrEqual(50);
     });
   });

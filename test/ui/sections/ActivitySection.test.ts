@@ -34,10 +34,14 @@ describe('ActivitySection', () => {
       const events = createMockEvents();
       const groups = groupEventsByDate(events);
 
-      // Should have at least some groups
+      // Mock data has events from: today (3), yesterday (2), earlier (1)
       expect(groups.size).toBeGreaterThan(0);
+      expect(groups.has('Today')).toBe(true);
 
-      // TODO: Assert specific groupings based on mock data timestamps
+      // Verify Today group contains recent events
+      const todayEvents = groups.get('Today');
+      expect(todayEvents).toBeTruthy();
+      expect(todayEvents!.length).toBeGreaterThan(0);
     });
 
     it('should return empty map for empty events', () => {
