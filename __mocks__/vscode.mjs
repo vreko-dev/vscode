@@ -1,10 +1,12 @@
 /**
  * Comprehensive VS Code API mock for SnapBack extension testing
  * Provides realistic mocks for all VS Code APIs used by the extension
+ *
+ * ESM version - converted from CommonJS for vitest compatibility
  */
 
-const { vi } = require("vitest");
-const EventEmitter = require("node:events");
+import { vi } from "vitest";
+import EventEmitter from "node:events";
 
 // Mock event emitter for VS Code events
 class MockEventEmitter {
@@ -203,7 +205,7 @@ class MockFileSystemWatcher extends MockEventEmitter {
 	}
 
 	dispose() {
-		this.removeAllListeners();
+		this._listeners = [];
 	}
 }
 
@@ -578,4 +580,4 @@ vscode.Selection = class extends vscode.Range {
 	}
 };
 
-module.exports = vscode;
+export default vscode;
