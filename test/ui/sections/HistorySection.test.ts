@@ -7,44 +7,15 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock VS Code API
-vi.mock('vscode', () => ({
-  TreeItem: vi.fn().mockImplementation((label, collapsible) => ({
-    label,
-    collapsibleState: collapsible,
-    contextValue: undefined,
-    tooltip: undefined,
-    command: undefined,
-  })),
-  TreeItemCollapsibleState: {
-    None: 0,
-    Collapsed: 1,
-    Expanded: 2,
-  },
-  EventEmitter: vi.fn().mockImplementation(() => ({
-    event: vi.fn(),
-    fire: vi.fn(),
-    dispose: vi.fn(),
-  })),
-  MarkdownString: vi.fn().mockImplementation(() => ({
-    value: '',
-    isTrusted: false,
-    appendMarkdown: vi.fn(function(this: { value: string }, text: string) {
-      this.value += text;
-      return this;
-    }),
-  })),
-  ThemeIcon: vi.fn(),
-}));
+import * as vscode from 'vscode';
 
 import {
   HistorySection,
   createSessionItem,
   createSessionFileItem,
   createMockSessions,
-} from './HistorySection';
-import type { SessionInfo, SessionFileInfo } from '../ux-types';
+} from '../../../src/ui/sections/HistorySection';
+import type { SessionInfo, SessionFileInfo } from '../../../src/ui/ux-types';
 
 describe('HistorySection', () => {
   // ===========================================================================
@@ -64,9 +35,12 @@ describe('HistorySection', () => {
       
       const item = createSessionItem(session);
       
-      // HINT: Format should be "[Time] • [Files] • [Duration] • [↩️]"
+      // Format: "[Time] • [Files] • [Duration] • [↩️]"
       // Example: "5:52 AM • 1 file • 53s • ↩️"
-      expect(item).toBeDefined();
+      const label = item.label as string;
+      expect(label).toContain(' • 1 file • ');
+      expect(label).toContain('53s');
+      expect(label).toContain(' • ↩️');
     });
 
     it('should show undoable badge when canRestore is true', () => {
@@ -113,8 +87,9 @@ describe('HistorySection', () => {
       
       const item = createSessionItem(session);
       
-      // TODO: Assert "1 file" not "1 files"
-      expect(item).toBeDefined();
+      const label = item.label as string;
+      expect(label).toContain('1 file');
+      expect(label).not.toContain('1 files');
     });
 
     it('should use plural "files" for count > 1', () => {
@@ -129,8 +104,8 @@ describe('HistorySection', () => {
       
       const item = createSessionItem(session);
       
-      // TODO: Assert "5 files"
-      expect(item).toBeDefined();
+      const label = item.label as string;
+      expect(label).toContain('5 files');
     });
   });
 
@@ -145,9 +120,8 @@ describe('HistorySection', () => {
       
       const item = createSessionFileItem(file);
       
-      // HINT: Format should be "Button.tsx (+12, -3)"
-      // TODO: Assert label format
-      expect(item).toBeDefined();
+      // Format: "Button.tsx (+12, -3)"
+      expect(item.label).toBe('Button.tsx (+12, -3)');
     });
 
     it('should truncate long paths to filename only', () => {
@@ -160,8 +134,8 @@ describe('HistorySection', () => {
       
       const item = createSessionFileItem(file);
       
-      // TODO: Assert shows "Component.tsx" not full path
-      expect(item).toBeDefined();
+      // Shows filename only, not full path
+      expect(item.label).toBe('Component.tsx (+5, -0)');
     });
 
     it('should set context value for menu filtering', () => {
@@ -195,8 +169,8 @@ describe('HistorySection', () => {
       
       const item = createSessionItem(session);
       
-      // TODO: Assert contains "45s"
-      expect(item).toBeDefined();
+      const label = item.label as string;
+      expect(label).toContain('45s');
     });
 
     it('should format minutes and seconds', () => {
@@ -211,8 +185,8 @@ describe('HistorySection', () => {
       
       const item = createSessionItem(session);
       
-      // TODO: Assert contains "2m 30s" or "2m"
-      expect(item).toBeDefined();
+      const label = item.label as string;
+      expect(label).toContain('2m 30s');
     });
 
     it('should format hours and minutes', () => {
@@ -227,8 +201,8 @@ describe('HistorySection', () => {
       
       const item = createSessionItem(session);
       
-      // TODO: Assert contains "1h 5m"
-      expect(item).toBeDefined();
+      const label = item.label as string;
+      expect(label).toContain('1h 5m');
     });
   });
 
@@ -290,7 +264,9 @@ describe('HistorySection', () => {
       
       section.addSession(session);
       
-      expect(section.getSession('find-me')).toBeDefined();
+      const found = section.getSession('find-me');
+      expect(found?.id).toBe('find-me');
+      expect(found?.duration).toBe(60);
       expect(section.getSession('not-found')).toBeUndefined();
     });
 

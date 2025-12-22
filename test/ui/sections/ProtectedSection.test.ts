@@ -7,42 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock VS Code API
-vi.mock('vscode', () => ({
-  TreeItem: vi.fn().mockImplementation((label, collapsible) => ({
-    label,
-    collapsibleState: collapsible,
-    contextValue: undefined,
-    tooltip: undefined,
-    command: undefined,
-    description: undefined,
-    iconPath: undefined,
-  })),
-  TreeItemCollapsibleState: {
-    None: 0,
-    Collapsed: 1,
-    Expanded: 2,
-  },
-  EventEmitter: vi.fn().mockImplementation(() => ({
-    event: vi.fn(),
-    fire: vi.fn(),
-    dispose: vi.fn(),
-  })),
-  MarkdownString: vi.fn().mockImplementation(() => ({
-    value: '',
-    isTrusted: false,
-    appendMarkdown: vi.fn(function(this: { value: string }, text: string) {
-      this.value += text;
-      return this;
-    }),
-  })),
-  ThemeIcon: vi.fn((id, color) => ({ id, color })),
-  ThemeColor: vi.fn((id) => ({ id })),
-  Uri: {
-    file: vi.fn((path) => ({ path })),
-  },
-}));
+import * as vscode from 'vscode';
 
 import {
   ProtectedSection,
@@ -52,8 +17,8 @@ import {
   groupFilesByLevel,
   sortFilesBySeverity,
   createMockProtectedFiles,
-} from './ProtectedSection';
-import type { ProtectedFileInfo } from '../ux-types';
+} from '../../../src/ui/sections/ProtectedSection';
+import type { ProtectedFileInfo } from '../../../src/ui/ux-types';
 
 describe('ProtectedSection', () => {
   // ===========================================================================
@@ -72,9 +37,8 @@ describe('ProtectedSection', () => {
 
       const item = createProtectedFileItem(file);
 
-      // HINT: Label should be "Button.tsx", not full path
-      // TODO: Assert label is just filename
-      expect(item).toBeDefined();
+      // Label should be just filename, not full path
+      expect(item.label).toBe('Button.tsx');
     });
 
     it('should show inheritance info in description', () => {
@@ -140,30 +104,28 @@ describe('ProtectedSection', () => {
     it('should include badge and text for BLOCK', () => {
       const item = createLevelGroupItem('BLOCK', 2);
 
-      // HINT: Label should be "🛑 BLOCK (2)"
-      // TODO: Assert label format
-      expect(item).toBeDefined();
+      // Label should be "🛑 BLOCK (2)"
+      expect(item.label).toBe('🛑 BLOCK (2)');
     });
 
     it('should include badge and text for WARN', () => {
       const item = createLevelGroupItem('WARN', 1);
 
-      // HINT: Label should be "⚠️ WARN (1)"
-      expect(item).toBeDefined();
+      // Label should be "⚠️ WARN (1)"
+      expect(item.label).toBe('⚠️ WARN (1)');
     });
 
     it('should include badge and text for WATCH', () => {
       const item = createLevelGroupItem('WATCH', 3);
 
-      // HINT: Label should be "👁️ WATCH (3)"
-      expect(item).toBeDefined();
+      // Label should be "👁️ WATCH (3)"
+      expect(item.label).toBe('👁️ WATCH (3)');
     });
 
     it('should be expanded by default', () => {
       const item = createLevelGroupItem('BLOCK', 2);
 
-      // TODO: Assert collapsibleState is Expanded
-      expect(item).toBeDefined();
+      expect(item.collapsibleState).toBe(vscode.TreeItemCollapsibleState.Expanded);
     });
   });
 
@@ -171,17 +133,15 @@ describe('ProtectedSection', () => {
     it('should show total count', () => {
       const item = createAllFilesItem(5);
 
-      // HINT: Label should be "All (5)"
-      // TODO: Assert label
-      expect(item).toBeDefined();
+      // Label should be "All (5)"
+      expect(item.label).toBe('All (5)');
     });
 
     it('should be collapsed by default', () => {
       const item = createAllFilesItem(5);
 
       // Users typically want grouped view, "All" is secondary
-      // TODO: Assert collapsibleState is Collapsed
-      expect(item).toBeDefined();
+      expect(item.collapsibleState).toBe(vscode.TreeItemCollapsibleState.Collapsed);
     });
   });
 

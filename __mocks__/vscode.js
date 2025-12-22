@@ -7,27 +7,29 @@ const { vi } = require("vitest");
 const EventEmitter = require("node:events");
 
 // Mock event emitter for VS Code events
-class MockEventEmitter extends EventEmitter {
+class MockEventEmitter {
 	constructor() {
-		super();
-		this.listeners = new Map();
+		this._listeners = [];
+		// VS Code's EventEmitter exposes an .event property that is a function
+		this.event = (listener) => {
+			this._listeners.push(listener);
+			return {
+				dispose: () => {
+					const idx = this._listeners.indexOf(listener);
+					if (idx >= 0) this._listeners.splice(idx, 1);
+				},
+			};
+		};
 	}
 
-	fire(event, ...args) {
-		this.emit(event, ...args);
-		const listeners = this.listeners.get(event) || [];
-		for (const listener of listeners) {
-			listener(...args);
+	fire(data) {
+		for (const listener of this._listeners) {
+			listener(data);
 		}
 	}
 
-	onDidChange(listener) {
-		const event = "change";
-		if (!this.listeners.has(event)) {
-			this.listeners.set(event, []);
-		}
-		this.listeners.get(event).push(listener);
-		return { dispose: () => this.removeListener(event, listener) };
+	dispose() {
+		this._listeners = [];
 	}
 }
 
@@ -46,15 +48,11 @@ class MockTreeItem {
 }
 
 // Mock TreeDataProvider
-class MockTreeDataProvider extends MockEventEmitter {
+class MockTreeDataProvider {
 	constructor() {
-		super();
 		this.data = [];
 		this._onDidChangeTreeData = new MockEventEmitter();
-	}
-
-	get onDidChangeTreeData() {
-		return this._onDidChangeTreeData.onDidChange.bind(this._onDidChangeTreeData);
+		this.onDidChangeTreeData = this._onDidChangeTreeData.event;
 	}
 
 	getTreeItem(element) {
@@ -541,6 +539,32 @@ const vscode = {
 		constructor(startLine, startCharacter, endLine, endCharacter) {
 			this.start = new vscode.Position(startLine, startCharacter);
 			this.end = new vscode.Position(endLine, endCharacter);
+		}
+	},
+
+	// MarkdownString for tooltips
+	MarkdownString: class {
+		constructor(value = "") {
+			this.value = value;
+			this.isTrusted = false;
+			this.supportThemeIcons = false;
+			this.supportHtml = false;
+		}
+		appendMarkdown(markdown) {
+			this.value += markdown;
+			return this;
+		}
+		appendText(text) {
+			this.value += text;
+			return this;
+		}
+		appendCodeblock(code, language = "") {
+			this.value += `
+\`\`\`${language}
+${code}
+\`\`\`
+`;
+			return this;
 		}
 	},
 };
