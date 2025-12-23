@@ -11,6 +11,9 @@ import { THRESHOLDS } from "@snapback/sdk";
 /** Default API base URL for SnapBack services */
 export const API_BASE_URL = "https://api.snapback.dev";
 
+/** Pioneer dashboard URL - single source of truth for VS Code extension */
+export const PIONEER_DASHBOARD_URL = "https://console.snapback.dev/dashboard";
+
 /** WebSocket ping interval in milliseconds */
 export const WS_PING_INTERVAL = 25000;
 

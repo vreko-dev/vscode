@@ -49,16 +49,13 @@ export class ProtectedFilesTreeProvider implements vscode.TreeDataProvider<vscod
 		);
 
 		// Subscribe to tier changes for reactive sidebar refresh
-		const tierChangeHandler = () => {
-			logger.debug("Pioneer tier changed, refreshing sidebar");
-			this.refresh();
-		};
-		this.gatekeeper.onDidChangePioneerStatus.on("change", tierChangeHandler);
-		this.disposables.push({
-			dispose: () => {
-				this.gatekeeper.onDidChangePioneerStatus.removeListener("change", tierChangeHandler);
-			},
-		});
+		// VS Code EventEmitter returns disposable - no manual removal needed
+		this.disposables.push(
+			this.gatekeeper.onDidChangeStatus(() => {
+				logger.debug("Pioneer tier changed, refreshing sidebar");
+				this.refresh();
+			}),
+		);
 	}
 
 	getTreeItem(element: vscode.TreeItem): vscode.TreeItem {

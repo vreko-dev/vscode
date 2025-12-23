@@ -53,7 +53,7 @@ describe("ProtectedFilesTreeProvider - Tier Display", () => {
 		mockGatekeeper = {
 			canUseFeature: vi.fn(),
 			getUpsellMessage: vi.fn(),
-			onDidChangePioneerStatus: { event: vi.fn() },
+			onDidChangeStatus: vi.fn(() => ({ dispose: () => {} })),
 		} as any;
 
 		// Create profiles
@@ -186,12 +186,10 @@ describe("ProtectedFilesTreeProvider - Tier Display", () => {
 		vi.mocked(mockRegistry.list).mockResolvedValue([]);
 
 		const onChangeEmitter = new vscode.EventEmitter<void>();
-		vi.mocked(mockGatekeeper.onDidChangePioneerStatus.event).mockImplementation(
-			(callback) => {
-				onChangeEmitter.event(callback);
-				return { dispose: () => {} };
-			},
-		);
+		vi.mocked(mockGatekeeper.onDidChangeStatus).mockImplementation((callback) => {
+			onChangeEmitter.event(callback);
+			return { dispose: () => {} };
+		});
 
 		const children1 = await provider.getChildren();
 		expect(children1).toBeDefined(); // Initial state
@@ -252,12 +250,10 @@ describe("ProtectedFilesTreeProvider - Tier Display", () => {
 
 	it("should debounce rapid tier change events", async () => {
 		const onChangeEmitter = new vscode.EventEmitter<void>();
-		vi.mocked(mockGatekeeper.onDidChangePioneerStatus.event).mockImplementation(
-			(callback) => {
-				onChangeEmitter.event(callback);
-				return { dispose: () => {} };
-			},
-		);
+		vi.mocked(mockGatekeeper.onDidChangeStatus).mockImplementation((callback) => {
+			onChangeEmitter.event(callback);
+			return { dispose: () => {} };
+		});
 
 		vi.mocked(mockRegistry.list).mockResolvedValue([]);
 
@@ -289,7 +285,7 @@ describe("ProtectedFilesTreeProvider - CTA and Messaging", () => {
 		mockGatekeeper = {
 			canUseFeature: vi.fn(),
 			getUpsellMessage: vi.fn(),
-			onDidChangePioneerStatus: { event: vi.fn(() => ({ dispose: () => {} })) },
+			onDidChangeStatus: vi.fn(() => ({ dispose: () => {} })),
 		} as any;
 
 		provider = new ProtectedFilesTreeProvider(mockRegistry);

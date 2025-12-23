@@ -1,8 +1,10 @@
 import * as vscode from "vscode";
+import { PIONEER_DASHBOARD_URL } from "../constants";
 import { PioneerAuth } from "../pioneer/PioneerAuth";
 import { PioneerGatekeeper } from "../pioneer/PioneerGatekeeper";
 import { PioneerSocket } from "../pioneer/PioneerSocket";
 import { PointsTracker } from "../pioneer/PointsTracker";
+import { isValidTier } from "../pioneer/types";
 import { logger } from "../utils/logger";
 import { PioneerStatusItem } from "../views/PioneerStatusItem";
 
@@ -65,9 +67,12 @@ export async function initializePioneerInfrastructure(context: vscode.ExtensionC
 		}),
 	);
 
-	// Register resources
+	// Register all disposable resources
 	context.subscriptions.push(statusItem);
 	context.subscriptions.push(pioneerSocket);
+	context.subscriptions.push(pointsTracker);
+	context.subscriptions.push(gatekeeper);
+	context.subscriptions.push(auth);
 
 	// Set up WebSocket event handlers
 	pioneerSocket.onConnected((data) => {
@@ -78,38 +83,41 @@ export async function initializePioneerInfrastructure(context: vscode.ExtensionC
 		logger.info("Points updated via WebSocket", data);
 		// Refresh profile to update UI
 		auth.invalidateCache();
-		auth.getProfile().then((profile) => {
-			gatekeeper.setProfile(profile);
-		});
+		auth.getProfile()
+			.then((profile) => {
+				gatekeeper.setProfile(profile);
+			})
+			.catch((e) => {
+				logger.warn("Failed to refresh profile after points update", { error: e });
+			});
 	});
 
 	pioneerSocket.onTierChanged((data) => {
 		logger.info("Tier changed via WebSocket", data);
-		// Show celebration notification
-		const tierEmojis: Record<string, string> = {
-			seedling: "🌱",
-			grower: "🌿",
-			cultivator: "🌳",
-			guardian: "🌲",
-		};
-		const emoji = tierEmojis[data.to] || "🎉";
+		// Show celebration notification - use type guard for safety
+		const tier = isValidTier(data.to) ? data.to : "seedling";
+		const emoji = gatekeeper.getTierEmoji(tier);
 		vscode.window
 			.showInformationMessage(
-				`${emoji} Congratulations! You've reached ${data.to.charAt(0).toUpperCase() + data.to.slice(1)} tier!`,
+				`${emoji} Congratulations! You've reached ${tier.charAt(0).toUpperCase() + tier.slice(1)} tier!`,
 				"View Benefits",
 			)
 			.then((selection) => {
 				if (selection === "View Benefits") {
 					// Open pioneer dashboard in browser
-					vscode.env.openExternal(vscode.Uri.parse("https://snapback.dev/pioneer"));
+					vscode.env.openExternal(vscode.Uri.parse(PIONEER_DASHBOARD_URL));
 				}
 			});
 
 		// Refresh profile
 		auth.invalidateCache();
-		auth.getProfile().then((profile) => {
-			gatekeeper.setProfile(profile);
-		});
+		auth.getProfile()
+			.then((profile) => {
+				gatekeeper.setProfile(profile);
+			})
+			.catch((e) => {
+				logger.warn("Failed to refresh profile after tier change", { error: e });
+			});
 	});
 
 	pioneerSocket.onReferralConverted((data) => {
@@ -125,13 +133,17 @@ export async function initializePioneerInfrastructure(context: vscode.ExtensionC
 	});
 
 	// Connect WebSocket if authenticated
-	auth.getSessionToken().then((token) => {
-		if (token) {
-			pioneerSocket.connect().catch((e) => {
-				logger.warn("WebSocket connection failed on activation", { error: e });
-			});
-		}
-	});
+	auth.getSessionToken()
+		.then((token) => {
+			if (token) {
+				pioneerSocket.connect().catch((e) => {
+					logger.warn("WebSocket connection failed on activation", { error: e });
+				});
+			}
+		})
+		.catch((e) => {
+			logger.warn("Failed to get session token for WebSocket", { error: e });
+		});
 
 	return {
 		auth,

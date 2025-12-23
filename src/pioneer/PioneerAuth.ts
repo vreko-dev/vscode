@@ -1,19 +1,9 @@
 import * as vscode from "vscode";
 import { API_BASE_URL } from "../constants";
 import { logger } from "../utils/logger";
+import type { PioneerProfile } from "./types";
 
 const SESSION_TOKEN_KEY = "snapback.pioneer.session";
-
-export interface PioneerProfile {
-	id: string;
-	username: string;
-	tier: "seedling" | "grower" | "cultivator" | "guardian";
-	totalPoints: number;
-	joinedAt: string;
-	referralCode: string;
-	githubStarred: boolean;
-	leaderboardVisibility?: "public" | "anonymous" | "hidden";
-}
 
 /**
  * Pioneer authentication service for VS Code extension.
@@ -24,7 +14,7 @@ export interface PioneerProfile {
  * - Profile fetching from real API
  * - Session token storage in VS Code secrets
  */
-export class PioneerAuth {
+export class PioneerAuth implements vscode.Disposable {
 	private context?: vscode.ExtensionContext;
 	private cachedProfile: PioneerProfile | null = null;
 	private profileFetchedAt = 0;
@@ -117,26 +107,9 @@ export class PioneerAuth {
 		const sessionToken = await this.getSessionToken();
 
 		if (!sessionToken) {
-			// No session token - try GitHub auth as fallback
-			const session = await vscode.authentication.getSession("github", ["read:user", "user:email"], {
-				createIfNone: false,
-			});
-
-			if (!session) {
-				return null;
-			}
-
-			// Return minimal profile from GitHub session
-			// Full profile requires API authentication
-			return {
-				id: session.account.id,
-				username: session.account.label,
-				tier: "seedling",
-				totalPoints: 0,
-				joinedAt: new Date().toISOString(),
-				referralCode: "PENDING",
-				githubStarred: false,
-			};
+			// No session token - user needs to authenticate via login command
+			// Don't return fake profile data as it misleads users about their actual tier/points
+			return null;
 		}
 
 		try {
@@ -243,5 +216,13 @@ export class PioneerAuth {
 	private getApiBaseUrl(): string {
 		const config = vscode.workspace.getConfiguration("snapback");
 		return config.get<string>("apiBaseUrl") || API_BASE_URL;
+	}
+
+	/**
+	 * Dispose resources
+	 */
+	dispose(): void {
+		this.cachedProfile = null;
+		this.context = undefined;
 	}
 }

@@ -1,10 +1,15 @@
-import { EventEmitter } from "node:events";
+import * as vscode from "vscode";
 import type { PioneerProfile, Tier } from "./types";
 
-export class PioneerGatekeeper {
+const TIER_ORDER: readonly Tier[] = ["seedling", "grower", "cultivator", "guardian"];
+
+export class PioneerGatekeeper implements vscode.Disposable {
 	private static instance: PioneerGatekeeper;
 	private currentProfile: PioneerProfile | null = null;
-	private _onDidChangePioneerStatus = new EventEmitter();
+	private readonly _onDidChangeStatus = new vscode.EventEmitter<PioneerProfile | null>();
+
+	/** Event fired when pioneer status changes */
+	readonly onDidChangeStatus = this._onDidChangeStatus.event;
 
 	private constructor() {}
 
@@ -15,17 +20,24 @@ export class PioneerGatekeeper {
 		return PioneerGatekeeper.instance;
 	}
 
-	setProfile(profile: PioneerProfile | null) {
+	/** @internal For testing only - resets singleton instance */
+	static resetInstance(): void {
+		if (PioneerGatekeeper.instance) {
+			PioneerGatekeeper.instance.dispose();
+		}
+		PioneerGatekeeper.instance = undefined as unknown as PioneerGatekeeper;
+	}
+
+	setProfile(profile: PioneerProfile | null): void {
 		this.currentProfile = profile;
-		this._onDidChangePioneerStatus.emit("change", profile);
+		this._onDidChangeStatus.fire(profile);
 	}
 
 	private get tierRank(): number {
 		if (!this.currentProfile) {
 			return -1;
 		}
-		const tiers: Tier[] = ["seedling", "grower", "cultivator", "guardian"];
-		return tiers.indexOf(this.currentProfile.tier);
+		return TIER_ORDER.indexOf(this.currentProfile.tier);
 	}
 
 	canUseFeature(feature: "clusters" | "co-change"): boolean {
@@ -50,7 +62,27 @@ export class PioneerGatekeeper {
 		return "";
 	}
 
-	get onDidChangePioneerStatus() {
-		return this._onDidChangePioneerStatus;
+	/**
+	 * Get current profile for status bar display
+	 */
+	getProfile(): PioneerProfile | null {
+		return this.currentProfile;
+	}
+
+	/**
+	 * Get emoji for tier - single source of truth for VS Code extension
+	 */
+	getTierEmoji(tier: Tier): string {
+		const tierEmojis: Record<Tier, string> = {
+			seedling: "🌱",
+			grower: "🌿",
+			cultivator: "🌳",
+			guardian: "🌲",
+		};
+		return tierEmojis[tier] ?? "🌱";
+	}
+
+	dispose(): void {
+		this._onDidChangeStatus.dispose();
 	}
 }
