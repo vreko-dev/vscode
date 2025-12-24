@@ -353,6 +353,24 @@
         "title": "Set MCP Auth Token (Secure)",
         "category": "SnapBack",
         "icon": "$(key)"
+      },
+      {
+        "command": "snapback.mcp.configure",
+        "title": "Configure AI Assistants",
+        "category": "SnapBack MCP",
+        "icon": "$(extensions)"
+      },
+      {
+        "command": "snapback.mcp.status",
+        "title": "Show AI Assistant Status",
+        "category": "SnapBack MCP",
+        "icon": "$(info)"
+      },
+      {
+        "command": "snapback.mcp.reset",
+        "title": "Reset MCP Configuration State",
+        "category": "SnapBack MCP",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -888,6 +906,18 @@
           "description": "Enable Model Context Protocol (MCP) integration for AI assistance",
           "order": 60
         },
+        "snapback.mcp.autoEnable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically configure SnapBack MCP for detected AI assistants (Claude Desktop, Cursor, Windsurf, Continue)",
+          "order": 60.1
+        },
+        "snapback.mcp.preferBinary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use installed binary instead of npx for MCP server (faster startup, requires manual updates)",
+          "order": 60.2
+        },
         "snapback.mcp.serverUrl": {
           "type": "string",
           "default": "https://mcp.snapback.dev",
@@ -1146,6 +1176,7 @@
   "dependencies": {
     "@snapback/config": "workspace:*",
     "@snapback/contracts": "workspace:*",
+    "@snapback/mcp-config": "workspace:*",
     "@snapback/core": "workspace:*",
     "@snapback/engine": "workspace:*",
     "@snapback/infrastructure": "workspace:*",

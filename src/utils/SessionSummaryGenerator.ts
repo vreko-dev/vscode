@@ -23,7 +23,24 @@ class VscodeSnapshotProvider implements ISnapshotProvider {
 	async get(id: string): Promise<Snapshot | null> {
 		try {
 			const result = await this.snapshotManager.get(id);
-			return result || null;
+			if (!result) {
+				return null;
+			}
+			// Cast to Snapshot with version field required by contracts schema
+			return {
+				id: result.id,
+				timestamp: result.timestamp,
+				version: "1.0",
+				meta: { name: result.name },
+				files: result.files,
+				fileContents: result.fileStates?.reduce(
+					(acc, fs) => {
+						acc[fs.path] = fs.content;
+						return acc;
+					},
+					{} as Record<string, string>,
+				),
+			} as Snapshot;
 		} catch (error) {
 			logger.error("Failed to retrieve snapshot for summary", error as Error, {
 				id,

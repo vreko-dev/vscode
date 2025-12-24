@@ -34,6 +34,7 @@ import { createRateLimiter } from "./domain/rateLimiter";
 import { FeedbackManager } from "./engine/FeedbackManager";
 import { SaveHandler } from "./handlers/SaveHandler";
 import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration"; // 🆕 Import AutoDecisionIntegration
+import { autoConfigureMCP, registerMCPCommands } from "./mcp/auto-configure"; // 🆕 Import MCP auto-configure
 import { FileSystemWatcher } from "./protection/FileSystemWatcher";
 import { SnapshotContentProvider } from "./providers/SnapshotContentProvider"; // 🆕 Import SnapshotContentProvider
 import { RulesManager } from "./rules/RulesManager";
@@ -666,6 +667,17 @@ export async function activate(context: vscode.ExtensionContext) {
 		const pioneerStart = Date.now();
 		await initializePioneerInfrastructure(context);
 		phaseTimings["Pioneer Infrastructure"] = Date.now() - pioneerStart;
+
+		// 🆕 MCP Auto-Configuration (detects AI assistants and offers to configure)
+		const mcpStart = Date.now();
+		registerMCPCommands(context);
+		// Run auto-configure asynchronously to not block activation
+		void autoConfigureMCP(context).catch((err) => {
+			logger.warn("MCP auto-configure failed (non-blocking)", {
+				error: err instanceof Error ? err.message : String(err),
+			});
+		});
+		phaseTimings["MCP Configuration"] = Date.now() - mcpStart;
 
 		// 🆕 Phase 14: Initialize WorkspaceContextManager (fixes Antipattern #2)
 		const workspaceContextManager = createWorkspaceContextManager();
