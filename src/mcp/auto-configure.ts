@@ -10,10 +10,20 @@
  * @see mcp_companionship.md Part 2 for specification
  */
 
-import { type AIClientConfig, detectAIClients, getSnapbackMCPConfig, writeClientConfig } from "@snapback/mcp-config";
+import {
+	type AIClientConfig,
+	detectAIClients,
+	getSnapbackMCPConfig,
+	removeSnapbackConfig,
+	writeClientConfig,
+} from "@snapback/mcp-config";
 import * as vscode from "vscode";
 
+import { TelemetryProxy } from "../services/telemetry-proxy";
 import { logger } from "../utils/logger";
+
+// Module-level telemetry proxy instance
+let telemetryProxy: TelemetryProxy | null = null;
 
 // =============================================================================
 // TYPES
@@ -38,6 +48,9 @@ interface ConfigurationResult {
  * @param context - VS Code extension context
  */
 export async function autoConfigureMCP(context: vscode.ExtensionContext): Promise<void> {
+	// Initialize telemetry first to ensure all MCP events are tracked
+	initializeTelemetry(context);
+
 	const config = vscode.workspace.getConfiguration("snapback");
 
 	// Check if auto-configure is enabled (default: true)
@@ -204,7 +217,9 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 				placeHolder: "Select AI assistants to configure",
 			});
 
-			if (!selected || selected.length === 0) return;
+			if (!selected || selected.length === 0) {
+				return;
+			}
 
 			const apiKey = await getStoredApiKey(context);
 			const mcpConfig = getSnapbackMCPConfig({ apiKey });
@@ -231,8 +246,11 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 
 			const items = detection.clients.map((client) => {
 				let status = "⚪ Not installed";
-				if (client.exists && client.hasSnapback) status = "🟢 Active";
-				else if (client.exists) status = "🟡 Needs setup";
+				if (client.exists && client.hasSnapback) {
+					status = "🟢 Active";
+				} else if (client.exists) {
+					status = "🟡 Needs setup";
+				}
 
 				return `${client.displayName}: ${status}`;
 			});
@@ -256,6 +274,40 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 		}),
 	);
 
+	// Command: Disable MCP for a client
+	context.subscriptions.push(
+		vscode.commands.registerCommand("snapback.mcp.disable", async () => {
+			const detection = detectAIClients();
+			const configured = detection.detected.filter((c) => c.hasSnapback);
+
+			if (configured.length === 0) {
+				vscode.window.showInformationMessage("SnapBack MCP is not configured for any AI assistants.");
+				return;
+			}
+
+			const selected = await vscode.window.showQuickPick(
+				configured.map((c) => ({ label: c.displayName, client: c })),
+				{ placeHolder: "Select AI assistant to disable SnapBack for" },
+			);
+
+			if (!selected) {
+				return;
+			}
+
+			const result = removeSnapbackConfig(selected.client);
+			if (result.success) {
+				vscode.window.showInformationMessage(
+					`✓ Disabled SnapBack for ${selected.client.displayName}. Restart your AI assistant to apply.`,
+				);
+				trackTelemetry("mcp_disable", {
+					client: selected.client.name,
+				});
+			} else {
+				vscode.window.showErrorMessage(`Failed to disable: ${result.error}`);
+			}
+		}),
+	);
+
 	// Command: Reset MCP configuration state
 	context.subscriptions.push(
 		vscode.commands.registerCommand("snapback.mcp.reset", async () => {
@@ -270,9 +322,27 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 // =============================================================================
 
 /**
- * Track telemetry event (stub - integrate with actual telemetry service)
+ * Initialize telemetry proxy for MCP events
+ * Called once during extension activation
+ */
+function initializeTelemetry(context: vscode.ExtensionContext): void {
+	if (!telemetryProxy) {
+		telemetryProxy = new TelemetryProxy(context);
+		logger.debug("[MCP] Telemetry proxy initialized");
+	}
+}
+
+/**
+ * Track telemetry event through TelemetryProxy
+ * Events are queued offline and sent when network is available
  */
 function trackTelemetry(event: string, properties: Record<string, unknown>): void {
-	// TODO: Integrate with telemetry service
-	logger.debug(`[MCP Telemetry] ${event}`, properties);
+	if (telemetryProxy) {
+		telemetryProxy.trackEvent(event, properties).catch((err) => {
+			logger.debug(`[MCP Telemetry] Failed to track event: ${event}`, err);
+		});
+	} else {
+		// Fallback to debug logging if proxy not initialized
+		logger.debug(`[MCP Telemetry] ${event}`, properties);
+	}
 }

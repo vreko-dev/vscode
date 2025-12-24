@@ -371,6 +371,12 @@
         "title": "Reset MCP Configuration State",
         "category": "SnapBack MCP",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "snapback.mcp.disable",
+        "title": "Disable SnapBack for AI Assistant",
+        "category": "SnapBack MCP",
+        "icon": "$(close)"
       }
     ],
     "viewsContainers": {
