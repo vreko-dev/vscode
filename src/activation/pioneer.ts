@@ -18,6 +18,7 @@ export async function initializePioneerInfrastructure(context: vscode.ExtensionC
 	// Wire up dependencies
 	auth.setContext(context);
 	pointsTracker.setAuth(auth);
+	pointsTracker.setContext(context); // P0 FIX #4: Enable offline queue persistence
 
 	// Initial profile fetch (if session exists) - DEFERRED to not block activation
 	// Per ROUTER.md performance pattern: fire-and-forget for network calls

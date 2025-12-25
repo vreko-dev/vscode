@@ -65,6 +65,17 @@ export class SaveHandler {
 	// Cluster detection cache (in-memory with TTL-based invalidation)
 	// NOTE: Cluster detection is disabled until @snapback/engine provides this functionality
 	private clusterCache: Map<string, ClusterTreeCache> = new Map();
+
+	// P0 FIX #2: Async analysis queue for timed-out analyses
+	// 100ms budget for save handler to prevent blocking editor
+	private static readonly SAVE_TIMEOUT_MS = 100;
+	private asyncAnalysisQueue: Array<{
+		filePath: string;
+		filename: string;
+		preSaveContent: string;
+		document: vscode.TextDocument;
+	}> = [];
+	private asyncAnalysisTimer: NodeJS.Timeout | null = null;
 	// NOTE: ImportAnalyzer removed - cluster detection disabled until engine provides this
 
 	constructor(
@@ -348,16 +359,49 @@ export class SaveHandler {
 			step: "analysis_started",
 		});
 
-		// P0 FIX: Error boundary for analyzeAndPublish
-		// If analysis fails, continue with save using default protection
+		// P0 FIX #2: Save handler timing budget (100ms)
+		// Wrap analysis in Promise.race with timeout to prevent blocking editor
+		const analysisPromise = this.analysisCoordinator.analyzeAndPublish(
+			filePath,
+			filename,
+			preSaveContent,
+			document,
+		);
+		const timeoutPromise = new Promise<"timeout">((resolve) =>
+			setTimeout(() => resolve("timeout"), SaveHandler.SAVE_TIMEOUT_MS),
+		);
+
 		try {
-			await this.analysisCoordinator.analyzeAndPublish(filePath, filename, preSaveContent, document);
-			logger.debug("Risk analysis completed", {
-				correlationId,
-				filePath,
-				duration: Date.now() - analysisStartTime,
-				step: "analysis_completed",
-			});
+			const result = await Promise.race([analysisPromise, timeoutPromise]);
+
+			if (result === "timeout") {
+				// Analysis timed out - queue for async processing
+				logger.warn("Analysis timeout, queuing for async processing", {
+					correlationId,
+					filePath,
+					timeout_ms: SaveHandler.SAVE_TIMEOUT_MS,
+					step: "analysis_timeout",
+				});
+
+				// Queue for async processing (don't block save)
+				this.queueAsyncAnalysis(filePath, filename, preSaveContent, document);
+
+				// Track timeout for telemetry
+				if (this.milestoneService) {
+					// Use telemetry proxy directly via the milestone service's reference
+					logger.info("Save handler timeout tracked", {
+						file: document.fileName,
+						timeout_ms: SaveHandler.SAVE_TIMEOUT_MS,
+					});
+				}
+			} else {
+				logger.debug("Risk analysis completed", {
+					correlationId,
+					filePath,
+					duration: Date.now() - analysisStartTime,
+					step: "analysis_completed",
+				});
+			}
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			const baseFilename = path.basename(filePath);
@@ -628,5 +672,60 @@ export class SaveHandler {
 	dispose(): void {
 		this.analysisCoordinator.dispose();
 		this.cooldownService.clearAll();
+		// Clear async analysis queue timer
+		if (this.asyncAnalysisTimer) {
+			clearTimeout(this.asyncAnalysisTimer);
+			this.asyncAnalysisTimer = null;
+		}
+	}
+
+	/**
+	 * P0 FIX #2: Queue an analysis for async processing when save handler times out.
+	 * This ensures we don't lose analysis data but also don't block the editor.
+	 *
+	 * @param filePath - Absolute path to the file
+	 * @param filename - File name for logging
+	 * @param preSaveContent - Content before save
+	 * @param document - VS Code document
+	 */
+	private queueAsyncAnalysis(
+		filePath: string,
+		filename: string,
+		preSaveContent: string,
+		document: vscode.TextDocument,
+	): void {
+		// Add to queue
+		this.asyncAnalysisQueue.push({ filePath, filename, preSaveContent, document });
+
+		// Start processing if not already running
+		if (!this.asyncAnalysisTimer) {
+			this.asyncAnalysisTimer = setTimeout(() => {
+				this.processAsyncAnalysisQueue();
+			}, 500); // Process after 500ms to batch multiple timeouts
+		}
+	}
+
+	/**
+	 * Process queued async analyses in the background.
+	 * Called after a delay to batch multiple timeout cases.
+	 */
+	private processAsyncAnalysisQueue(): void {
+		this.asyncAnalysisTimer = null;
+
+		// Process all queued items
+		while (this.asyncAnalysisQueue.length > 0) {
+			const item = this.asyncAnalysisQueue.shift();
+			if (item) {
+				// Fire and forget - process in background
+				this.analysisCoordinator
+					.analyzeAndPublish(item.filePath, item.filename, item.preSaveContent, item.document)
+					.catch((error) => {
+						logger.warn("Async analysis failed", {
+							filePath: item.filePath,
+							error: error instanceof Error ? error.message : String(error),
+						});
+					});
+			}
+		}
 	}
 }

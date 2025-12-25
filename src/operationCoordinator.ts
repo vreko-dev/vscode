@@ -1209,6 +1209,9 @@ export class OperationCoordinator {
 			this.updateOperationStatus(operationId, "completed");
 			this.updateOperationProgress(operationId, 100);
 
+			// Calculate restore duration for telemetry
+			const restoreDuration = Date.now() - (this.operations.get(operationId)?.startTime || Date.now());
+
 			// REFACTOR: Use extracted publishEvent helper
 			this.publishEvent(SnapBackEvent.SNAPSHOT_RESTORED, {
 				snapshotId,
@@ -1225,6 +1228,16 @@ export class OperationCoordinator {
 				const recoveryType = isPartial ? "single_file" : "full_snapshot";
 				const severity = isPartial ? "medium" : "high";
 
+				// P0 FIX #1: Track snapshot_restored telemetry (the "aha moment" funnel)
+				this.telemetryProxy.trackEvent("snapshot_restored", {
+					snapshot_id: snapshotId,
+					files_restored: filesRestored,
+					duration_ms: restoreDuration,
+					had_conflicts: options?.dryRun === true,
+					restore_type: recoveryType,
+					success: true,
+				});
+
 				this.telemetryProxy.trackEvent("value:disaster_averted", {
 					files_restored: filesRestored,
 					recovery_type: recoveryType,
@@ -1232,8 +1245,13 @@ export class OperationCoordinator {
 					severity: severity,
 				});
 
-				// Track Milestone
+				// Track Milestone and trigger first_restore tracking
 				void this.milestoneService.incrementRecoveries();
+				void this.milestoneService.triggerFirstTimeEvent(
+					"first_restore",
+					"Recovery Complete! 🎉",
+					"You've successfully restored your code from a snapshot. SnapBack has your back!",
+				);
 
 				vscode.window.setStatusBarMessage(`✅ Workspace restored from snapshot (${filesRestored} files)`, 5000);
 			}
