@@ -81,6 +81,7 @@ import type { SessionCoordinator } from "./snapshot/SessionCoordinator";
 import type { IStorageManager } from "./storage/types.js";
 import { logger } from "./utils/logger";
 import type { WorkspaceMemoryManager } from "./workspaceMemory";
+import { getActivationFunnel } from "./telemetry/ActivationFunnelIntegration";
 
 /**
  * Get current snapshot limits from runtime thresholds
@@ -1252,6 +1253,12 @@ export class OperationCoordinator {
 					"Recovery Complete! 🎉",
 					"You've successfully restored your code from a snapshot. SnapBack has your back!",
 				);
+
+				// 🆕 Track in activation funnel - this completes the funnel! (P0-3)
+				const funnel = getActivationFunnel();
+				if (funnel) {
+					funnel.trackFirstRestore();
+				}
 
 				vscode.window.setStatusBarMessage(`✅ Workspace restored from snapshot (${filesRestored} files)`, 5000);
 			}

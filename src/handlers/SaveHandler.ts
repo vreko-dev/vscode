@@ -11,6 +11,7 @@ import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import type { AnalysisResult, BasicAnalysisResult } from "../types/api";
 import type { CooldownIndicator } from "../ui/cooldownIndicator";
 import { logger } from "../utils/logger";
+import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
 import { AnalysisCoordinator } from "./AnalysisCoordinator";
 import { AuditLogger } from "./AuditLogger";
 import { CooldownService } from "./CooldownService";
@@ -265,6 +266,12 @@ export class SaveHandler {
 						);
 						// Mark as tracked locally to avoid repeat calls
 						await context.globalState.update("snapback.hasProtectedSave", true);
+
+						// 🆕 Track in activation funnel (P0-3)
+						const funnel = getActivationFunnel();
+						if (funnel) {
+							funnel.trackFirstProtectedSave();
+						}
 					}
 				})();
 			}
