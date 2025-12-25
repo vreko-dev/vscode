@@ -5,6 +5,12 @@
  * error codes, and type guards for robust error handling across the extension.
  */
 
+// Import toError from canonical source for internal use
+import { toError } from "@snapback/sdk";
+
+// Re-export toError for consumers of this module
+export { toError };
+
 /**
  * Base error class for all SnapBack errors
  *
@@ -641,23 +647,6 @@ export function isConfigurationError(error: unknown): error is ConfigurationErro
  */
 export function isFileSystemError(error: unknown): error is FileSystemError {
 	return error instanceof FileSystemError;
-}
-
-/**
- * Converts unknown error to Error instance
- * Safely handles any thrown value and converts to Error
- */
-export function toError(error: unknown): Error {
-	if (error instanceof Error) {
-		return error;
-	}
-	if (typeof error === "string") {
-		return new Error(error);
-	}
-	if (error && typeof error === "object" && "message" in error) {
-		return new Error(String(error.message));
-	}
-	return new Error(String(error));
 }
 
 /**

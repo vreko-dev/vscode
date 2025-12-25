@@ -81,3 +81,76 @@ export type CoreConceptSignage = SignageBase &
  * This is for migration helpers only.
  */
 export type LegacyProtectionLevelString = "Watched" | "Warning" | "Protected";
+
+// =============================================================================
+// WORKSPACE VITALS SIGNAGE TYPES
+// =============================================================================
+
+/**
+ * Canonical session health levels for workspace vitals UI.
+ */
+export const SESSION_HEALTH_CANONICAL = {
+	HEALTHY: "healthy",
+	WARNING: "warning",
+	CRITICAL: "critical",
+} as const;
+
+export type SessionHealthCanonical = (typeof SESSION_HEALTH_CANONICAL)[keyof typeof SESSION_HEALTH_CANONICAL];
+
+/**
+ * Canonical trajectory states for workspace vitals.
+ */
+export const TRAJECTORY_CANONICAL = {
+	IMPROVING: "improving",
+	STABLE: "stable",
+	DEGRADING: "degrading",
+	CRITICAL: "critical",
+} as const;
+
+export type TrajectoryCanonical = (typeof TRAJECTORY_CANONICAL)[keyof typeof TRAJECTORY_CANONICAL];
+
+/**
+ * Canonical pulse levels for code velocity.
+ */
+export const PULSE_LEVEL_CANONICAL = {
+	RESTING: "resting",
+	STEADY: "steady",
+	ELEVATED: "elevated",
+	RACING: "racing",
+	CRITICAL: "critical",
+} as const;
+
+export type PulseLevelCanonical = (typeof PULSE_LEVEL_CANONICAL)[keyof typeof PULSE_LEVEL_CANONICAL];
+
+/**
+ * Canonical temperature levels for AI change density.
+ */
+export const TEMPERATURE_LEVEL_CANONICAL = {
+	COOL: "cool",
+	WARM: "warm",
+	HOT: "hot",
+	BURNING: "burning",
+} as const;
+
+export type TemperatureLevelCanonical = (typeof TEMPERATURE_LEVEL_CANONICAL)[keyof typeof TEMPERATURE_LEVEL_CANONICAL];
+
+export type SessionHealthSignage = SignageBase &
+	Readonly<{
+		health: SessionHealthCanonical;
+	}>;
+
+export type TrajectorySignage = SignageBase &
+	Readonly<{
+		trajectory: TrajectoryCanonical;
+		arrow: string;
+	}>;
+
+export type PulseLevelSignage = SignageBase &
+	Readonly<{
+		level: PulseLevelCanonical;
+	}>;
+
+export type TemperatureLevelSignage = SignageBase &
+	Readonly<{
+		level: TemperatureLevelCanonical;
+	}>;

@@ -51,7 +51,7 @@ import type { ProtectionChangedPayload } from "./types/api";
 import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
 import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
-import { createStatusBarManager, type StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import Vitals StatusBar
+import type { StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import Vitals StatusBar type
 import { VitalsIntegration } from "./ui/VitalsIntegration"; // 🆕 Import Vitals Integration
 import { logger } from "./utils/logger";
 import { findProjectRoot } from "./utils/projectRoot";
@@ -743,16 +743,18 @@ export async function activate(context: vscode.ExtensionContext) {
 		// 🆕 Phase 16: Initialize Vitals StatusBar (power user feature)
 		const phase16Start = Date.now();
 		try {
-			// Create Vitals StatusBar (separate from protection StatusBarController)
-			vitalsStatusBar = createStatusBarManager();
-			context.subscriptions.push(vitalsStatusBar);
+			// Use StatusBarManager from Phase 4 (avoid creating duplicate)
+			vitalsStatusBar = phase4Result.statusBarManager;
 
-			// Create VitalsIntegration bridge
+			// Create VitalsIntegration bridge for power user vitals display
 			vitalsIntegration = new VitalsIntegration(vitalsStatusBar);
 
 			// Read vitals display setting from configuration
 			const vitalsEnabled = config.get<boolean>("snapback.vitals.showInStatusBar", false);
 			vitalsIntegration.setVitalsEnabled(vitalsEnabled);
+
+			// Get UnifiedDataService singleton for vitals data flow
+			const unifiedDataService = phase4Result.vitalsUIIntegration.getDataService();
 
 			// Set up periodic vitals update with telemetry tracking
 			if (autoDecisionIntegration) {
@@ -762,6 +764,11 @@ export async function activate(context: vscode.ExtensionContext) {
 				vitalsUpdateInterval = setInterval(() => {
 					if (vitalsIntegration && workspaceVitals) {
 						const snapshot = workspaceVitals.current();
+
+						// 🆕 Wire vitals to UnifiedDataService (feeds VitalsUIIntegration)
+						unifiedDataService.updateVitals(snapshot);
+
+						// Also update power user vitals display
 						vitalsIntegration.onVitalsSnapshot(snapshot);
 
 						// Track trajectory changes for telemetry (privacy-safe: no file content)

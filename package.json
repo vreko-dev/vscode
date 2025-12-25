@@ -377,6 +377,24 @@
         "title": "Disable SnapBack for AI Assistant",
         "category": "SnapBack MCP",
         "icon": "$(close)"
+      },
+      {
+        "command": "snapback.openVitalsDashboard",
+        "title": "Open Vitals Dashboard",
+        "category": "SnapBack",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "snapback.toggleVitalsDisplay",
+        "title": "Toggle Vitals in Status Bar",
+        "category": "SnapBack",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "snapback.refreshVitals",
+        "title": "Refresh Vitals Data",
+        "category": "SnapBack",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -972,17 +990,37 @@
           "description": "Enable offline mode to disable all network requests",
           "order": 71
         },
+        "snapback.vitals.showInStatusBar": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show workspace vitals (pulse, temperature, pressure) in the status bar (power user mode)",
+          "order": 72
+        },
+        "snapback.vitals.enableRecommendations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable snapshot recommendations based on session health",
+          "order": 73
+        },
+        "snapback.vitals.recommendationThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 70,
+          "description": "Show snapshot recommendations when health score drops below this threshold (0-100)",
+          "order": 74
+        },
         "snapback.onboarding.showWelcome": {
           "type": "boolean",
           "default": true,
           "description": "Show welcome experience on first run",
-          "order": 72
+          "order": 80
         },
         "snapback.onboarding.autoDetectCriticalFiles": {
           "type": "boolean",
           "default": true,
           "description": "Automatically suggest protection for critical files (package.json, .env, etc.)",
-          "order": 73
+          "order": 81
         },
         "snapback.logLevel": {
           "type": "string",
@@ -994,7 +1032,7 @@
           ],
           "default": "info",
           "description": "Logging level for SnapBack extension",
-          "order": 74
+          "order": 82
         },
         "snapback.autoDecision.riskThreshold": {
           "type": "number",

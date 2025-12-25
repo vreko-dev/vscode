@@ -8,6 +8,12 @@
  */
 
 import type * as vscode from "vscode";
+import type {
+	PulseLevelCanonical,
+	SessionHealthCanonical,
+	TemperatureLevelCanonical,
+	TrajectoryCanonical,
+} from "../signage/types";
 
 // =============================================================================
 // STATUS BAR TYPES
@@ -225,15 +231,18 @@ export interface NotificationDecision {
 /**
  * Vitals snapshot for UI display
  *
+ * Uses canonical types from signage/types.ts for consistency.
+ *
  * @see packages/intelligence/src/vitals for full implementation
+ * @see signage/types.ts for canonical type definitions
  */
 export interface VitalsDisplayData {
 	pulse: {
-		level: "resting" | "elevated" | "racing" | "critical";
+		level: PulseLevelCanonical;
 		value: number; // changes/min
 	};
 	temperature: {
-		level: "cold" | "warm" | "hot" | "burning";
+		level: TemperatureLevelCanonical;
 		percentage: number; // AI activity %
 		tool?: string;
 	};
@@ -244,7 +253,9 @@ export interface VitalsDisplayData {
 	oxygen: {
 		value: number; // 0-100
 	};
-	trajectory: "stable" | "escalating" | "critical" | "recovering";
+	trajectory: TrajectoryCanonical;
+	/** Overall session health derived from vitals */
+	sessionHealth?: SessionHealthCanonical;
 }
 
 // =============================================================================
@@ -299,19 +310,26 @@ export const LEVEL_DECORATIONS: Record<
 
 /**
  * Pulse level to emoji mapping
+ *
+ * @deprecated Use PULSE_LEVEL_SIGNAGE from signage/constants.ts directly
+ * Kept for backward compatibility with StatusBarManager
  */
-export const PULSE_EMOJI: Record<VitalsDisplayData["pulse"]["level"], string> = {
-	resting: "💚",
-	elevated: "💛",
-	racing: "🧡",
-	critical: "❤️",
+export const PULSE_EMOJI: Record<PulseLevelCanonical, string> = {
+	resting: "💤",
+	steady: "💓",
+	elevated: "💗",
+	racing: "💖",
+	critical: "💥",
 } as const;
 
 /**
  * Temperature level to emoji mapping
+ *
+ * @deprecated Use TEMPERATURE_LEVEL_SIGNAGE from signage/constants.ts directly
+ * Kept for backward compatibility with StatusBarManager
  */
-export const TEMP_EMOJI: Record<VitalsDisplayData["temperature"]["level"], string> = {
-	cold: "🧊",
+export const TEMP_EMOJI: Record<TemperatureLevelCanonical, string> = {
+	cool: "🧊",
 	warm: "🌡️",
 	hot: "🔥",
 	burning: "🌋",

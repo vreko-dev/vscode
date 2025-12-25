@@ -1,4 +1,4 @@
-import type * as vscode from "vscode";
+import * as vscode from "vscode";
 import type { AuthedApiClient } from "../api/authedApiClient";
 import type { CredentialsManager } from "../auth/credentials";
 import { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider";
@@ -12,7 +12,9 @@ import { WorkspaceSafetyService } from "../services/WorkspaceSafetyService";
 import type { IStorageManager } from "../storage/types";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
+import { createStatusBarManager, type StatusBarManager } from "../ui/StatusBarManager";
 import type { StatusBarController } from "../ui/statusBar";
+import { createVitalsUIIntegration, registerVitalsCommands, type VitalsUIIntegration } from "../ui/VitalsUIIntegration";
 import { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
 import { SessionsTreeProvider } from "../views/SessionsTreeProvider";
 import { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
@@ -28,6 +30,7 @@ export interface Phase4Result {
 	protectionDecorationProvider: ProtectionDecorationProvider;
 	protectionCodeLensProvider: ProtectionCodeLensProvider;
 	statusBarController: StatusBarController;
+	statusBarManager: StatusBarManager; // New vitals-aware status bar
 	welcomeView: WelcomeView;
 	snapshotDecorations: SnapshotDecorations;
 	snapshotNavigatorProvider: SnapshotNavigatorProvider;
@@ -35,6 +38,7 @@ export interface Phase4Result {
 	fileHealthDecorationProvider: FileHealthDecorationProvider;
 	sessionsTreeProvider: SessionsTreeProvider;
 	workspaceSafetyService: WorkspaceSafetyService;
+	vitalsUIIntegration: VitalsUIIntegration;
 }
 
 export async function initializePhase4Providers(
@@ -132,6 +136,25 @@ export async function initializePhase4Providers(
 		workspaceSafetyService.startAutoRefresh(); // Auto-refresh every 60s
 		console.log("[PERF] WorkspaceSafetyService", { ms: Date.now() - t });
 
+		// Initialize StatusBarManager for vitals display
+		t = Date.now();
+		const statusBarManager = createStatusBarManager();
+		context.subscriptions.push(statusBarManager);
+		console.log("[PERF] StatusBarManager", { ms: Date.now() - t });
+
+		// Initialize VitalsUIIntegration - connects data service to UI components
+		t = Date.now();
+		const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? workspaceRoot;
+		const vitalsUIIntegration = createVitalsUIIntegration(
+			workspaceId,
+			workspaceRoot,
+			context.extensionUri,
+			statusBarManager,
+		);
+		registerVitalsCommands(context, vitalsUIIntegration);
+		context.subscriptions.push(vitalsUIIntegration);
+		console.log("[PERF] VitalsUIIntegration", { ms: Date.now() - t });
+
 		console.log("[PERF] Phase 4 completed", { ms: Date.now() - phase4Start });
 		PhaseLogger.logPhase("4: UI Providers");
 
@@ -142,6 +165,7 @@ export async function initializePhase4Providers(
 			protectionDecorationProvider,
 			protectionCodeLensProvider,
 			statusBarController,
+			statusBarManager,
 			welcomeView,
 			snapshotDecorations,
 			snapshotNavigatorProvider,
@@ -149,6 +173,7 @@ export async function initializePhase4Providers(
 			fileHealthDecorationProvider,
 			sessionsTreeProvider,
 			workspaceSafetyService,
+			vitalsUIIntegration,
 		};
 	} catch (error) {
 		PhaseLogger.logError("4: UI Providers", error as Error);

@@ -30,6 +30,13 @@
  */
 
 import * as vscode from "vscode";
+import {
+	PULSE_LEVEL_SIGNAGE,
+	SESSION_HEALTH_SIGNAGE,
+	TEMPERATURE_LEVEL_SIGNAGE,
+	TRAJECTORY_SIGNAGE,
+} from "../signage/constants";
+import type { SessionHealthCanonical, TrajectoryCanonical } from "../signage/types";
 import type { StatusBarState, StatusBarStats, VitalsDisplayData } from "./ux-types";
 import { PULSE_EMOJI, TEMP_EMOJI } from "./ux-types";
 
@@ -90,6 +97,21 @@ export class StatusBarManager implements vscode.Disposable {
 	 * Whether vitals mode is enabled (power user setting)
 	 */
 	private vitalsEnabled = false;
+
+	/**
+	 * Current session health for tooltip display
+	 */
+	private sessionHealth: SessionHealthCanonical = "healthy";
+
+	/**
+	 * Current trajectory for tooltip display
+	 */
+	private trajectory: TrajectoryCanonical = "stable";
+
+	/**
+	 * Current vitals snapshot for detailed tooltip
+	 */
+	private currentVitals: VitalsDisplayData | undefined;
 
 	constructor() {
 		// HINT: Use Right alignment with high priority to appear left of other items
@@ -178,17 +200,68 @@ export class StatusBarManager implements vscode.Disposable {
 	 *
 	 * @param vitals - Current vitals snapshot
 	 *
-	 * TODO: Integrate with @snapback/intelligence/vitals
+	 * Stores vitals for tooltip display and updates session health tracking.
 	 */
 	showVitals(vitals: VitalsDisplayData): void {
+		// Always update vitals for tooltip, even if display is disabled
+		this.currentVitals = vitals;
+		this.trajectory = vitals.trajectory;
+		this.sessionHealth = vitals.sessionHealth ?? this.deriveSessionHealth(vitals);
+
 		if (!this.vitalsEnabled) {
+			// Still refresh tooltip with new health data
+			this.item.tooltip = this.buildTooltip();
 			return;
 		}
 
 		this.clearTransitionTimeout();
 		this.setState("vitals", vitals);
+	}
 
-		// TODO: Update tooltip with detailed vitals breakdown
+	/**
+	 * Update session health directly from UnifiedDataService
+	 *
+	 * Call this when receiving session health updates independent of full vitals.
+	 */
+	updateSessionHealth(health: SessionHealthCanonical, trajectory?: TrajectoryCanonical): void {
+		this.sessionHealth = health;
+		if (trajectory) {
+			this.trajectory = trajectory;
+		}
+
+		// Update background color based on health (subtle indication)
+		if (health === "critical") {
+			this.item.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+		} else if (health === "warning") {
+			this.item.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+		} else {
+			this.item.backgroundColor = undefined;
+		}
+
+		// Refresh tooltip
+		this.item.tooltip = this.buildTooltip();
+	}
+
+	/**
+	 * Derive session health from vitals data
+	 */
+	private deriveSessionHealth(vitals: VitalsDisplayData): SessionHealthCanonical {
+		// High pressure or critical pulse/temp = critical
+		if (vitals.pressure.value > 80 || vitals.pulse.level === "critical" || vitals.temperature.level === "burning") {
+			return "critical";
+		}
+
+		// Elevated metrics = warning
+		if (
+			vitals.pressure.value > 50 ||
+			vitals.pulse.level === "racing" ||
+			vitals.pulse.level === "elevated" ||
+			vitals.temperature.level === "hot"
+		) {
+			return "warning";
+		}
+
+		return "healthy";
 	}
 
 	// ===========================================================================
@@ -210,17 +283,46 @@ export class StatusBarManager implements vscode.Disposable {
 	}
 
 	/**
-	 * Build tooltip content
+	 * Build tooltip content with session health
 	 *
-	 * HINT: Use MarkdownString for rich formatting
-	 *
-	 * TODO: Add clickable links in tooltip
+	 * Shows session health status, trajectory, and vitals using signage system.
 	 */
 	private buildTooltip(): vscode.MarkdownString {
 		const md = new vscode.MarkdownString();
 		md.isTrusted = true;
 
-		md.appendMarkdown("**SnapBack** - Active Protection\n\n");
+		// Header with session health
+		const healthSignage = SESSION_HEALTH_SIGNAGE[this.sessionHealth];
+		const trajectorySignage = TRAJECTORY_SIGNAGE[this.trajectory];
+
+		md.appendMarkdown(`**SnapBack** ${healthSignage.emoji} ${healthSignage.label}\n\n`);
+
+		// Session health section
+		md.appendMarkdown(`**Session Health:** ${healthSignage.emoji} ${healthSignage.label}`);
+		md.appendMarkdown(` ${trajectorySignage.arrow}\n`);
+		md.appendMarkdown(`*${healthSignage.description}*\n\n`);
+
+		// Vitals section (if available)
+		if (this.currentVitals) {
+			const pulseSignage = PULSE_LEVEL_SIGNAGE[this.currentVitals.pulse.level];
+			const tempSignage = TEMPERATURE_LEVEL_SIGNAGE[this.currentVitals.temperature.level];
+
+			md.appendMarkdown("**Workspace Vitals:**\n");
+			md.appendMarkdown(
+				`- ${pulseSignage.emoji} Pulse: ${pulseSignage.label} (${this.currentVitals.pulse.value}/min)\n`,
+			);
+			md.appendMarkdown(`- ${tempSignage.emoji} Temperature: ${tempSignage.label}`);
+			if (this.currentVitals.temperature.tool) {
+				md.appendMarkdown(` (${this.currentVitals.temperature.tool})`);
+			}
+			md.appendMarkdown("\n");
+			md.appendMarkdown(`- 📊 Pressure: ${this.currentVitals.pressure.value}%\n`);
+			md.appendMarkdown(`- 🫁 Oxygen: ${this.currentVitals.oxygen.value}%\n`);
+			md.appendMarkdown(`- ${trajectorySignage.emoji} Trajectory: ${trajectorySignage.label}\n\n`);
+		}
+
+		// Stats section
+		md.appendMarkdown("---\n\n");
 		md.appendMarkdown(
 			`Today: ${this.stats.checkpointsToday} checkpoints | ${this.stats.aiSessionsToday} AI sessions\n\n`,
 		);
@@ -233,7 +335,7 @@ export class StatusBarManager implements vscode.Disposable {
 			}
 		}
 
-		md.appendMarkdown("\n*Click to view checkpoints*");
+		md.appendMarkdown("\n*Click to open Vitals Dashboard*");
 
 		return md;
 	}

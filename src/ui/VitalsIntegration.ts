@@ -12,9 +12,35 @@
  * @performance Budget: <1ms per update (throttled)
  */
 
-import type { VitalsSnapshot } from "@snapback/intelligence/vitals";
+import type { TempLevel, Trajectory, VitalsSnapshot } from "@snapback/intelligence/vitals";
+import type { TemperatureLevelCanonical, TrajectoryCanonical } from "../signage/types";
 import type { StatusBarManager } from "./StatusBarManager";
 import type { VitalsDisplayData } from "./ux-types";
+
+/**
+ * Map intelligence package temperature level to canonical signage level
+ * Intelligence uses "cold", signage uses "cool"
+ */
+function mapTemperatureToCanonical(level: TempLevel): TemperatureLevelCanonical {
+	if (level === "cold") return "cool";
+	return level; // "warm", "hot", "burning" are the same
+}
+
+/**
+ * Map intelligence package trajectory to canonical signage trajectory
+ * Intelligence: stable, escalating, critical, recovering
+ * Signage: stable, degrading, critical, improving
+ */
+function mapTrajectoryToCanonical(trajectory: Trajectory): TrajectoryCanonical {
+	switch (trajectory) {
+		case "escalating":
+			return "degrading";
+		case "recovering":
+			return "improving";
+		default:
+			return trajectory; // "stable" and "critical" are the same
+	}
+}
 
 /**
  * Connects WorkspaceVitals to VS Code StatusBar
@@ -76,15 +102,16 @@ export class VitalsIntegration {
 
 	/**
 	 * Transform VitalsSnapshot to VitalsDisplayData for UI
+	 * Maps intelligence package types to canonical signage types
 	 */
 	private transformSnapshot(snapshot: VitalsSnapshot): VitalsDisplayData {
 		return {
 			pulse: {
-				level: snapshot.pulse.level,
+				level: this.mapPulseToCanonical(snapshot.pulse.level),
 				value: snapshot.pulse.changesPerMinute,
 			},
 			temperature: {
-				level: snapshot.temperature.level,
+				level: mapTemperatureToCanonical(snapshot.temperature.level),
 				percentage: snapshot.temperature.aiPercentage,
 				...(snapshot.temperature.detectedTool && { tool: snapshot.temperature.detectedTool }),
 			},
@@ -95,8 +122,19 @@ export class VitalsIntegration {
 			oxygen: {
 				value: snapshot.oxygen.value,
 			},
-			trajectory: snapshot.trajectory,
+			trajectory: mapTrajectoryToCanonical(snapshot.trajectory),
 		};
+	}
+
+	/**
+	 * Map pulse level to canonical - intelligence pulse levels map directly
+	 * but canonical adds "steady" which we map from "resting" at moderate activity
+	 */
+	private mapPulseToCanonical(level: VitalsSnapshot["pulse"]["level"]): VitalsDisplayData["pulse"]["level"] {
+		// Intelligence levels: resting, elevated, racing, critical
+		// Canonical levels: resting, steady, elevated, racing, critical
+		// Map directly - "steady" would be derived from changes/min if needed
+		return level;
 	}
 
 	/**
