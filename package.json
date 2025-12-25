@@ -1226,6 +1226,7 @@
     "@snapback/infrastructure": "workspace:*",
     "@snapback/intelligence": "workspace:*",
     "@snapback/sdk": "workspace:*",
+    "@snapback-oss/sdk": "workspace:*",
     "ajv": "catalog:",
     "async-lock": "catalog:",
     "base64url": "catalog:",
