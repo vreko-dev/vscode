@@ -47,6 +47,7 @@ import { UserIdentityService } from "./services/UserIdentityService";
 import { createWorkspaceContextManager } from "./services/WorkspaceContextManager"; // 🆕 Import WorkspaceContextManager
 import { WorkspaceManager } from "./services/WorkspaceManager"; // 🆕 Import WorkspaceManager
 import type { IStorageManager } from "./storage/types.js";
+import { disposeActivationFunnel, initializeActivationFunnel } from "./telemetry/ActivationFunnelIntegration"; // 🆕 Activation funnel tracking
 import type { ProtectionChangedPayload } from "./types/api";
 import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
@@ -77,6 +78,8 @@ let anonymousIdManager: AnonymousIdManager | null = null;
 let autoDecisionIntegration: AutoDecisionIntegration | null = null;
 // 🆕 Global reference to UserIdentityService
 let userIdentityService: UserIdentityService | null = null;
+// 🆕 Global reference to activation funnel
+let activationFunnelIntegration: ReturnType<typeof initializeActivationFunnel> | null = null;
 // 🆕 Global reference to PRWManager for PRE/POST checkpoint coordination
 let prwManager: PRWManager | null = null;
 // 🆕 Global reference to SignalBridge for AI paste/burst detection
@@ -493,6 +496,20 @@ export async function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(eventBridge);
 		logger.info("EventBridge initialized for V2 engine telemetry");
 
+		// 🆕 Initialize ActivationFunnelIntegration for funnel tracking (P0-3)
+		activationFunnelIntegration = initializeActivationFunnel({
+			context,
+			telemetryProxy,
+		});
+
+		// Track first install if this is a new installation
+		if (!context.globalState.get<boolean>("snapback.funnelInstallTracked", false)) {
+			activationFunnelIntegration.trackInstalled();
+			void context.globalState.update("snapback.funnelInstallTracked", true);
+		}
+
+		logger.info("ActivationFunnelIntegration initialized");
+
 		const phase3Result = await initializePhase3Managers(
 			context,
 			workspaceRoot,
@@ -606,9 +623,14 @@ export async function activate(context: vscode.ExtensionContext) {
 						}
 						await userIdentityService.handleLogin(sessions.account.id);
 
-						// Track auth started event (at beginning of OAuth flow)
+						// 🆕 Track auth completion in activation funnel (P0-3)
+						if (activationFunnelIntegration) {
+							activationFunnelIntegration.trackAuthCompleted("vscode");
+						}
+
+						// Track auth event via telemetry proxy
 						await telemetryProxy.trackEvent("activation_funnel", {
-							stage: "auth_started",
+							stage: "auth_completed",
 							provider: "vscode",
 						});
 
@@ -1266,6 +1288,13 @@ export async function deactivate() {
 			vitalsStatusBar.dispose();
 			vitalsStatusBar = null;
 			logger.info("Vitals StatusBar disposed");
+		}
+
+		// 🆕 Dispose ActivationFunnelIntegration
+		if (activationFunnelIntegration) {
+			disposeActivationFunnel();
+			activationFunnelIntegration = null;
+			logger.info("ActivationFunnelIntegration disposed");
 		}
 
 		logger.info("Extension deactivated successfully");
