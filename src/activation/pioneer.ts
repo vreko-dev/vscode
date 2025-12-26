@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { DeviceAuthFlow } from "../auth/DeviceAuthFlow";
 import { PIONEER_DASHBOARD_URL } from "../constants";
 import { PioneerAuth } from "../pioneer/PioneerAuth";
 import { PioneerGatekeeper } from "../pioneer/PioneerGatekeeper";
@@ -10,6 +11,7 @@ import { PioneerStatusItem } from "../views/PioneerStatusItem";
 
 export async function initializePioneerInfrastructure(context: vscode.ExtensionContext) {
 	const auth = new PioneerAuth();
+	const deviceAuthFlow = new DeviceAuthFlow(context); // Use DeviceAuthFlow for login
 	const gatekeeper = PioneerGatekeeper.getInstance();
 	const pointsTracker = new PointsTracker();
 	const pioneerSocket = new PioneerSocket(auth);
@@ -35,21 +37,33 @@ export async function initializePioneerInfrastructure(context: vscode.ExtensionC
 			logger.error("Failed to fetch initial profile", err);
 		});
 
-	// Register login command
+	// Register login command (now uses DeviceAuthFlow)
 	context.subscriptions.push(
 		vscode.commands.registerCommand("snapback.pioneer.login", async () => {
 			try {
-				const session = await auth.login();
-				if (session) {
-					const profile = await auth.getProfile();
-					gatekeeper.setProfile(profile);
-					vscode.window.showInformationMessage(`Welcome back, Pioneer ${profile?.username || "User"}!`);
+				// Step 1: Authenticate via Device Flow (RFC 8628)
+				const authResult = await deviceAuthFlow.authenticate();
 
-					// Sync points after login
-					await pointsTracker.syncWithServer();
+				if (!authResult.api_key) {
+					throw new Error("Authentication failed: No API key returned");
 				}
+
+				// Step 2: Store API key in shared storage
+				await context.secrets.store("snapback.apiKey", authResult.api_key);
+				await context.secrets.store("snapback.userId", authResult.user_id);
+
+				// Step 3: Fetch Pioneer profile
+				const profile = await auth.getProfile();
+				gatekeeper.setProfile(profile);
+
+				vscode.window.showInformationMessage(`Welcome back, Pioneer ${profile?.username || "User"}!`);
+
+				// Sync points after login
+				await pointsTracker.syncWithServer();
 			} catch (e) {
-				vscode.window.showErrorMessage(`Login failed: ${e instanceof Error ? e.message : String(e)}`);
+				const err = e instanceof Error ? e : new Error(String(e));
+				logger.error("Pioneer login failed", err);
+				vscode.window.showErrorMessage(`Login failed: ${err.message}`);
 			}
 		}),
 	);

@@ -3,8 +3,6 @@ import { API_BASE_URL } from "../constants";
 import { logger } from "../utils/logger";
 import type { PioneerProfile } from "./types";
 
-const SESSION_TOKEN_KEY = "snapback.pioneer.session";
-
 /**
  * Pioneer authentication service for VS Code extension.
  *
@@ -28,71 +26,22 @@ export class PioneerAuth implements vscode.Disposable {
 	}
 
 	/**
-	 * Login with GitHub via VS Code authentication
-	 * Exchanges GitHub token for SnapBack session token
+	 * Login is now delegated to DeviceAuthFlow
+	 * This method is deprecated and should not be called directly
+	 * @deprecated Use DeviceAuthFlow from @vscode/auth/DeviceAuthFlow instead
 	 */
 	async login(): Promise<vscode.AuthenticationSession | undefined> {
-		try {
-			const session = await vscode.authentication.getSession("github", ["read:user", "user:email"], {
-				createIfNone: true,
-			});
-
-			if (!session) {
-				logger.warn("GitHub authentication cancelled");
-				return undefined;
-			}
-
-			logger.info("GitHub authentication successful", {
-				account: session.account.label,
-			});
-
-			// Exchange GitHub token for SnapBack session token
-			await this.exchangeGitHubToken(session.accessToken);
-
-			return session;
-		} catch (error) {
-			const err = error instanceof Error ? error : new Error(String(error));
-			logger.error("Pioneer login failed", err);
-			throw error;
-		}
+		throw new Error(
+			"PioneerAuth.login() is deprecated. Use DeviceAuthFlow for authentication. " +
+				"Pioneer features will automatically use the stored API key from DeviceAuthFlow.",
+		);
 	}
 
 	/**
-	 * Exchange GitHub token for SnapBack API session token
+	 * Removed: exchangeGitHubToken
+	 * This method called a non-existent endpoint /api/auth/extension/github
+	 * Pioneer now uses the API key stored by DeviceAuthFlow in 'snapback.apiKey'
 	 */
-	private async exchangeGitHubToken(githubToken: string): Promise<void> {
-		try {
-			const response = await fetch(`${this.getApiBaseUrl()}/api/auth/extension/github`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					githubToken,
-					client: "vscode",
-				}),
-			});
-
-			if (!response.ok) {
-				const error = await response.text();
-				throw new Error(`Token exchange failed: ${response.status} - ${error}`);
-			}
-
-			const data = (await response.json()) as { sessionToken: string };
-
-			if (!data.sessionToken) {
-				throw new Error("Token exchange response missing sessionToken");
-			}
-
-			// Store session token securely
-			await this.storeSessionToken(data.sessionToken);
-			logger.info("Session token stored successfully");
-		} catch (error) {
-			const err = error instanceof Error ? error : new Error(String(error));
-			logger.error("GitHub token exchange failed", err);
-			throw error;
-		}
-	}
 
 	/**
 	 * Get pioneer profile from API
@@ -170,7 +119,8 @@ export class PioneerAuth implements vscode.Disposable {
 	}
 
 	/**
-	 * Get stored session token
+	 * Get stored session token (now reads from DeviceAuthFlow's storage)
+	 * Migration: Previously stored in 'pioneer.sessionToken', now in 'snapback.apiKey'
 	 */
 	async getSessionToken(): Promise<string | null> {
 		if (!this.context) {
@@ -178,29 +128,26 @@ export class PioneerAuth implements vscode.Disposable {
 			return null;
 		}
 
-		return (await this.context.secrets.get(SESSION_TOKEN_KEY)) ?? null;
+		// Read from DeviceAuthFlow's shared storage
+		return (await this.context.secrets.get("snapback.apiKey")) ?? null;
 	}
 
 	/**
-	 * Store session token
+	 * Removed: storeSessionToken
+	 * Tokens are now stored by DeviceAuthFlow in 'snapback.apiKey'
+	 * Pioneer features read from that shared storage
 	 */
-	private async storeSessionToken(token: string): Promise<void> {
-		if (!this.context) {
-			throw new Error("Extension context not set for PioneerAuth");
-		}
-
-		await this.context.secrets.store(SESSION_TOKEN_KEY, token);
-	}
 
 	/**
-	 * Clear session token
+	 * Clear session token (now clears DeviceAuthFlow's shared token)
 	 */
 	private async clearSessionToken(): Promise<void> {
 		if (!this.context) {
 			return;
 		}
 
-		await this.context.secrets.delete(SESSION_TOKEN_KEY);
+		// Clear shared API key storage
+		await this.context.secrets.delete("snapback.apiKey");
 	}
 
 	/**
