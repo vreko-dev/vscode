@@ -24,8 +24,7 @@ import type { CommandContext } from "./types";
  * and protection functionality.
  *
  * @param _context - VS Code extension context (unused in current implementation)
- * @param commandContext - Command context containing services affected by offline mode
- *   - statusBarController: For updating UI status indicator
+ * @param _commandContext - Command context (unused - offline status shown in Activity Bar)
  *
  * @returns Array of disposables for all registered commands
  *
@@ -88,13 +87,6 @@ export function registerOfflineModeCommands(
 
 			// Set offline mode in RulesManager
 			rulesManager.setOfflineMode(newOfflineMode);
-
-			// Note: StatusBarController removed - offline status shown in Activity Bar only
-
-			// Get the telemetry instance and set offline mode
-			// Note: We need to access the telemetry instance from the command context
-			// This is a simplified approach - in a real implementation you might want to
-			// pass the telemetry instance through the command context
 
 			// Show notification
 			vscode.window.showInformationMessage(`SnapBack offline mode ${newOfflineMode ? "enabled" : "disabled"}`);
