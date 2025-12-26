@@ -168,27 +168,22 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 
 	// 🛡️ CRITICAL: Install process.exit() guard to prevent accidental crashes
-	// Task 5: Remove or Guard process.exit() Calls
+	// This guard prevents the extension from crashing when bundled code (like CLI modules)
+	// attempts to call process.exit(). Instead of exiting or throwing, we silently log and return.
+	// This is necessary because some dependencies may call process.exit() as part of their
+	// normal error handling, but in the VS Code extension context, this would crash the host.
 	function preventProcessExit() {
 		process.exit = ((code?: number) => {
 			const stack = new Error().stack;
-			logger.error("PREVENTED: process.exit() call blocked", new Error(`process.exit(${code}) attempted`), {
+			logger.warn("BLOCKED: process.exit() call prevented", {
 				exitCode: code,
-				stack,
+				stack: stack?.split("\n").slice(0, 3).join("\n"), // First 3 stack frames
 			});
-
-			// Show error to user
-			vscode.window.showErrorMessage(
-				"SnapBack: Prevented process.exit() call. This would have crashed VS Code. Check Output → SnapBack for details.",
-			);
-
-			// Throw error instead of exiting
-			throw new Error(
-				`process.exit(${code}) blocked. Extension code must not call process.exit(). Stack trace logged.`,
-			);
+			// Return without exiting or throwing - just log and continue
+			return undefined as never;
 		}) as typeof process.exit;
 
-		logger.info("process.exit() guard installed - accidental exit calls will be blocked");
+		logger.info("process.exit() guard installed - extension is protected from unexpected exits");
 	}
 
 	// Install the guard immediately after error handlers
