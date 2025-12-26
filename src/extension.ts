@@ -22,6 +22,7 @@ import { AnonymousIdManager } from "./auth/AnonymousIdManager";
 import { AuthState } from "./auth/AuthState";
 import { createCredentialsManager } from "./auth/credentials";
 import { EventBridge } from "./bridges/EventBridge";
+import { MCPBridge } from "./bridges/MCPBridge"; // 🆕 Import MCPBridge for pair programming
 import { SignalBridge } from "./bridges/SignalBridge";
 import { registerDiffCommands } from "./commands/diffCommands"; // 🆕 Import diff commands
 // SnapBackOAuthProvider is now used by UnifiedAuthProvider internally
@@ -84,6 +85,8 @@ let activationFunnelIntegration: ReturnType<typeof initializeActivationFunnel> |
 let prwManager: PRWManager | null = null;
 // 🆕 Global reference to SignalBridge for AI paste/burst detection
 let signalBridge: SignalBridge | null = null;
+// 🆕 Global reference to MCPBridge for pair programming observations
+let mcpBridge: MCPBridge | null = null;
 // 🆕 Global reference to EventBridge for V2 engine telemetry
 let eventBridge: EventBridge | null = null;
 // 🆕 Global reference to Vitals StatusBar
@@ -480,6 +483,22 @@ export async function activate(context: vscode.ExtensionContext) {
 		);
 
 		logger.info("SignalBridge initialized (V2 engine)");
+
+		// 🆕 Initialize MCPBridge for pair programming observations
+		// Pushes file changes and observations to MCP server for composite tools
+		mcpBridge = new MCPBridge({
+			mcpEndpoint: "http://127.0.0.1:3100",
+			flushInterval: 5000,
+			enableAIDetection: true,
+		});
+		mcpBridge.activate(context, signalBridge ?? undefined);
+		context.subscriptions.push({
+			dispose: () => {
+				mcpBridge?.dispose();
+				mcpBridge = null;
+			},
+		});
+		logger.info("MCPBridge initialized for pair programming");
 
 		// Phase 3: Business logic managers
 		const phase3Start = Date.now();
@@ -1354,7 +1373,18 @@ async function showDeferredWorkspaceTrustWarning(context: vscode.ExtensionContex
 		);
 
 		if (result === "Trust Workspace") {
-			await vscode.commands.executeCommand("workbench.action.manageTrust");
+			// Wrap in try/catch - command may not exist in VS Code forks (Cursor, Qoder, etc.)
+			try {
+				await vscode.commands.executeCommand("workbench.action.manageTrust");
+			} catch (cmdError) {
+				// Fallback: Show manual instructions for VS Code forks that don't have this command
+				logger.warn("Workspace trust command not available (VS Code fork)", {
+					error: cmdError instanceof Error ? cmdError.message : String(cmdError),
+				});
+				vscode.window.showInformationMessage(
+					"To trust this workspace: Open Command Palette (Cmd/Ctrl+Shift+P) → search 'Workspace Trust' or add this folder to your trusted workspaces in Settings.",
+				);
+			}
 		} else if (result === "Don't Show Again") {
 			await context.globalState.update(ACK_KEY, true);
 		}
