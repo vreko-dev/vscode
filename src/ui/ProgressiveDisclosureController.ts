@@ -79,6 +79,13 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 			}),
 		);
 
+		// Register command to show recommended action
+		this.disposables.push(
+			vscode.commands.registerCommand("snapback.showRecommendedAction", async () => {
+				await this.showRecommendedAction();
+			}),
+		);
+
 		logger.info("Progressive disclosure controller initialized", { level });
 	}
 
