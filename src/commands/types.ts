@@ -28,7 +28,6 @@ import type { IStorageManager } from "../storage/types";
 import type { CooldownIndicator } from "../ui/cooldownIndicator";
 import type { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
 import type { SnapshotRestoreUI } from "../ui/SnapshotRestoreUI";
-import type { StatusBarController } from "../ui/statusBar";
 import type { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
 import type { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
 import type { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
@@ -89,8 +88,6 @@ export interface CommandContext {
 	snapshotManager: SnapshotManager;
 	/** Integrates with Git and CI/CD workflows */
 	workflowIntegration: WorkflowIntegration;
-	/** Manages VS Code status bar display and interactions */
-	statusBarController: StatusBarController;
 	/** Sends user notifications and dialog messages */
 	notificationManager: NotificationManager;
 	/** Tracks workspace-level state and memory */

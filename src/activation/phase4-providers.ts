@@ -13,7 +13,6 @@ import type { IStorageManager } from "../storage/types";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
 import { createStatusBarManager, type StatusBarManager } from "../ui/StatusBarManager";
-import type { StatusBarController } from "../ui/statusBar";
 import { createVitalsUIIntegration, registerVitalsCommands, type VitalsUIIntegration } from "../ui/VitalsUIIntegration";
 import { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
 import { SessionsTreeProvider } from "../views/SessionsTreeProvider";
@@ -29,8 +28,7 @@ export interface Phase4Result {
 	snapshotDocumentProvider: SnapshotDocumentProvider;
 	protectionDecorationProvider: ProtectionDecorationProvider;
 	protectionCodeLensProvider: ProtectionCodeLensProvider;
-	statusBarController: StatusBarController;
-	statusBarManager: StatusBarManager; // New vitals-aware status bar
+	statusBarManager: StatusBarManager; // Vitals-aware status bar
 	welcomeView: WelcomeView;
 	snapshotDecorations: SnapshotDecorations;
 	snapshotNavigatorProvider: SnapshotNavigatorProvider;
@@ -81,13 +79,6 @@ export async function initializePhase4Providers(
 		t = Date.now();
 		const snapshotDecorations = new SnapshotDecorations(storage);
 		console.log("[PERF] SnapshotDecorations", { ms: Date.now() - t });
-
-		// Use the status bar controller from phase 3
-		t = Date.now();
-		const statusBarController = phase3Result.statusBarController;
-		console.log("[PERF] StatusBarController (from Phase 3)", {
-			ms: Date.now() - t,
-		});
 
 		// Initialize welcome view with diagnostic tracking
 		t = Date.now();
@@ -164,7 +155,6 @@ export async function initializePhase4Providers(
 			snapshotDocumentProvider,
 			protectionDecorationProvider,
 			protectionCodeLensProvider,
-			statusBarController,
 			statusBarManager,
 			welcomeView,
 			snapshotDecorations,

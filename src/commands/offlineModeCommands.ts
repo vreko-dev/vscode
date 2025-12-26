@@ -38,11 +38,10 @@ import type { CommandContext } from "./types";
  * ```
  *
  * @see {@link RulesManager} for singleton configuration
- * @see {@link StatusBarController} for UI updates
  */
 export function registerOfflineModeCommands(
 	_context: vscode.ExtensionContext,
-	commandContext: CommandContext,
+	_commandContext: CommandContext,
 ): vscode.Disposable[] {
 	const disposables: vscode.Disposable[] = [];
 
@@ -60,18 +59,15 @@ export function registerOfflineModeCommands(
 	 * @throws Shows error message if:
 	 * - Configuration update fails
 	 * - RulesManager state cannot be updated
-	 * - StatusBarController update fails
 	 *
 	 * @example
 	 * ```typescript
 	 * // User invokes from command palette
 	 * // Shows: "SnapBack offline mode enabled" or "SnapBack offline mode disabled"
 	 * // Updates configuration at snapback.offlineMode.enabled
-	 * // Updates status bar to show offline indicator
 	 * ```
 	 *
 	 * @see {@link RulesManager.setOfflineMode} for state update
-	 * @see {@link StatusBarController.setOfflineMode} for UI update
 	 *
 	 * @since 1.2.0
 	 */
@@ -93,8 +89,7 @@ export function registerOfflineModeCommands(
 			// Set offline mode in RulesManager
 			rulesManager.setOfflineMode(newOfflineMode);
 
-			// Set offline mode in the status bar controller
-			commandContext.statusBarController.setOfflineMode(newOfflineMode);
+			// Note: StatusBarController removed - offline status shown in Activity Bar only
 
 			// Get the telemetry instance and set offline mode
 			// Note: We need to access the telemetry instance from the command context

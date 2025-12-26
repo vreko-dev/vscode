@@ -22,7 +22,6 @@
 import type { ServiceFederation } from "@snapback/core";
 import * as vscode from "vscode";
 import type { OperationCoordinator } from "../operationCoordinator";
-import type { StatusBarController } from "../ui/statusBar";
 import type { WorkflowIntegration } from "../workflowIntegration";
 
 /**
@@ -32,7 +31,6 @@ import type { WorkflowIntegration } from "../workflowIntegration";
  * @param federation - Service federation instance
  * @param operationCoordinator - Operation coordinator instance
  * @param workflowIntegration - Workflow integration instance
- * @param statusBar - Status bar instance
  * @returns Array of disposables for command registrations
  */
 export function registerMcpCommands(
@@ -40,7 +38,6 @@ export function registerMcpCommands(
 	_federation: InstanceType<typeof ServiceFederation>,
 	_operationCoordinator: OperationCoordinator,
 	_workflowIntegration: WorkflowIntegration,
-	statusBar: StatusBarController,
 ): vscode.Disposable[] {
 	const disposables: vscode.Disposable[] = [];
 
@@ -106,7 +103,7 @@ export function registerMcpCommands(
 
 				// Update UI and provide feedback
 				vscode.window.showInformationMessage(`AI Monitoring ${!currentEnabled ? "enabled" : "disabled"}`);
-				statusBar.setProtectionStatus(!currentEnabled ? "protected" : "atRisk");
+				// Note: StatusBarController removed - status shown in Activity Bar only
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to toggle AI monitoring: ${error}`);
 			}

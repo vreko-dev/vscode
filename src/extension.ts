@@ -749,7 +749,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		phaseTimings["Phase 14 (AutoDecision)"] = Date.now() - phase14Start;
 		// AutoDecisionIntegration.activate() already logs activation message
 		if (offlineModeEnabled) {
-			phase4Result.statusBarController.setOfflineMode(true);
+			// Removed: StatusBarController no longer used - protection status shown in Activity Bar only
 		}
 
 		// 🆕 Phase 15: Initialize Onboarding & Progressive Disclosure
@@ -790,8 +790,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Create VitalsIntegration bridge for power user vitals display
 			vitalsIntegration = new VitalsIntegration(vitalsStatusBar);
 
-			// Read vitals display setting from configuration
-			const vitalsEnabled = config.get<boolean>("snapback.vitals.showInStatusBar", false);
+			// Read vitals display setting from configuration (default: enabled)
+			const vitalsEnabled = config.get<boolean>("snapback.vitals.showInStatusBar", true);
 			vitalsIntegration.setVitalsEnabled(vitalsEnabled);
 
 			// Get UnifiedDataService singleton for vitals data flow
@@ -853,7 +853,7 @@ export async function activate(context: vscode.ExtensionContext) {
 					if (e.affectsConfiguration("snapback.vitals.showInStatusBar")) {
 						const enabled = vscode.workspace
 							.getConfiguration()
-							.get<boolean>("snapback.vitals.showInStatusBar", false);
+							.get<boolean>("snapback.vitals.showInStatusBar", true);
 						vitalsIntegration?.setVitalsEnabled(enabled);
 						logger.info("Vitals status bar display updated", { enabled });
 					}
@@ -1049,7 +1049,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			operationCoordinator: phase3Result.operationCoordinator,
 			snapshotManager: phase3Result.snapshotManager,
 			workflowIntegration: phase3Result.workflowIntegration,
-			statusBarController: phase4Result.statusBarController,
+			// Removed: StatusBarController - protection status shown in Activity Bar only
 			notificationManager: phase3Result.notificationManager,
 			workspaceMemoryManager: phase3Result.workspaceMemoryManager,
 			conflictResolver: phase3Result.conflictResolver,

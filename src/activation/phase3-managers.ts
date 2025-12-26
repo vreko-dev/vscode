@@ -14,7 +14,6 @@ import { SnapshotStorageAdapter } from "../snapshot/SnapshotStorageAdapter";
 import { VSCodeConfirmationService } from "../snapshot/VSCodeConfirmationService";
 import type { IStorageManager } from "../storage/types";
 import type { IEventEmitter } from "../types/snapshot";
-import { StatusBarController } from "../ui/statusBar";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
 import { WorkflowIntegration } from "../workflowIntegration";
 import { WorkspaceMemoryManager } from "../workspaceMemory";
@@ -32,7 +31,6 @@ export interface Phase3Result {
 	snapshotSummaryProvider: StorageSnapshotSummaryProvider;
 	// snapshotRestoreUI will be created in phase 4 after SnapshotDocumentProvider is available
 	snapshotNavigatorProvider: SnapshotNavigatorProvider;
-	statusBarController: StatusBarController;
 	protectionService: ProtectionService; // 🟢 TDD GREEN: Protection audit service
 	milestoneService: MilestoneService;
 }
@@ -131,11 +129,6 @@ export async function initializePhase3Managers(
 			ms: Date.now() - t,
 		});
 
-		// Initialize StatusBarController
-		t = Date.now();
-		const statusBarController = new StatusBarController(protectedFileRegistry);
-		console.log("[PERF] StatusBarController", { ms: Date.now() - t });
-
 		// Initialize SnapshotNavigatorProvider
 		t = Date.now();
 		const snapshotNavigatorProvider = new SnapshotNavigatorProvider(storage);
@@ -206,7 +199,6 @@ export async function initializePhase3Managers(
 			snapshotSummaryProvider,
 			// snapshotRestoreUI will be added in phase 4
 			snapshotNavigatorProvider,
-			statusBarController,
 			protectionService, // 🟢 TDD GREEN
 			milestoneService,
 		};

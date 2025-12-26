@@ -8,12 +8,13 @@
  * 2. Display text formatting
  * 3. Timeout behavior
  * 4. Stats tracking
- * 5. Vitals integration
+ * 5. Vitals integration (now enabled by default)
  *
  * GOTCHAS:
  * - Use fake timers for timeout testing
  * - Mock vscode.window.createStatusBarItem
  * - Test tooltip content separately from text
+ * - Vitals enabled by default (changed from opt-in to default-enabled)
  *
  * @packageDocumentation
  */
@@ -162,16 +163,17 @@ describe('StatusBarManager', () => {
   // VITALS DISPLAY TESTS
   // ===========================================================================
 
-  describe('vitals display', () => {
+  describe('vitals display (default enabled)', () => {
     const mockVitals: VitalsDisplayData = {
       pulse: { level: 'racing', value: 45 },
       temperature: { level: 'hot', percentage: 72, tool: 'Cursor' },
       pressure: { value: 78, trend: 'rising' },
       oxygen: { value: 92 },
-      trajectory: 'escalating',
+      trajectory: 'degrading',
     };
 
-    it('should not show vitals when disabled', () => {
+    it('should allow disabling vitals (opt-out)', () => {
+      // NEW TEST: Users can opt out of vitals display
       statusBar.setVitalsEnabled(false);
       const textBefore = mockStatusBarItem.text;
       statusBar.showVitals(mockVitals);
@@ -179,7 +181,7 @@ describe('StatusBarManager', () => {
       expect(mockStatusBarItem.text).toBe(textBefore);
     });
 
-    it('should show vitals when enabled', () => {
+    it('should show vitals when enabled (default behavior)', () => {
       statusBar.setVitalsEnabled(true);
       statusBar.showVitals(mockVitals);
       // Expected format: "🧡45 🔥 📊78 🫁92"
@@ -191,28 +193,28 @@ describe('StatusBarManager', () => {
     it('should use correct emoji for each pulse level', () => {
       statusBar.setVitalsEnabled(true);
 
-      // Test resting (💚)
+      // Test resting (💤) - matches PULSE_EMOJI in ux-types.ts
       statusBar.showVitals({ ...mockVitals, pulse: { level: 'resting', value: 5 } });
-      expect(mockStatusBarItem.text).toContain('💚');
+      expect(mockStatusBarItem.text).toContain('💤');
 
-      // Test elevated (💛)
+      // Test elevated (💗)
       statusBar.showVitals({ ...mockVitals, pulse: { level: 'elevated', value: 15 } });
-      expect(mockStatusBarItem.text).toContain('💛');
+      expect(mockStatusBarItem.text).toContain('💗');
 
-      // Test racing (🧡)
+      // Test racing (💖)
       statusBar.showVitals({ ...mockVitals, pulse: { level: 'racing', value: 30 } });
-      expect(mockStatusBarItem.text).toContain('🧡');
+      expect(mockStatusBarItem.text).toContain('💖');
 
-      // Test critical (❤️)
+      // Test critical (💥)
       statusBar.showVitals({ ...mockVitals, pulse: { level: 'critical', value: 50 } });
-      expect(mockStatusBarItem.text).toContain('❤️');
+      expect(mockStatusBarItem.text).toContain('💥');
     });
 
     it('should use correct emoji for each temperature level', () => {
       statusBar.setVitalsEnabled(true);
 
-      // Test cold (🧊)
-      statusBar.showVitals({ ...mockVitals, temperature: { level: 'cold', percentage: 0 } });
+      // Test cool (🧊)
+      statusBar.showVitals({ ...mockVitals, temperature: { level: 'cool', percentage: 0 } });
       expect(mockStatusBarItem.text).toContain('🧊');
 
       // Test warm (🌡️)
@@ -390,12 +392,12 @@ describe('StatusBarManager', () => {
 
     it('should handle undefined vitals properties', () => {
       // EDGE CASE: Partial vitals data
-      const partialVitals = {
-        pulse: { level: 'resting' as const, value: 10 },
-        temperature: { level: 'cold' as const, percentage: 5 },
-        pressure: { value: 20, trend: 'stable' as const },
+      const partialVitals: VitalsDisplayData = {
+        pulse: { level: 'resting', value: 10 },
+        temperature: { level: 'cool', percentage: 5 },
+        pressure: { value: 20, trend: 'stable' },
         oxygen: { value: 95 },
-        trajectory: 'stable' as const,
+        trajectory: 'stable',
       };
 
       statusBar.setVitalsEnabled(true);

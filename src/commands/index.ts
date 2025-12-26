@@ -94,7 +94,6 @@ export function registerAllCommands(
 				} as InstanceType<typeof ServiceFederation>,
 				commandContext.operationCoordinator,
 				commandContext.workflowIntegration,
-				commandContext.statusBarController,
 			)
 		: [];
 
