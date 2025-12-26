@@ -75,13 +75,14 @@ import ignore from "ignore";
 import * as vscode from "vscode";
 import type { ConflictResolver } from "./conflictResolver";
 import type { NotificationManager } from "./notificationManager";
+import { ClusterRestoreHandler, snapshotContentsToRestoreFiles } from "./restore/ClusterRestoreHandler";
 import type { MilestoneService } from "./services/MilestoneService";
 import type { TelemetryProxy } from "./services/telemetry-proxy";
 import type { SessionCoordinator } from "./snapshot/SessionCoordinator";
 import type { IStorageManager } from "./storage/types.js";
+import { getActivationFunnel } from "./telemetry/ActivationFunnelIntegration";
 import { logger } from "./utils/logger";
 import type { WorkspaceMemoryManager } from "./workspaceMemory";
-import { getActivationFunnel } from "./telemetry/ActivationFunnelIntegration";
 
 /**
  * Get current snapshot limits from runtime thresholds
@@ -1126,32 +1127,28 @@ export class OperationCoordinator {
 						return false;
 					}
 
-					// Phase 3: Actual restore with selected files
+					// Phase 3: Atomic restore with selected files (P1-9 / J3-E08)
 					this.updateOperationProgress(operationId, 60);
-					if (snapshot) {
-						for (const filePath of filesToRestore) {
-							const rawContent = snapshot.contents?.[filePath];
-							if (rawContent) {
-								// Handle both JSON-stringified and plain text formats
-								let content: string;
-								try {
-									const parsed = JSON.parse(rawContent);
-									if (typeof parsed === "object" && parsed !== null && "content" in parsed) {
-										content = parsed.content;
-									} else {
-										// Invalid JSON format, treat as plain text
-										content = rawContent;
-									}
-								} catch {
-									// Not JSON, treat as plain text (legacy format or simple content)
-									content = rawContent;
-								}
 
-								const fileUri = vscode.Uri.file(path.join(workspaceRoot, filePath));
-								await vscode.workspace.fs.writeFile(fileUri, Buffer.from(content, "utf-8"));
-								filesRestored++;
-							}
+					// Convert snapshot contents to RestoreFile format (filtered to selected files)
+					const restoreFiles = snapshotContentsToRestoreFiles(snapshot.contents || {}, filesToRestore);
+
+					if (restoreFiles.length > 0) {
+						const clusterHandler = new ClusterRestoreHandler();
+						const restoreResult = await clusterHandler.restore({
+							workspaceRoot,
+							files: restoreFiles,
+							dryRun: false,
+						});
+
+						if (!restoreResult.success) {
+							const error = restoreResult.error;
+							logger.error(`Conflict resolution restore failed: ${error?.message || "Unknown error"}`);
+							this.updateOperationStatus(operationId, "failed");
+							return false;
 						}
+
+						filesRestored = restoreResult.value.filesRestored;
 					}
 
 					this.updateOperationProgress(operationId, 90);
@@ -1165,7 +1162,8 @@ export class OperationCoordinator {
 				// No conflict resolution needed, proceed with normal restore below
 			}
 
-			// Phase 3: Perform actual restore (Atomic-like)
+			// Phase 3: Perform atomic restore using ClusterRestoreHandler (P1-9 / J3-E08)
+			// If any file fails pre-flight checks, none will be modified (atomic guarantee)
 			this.updateOperationProgress(operationId, 60);
 			if (snapshot?.contents) {
 				// Create backup of current state if requested
@@ -1174,34 +1172,50 @@ export class OperationCoordinator {
 					// For MVP, we skip complex backup orchestration
 				}
 
-				// Restore files
-				for (const [filePath, rawContent] of Object.entries(snapshot.contents)) {
-					// Filter if specific files requested
-					if (options?.files && !options.files.includes(filePath)) {
-						continue;
-					}
+				// Convert snapshot contents to RestoreFile format
+				const restoreFiles = snapshotContentsToRestoreFiles(snapshot.contents, options?.files);
 
-					if (rawContent) {
-						// Handle both JSON-stringified and plain text formats
-						let content: string;
-						try {
-							const parsed = JSON.parse(rawContent);
-							if (typeof parsed === "object" && parsed !== null && "content" in parsed) {
-								content = parsed.content;
-							} else {
-								// Invalid JSON format, treat as plain text
-								content = rawContent;
-							}
-						} catch {
-							// Not JSON, treat as plain text (legacy format or simple content)
-							content = rawContent;
-						}
-
-						const fileUri = vscode.Uri.file(path.join(workspaceRoot, filePath));
-						await vscode.workspace.fs.writeFile(fileUri, Buffer.from(content, "utf-8"));
-						filesRestored++;
-					}
+				if (restoreFiles.length === 0) {
+					logger.warn("No files to restore after filtering");
+					this.updateOperationStatus(operationId, "completed");
+					return false;
 				}
+
+				// Use atomic cluster restore handler
+				const clusterHandler = new ClusterRestoreHandler();
+				const restoreResult = await clusterHandler.restore({
+					workspaceRoot,
+					files: restoreFiles,
+					dryRun: false, // We already handled dryRun above
+				});
+
+				if (!restoreResult.success) {
+					// Pre-flight checks failed or restore failed
+					const error = restoreResult.error;
+					logger.error(`Atomic restore failed: ${error?.message || "Unknown error"}`);
+
+					// Show user-friendly error for locked files
+					if (error && "failures" in error && error.failures.length > 0) {
+						const lockedFiles = error.failures
+							.filter((f: { reason: string }) => f.reason === "file_locked")
+							.map((f: { file: string }) => f.file);
+
+						if (lockedFiles.length > 0) {
+							void vscode.window.showErrorMessage(
+								`Restore aborted: ${lockedFiles.length} file(s) are locked. Close them and try again.`,
+							);
+						} else {
+							void vscode.window.showErrorMessage(
+								`Restore aborted: ${error.failures.length} file(s) cannot be written.`,
+							);
+						}
+					}
+
+					this.updateOperationStatus(operationId, "failed");
+					return false;
+				}
+
+				filesRestored = restoreResult.value.filesRestored;
 			}
 
 			this.updateOperationProgress(operationId, 90);

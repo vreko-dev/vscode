@@ -3,12 +3,15 @@
  *
  * Provides commands for signing in/out of SnapBack using OAuth 2.0
  * Also includes connect command (moved from explorerTree.ts after cloud view removal)
+ * Includes manual API key auth for corporate proxy environments (P1-5)
  */
 
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
+import { createManualAuthFlow } from "../auth/ManualAuthFlow";
 import { COMMANDS } from "../constants/index";
 import { getSecureConfig } from "../security/SecureConfigService";
+import type { TelemetryProxy } from "../services/telemetry-proxy";
 
 // Auth provider constants
 const AUTH_PROVIDER_ID = "snapback" as const;
@@ -47,13 +50,39 @@ async function handleSignIn(): Promise<void> {
 /**
  * Register authentication-related commands
  */
-export function registerAuthCommands(_context: vscode.ExtensionContext): vscode.Disposable[] {
+export function registerAuthCommands(
+	context: vscode.ExtensionContext,
+	telemetryProxy?: TelemetryProxy,
+): vscode.Disposable[] {
 	return [
 		// Sign in to SnapBack (new command structure)
 		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SIGN_IN, handleSignIn),
 
 		// Sign in to SnapBack (legacy command - kept for backward compatibility)
 		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SIGN_IN_LEGACY, handleSignIn),
+
+		// Manual API key authentication for corporate proxy environments (P1-5)
+		vscode.commands.registerCommand(COMMANDS.ACCOUNT.MANUAL_AUTH, async () => {
+			try {
+				logger.info("User initiated manual API key authentication");
+
+				const manualAuth = createManualAuthFlow(context, telemetryProxy);
+				const result = await manualAuth.authenticate();
+
+				if (result) {
+					logger.info("Manual auth completed", {
+						userId: result.user_id,
+						tier: result.tier,
+						validated: result.validated,
+					});
+				}
+			} catch (error) {
+				logger.error("Manual auth failed", error as Error);
+				vscode.window.showErrorMessage(
+					`Manual authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		}),
 
 		// Sign out of SnapBack
 		vscode.commands.registerCommand(COMMANDS.ACCOUNT.SIGN_OUT_LEGACY, async () => {

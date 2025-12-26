@@ -13,52 +13,49 @@
  * @see https://github.com/your-org/snapback/blob/main/apps/vscode/unified_ux_spec.md
  */
 
-import * as vscode from 'vscode';
-
 export interface ConflictResult {
-  resolved: boolean;
-  action: 'restored' | 'skipped' | 'merged';
-  path: string;
-  error?: Error;
+	resolved: boolean;
+	action: "restored" | "skipped" | "merged";
+	path: string;
+	error?: Error;
 }
 
 /**
  * Resolves conflicts when restoring files to the filesystem.
  */
 export class FileConflictResolver {
+	/**
+	 * Attempt to restore a file, handling conflicts.
+	 *
+	 * TODO: Implement robust file writing with verification
+	 */
+	async resolveAndWrite(
+		_targetPath: string,
+		_content: string,
+		_originalMetadata: { created: number; permissions?: number },
+	): Promise<ConflictResult> {
+		// TODO: Implement
+		// 1. Check if path exists
+		// 2. Detect renames (heuristics?)
+		// 3. Check for file locks/permissions
+		// 4. Handle folder creation if missing
+		throw new Error("Not implemented");
+	}
 
-  /**
-   * Attempt to restore a file, handling conflicts.
-   *
-   * TODO: Implement robust file writing with verification
-   */
-  async resolveAndWrite(
-    targetPath: string,
-    content: string,
-    originalMetadata: { created: number; permissions?: number }
-  ): Promise<ConflictResult> {
-    // TODO: Implement
-    // 1. Check if path exists
-    // 2. Detect renames (heuristics?)
-    // 3. Check for file locks/permissions
-    // 4. Handle folder creation if missing
-    throw new Error('Not implemented');
-  }
+	/**
+	 * Detect if a file was renamed/moved since snapshot.
+	 * Edge Case: J3-E03
+	 */
+	async findRenamedFile(_originalPath: string, _contentHash: string): Promise<string | null> {
+		// TODO: Implement fuzzy search or hash-based lookup in workspace
+		return null;
+	}
 
-  /**
-   * Detect if a file was renamed/moved since snapshot.
-   * Edge Case: J3-E03
-   */
-  async findRenamedFile(originalPath: string, contentHash: string): Promise<string | null> {
-    // TODO: Implement fuzzy search or hash-based lookup in workspace
-    return null;
-  }
-
-  /**
-   * Verify write permissions before attempting restore.
-   */
-  async checkPermissions(path: string): Promise<boolean> {
-    // TODO: Implement
-    return true;
-  }
+	/**
+	 * Verify write permissions before attempting restore.
+	 */
+	async checkPermissions(_path: string): Promise<boolean> {
+		// TODO: Implement
+		return true;
+	}
 }

@@ -73,6 +73,7 @@ export const COMMANDS = {
 		SIGN_IN: "snapback.account.signIn",
 		SIGN_OUT: "snapback.account.signOut",
 		SHOW_STATUS: "snapback.account.status",
+		MANUAL_AUTH: "snapback.account.manualAuth",
 		// Legacy commands
 		SIGN_IN_LEGACY: "snapback.signIn",
 		SIGN_OUT_LEGACY: "snapback.signOut",
