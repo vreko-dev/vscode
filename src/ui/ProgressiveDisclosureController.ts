@@ -42,12 +42,12 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 	 */
 	private async initializeController(): Promise<void> {
 		// Set initial context for when clauses
-		const level = this.userExperienceService.getExperienceLevel();
+		const level = await this.userExperienceService.getExperienceLevel();
 		await vscode.commands.executeCommand("setContext", "snapback.experienceLevel", level);
 		await vscode.commands.executeCommand(
 			"setContext",
 			"snapback.showAdvancedFeatures",
-			this.userExperienceService.isAdvanced(),
+			await this.userExperienceService.isAdvanced(),
 		);
 
 		// Create status bar item for beginners

@@ -17,6 +17,7 @@
 
 import * as crypto from "node:crypto";
 import * as path from "node:path";
+import { SnapBackEvent, type SnapBackEventBus } from "@snapback/contracts";
 import type { WorkspaceVitals } from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
 import { SettingsLoader } from "../config/settingsLoader";
@@ -57,9 +58,13 @@ export class AutoDecisionIntegration {
 	private operationCoordinator: OperationCoordinator | null = null;
 	private workspaceContextManager: WorkspaceContextManager;
 	private aiRiskService: AIRiskService | null = null;
+	private eventBus: SnapBackEventBus | null = null;
 
 	/** Workspace Vitals - adaptive risk sensing for dynamic threshold adjustment */
 	private vitals: WorkspaceVitals;
+
+	/** Handler for SNAPSHOT_CREATED events - needs to be stored for unsubscription */
+	private snapshotCreatedHandler: ((payload: unknown) => void) | null = null;
 
 	private fileBuffer: FileChangeEvent[] = [];
 	private bufferTimeout: NodeJS.Timeout | null = null;
@@ -94,12 +99,14 @@ export class AutoDecisionIntegration {
 		context?: vscode.ExtensionContext,
 		aiRiskService?: AIRiskService,
 		operationCoordinator?: OperationCoordinator,
+		eventBus?: SnapBackEventBus,
 	) {
 		// Store dependencies
 		this.snapshotManager = snapshotManager;
 		this.operationCoordinator = operationCoordinator ?? null;
 		this.workspaceContextManager = workspaceContextManager;
 		this.aiRiskService = aiRiskService ?? null;
+		this.eventBus = eventBus ?? null;
 
 		// Initialize SettingsLoader if context available
 		if (context) {
@@ -161,6 +168,28 @@ export class AutoDecisionIntegration {
 		this.registerTextDocumentListener();
 		this.registerSaveListener();
 
+		// Subscribe to SNAPSHOT_CREATED events from the EventBus
+		// This ensures vitals.onSnapshot() is called for ALL snapshot sources
+		// (manual, AI-detected, MCP, CLI) - not just AI-triggered ones
+		if (this.eventBus) {
+			this.snapshotCreatedHandler = (payload: unknown) => {
+				// Extract file path from payload if available
+				const typedPayload = payload as { id?: string; name?: string; filePath?: string } | undefined;
+				const filePath = typedPayload?.filePath || typedPayload?.name || "unknown";
+
+				logger.debug("SNAPSHOT_CREATED event received, resetting vitals pressure", {
+					snapshotId: typedPayload?.id,
+					filePath,
+				});
+
+				// Reset vitals pressure - this is the key fix for pressure not resetting
+				this.vitals.onSnapshot({ filePath });
+			};
+
+			this.eventBus.on(SnapBackEvent.SNAPSHOT_CREATED, this.snapshotCreatedHandler);
+			logger.debug("Subscribed to SNAPSHOT_CREATED events for vitals pressure reset");
+		}
+
 		logger.info("AutoDecisionIntegration activated");
 	}
 
@@ -186,6 +215,13 @@ export class AutoDecisionIntegration {
 		}
 		this.disposables = [];
 		this.fileBuffer = [];
+
+		// Unsubscribe from EventBus events
+		if (this.eventBus && this.snapshotCreatedHandler) {
+			this.eventBus.off(SnapBackEvent.SNAPSHOT_CREATED, this.snapshotCreatedHandler);
+			this.snapshotCreatedHandler = null;
+			logger.debug("Unsubscribed from SNAPSHOT_CREATED events");
+		}
 
 		// Dispose settings loader
 		if (this.settingsLoader) {
@@ -786,6 +822,7 @@ export function createAutoDecisionIntegration(
 	workspaceContextManager: WorkspaceContextManager,
 	config?: Partial<AutoDecisionConfig>,
 	operationCoordinator?: OperationCoordinator,
+	eventBus?: SnapBackEventBus,
 ): AutoDecisionIntegration {
 	return new AutoDecisionIntegration(
 		snapshotManager,
@@ -795,5 +832,6 @@ export function createAutoDecisionIntegration(
 		undefined,
 		undefined,
 		operationCoordinator,
+		eventBus,
 	);
 }

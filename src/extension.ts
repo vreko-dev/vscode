@@ -754,6 +754,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			context, // Pass context for globalState storage persistence
 			aiRiskService, // GREEN: Pass AIRiskService for risk assessment
 			phase3Result.operationCoordinator, // 🔧 FIX: Wire OperationCoordinator for UI refresh
+			eventBus ?? undefined, // 🔧 FIX: Wire EventBus for vitals pressure reset on all snapshots
 		);
 		autoDecisionIntegration.activate();
 		context.subscriptions.push({
