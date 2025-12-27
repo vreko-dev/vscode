@@ -259,6 +259,91 @@ export interface VitalsDisplayData {
 }
 
 // =============================================================================
+// ACTIVITY SEQUENCE TYPES
+// =============================================================================
+
+/**
+ * Activity step for status bar cycling animation
+ *
+ * When significant events occur (AI detection, vitals degradation),
+ * the status bar cycles through a sequence of steps to demonstrate
+ * that SnapBack is alive and responding.
+ *
+ * DESIGN: "Proof of life" - shows activity awareness without being intrusive
+ *
+ * @example
+ * ```typescript
+ * // AI detection sequence
+ * [
+ *   { text: "$(sparkle) AI detected", duration: 1500 },
+ *   { text: "$(sync~spin) Analyzing...", duration: 1000 },
+ *   { text: "$(check) Checkpoint saved", duration: 2000 },
+ * ]
+ * ```
+ */
+export interface ActivityStep {
+	/** Status bar text with codicon (e.g., "$(sparkle) AI detected") */
+	text: string;
+	/** Duration in milliseconds to show this step */
+	duration: number;
+	/** Optional background color (ThemeColor key) */
+	backgroundColor?: string;
+}
+
+/**
+ * Predefined activity sequence types
+ *
+ * These represent common activity patterns that trigger cycling.
+ */
+export type ActivitySequenceType =
+	| "ai-detected" // AI tool detected modifying code
+	| "vitals-degrading" // Workspace health declining
+	| "burst-detected" // Rapid changes detected
+	| "checkpoint-created" // Snapshot saved
+	| "restore-complete"; // File(s) restored
+
+/**
+ * Configuration for an activity sequence
+ */
+export interface ActivitySequenceConfig {
+	type: ActivitySequenceType;
+	steps: ActivityStep[];
+	/** Return to this state after sequence completes */
+	finalState?: StatusBarState;
+}
+
+/**
+ * Predefined activity sequences for common events
+ *
+ * CRITICAL: Use $(sync~spin) sparingly - only for actual in-progress work
+ */
+export const ACTIVITY_SEQUENCES: Record<ActivitySequenceType, ActivityStep[]> = {
+	"ai-detected": [
+		{ text: "$(sparkle) AI detected", duration: 1200 },
+		{ text: "$(sync~spin) Capturing...", duration: 800 },
+		{ text: "$(check) Checkpoint saved", duration: 1500 },
+	],
+	"vitals-degrading": [
+		{ text: "$(warning) Health declining", duration: 1200, backgroundColor: "statusBarItem.warningBackground" },
+		{ text: "$(heart) Monitoring...", duration: 800 },
+		{ text: "$(shield) Auto-protected", duration: 1500 },
+	],
+	"burst-detected": [
+		{ text: "$(zap) Rapid changes", duration: 1000 },
+		{ text: "$(sync~spin) Capturing...", duration: 800 },
+		{ text: "$(check) Checkpoint saved", duration: 1500 },
+	],
+	"checkpoint-created": [
+		{ text: "$(sync~spin) Saving...", duration: 500 },
+		{ text: "$(check) Checkpoint saved", duration: 2000 },
+	],
+	"restore-complete": [
+		{ text: "$(sync~spin) Restoring...", duration: 800 },
+		{ text: "$(history) Restored", duration: 2000, backgroundColor: "statusBarItem.warningBackground" },
+	],
+} as const;
+
+// =============================================================================
 // FORMATTING UTILITIES
 // =============================================================================
 

@@ -22,10 +22,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as vscode from 'vscode';
 import { StatusBarManager } from '../../src/ui/StatusBarManager';
-import type { StatusBarStats, VitalsDisplayData } from '../../src/ui/ux-types';
+import type { ActivityStep, StatusBarStats, VitalsDisplayData } from '../../src/ui/ux-types';
 
 describe('StatusBarManager', () => {
   let statusBar: StatusBarManager;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock object
   let mockStatusBarItem: any;
 
   beforeEach(() => {
@@ -94,7 +95,8 @@ describe('StatusBarManager', () => {
     it('should transition from restored to idle after 5s', () => {
       statusBar.showRestored(47);
       expect(mockStatusBarItem.text).toBe('$(history) Restored 47 lines');
-      expect(mockStatusBarItem.backgroundColor).toBeDefined();
+      // Verify ThemeColor is applied (not just exists)
+      expect(mockStatusBarItem.backgroundColor).toBeInstanceOf(vscode.ThemeColor);
 
       vi.advanceTimersByTime(5000);
 
@@ -403,6 +405,215 @@ describe('StatusBarManager', () => {
       statusBar.setVitalsEnabled(true);
       // Should not throw
       expect(() => statusBar.showVitals(partialVitals)).not.toThrow();
+    });
+  });
+
+  // ===========================================================================
+  // ACTIVITY SEQUENCE TESTS
+  // ===========================================================================
+
+  describe('activity sequence', () => {
+    describe('showActivitySequence', () => {
+      it('should cycle through activity steps', async () => {
+        const steps: ActivityStep[] = [
+          { text: '$(sparkle) AI detected', duration: 1000 },
+          { text: '$(sync~spin) Capturing...', duration: 500 },
+          { text: '$(check) Checkpoint saved', duration: 1000 },
+        ];
+
+        const sequencePromise = statusBar.showActivitySequence(steps);
+
+        // First step should be visible immediately
+        expect(mockStatusBarItem.text).toBe('$(sparkle) AI detected');
+
+        // Advance to second step
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(mockStatusBarItem.text).toBe('$(sync~spin) Capturing...');
+
+        // Advance to third step
+        await vi.advanceTimersByTimeAsync(500);
+        expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+
+        // Complete the sequence
+        await vi.advanceTimersByTimeAsync(1000);
+        await sequencePromise;
+
+        // Should return to idle after sequence
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+      });
+
+      it('should apply background color when specified', async () => {
+        const steps: ActivityStep[] = [
+          { text: '$(warning) Alert', duration: 500, backgroundColor: 'statusBarItem.warningBackground' },
+          { text: '$(check) Done', duration: 500 },
+        ];
+
+        const sequencePromise = statusBar.showActivitySequence(steps);
+
+        // First step should have background color
+        expect(mockStatusBarItem.backgroundColor).toBeDefined();
+
+        // Advance to second step
+        await vi.advanceTimersByTimeAsync(500);
+
+        // Background should be cleared
+        expect(mockStatusBarItem.backgroundColor).toBeUndefined();
+
+        // Complete sequence
+        await vi.advanceTimersByTimeAsync(500);
+        await sequencePromise;
+      });
+
+      it('should be interruptible by new state', async () => {
+        const steps: ActivityStep[] = [
+          { text: '$(sparkle) AI detected', duration: 2000 },
+          { text: '$(sync~spin) Capturing...', duration: 1000 },
+          { text: '$(check) Checkpoint saved', duration: 1000 },
+        ];
+
+        // Start sequence
+        statusBar.showActivitySequence(steps);
+        expect(mockStatusBarItem.text).toBe('$(sparkle) AI detected');
+        expect(statusBar.isSequenceRunning()).toBe(true);
+
+        // Advance partway through first step
+        await vi.advanceTimersByTimeAsync(500);
+
+        // Interrupt with new state
+        statusBar.showCheckpointCreated();
+
+        // Sequence should be aborted, new state should be active
+        expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+        expect(statusBar.isSequenceRunning()).toBe(false);
+      });
+
+      it('should be interruptible by new sequence', async () => {
+        const firstSequence: ActivityStep[] = [
+          { text: '$(sparkle) First sequence', duration: 2000 },
+          { text: '$(check) First done', duration: 1000 },
+        ];
+
+        const secondSequence: ActivityStep[] = [
+          { text: '$(zap) Second sequence', duration: 1000 },
+          { text: '$(check) Second done', duration: 1000 },
+        ];
+
+        // Start first sequence
+        statusBar.showActivitySequence(firstSequence);
+        expect(mockStatusBarItem.text).toBe('$(sparkle) First sequence');
+
+        // Start second sequence while first is running
+        await vi.advanceTimersByTimeAsync(500);
+        statusBar.showActivitySequence(secondSequence);
+
+        // Second sequence should take over
+        expect(mockStatusBarItem.text).toBe('$(zap) Second sequence');
+      });
+
+      it('should increment stats with showAIDetectedSequence', async () => {
+        const checkpointsBefore = (statusBar as any).stats.checkpointsToday;
+        const aiSessionsBefore = (statusBar as any).stats.aiSessionsToday;
+
+        const sequencePromise = statusBar.showAIDetectedSequence('Cursor');
+
+        // Should show custom tool name
+        expect(mockStatusBarItem.text).toBe('$(sparkle) Cursor detected');
+
+        // Stats should be incremented
+        expect((statusBar as any).stats.checkpointsToday).toBe(checkpointsBefore + 1);
+        expect((statusBar as any).stats.aiSessionsToday).toBe(aiSessionsBefore + 1);
+
+        // Complete the sequence
+        await vi.advanceTimersByTimeAsync(3500);
+        await sequencePromise;
+      });
+
+      it('should use generic message when tool not specified', async () => {
+        statusBar.showAIDetectedSequence();
+        expect(mockStatusBarItem.text).toBe('$(sparkle) AI detected');
+
+        await vi.advanceTimersByTimeAsync(3500);
+      });
+
+      it('should handle showVitalsDegradingSequence', async () => {
+        const sequencePromise = statusBar.showVitalsDegradingSequence();
+
+        // First step - warning
+        expect(mockStatusBarItem.text).toBe('$(warning) Health declining');
+        expect(mockStatusBarItem.backgroundColor).toBeDefined();
+
+        await vi.advanceTimersByTimeAsync(1200);
+        expect(mockStatusBarItem.text).toBe('$(heart) Monitoring...');
+
+        await vi.advanceTimersByTimeAsync(800);
+        expect(mockStatusBarItem.text).toBe('$(shield) Auto-protected');
+
+        await vi.advanceTimersByTimeAsync(1500);
+        await sequencePromise;
+      });
+
+      it('should handle showBurstDetectedSequence', async () => {
+        const checkpointsBefore = (statusBar as any).stats.checkpointsToday;
+
+        const sequencePromise = statusBar.showBurstDetectedSequence();
+
+        expect(mockStatusBarItem.text).toBe('$(zap) Rapid changes');
+        expect((statusBar as any).stats.checkpointsToday).toBe(checkpointsBefore + 1);
+
+        await vi.advanceTimersByTimeAsync(3300);
+        await sequencePromise;
+      });
+
+      it('should handle showActivitySequenceByType', async () => {
+        const sequencePromise = statusBar.showActivitySequenceByType('checkpoint-created');
+
+        expect(mockStatusBarItem.text).toBe('$(sync~spin) Saving...');
+
+        await vi.advanceTimersByTimeAsync(500);
+        expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+
+        await vi.advanceTimersByTimeAsync(2000);
+        await sequencePromise;
+      });
+
+      it('should return to idle-stats after sequence when checkpoints exist', async () => {
+        // Set up existing checkpoints
+        statusBar.updateStats({ checkpointsToday: 5 });
+
+        const steps: ActivityStep[] = [
+          { text: '$(sparkle) Test', duration: 500 },
+        ];
+
+        const sequencePromise = statusBar.showActivitySequence(steps);
+        await vi.advanceTimersByTimeAsync(500);
+        await sequencePromise;
+
+        // Should show checkpoint count in idle-stats
+        expect(mockStatusBarItem.text).toBe('$(shield) 5 checkpoints today');
+      });
+
+      it('should clean up on dispose during sequence', async () => {
+        const steps: ActivityStep[] = [
+          { text: '$(sparkle) Long sequence', duration: 10000 },
+        ];
+
+        statusBar.showActivitySequence(steps);
+        expect(statusBar.isSequenceRunning()).toBe(true);
+
+        // Dispose while sequence is running
+        statusBar.dispose();
+
+        expect(statusBar.isSequenceRunning()).toBe(false);
+        expect(mockStatusBarItem.dispose).toHaveBeenCalled();
+      });
+
+      it('should handle empty steps array', async () => {
+        const sequencePromise = statusBar.showActivitySequence([]);
+        await sequencePromise;
+
+        // Should immediately return to idle
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+      });
     });
   });
 });

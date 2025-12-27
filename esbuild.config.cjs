@@ -20,6 +20,14 @@ async function main() {
 		external: [
 			"vscode",
 			// NOTE: sql.js and better-sqlite3 are no longer used (file-based storage now)
+			// Native modules from @snapback/intelligence (semantic search)
+			// These are optional peer deps that use native .node modules
+			// They MUST be installed in the extension's node_modules at runtime
+			"onnxruntime-node",
+			"onnxruntime-common",
+			"onnxruntime-web",
+			"@huggingface/transformers", // Uses onnxruntime-node for local inference
+			"sql.js",                     // Uses WASM, optional for SemanticRetriever
 		],
 
 		// Minification (production only)

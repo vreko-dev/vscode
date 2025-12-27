@@ -395,6 +395,18 @@
         "title": "Refresh Vitals Data",
         "category": "SnapBack",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "snapback.showQuickPicker",
+        "title": "Show Snapshot Picker",
+        "category": "SnapBack",
+        "icon": "$(history)"
+      },
+      {
+        "command": "snapback.quickRestore",
+        "title": "Quick Restore",
+        "category": "SnapBack",
+        "icon": "$(debug-step-back)"
       }
     ],
     "viewsContainers": {
@@ -411,19 +423,19 @@
         {
           "id": "snapback.dashboard",
           "name": "SnapBack",
-          "when": "snapback.isActive",
+          "when": "snapback.isActive && config.snapback.ui.showTreeView",
           "icon": "$(shield)"
         },
         {
           "id": "snapback.protectedFiles",
           "name": "Protected Files",
-          "when": "snapback.isActive",
+          "when": "snapback.isActive && config.snapback.ui.showTreeView",
           "icon": "$(lock)"
         },
         {
           "id": "snapback.sessions",
           "name": "Sessions",
-          "when": "snapback.isActive"
+          "when": "snapback.isActive && config.snapback.ui.showTreeView"
         }
       ]
     },
@@ -1115,6 +1127,12 @@
           "maximum": 1,
           "description": "Sampling rate for traces (0.0 = disabled, 1.0 = all traces)",
           "order": 93
+        },
+        "snapback.ui.showTreeView": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "**Show Tree View in Sidebar**\n\nWhen disabled (default), SnapBack uses a minimal status bar + QuickPick UI. Click the status bar to access snapshot restore.\n\nEnable this to show the full tree view in the Activity Bar sidebar.",
+          "order": 94
         }
       }
     },
@@ -1145,6 +1163,11 @@
         "command": "snapback.renameSnapshot",
         "key": "f2",
         "when": "focusedView == snapback.main && viewItem == snapshot"
+      },
+      {
+        "command": "snapback.quickRestore",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r"
       }
     ],
     "walkthroughs": [
@@ -1249,6 +1272,11 @@
     "simple-git": "catalog:",
     "tweetnacl": "catalog:",
     "ws": "^8.17.0"
+  },
+  "optionalDependencies": {
+    "@huggingface/transformers": "^3.0.0",
+    "onnxruntime-node": "^1.21.0",
+    "sql.js": "^1.10.0"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

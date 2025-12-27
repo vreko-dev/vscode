@@ -17,7 +17,7 @@
 
 import * as crypto from "node:crypto";
 import * as path from "node:path";
-import { WorkspaceVitals } from "@snapback/intelligence/vitals";
+import type { WorkspaceVitals } from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
 import { SettingsLoader } from "../config/settingsLoader";
 import { AutoDecisionEngine } from "../domain/engine";
@@ -31,6 +31,7 @@ import type { NotificationManager } from "../notificationManager";
 import { RecoveryUXNotification } from "../notifications/RecoveryUXNotification";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskAssessment, AIRiskService, ChangeToAssess } from "../services/aiRiskService";
+import { getWorkspaceVitalsSync } from "../services/IntelligenceService";
 import type { WorkspaceContextManager } from "../services/WorkspaceContextManager";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import { absoluteToWorkspaceRelative, createAbsolutePath } from "../types/PathBrands";
@@ -137,9 +138,9 @@ export class AutoDecisionIntegration {
 
 		this.signalAggregator = createSignalAggregator();
 
-		// Initialize WorkspaceVitals for this workspace (singleton per workspaceId)
+		// Initialize WorkspaceVitals for this workspace (singleton via IntelligenceService)
 		const workspaceId = workspaceContextManager.getWorkspaceRoot() || "default";
-		this.vitals = WorkspaceVitals.for(workspaceId);
+		this.vitals = getWorkspaceVitalsSync(workspaceId);
 
 		logger.info("AutoDecisionIntegration initialized", {
 			config: mergedConfig,

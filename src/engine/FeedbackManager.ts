@@ -125,6 +125,15 @@ export class FeedbackManager {
 		this.addToHandledCache(id);
 
 		try {
+			// Guard: Check if TelemetryService is initialized before calling getInstance()
+			// This prevents "TelemetryService not initialized" error
+			if (!TelemetryService.isInitialized()) {
+				console.warn("[FeedbackManager] TelemetryService not initialized, skipping feedback tracking");
+				vscode.window.showInformationMessage("Thanks for your feedback!");
+				this.dismiss(false);
+				return;
+			}
+
 			const telemetry = TelemetryService.getInstance();
 			await telemetry.track("feedback_submitted", {
 				detection_id: id,
@@ -138,7 +147,8 @@ export class FeedbackManager {
 
 			vscode.window.showInformationMessage("Thanks! +50 pts awarded.");
 		} catch (error) {
-			console.error("Feedback tracking failed:", error);
+			console.error("[FeedbackManager] Feedback tracking failed:", error);
+			vscode.window.showInformationMessage("Thanks for your feedback!");
 		}
 
 		this.dismiss(false);

@@ -6,6 +6,7 @@ import type { FileHealthDecorationProvider } from "../decorations/FileHealthDeco
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskService } from "../services/aiRiskService";
 import { NoopAIRiskService } from "../services/aiRiskService";
+import { recordFileModification } from "../services/IntelligenceService";
 import type { MilestoneService } from "../services/MilestoneService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
@@ -569,6 +570,37 @@ export class SaveHandler {
 				});
 			}
 		}
+
+		// Step 3: Record file modification to Intelligence for cross-surface session tracking
+		// This enables MCP's what_changed to see changes made via the Extension
+		const linesChanged = this.countLinesChanged(preSaveContent, document.getText());
+		const modificationIterationStats = this.getIterationStats(filePath);
+
+		// Fire and forget - don't block save completion
+		recordFileModification(filePath, "update", {
+			linesChanged,
+			aiAttributed: modificationIterationStats.riskLevel !== "low", // Approximate AI detection
+			aiTool: modificationIterationStats.riskLevel === "high" ? "BURST_PATTERN" : undefined,
+		}).catch((err) => {
+			logger.warn("Failed to record file modification to Intelligence", {
+				correlationId,
+				filePath,
+				error: err instanceof Error ? err.message : String(err),
+			});
+		});
+	}
+
+	/**
+	 * Count lines changed between two versions
+	 *
+	 * @param before - Content before save
+	 * @param after - Content after save
+	 * @returns Number of lines changed
+	 */
+	private countLinesChanged(before: string, after: string): number {
+		const beforeLines = before.split("\n").length;
+		const afterLines = after.split("\n").length;
+		return (Math.abs(afterLines - beforeLines) + Math.min(beforeLines, afterLines) * 0.1) | 0;
 	}
 
 	/**

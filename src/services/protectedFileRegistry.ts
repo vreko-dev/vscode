@@ -297,13 +297,12 @@ export class ProtectedFileRegistry implements ProtectedFileProvider, Disposable 
 	}
 
 	async list(): Promise<ProtectedFileEntry[]> {
-		// Refresh cache from storage
-		this.cachedFiles = this.loadFilesFromStorage();
+		// Use cached data - no reload needed!
+		// Cache is kept in sync by add/remove/update methods.
+		// Reloading on every list() call caused 642ms activation delay.
 
-		// Debug logging to identify potential issues with cached data
-		logger.info("Returning protected files list", {
+		logger.debug("Returning protected files list", {
 			cachedCount: this.cachedFiles.length,
-			hasInvalidEntries: this.cachedFiles.some((file) => !file || typeof file !== "object"),
 		});
 
 		// Return entries with absolute paths for display

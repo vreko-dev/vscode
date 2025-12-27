@@ -17,8 +17,8 @@ export enum LogLevel {
  * - Singleton pattern for consistent logging across extension
  * - Configurable log levels via VS Code settings
  * - Structured data serialization
- * - Timestamp formatting
- * - VS Code Output Channel integration
+ * - Uses VS Code's native LogOutputChannel for proper log levels
+ * - Logs appear in Output panel (not dev console as ERR)
  * - Type-safe error logging
  *
  * @example
@@ -32,11 +32,11 @@ export enum LogLevel {
  */
 export class Logger {
 	private static instance: Logger;
-	private outputChannel: vscode.OutputChannel;
+	private outputChannel: vscode.LogOutputChannel;
 	private logLevel: LogLevel;
 	private config: vscode.WorkspaceConfiguration;
 
-	private constructor(outputChannel: vscode.OutputChannel) {
+	private constructor(outputChannel: vscode.LogOutputChannel) {
 		this.outputChannel = outputChannel;
 		this.config = vscode.workspace.getConfiguration("snapback");
 		this.logLevel = this.parseLogLevel(this.config.get<string>("logLevel", "info"));
@@ -77,10 +77,10 @@ export class Logger {
 	 *
 	 * @see {@link logger} exported singleton instance
 	 */
-	static getInstance(outputChannel?: vscode.OutputChannel): Logger {
+	static getInstance(outputChannel?: vscode.LogOutputChannel): Logger {
 		if (!Logger.instance) {
 			if (!outputChannel) {
-				throw new Error("Logger not initialized. Call getInstance with outputChannel first.");
+				throw new Error("Logger not initialized. Call getInstance with LogOutputChannel first.");
 			}
 			Logger.instance = new Logger(outputChannel);
 		}
@@ -258,16 +258,31 @@ export class Logger {
 	}
 
 	/**
-	 * Internal logging method
+	 * Internal logging method using native LogOutputChannel methods.
+	 * Logs appear in Output panel with proper levels (not as ERR in dev console).
 	 */
 	private log(level: string, message: string, ...args: unknown[]): void {
-		const timestamp = new Date().toISOString();
-		const formattedMessage = `[${timestamp}] [${level}] ${message}`;
-
-		// Serialize additional arguments
+		// Serialize additional arguments for structured logging
 		const serializedArgs = args.length > 0 ? ` ${args.map((arg) => this.serialize(arg)).join(" ")}` : "";
+		const fullMessage = message + serializedArgs;
 
-		this.outputChannel.appendLine(formattedMessage + serializedArgs);
+		// Use native LogOutputChannel methods for proper log level display
+		switch (level) {
+			case "DEBUG":
+				this.outputChannel.debug(fullMessage);
+				break;
+			case "INFO":
+				this.outputChannel.info(fullMessage);
+				break;
+			case "WARN":
+				this.outputChannel.warn(fullMessage);
+				break;
+			case "ERROR":
+				this.outputChannel.error(fullMessage);
+				break;
+			default:
+				this.outputChannel.info(fullMessage);
+		}
 	}
 
 	/**

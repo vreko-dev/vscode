@@ -37,8 +37,8 @@ import {
 	TRAJECTORY_SIGNAGE,
 } from "../signage/constants";
 import type { SessionHealthCanonical, TrajectoryCanonical } from "../signage/types";
-import type { StatusBarState, StatusBarStats, VitalsDisplayData } from "./ux-types";
-import { PULSE_EMOJI, TEMP_EMOJI } from "./ux-types";
+import type { ActivitySequenceType, ActivityStep, StatusBarState, StatusBarStats, VitalsDisplayData } from "./ux-types";
+import { ACTIVITY_SEQUENCES, PULSE_EMOJI, TEMP_EMOJI } from "./ux-types";
 
 /**
  * Status bar timeout durations in milliseconds
@@ -55,14 +55,15 @@ const STATE_TIMEOUTS: Partial<Record<StatusBarState, number>> = {
  * HINT: Use VS Code codicons like $(shield), $(sparkle), etc.
  * Full list: https://code.visualstudio.com/api/references/icons-in-labels
  */
-const STATUS_TEXT: Record<StatusBarState, string | ((data: any) => string)> = {
+const STATUS_TEXT: Record<StatusBarState, string | ((data: unknown) => string)> = {
 	idle: "$(shield) SnapBack",
-	"idle-stats": (stats: StatusBarStats) =>
-		`$(shield) ${stats.checkpointsToday} checkpoint${stats.checkpointsToday !== 1 ? "s" : ""} today`,
-	"ai-session": (tool?: string) => (tool ? `$(sparkle) ${tool} session protected` : "$(zap) Active session"),
+	"idle-stats": (stats: unknown) =>
+		`$(shield) ${(stats as StatusBarStats).checkpointsToday} checkpoint${(stats as StatusBarStats).checkpointsToday !== 1 ? "s" : ""} today`,
+	"ai-session": (tool: unknown) =>
+		tool ? `$(sparkle) ${tool as string} session protected` : "$(zap) Active session",
 	checkpoint: "$(check) Checkpoint saved",
-	restored: (lines?: number) => `$(history) Restored${lines ? ` ${lines}` : ""} lines`,
-	vitals: (vitals: VitalsDisplayData) => formatVitalsText(vitals),
+	restored: (lines: unknown) => `$(history) Restored${lines ? ` ${lines as number}` : ""} lines`,
+	vitals: (vitals: unknown) => formatVitalsText(vitals as VitalsDisplayData),
 };
 
 /**
@@ -94,6 +95,14 @@ export class StatusBarManager implements vscode.Disposable {
 	private transitionTimeout: NodeJS.Timeout | undefined;
 
 	/**
+	 * Activity sequence state
+	 *
+	 * Tracks the current running sequence for interruption.
+	 */
+	private sequenceAbortController: AbortController | undefined;
+	private isRunningSequence = false;
+
+	/**
 	 * Whether vitals mode is enabled (power user setting)
 	 */
 	private vitalsEnabled = false;
@@ -117,8 +126,8 @@ export class StatusBarManager implements vscode.Disposable {
 		// HINT: Use Right alignment with high priority to appear left of other items
 		this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 
-		// TODO: Implement - Wire up click command
-		// this.item.command = 'snapback.openSidebar';
+		// Wire click to QuickPicker for restore flow
+		this.item.command = "snapback.showQuickPicker";
 
 		this.item.show();
 		this.showIdle();
@@ -184,6 +193,7 @@ export class StatusBarManager implements vscode.Disposable {
 	 */
 	showRestored(lines?: number): void {
 		this.clearTransitionTimeout();
+		this.abortActiveSequence();
 		this.setState("restored", lines);
 
 		// HINT: Use ThemeColor for proper theme support
@@ -193,6 +203,182 @@ export class StatusBarManager implements vscode.Disposable {
 			this.item.backgroundColor = undefined;
 			this.showIdle();
 		}, STATE_TIMEOUTS.restored);
+	}
+
+	// ===========================================================================
+	// ACTIVITY SEQUENCE METHODS
+	// ===========================================================================
+
+	/**
+	 * Show an activity sequence (cycling animation)
+	 *
+	 * Cycles through a series of status bar messages to demonstrate
+	 * that SnapBack is responding to events (AI detection, vitals, etc.)
+	 *
+	 * @param steps - Array of activity steps to cycle through
+	 * @returns Promise that resolves when sequence completes or is interrupted
+	 *
+	 * DESIGN:
+	 * - Interruptible: New states/sequences cancel the running sequence
+	 * - Returns to idle: Automatically transitions to idle when complete
+	 * - Non-blocking: Uses async/await with abort signals
+	 *
+	 * @example
+	 * ```typescript
+	 * await statusBar.showActivitySequence([
+	 *   { text: "$(sparkle) AI detected", duration: 1500 },
+	 *   { text: "$(sync~spin) Analyzing...", duration: 1000 },
+	 *   { text: "$(check) Checkpoint saved", duration: 2000 },
+	 * ]);
+	 * ```
+	 */
+	async showActivitySequence(steps: ActivityStep[]): Promise<void> {
+		// Abort any running sequence
+		this.abortActiveSequence();
+		this.clearTransitionTimeout();
+
+		// Create new abort controller for this sequence
+		this.sequenceAbortController = new AbortController();
+		const signal = this.sequenceAbortController.signal;
+		this.isRunningSequence = true;
+
+		try {
+			for (const step of steps) {
+				// Check if aborted before each step
+				if (signal.aborted) {
+					return;
+				}
+
+				// Update status bar for this step
+				this.item.text = step.text;
+				this.item.tooltip = this.buildTooltip();
+
+				// Apply background color if specified
+				if (step.backgroundColor) {
+					this.item.backgroundColor = new vscode.ThemeColor(step.backgroundColor);
+				} else {
+					this.item.backgroundColor = undefined;
+				}
+
+				// Wait for step duration (interruptible)
+				await this.delay(step.duration, signal);
+			}
+
+			// Sequence completed - return to idle
+			if (!signal.aborted) {
+				this.item.backgroundColor = undefined;
+				this.showIdle();
+			}
+		} finally {
+			this.isRunningSequence = false;
+		}
+	}
+
+	/**
+	 * Show a predefined activity sequence by type
+	 *
+	 * @param type - Predefined sequence type
+	 * @returns Promise that resolves when sequence completes
+	 *
+	 * @example
+	 * ```typescript
+	 * await statusBar.showActivitySequenceByType("ai-detected");
+	 * ```
+	 */
+	async showActivitySequenceByType(type: ActivitySequenceType): Promise<void> {
+		const steps = ACTIVITY_SEQUENCES[type];
+		return this.showActivitySequence([...steps]);
+	}
+
+	/**
+	 * Show AI detection activity sequence
+	 *
+	 * Triggered when AI tool activity is detected.
+	 * Sequence: "AI detected" → "Capturing..." → "Checkpoint saved"
+	 *
+	 * @param tool - Optional AI tool name for context
+	 */
+	async showAIDetectedSequence(tool?: string): Promise<void> {
+		const steps: ActivityStep[] = [
+			{
+				text: tool ? `$(sparkle) ${tool} detected` : "$(sparkle) AI detected",
+				duration: 1200,
+			},
+			{ text: "$(sync~spin) Capturing...", duration: 800 },
+			{ text: "$(check) Checkpoint saved", duration: 1500 },
+		];
+
+		// Increment stats
+		this.stats.aiSessionsToday++;
+		this.stats.checkpointsToday++;
+
+		return this.showActivitySequence(steps);
+	}
+
+	/**
+	 * Show vitals degradation activity sequence
+	 *
+	 * Triggered when workspace health is declining.
+	 * Sequence: "Health declining" → "Monitoring..." → "Auto-protected"
+	 */
+	async showVitalsDegradingSequence(): Promise<void> {
+		return this.showActivitySequenceByType("vitals-degrading");
+	}
+
+	/**
+	 * Show burst detection activity sequence
+	 *
+	 * Triggered when rapid changes are detected.
+	 * Sequence: "Rapid changes" → "Capturing..." → "Checkpoint saved"
+	 */
+	async showBurstDetectedSequence(): Promise<void> {
+		this.stats.checkpointsToday++;
+		return this.showActivitySequenceByType("burst-detected");
+	}
+
+	/**
+	 * Check if an activity sequence is currently running
+	 */
+	isSequenceRunning(): boolean {
+		return this.isRunningSequence;
+	}
+
+	/**
+	 * Abort the currently running activity sequence
+	 *
+	 * Called automatically when new states are set.
+	 */
+	private abortActiveSequence(): void {
+		if (this.sequenceAbortController) {
+			this.sequenceAbortController.abort();
+			this.sequenceAbortController = undefined;
+		}
+		this.isRunningSequence = false;
+	}
+
+	/**
+	 * Interruptible delay using AbortSignal
+	 *
+	 * @param ms - Milliseconds to wait
+	 * @param signal - AbortSignal for interruption
+	 */
+	private delay(ms: number, signal?: AbortSignal): Promise<void> {
+		return new Promise((resolve) => {
+			if (signal?.aborted) {
+				resolve();
+				return;
+			}
+
+			const timeoutId = setTimeout(resolve, ms);
+
+			if (signal) {
+				const onAbort = () => {
+					clearTimeout(timeoutId);
+					resolve();
+				};
+				signal.addEventListener("abort", onAbort, { once: true });
+			}
+		});
 	}
 
 	/**
@@ -335,7 +521,7 @@ export class StatusBarManager implements vscode.Disposable {
 			}
 		}
 
-		md.appendMarkdown("\n*Click to open Vitals Dashboard*");
+		md.appendMarkdown("\n*Click to restore from snapshots*");
 
 		return md;
 	}
@@ -350,6 +536,8 @@ export class StatusBarManager implements vscode.Disposable {
 			clearTimeout(this.transitionTimeout);
 			this.transitionTimeout = undefined;
 		}
+		// Also abort any running sequence when clearing timeouts
+		this.abortActiveSequence();
 	}
 
 	// ===========================================================================
@@ -400,6 +588,7 @@ export class StatusBarManager implements vscode.Disposable {
 
 	dispose(): void {
 		this.clearTransitionTimeout();
+		this.abortActiveSequence();
 		this.item.dispose();
 	}
 }

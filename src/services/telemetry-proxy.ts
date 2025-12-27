@@ -341,7 +341,8 @@ export class TelemetryProxy {
 
 				// Check if we should retry this event
 				if (!this.offlineQueue.shouldRetry(queuedEvent)) {
-					logger.warn(`Dropping event after max retries: ${queuedEvent.event}`);
+					// Use debug level since this is expected when offline/network unavailable
+					logger.debug(`Dropping event after max retries: ${queuedEvent.event}`);
 					this.offlineQueue.dequeue();
 					processedCount++;
 					continue;

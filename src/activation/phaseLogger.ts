@@ -2,7 +2,12 @@ import { logger } from "../utils/logger";
 
 export const PhaseLogger = {
 	logPhase(phase: string, details?: Record<string, unknown>) {
-		logger.info(`Phase ${phase} completed`, details);
+		// Only pass details if it's defined and has properties
+		if (details && Object.keys(details).length > 0) {
+			logger.info(`Phase ${phase} completed`, details);
+		} else {
+			logger.info(`Phase ${phase} completed`);
+		}
 	},
 
 	logError(phase: string, error: Error) {

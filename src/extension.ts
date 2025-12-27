@@ -8,6 +8,11 @@
  * @version 1.0.0
  */
 
+// 🔇 MUST be first: Suppress console.error logs from shared packages (config store, etc.)
+// These packages check MCP_QUIET at module load time, so this must run before imports.
+// This prevents confusing ERR entries in dev console from MCP-compatible packages.
+process.env.MCP_QUIET = "1";
+
 // Import real EventBus from @snapback/contracts (consolidated from @snapback/events)
 import { SnapBackEvent, SnapBackEventBus } from "@snapback/contracts";
 import * as vscode from "vscode";
@@ -61,6 +66,8 @@ import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver"; // �
 import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry";
 import { WelcomePanel } from "./welcome/WelcomePanel"; // 🆕 Fallback for 3rd party IDEs
 
+// 🆕 IntelligenceService imported dynamically after process.exit guard (see deactivate function)
+
 // Import the new EventBus and feature flag
 
 // Global reference to storage for cleanup during deactivation
@@ -103,8 +110,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	const startTime = Date.now();
 	const phaseTimings: Record<string, number> = {};
 
-	// Initialize output channel and logger
-	const outputChannel = vscode.window.createOutputChannel("SnapBack");
+	// Initialize LogOutputChannel and logger (uses native log levels - no more ERR in dev console)
+	const outputChannel = vscode.window.createOutputChannel("SnapBack", { log: true });
 	context.subscriptions.push(outputChannel);
 	logger.getInstance(outputChannel);
 
@@ -473,6 +480,17 @@ export async function activate(context: vscode.ExtensionContext) {
 						confidence: aiResult.confidence,
 						method: aiResult.method,
 					});
+
+					// 🆕 Trigger status bar activity sequence for AI detection
+					// Note: statusBarManager wired after Phase 4 initialization
+					if (vitalsStatusBar) {
+						void vitalsStatusBar.showAIDetectedSequence(aiResult.tool);
+					}
+				}
+
+				// 🆕 Trigger status bar activity sequence for burst detection
+				if (burstState.detected && vitalsStatusBar) {
+					void vitalsStatusBar.showBurstDetectedSequence();
 				}
 			}),
 		);
@@ -817,6 +835,14 @@ export async function activate(context: vscode.ExtensionContext) {
 								pressure: snapshot.pressure.value,
 								oxygen: snapshot.oxygen.value,
 							});
+
+							// 🆕 Trigger status bar activity sequence when vitals are degrading
+							if (
+								(snapshot.trajectory === "escalating" || snapshot.trajectory === "critical") &&
+								(lastTrajectory === "stable" || lastTrajectory === "recovering")
+							) {
+								void vitalsStatusBar?.showVitalsDegradingSequence();
+							}
 
 							// Track critical state separately for alerting
 							if (snapshot.trajectory === "critical") {
@@ -1309,6 +1335,18 @@ export async function deactivate() {
 			disposeActivationFunnel();
 			activationFunnelIntegration = null;
 			logger.info("ActivationFunnelIntegration disposed");
+		}
+
+		// 🆕 Dispose Intelligence instances (from migration)
+		// Dynamic import to avoid loading ONNX modules before process.exit guard is installed
+		try {
+			const { disposeAll: disposeIntelligence } = await import("./services/IntelligenceService");
+			await disposeIntelligence();
+			logger.info("Intelligence instances disposed");
+		} catch (error) {
+			logger.warn("Failed to dispose Intelligence instances", {
+				error: error instanceof Error ? error.message : String(error),
+			});
 		}
 
 		logger.info("Extension deactivated successfully");

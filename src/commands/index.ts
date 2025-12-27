@@ -1,5 +1,6 @@
 import type { ServiceFederation } from "@snapback/core";
 import type * as vscode from "vscode";
+import { registerSnapshotQuickPickerCommands } from "../ui/SnapshotQuickPicker";
 import { registerAuthCommands, registerConnectCommand, registerOpenSnapshotInWebCommand } from "./authCommands";
 import { registerDecorationCommands } from "./decorationCommands";
 import { registerDetectionCommands } from "./detectionCommands";
@@ -117,6 +118,8 @@ export function registerAllCommands(
 		// 🆕 Register auth commands (connect, open in web)
 		registerConnectCommand(context, () => commandContext.snapBackTreeProvider?.refresh()),
 		registerOpenSnapshotInWebCommand(context),
+		// 🆕 Register SnapshotQuickPicker commands (status bar → QuickPick restore flow)
+		...registerSnapshotQuickPickerCommands(context, commandContext.storage, commandContext.workspaceRoot),
 		// NOTE: snapback.createSnapshot is registered in registerSnapshotCreationCommands above
 	];
 }
