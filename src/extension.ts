@@ -39,6 +39,7 @@ import { createPRWManager, type PRWManager } from "./domain/prwManager";
 import { createRateLimiter } from "./domain/rateLimiter";
 import { FeedbackManager } from "./engine/FeedbackManager";
 import { SaveHandler } from "./handlers/SaveHandler";
+import { disposeHeatIntegration, type HeatIntegration, initializeHeatIntegration } from "./heat"; // 🆕 Import Heat Integration
 import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration"; // 🆕 Import AutoDecisionIntegration
 import { autoConfigureMCP, registerMCPCommands } from "./mcp/auto-configure"; // 🆕 Import MCP auto-configure
 import { FileSystemWatcher } from "./protection/FileSystemWatcher";
@@ -100,6 +101,8 @@ let eventBridge: EventBridge | null = null;
 let vitalsStatusBar: StatusBarManager | null = null;
 let vitalsIntegration: VitalsIntegration | null = null;
 let vitalsUpdateInterval: NodeJS.Timeout | null = null;
+// 🆕 Global reference to Heat Integration
+let heatIntegration: HeatIntegration | null = null;
 
 // 🆕 Global reference to refresh views function
 let refreshViews = () => {};
@@ -596,13 +599,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			});
 		}
 
-		// 🆕 Check if file health decorations are enabled
-		const showFileHealthDecorations = config.get<boolean>("showFileHealthDecorations", true);
-		if (showFileHealthDecorations) {
-			// 🆕 Register file health decoration provider only if enabled
-			context.subscriptions.push(fileHealthDecorationProvider);
-			vscode.window.registerFileDecorationProvider(fileHealthDecorationProvider);
-		}
+		// 🔧 REMOVED: File health decorations registered in Phase 5 (phase5-registration.ts)
+		// This legacy registration was causing conflicts with the new heat-based decorations
 
 		// Create file watcher
 		const fileWatcher = new FileSystemWatcher(phase2Result.protectedFileRegistry);
@@ -711,6 +709,22 @@ export async function activate(context: vscode.ExtensionContext) {
 			credentialsManager,
 		);
 		phaseTimings["Phase 4 (Providers)"] = Date.now() - phase4Start;
+
+		// 🆕 Heat Integration: File activity tracking with AI detection
+		try {
+			heatIntegration = initializeHeatIntegration();
+			context.subscriptions.push({
+				dispose: () => {
+					disposeHeatIntegration();
+					heatIntegration = null;
+				},
+			});
+			logger.info("HeatIntegration initialized for file activity tracking");
+		} catch (error) {
+			logger.warn("Failed to initialize HeatIntegration (non-critical)", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 
 		// Phase 5: Registration
 		const phase5Start = Date.now();
@@ -1307,6 +1321,13 @@ export async function deactivate() {
 		if (signalBridge) {
 			signalBridge = null;
 			logger.info("SignalBridge cleared");
+		}
+
+		// 🆕 Dispose HeatIntegration
+		if (heatIntegration) {
+			disposeHeatIntegration();
+			heatIntegration = null;
+			logger.info("HeatIntegration disposed");
 		}
 
 		// 🆕 Clear UserIdentityService

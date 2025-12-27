@@ -53,6 +53,11 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 		// Create status bar item for beginners
 		if (await this.userExperienceService.isBeginner()) {
 			this.createStatusBarItem();
+			logger.info("Created SnapBack Tips status bar item for beginner user");
+		} else {
+			logger.info("Skipped SnapBack Tips status bar (user is not beginner)", {
+				level: await this.userExperienceService.getExperienceLevel(),
+			});
 		}
 
 		// Show welcome message for first-time users

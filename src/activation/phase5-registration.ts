@@ -51,9 +51,11 @@ export async function initializePhase5Registration(
 
 		// Register file decoration providers
 		vscode.window.registerFileDecorationProvider(phase4Result.protectionDecorationProvider);
+		console.log("[Phase5] Protection decoration provider registered");
 
 		// 🆕 Register file health decoration provider
 		vscode.window.registerFileDecorationProvider(phase4Result.fileHealthDecorationProvider);
+		console.log("[Phase5] File health decoration provider registered (heat-based decorations)");
 
 		// Register document content provider
 		vscode.workspace.registerTextDocumentContentProvider(
