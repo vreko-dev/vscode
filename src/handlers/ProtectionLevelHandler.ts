@@ -12,6 +12,18 @@ import type { AuditLogger } from "./AuditLogger";
 import type { CooldownService } from "./CooldownService";
 
 /**
+ * AI detection result for snapshot metadata
+ */
+export interface AIDetectionInfo {
+	/** Whether AI was detected */
+	detected: boolean;
+	/** AI tool name (e.g., 'copilot', 'cursor', 'claude') */
+	tool?: string;
+	/** Detection confidence (0-1) */
+	confidence?: number;
+}
+
+/**
  * Result of protection level handling
  */
 export interface ProtectionHandlingResult {
@@ -23,6 +35,8 @@ export interface ProtectionHandlingResult {
 	reason: string;
 	/** Optional snapshot ID if snapshot was created */
 	snapshotId?: string;
+	/** AI detection information (for toast notifications) */
+	aiDetection?: AIDetectionInfo;
 }
 
 /**
@@ -211,6 +225,7 @@ export class ProtectionLevelHandler {
 	 * @param filename - Base name of the file (for UI messages)
 	 * @param preSaveContent - Pre-save content to snapshot
 	 * @param document - VS Code document being saved
+	 * @param aiDetection - Optional AI detection result from SignalBridge
 	 * @returns Promise with handling result
 	 * @throws vscode.CancellationError if save should be blocked
 	 */
@@ -219,6 +234,7 @@ export class ProtectionLevelHandler {
 		filename: string,
 		preSaveContent: string,
 		document: vscode.TextDocument,
+		aiDetection?: AIDetectionInfo,
 	): Promise<ProtectionHandlingResult> {
 		const protectionLevel = this.registry.getProtectionLevel(filePath) || "watch";
 
@@ -262,12 +278,21 @@ export class ProtectionLevelHandler {
 			});
 
 			// Execute the decision (VSCode's job)
-			return await this.executeDecision(decision, filePath, filename, preSaveContent, document, protectionLevel);
+			const result = await this.executeDecision(
+				decision,
+				filePath,
+				filename,
+				preSaveContent,
+				document,
+				protectionLevel,
+			);
+			// Attach AI detection to result
+			return { ...result, aiDetection };
 		}
 
 		// Fallback: SDK not yet initialized, use legacy logic
 		logger.warn("SDK DecisionEngine not initialized - using legacy decision logic");
-		return await this.handleProtectionLevelLegacy(
+		const result = await this.handleProtectionLevelLegacy(
 			filePath,
 			filename,
 			preSaveContent,
@@ -276,6 +301,8 @@ export class ProtectionLevelHandler {
 			inCooldown,
 			hasTemporaryAllowance,
 		);
+		// Attach AI detection to result
+		return { ...result, aiDetection };
 	}
 
 	/**

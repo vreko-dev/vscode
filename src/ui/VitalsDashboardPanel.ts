@@ -63,14 +63,20 @@ export class VitalsDashboardPanel {
 
 	private readonly panel: vscode.WebviewPanel;
 	private readonly dataService: UnifiedDataService;
+	private readonly extensionUri: vscode.Uri;
 	private disposables: vscode.Disposable[] = [];
 	private updateInterval: NodeJS.Timeout | null = null;
+	private useReactWebview = true; // Enable React WebView bundle
 
-	private constructor(panel: vscode.WebviewPanel, dataService: UnifiedDataService, _extensionUri: vscode.Uri) {
+	private constructor(panel: vscode.WebviewPanel, dataService: UnifiedDataService, extensionUri: vscode.Uri) {
 		this.panel = panel;
 		this.dataService = dataService;
+		this.extensionUri = extensionUri;
 
-		// Set initial HTML content
+		// Set initial HTML content (React bundle or fallback)
+		if (this.useReactWebview) {
+			this.panel.webview.html = this.getReactWebviewHtml();
+		}
 		this.updateContent();
 
 		// Handle messages from webview
@@ -135,16 +141,34 @@ export class VitalsDashboardPanel {
 	 */
 	private updateContent(): void {
 		const snapshot = this.dataService.getSnapshot();
+
+		if (this.useReactWebview) {
+			// Send data via postMessage to React WebView
+			const vitals = snapshot.vitals;
+			this.panel.webview.postMessage({
+				type: "update",
+				vitals: {
+					pulse: vitals?.pulse.changesPerMinute || 0,
+					temperature: vitals?.temperature.aiPercentage || 0,
+					pressure: vitals?.pressure.value || 0,
+					oxygen: vitals?.oxygen.value || 100,
+					score: snapshot.sessionHealth.healthScore,
+				},
+				guidance: snapshot.guidance.suggestion ? { message: snapshot.guidance.suggestion } : undefined,
+			});
+			return;
+		}
+
+		// Fallback: Regenerate full HTML (legacy mode)
 		const data: VitalsDashboardData = {
 			vitals: snapshot.vitals,
 			health: snapshot.sessionHealth,
 			recommendation: snapshot.recommendation,
 			guidance: snapshot.guidance,
-			learnings: snapshot.learnings.slice(0, 5), // Last 5
-			violations: snapshot.violations.slice(0, 5), // Last 5
+			learnings: snapshot.learnings.slice(0, 5),
+			violations: snapshot.violations.slice(0, 5),
 			stats: snapshot.stats,
 		};
-
 		this.panel.webview.html = this.getHtmlContent(data);
 	}
 
@@ -208,6 +232,38 @@ export class VitalsDashboardPanel {
 			const disposable = this.disposables.pop();
 			disposable?.dispose();
 		}
+	}
+
+	/**
+	 * Generate HTML that loads the React WebView bundle
+	 */
+	private getReactWebviewHtml(): string {
+		const webview = this.panel.webview;
+
+		// Get URIs for the built webview assets
+		const scriptUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(this.extensionUri, "dist", "webview", "assets", "index.js"),
+		);
+		const styleUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(this.extensionUri, "dist", "webview", "assets", "index.css"),
+		);
+
+		const nonce = this.getNonce();
+
+		return `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Workspace Vitals</title>
+	<link rel="stylesheet" href="${styleUri}">
+</head>
+<body>
+	<div id="root"></div>
+	<script nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>`;
 	}
 
 	/**

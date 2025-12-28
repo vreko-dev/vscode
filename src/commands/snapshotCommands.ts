@@ -418,6 +418,80 @@ export function registerSnapshotCommands(
 		}),
 	);
 
+	/**
+	 * Command: Undo Last AI Change
+	 *
+	 * Restores a file to its state before an AI tool made changes.
+	 * This command is invoked from the AIUndoNotification toast.
+	 *
+	 * @command snapback.undoLastAIChange
+	 *
+	 * @param snapshotId - The snapshot ID to restore (from AI detection)
+	 * @param filePath - The file path that was modified by AI
+	 *
+	 * @returns void (all feedback is provided through UI notifications)
+	 *
+	 * @see {@link AIUndoNotification} for the notification that triggers this command
+	 */
+	disposables.push(
+		vscode.commands.registerCommand("snapback.undoLastAIChange", async (snapshotId?: string, filePath?: string) => {
+			try {
+				if (!snapshotId) {
+					vscode.window.showErrorMessage("No snapshot ID provided for AI undo");
+					return;
+				}
+
+				logger.info("Undoing AI change", { snapshotId, filePath });
+
+				// Get the snapshot
+				const snapshot = await snapshotManager.get(snapshotId);
+				if (!snapshot) {
+					vscode.window.showErrorMessage("Snapshot not found. It may have been deleted.");
+					return;
+				}
+
+				// Find the file state in the snapshot
+				const fileStates = snapshot.fileStates || [];
+				let fileToRestore = fileStates[0]; // Default to first file
+
+				if (filePath && fileStates.length > 1) {
+					// If specific file path provided, find it
+					const found = fileStates.find(
+						(f) => f.path === filePath || f.path.endsWith(filePath.split(/[\\/]/).pop() || ""),
+					);
+					if (found) {
+						fileToRestore = found;
+					}
+				}
+
+				if (!fileToRestore) {
+					vscode.window.showErrorMessage("No file content found in snapshot");
+					return;
+				}
+
+				// Restore the file
+				const uri = vscode.Uri.file(fileToRestore.path);
+				const data = new TextEncoder().encode(fileToRestore.content);
+				await vscode.workspace.fs.writeFile(uri, data);
+
+				// Show success message
+				const fileName = fileToRestore.path.split(/[\\/]/).pop() || "file";
+				vscode.window.showInformationMessage(`Reverted "${fileName}" to pre-AI state`);
+
+				logger.info("AI change undone successfully", {
+					snapshotId,
+					filePath: fileToRestore.path,
+				});
+
+				refreshViews();
+			} catch (error) {
+				const message = error instanceof Error ? error.message : "Unknown error";
+				logger.error(`Failed to undo AI change: snapshotId=${snapshotId}`, error as Error);
+				vscode.window.showErrorMessage(`Failed to undo AI change: ${message}`);
+			}
+		}),
+	);
+
 	/*
 	 * Test Commands (Internal use for E2E testing)
 	 */

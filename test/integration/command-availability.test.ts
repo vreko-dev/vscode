@@ -1,6 +1,6 @@
 /**
  * Integration tests for command registration and availability
- * 
+ *
  * PREVENTS REGRESSION: Commands referenced but not registered, causing silent failures
  * See commit fe648f9: SnapshotQuickPicker called snapback.openVitalsDashboard but
  * command failed silently, showing IDE welcome view instead
@@ -15,7 +15,7 @@ describe("Command Availability", () => {
 
 	beforeEach(() => {
 		registeredCommands = new Set();
-		
+
 		// Mock VS Code's registerCommand to track registrations
 		originalRegister = vscode.commands.registerCommand;
 		vscode.commands.registerCommand = vi.fn((command: string, callback: any) => {
@@ -29,9 +29,9 @@ describe("Command Availability", () => {
 			// This test ensures Phase 4 (registerVitalsCommands) happens before Phase 5 (QuickPicker registration)
 			const { activate } = await import("../../src/extension");
 			const mockContext = createMockExtensionContext();
-			
+
 			await activate(mockContext);
-			
+
 			// Command must exist
 			expect(registeredCommands.has("snapback.openVitalsDashboard")).toBe(true);
 		});
@@ -39,21 +39,21 @@ describe("Command Availability", () => {
 		it("should register snapback.showRecommendedAction for tips button", async () => {
 			const { activate } = await import("../../src/extension");
 			const mockContext = createMockExtensionContext();
-			
+
 			await activate(mockContext);
-			
+
 			// Command must exist for beginner tips button
 			expect(registeredCommands.has("snapback.showRecommendedAction")).toBe(true);
 		});
 
 		it("should register all QuickPicker action commands", async () => {
 			const { registerSnapshotQuickPickerCommands } = await import("../../src/ui/SnapshotQuickPicker");
-			
+
 			const mockStorage = createMockStorage();
 			const mockContext = createMockExtensionContext();
-			
+
 			registerSnapshotQuickPickerCommands(mockContext, mockStorage, "/test/workspace");
-			
+
 			// QuickPicker commands
 			expect(registeredCommands.has("snapback.showQuickPicker")).toBe(true);
 			expect(registeredCommands.has("snapback.quickRestore")).toBe(true);
@@ -67,7 +67,7 @@ describe("Command Availability", () => {
 				new Error("Command 'snapback.missingCommand' not found")
 			);
 			vscode.commands.executeCommand = executeCommand;
-			
+
 			try {
 				await vscode.commands.executeCommand("snapback.missingCommand");
 				expect.fail("Should have thrown error");
@@ -80,12 +80,12 @@ describe("Command Availability", () => {
 		it("should validate all executeCommand calls have registered handlers", async () => {
 			// Scan codebase for vscode.commands.executeCommand("snapback.*")
 			const { findUnregisteredCommands } = await import("./helpers/command-scanner");
-			
+
 			const unregisteredCommands = await findUnregisteredCommands(
 				"/Users/user1/WebstormProjects/SnapBack-Site/apps/vscode/src",
 				registeredCommands
 			);
-			
+
 			expect(unregisteredCommands).toEqual([]);
 		});
 	});
@@ -93,21 +93,21 @@ describe("Command Availability", () => {
 	describe("Command Registration Order", () => {
 		it("should register vitals commands in Phase 4 before QuickPicker in Phase 5", async () => {
 			const registrationOrder: string[] = [];
-			
+
 			vscode.commands.registerCommand = vi.fn((command: string, callback: any) => {
 				registrationOrder.push(command);
 				registeredCommands.add(command);
 				return { dispose: () => registeredCommands.delete(command) };
 			});
-			
+
 			const { activate } = await import("../../src/extension");
 			const mockContext = createMockExtensionContext();
-			
+
 			await activate(mockContext);
-			
+
 			const vitalsIndex = registrationOrder.indexOf("snapback.openVitalsDashboard");
 			const quickPickIndex = registrationOrder.indexOf("snapback.showQuickPicker");
-			
+
 			// Vitals command must be registered BEFORE QuickPicker
 			expect(vitalsIndex).toBeLessThan(quickPickIndex);
 			expect(vitalsIndex).toBeGreaterThanOrEqual(0);
@@ -118,9 +118,9 @@ describe("Command Availability", () => {
 		it("should register all progressive disclosure commands", async () => {
 			const { activate } = await import("../../src/extension");
 			const mockContext = createMockExtensionContext();
-			
+
 			await activate(mockContext);
-			
+
 			// Progressive disclosure commands
 			expect(registeredCommands.has("snapback.toggleAdvancedMode")).toBe(true);
 			expect(registeredCommands.has("snapback.showAllFeatures")).toBe(true);

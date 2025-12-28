@@ -9,6 +9,94 @@ This document outlines the complete wiring of VS Code extension systems to the I
 
 ---
 
+## 🔴 CRITICAL REFINEMENTS (from SnapBack context)
+
+### Existing Infrastructure Already In Place
+
+| Component | Current Status | Integration Impact |
+|-----------|----------------|-------------------|
+| **HeatIntegration.ts:161** | ✅ Already calls `recordFileModification()` | SKIP HeatTracker wiring - already done |
+| **UnifiedDataService.ts** | ✅ Has `updateVitals()` receiving vitals | Use as data sink, not new bridge |
+| **EventBus (SnapBackEventBus)** | ✅ Exists, publishes SNAPSHOT_CREATED | Use for cross-component communication |
+| **AutoDecisionIntegration** | ✅ Gets vitals via getVitalsSnapshot() | Already connected, enhance only |
+
+### Key Learnings from SnapBack MCP
+
+1. **EventBus Pattern Required**: All cross-component communication MUST use EventBus
+   - NOT direct IntelligenceBridge calls from each component
+   - EventBus already handles SNAPSHOT_CREATED events
+   - Use existing pattern for new integrations
+
+2. **Singleton Per Workspace Pattern**: Intelligence instances are workspace-scoped
+   - Use `getIntelligence(workspaceFolder)` pattern
+   - Module-level variables for race condition handling
+
+3. **Async Handling in Event Handlers**: Never call async methods without `void` prefix
+   - Pattern: `void recordFileModification(...)`
+   - Already correctly used in HeatIntegration.ts:161
+
+### Performance Constraints (from CLAUDE.md)
+
+| Metric | Budget | Impact |
+|--------|--------|--------|
+| Extension activation | <500ms | Bridge init must be async, non-blocking |
+| Save latency | <100ms | All signal computation must be batched |
+| Memory | <200MB | No unbounded caches in bridge |
+
+### Revised Architecture (EventBus-Based)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         VS Code Extension                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐    │
+│   │HeatIntegrat │   │AnalysisCord │   │SessionCoord │   │PointsTracker│    │
+│   │ (DONE ✅)   │   │             │   │             │   │             │    │
+│   └──────┬──────┘   └──────┬──────┘   └──────┬──────┘   └──────┬──────┘    │
+│          │                 │                 │                 │            │
+│          └────────────────┬┴─────────────────┴─────────────────┘            │
+│                           │                                                  │
+│                           ▼                                                  │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │                     EventBus (EXISTING ✅)                          │  │
+│   │  - SNAPSHOT_CREATED, FILE_MODIFIED, ANALYSIS_COMPLETE              │  │
+│   │  - Cross-component backbone already in place                        │  │
+│   └──────────────────────────────┬──────────────────────────────────────┘  │
+│                                  │                                          │
+│                                  ▼                                          │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │              IntelligenceBridge (NEW - EventBus subscriber)         │  │
+│   │  - Subscribes to EventBus events                                    │  │
+│   │  - Routes to IntelligenceService                                    │  │
+│   │  - Single point of Intelligence integration                         │  │
+│   └──────────────────────────────┬──────────────────────────────────────┘  │
+│                                  │                                          │
+└──────────────────────────────────┼──────────────────────────────────────────┘
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      @snapback/intelligence                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Revised LOC Estimate
+
+| File | Original LOC | Revised LOC | Reason |
+|------|-------------|-------------|--------|
+| IntelligenceBridge.ts | 250 | 150 | EventBus subscriber, not direct calls |
+| SignalOrchestrator.ts | 200 | 200 | Still needed (no existing infra) |
+| HeatTracker.ts | 40 | **0** | Already wired via HeatIntegration! |
+| AnalysisCoordinator.ts | 30 | 20 | Just emit EventBus event |
+| SessionCoordinator.ts | 60 | 40 | EventBus integration |
+| UserBehaviorTracker.ts | 25 | 15 | EventBus pattern |
+| AutoDecisionIntegration.ts | 30 | 30 | Already has vitals, add signals |
+| PointsTracker.ts | 15 | 10 | EventBus emission |
+| extension.ts | 20 | 15 | EventBus wiring |
+| bridges/index.ts | 5 | 5 | Exports |
+| **Total** | **675** | **~485** | **28% reduction** |
+
+---
+
 ## Architecture Overview
 
 ```
@@ -340,47 +428,27 @@ export async function initializeIntelligenceBridge(
 
 ---
 
-### Task 2: Wire HeatTracker to Intelligence
-**Priority**: 🔴 CRITICAL
-**Complexity**: Low
-**LOC**: ~40
+### Task 2: ~~Wire HeatTracker to Intelligence~~ ✅ ALREADY DONE
+**Priority**: ~~🔴 CRITICAL~~ ✅ COMPLETE
+**Complexity**: N/A
+**LOC**: 0
 
-#### Modify: `apps/vscode/src/heat/HeatTracker.ts`
+#### Status: Already Implemented in HeatIntegration.ts
 
+**Discovery**: [HeatIntegration.ts:161](apps/vscode/src/heat/HeatIntegration.ts#L161) already calls:
 ```typescript
-// Add import at top
-import { getIntelligenceBridge } from "../bridges/IntelligenceBridge";
-
-// In recordSave() method, after line 65:
-recordSave(filePath: string, metadata: { diffSize?: number } = {}): void {
-  const heat = this.getOrCreate(filePath);
-  // ... existing code ...
-
-  // NEW: Feed to Intelligence
-  const bridge = getIntelligenceBridge();
-  bridge.recordFileHeat({
-    filePath,
-    saveCount: heat.saveCount,
-    diffSize: heat.diffSize,
-    aiInvolved: heat.ai.involved,
-    aiTool: heat.ai.tool,
-    undoRedoCount: heat.undoRedoCount,
-  });
-
-  this._onHeatChanged.fire([filePath]);
-}
-
-// In recordAIEdit() method, after line 84:
-recordAIEdit(filePath: string, tool: AITool, confidence: number): void {
-  // ... existing code ...
-
-  // NEW: Feed to Intelligence
-  const bridge = getIntelligenceBridge();
-  bridge.recordAIEdit(filePath, tool, confidence);
-
-  this._onHeatChanged.fire([filePath]);
-}
+// Record to Intelligence layer
+void recordFileModification(filePath, "update", {
+  linesChanged: diffSize,
+});
 ```
+
+This integration was implemented during the HeatIntegration feature and correctly:
+- Uses `void` prefix for async calls (per SnapBack learning)
+- Records file modifications with diff size
+- Connects to IntelligenceService via `recordFileModification()`
+
+**No changes needed** - this task is complete.
 
 ---
 
@@ -984,18 +1052,24 @@ describe("Intelligence Integration Flow", () => {
 
 ---
 
-## Files Changed Summary
+## Files Changed Summary (REVISED)
 
-| File | Action | LOC |
-|------|--------|-----|
-| `bridges/IntelligenceBridge.ts` | CREATE | ~250 |
-| `bridges/SignalOrchestrator.ts` | CREATE | ~200 |
-| `bridges/index.ts` | MODIFY | +5 |
-| `heat/HeatTracker.ts` | MODIFY | +40 |
-| `handlers/AnalysisCoordinator.ts` | MODIFY | +30 |
-| `snapshot/SessionCoordinator.ts` | MODIFY | +60 |
-| `utils/UserBehaviorTracker.ts` | MODIFY | +25 |
-| `integration/AutoDecisionIntegration.ts` | MODIFY | +30 |
-| `pioneer/PointsTracker.ts` | MODIFY | +15 |
-| `extension.ts` | MODIFY | +20 |
-| **Total** | | **~675 LOC** |
+| File | Action | Original LOC | Revised LOC | Notes |
+|------|--------|-------------|-------------|-------|
+| `bridges/IntelligenceBridge.ts` | CREATE | ~250 | ~150 | EventBus subscriber pattern |
+| `bridges/SignalOrchestrator.ts` | CREATE | ~200 | ~200 | Still needed |
+| `bridges/index.ts` | MODIFY | +5 | +5 | Exports |
+| `heat/HeatTracker.ts` | ~~MODIFY~~ | ~~+40~~ | **0** | ✅ Already wired via HeatIntegration.ts:161 |
+| `handlers/AnalysisCoordinator.ts` | MODIFY | +30 | +20 | EventBus emission only |
+| `snapshot/SessionCoordinator.ts` | MODIFY | +60 | +40 | EventBus pattern |
+| `utils/UserBehaviorTracker.ts` | MODIFY | +25 | +15 | EventBus pattern |
+| `integration/AutoDecisionIntegration.ts` | MODIFY | +30 | +30 | Add SignalOrchestrator |
+| `pioneer/PointsTracker.ts` | MODIFY | +15 | +10 | EventBus emission |
+| `extension.ts` | MODIFY | +20 | +15 | EventBus wiring |
+| **Total** | | **~675** | **~485** | **28% reduction** |
+
+### Key Scope Reductions
+
+1. **HeatTracker wiring eliminated** (-40 LOC): HeatIntegration.ts already calls `recordFileModification()`
+2. **IntelligenceBridge simplified** (-100 LOC): EventBus subscriber instead of direct component calls
+3. **All components use EventBus pattern** (-50 LOC): Consistent, simpler integration

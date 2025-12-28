@@ -1,7 +1,7 @@
 /**
  * Helper utility to scan codebase for executeCommand calls and validate
  * all referenced commands are registered
- * 
+ *
  * USAGE: Run as part of integration tests to catch missing command registrations
  */
 

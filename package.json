@@ -136,6 +136,12 @@
         "icon": "$(history)"
       },
       {
+        "command": "snapback.undoLastAIChange",
+        "title": "Undo Last AI Change",
+        "category": "SnapBack",
+        "icon": "$(discard)"
+      },
+      {
         "command": "snapback.session.restore",
         "title": "Restore Session",
         "category": "SnapBack",

@@ -2,7 +2,9 @@ import * as path from "node:path";
 import type { ProtectionDecisionEngine } from "@snapback/sdk";
 import * as vscode from "vscode";
 import { type AIDetection, AIWarningManager } from "../ai/AIWarningManager";
+import { SignalBridge } from "../bridges/SignalBridge";
 import type { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider";
+import { getAIUndoNotification } from "../notifications/AIUndoNotification";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskService } from "../services/aiRiskService";
 import { NoopAIRiskService } from "../services/aiRiskService";
@@ -61,6 +63,12 @@ export class SaveHandler {
 	private decorationProvider: FileHealthDecorationProvider | null = null;
 	private milestoneService?: MilestoneService;
 
+	// SignalBridge for AI detection (V2 engine integration)
+	private signalBridge: SignalBridge;
+
+	// Store recent content changes for AI detection (cleared after save)
+	private recentChanges: Map<string, vscode.TextDocumentContentChangeEvent[]> = new Map();
+
 	// Store iteration tracking data per file
 	private iterationData: Map<string, IterationData> = new Map();
 
@@ -105,6 +113,9 @@ export class SaveHandler {
 		);
 		this.aiWarningManager = new AIWarningManager();
 		this.decorationProvider = decorationProvider || null;
+
+		// Initialize SignalBridge for AI detection (V2 engine)
+		this.signalBridge = new SignalBridge();
 		// NOTE: ImportAnalyzer removed - cluster detection disabled until engine provides this
 	}
 
@@ -305,12 +316,22 @@ export class SaveHandler {
 
 		context.subscriptions.push(disposable);
 
-		// Register document change listener to invalidate cache when files are edited
-		// This prevents stale cluster detection after dependency changes
+		// Register document change listener for AI detection and cache invalidation
+		// This tracks changes for SignalBridge and prevents stale cluster detection
 		const changeDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
 			const filePath = event.document.uri.fsPath;
 			if (this.registry.isProtected(filePath)) {
+				// Invalidate cluster cache
 				this.invalidateFileCache(filePath);
+
+				// Store content changes for SignalBridge AI detection
+				// These will be used in handleProtectedFileSave() and cleared after
+				const existing = this.recentChanges.get(filePath) || [];
+				existing.push(...event.contentChanges);
+				this.recentChanges.set(filePath, existing);
+
+				// Also compute burst state for AI velocity detection
+				this.signalBridge.computeBurst(event.document, event.contentChanges);
 			}
 		});
 
@@ -357,6 +378,23 @@ export class SaveHandler {
 
 		// Update iteration tracking data
 		this.updateIterationData(filePath, preSaveContent, document.getText());
+
+		// Step 0.5: AI detection using SignalBridge (V2 engine)
+		// Get stored content changes from onDidChangeTextDocument
+		const contentChanges = this.recentChanges.get(filePath) || [];
+		const aiDetectionResult = this.signalBridge.detectAI(document, contentChanges);
+
+		// Clear stored changes after detection (they're no longer needed)
+		this.recentChanges.delete(filePath);
+
+		logger.debug("AI detection completed", {
+			correlationId,
+			filePath,
+			tool: aiDetectionResult.tool,
+			confidence: aiDetectionResult.confidence,
+			method: aiDetectionResult.method,
+			step: "ai_detection",
+		});
 
 		// Step 1: Run risk analysis and publish diagnostics
 		// This handles API calls, fallback detection, and diagnostic publishing
@@ -494,11 +532,22 @@ export class SaveHandler {
 			filePath,
 			step: "protection_started",
 		});
+
+		// Convert SignalBridge result to ProtectionLevelHandler format
+		const aiDetectionInfo = aiDetectionResult.tool
+			? {
+					detected: true,
+					tool: aiDetectionResult.tool,
+					confidence: aiDetectionResult.confidence,
+				}
+			: undefined;
+
 		const protectionResult = await this.protectionLevelHandler.handleProtectionLevel(
 			filePath,
 			filename,
 			preSaveContent,
 			document,
+			aiDetectionInfo,
 		);
 
 		// 🔍 DIAGNOSTIC: After ProtectionLevelHandler returns
@@ -569,6 +618,34 @@ export class SaveHandler {
 					step: "decoration_failed",
 				});
 			}
+		}
+
+		// Step 2.5: Show AI Undo notification if AI was detected and snapshot was created
+		// This is the "first-value moment" - users see protection in real-time
+		if (protectionResult.aiDetection?.detected && protectionResult.snapshotId) {
+			const linesChanged = this.countLinesChanged(preSaveContent, document.getText());
+			const aiUndoNotification = getAIUndoNotification();
+
+			// Fire and forget - don't block save completion
+			void aiUndoNotification.show(
+				{
+					filePath,
+					snapshotId: protectionResult.snapshotId,
+					aiTool: protectionResult.aiDetection.tool || "unknown",
+					confidence: protectionResult.aiDetection.confidence || 0.5,
+				},
+				linesChanged,
+			);
+
+			logger.info("AI undo notification triggered", {
+				correlationId,
+				filePath,
+				snapshotId: protectionResult.snapshotId,
+				aiTool: protectionResult.aiDetection.tool,
+				confidence: protectionResult.aiDetection.confidence,
+				linesChanged,
+				step: "ai_undo_notification",
+			});
 		}
 
 		// Step 3: Record file modification to Intelligence for cross-surface session tracking
