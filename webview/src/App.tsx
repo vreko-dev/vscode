@@ -25,7 +25,7 @@ declare global {
 	}
 }
 
-const vscodeAPI = window.acquireVsCodeApi?.();
+const _vscodeAPI = window.acquireVsCodeApi?.();
 
 export function App() {
 	const [vitals, setVitals] = useState<VitalsData>({
