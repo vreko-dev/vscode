@@ -2,7 +2,7 @@
  * IntelligenceBridge - Central router for Intelligence integration
  *
  * @fileoverview EventBus subscriber that routes extension events to Intelligence.
- * Following TDD Red-Green-Refactor pattern - this is the GREEN phase implementation.
+ * Implemented using TDD Red-Green-Refactor methodology.
  *
  * ## Architecture (from INTELLIGENCE_INTEGRATION_PLAN.md)
  *
@@ -18,6 +18,9 @@
  * 2. **Singleton Per Workspace**: Following codebase pattern from SnapBack learnings.
  *
  * 3. **Async Handling**: All async operations use `void` prefix per codebase convention.
+ *
+ * 4. **Graceful Degradation**: Bridge continues to function even if EventBus
+ *    is unavailable (pending EventBus implementation).
  *
  * ## Performance Constraints (from CLAUDE.md)
  *

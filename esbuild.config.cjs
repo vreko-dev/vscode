@@ -28,6 +28,14 @@ async function main() {
 			"onnxruntime-web",
 			"@huggingface/transformers", // Uses onnxruntime-node for local inference
 			"sql.js",                     // Uses WASM, optional for SemanticRetriever
+			// Optional template engines from @vue/compiler-sfc's consolidate.js
+			"velocityjs", "dustjs-linkedin", "atpl", "liquor", "twig", "ejs", "eco",
+			"jazz", "jqtpl", "hamljs", "hamlet", "whiskers", "haml-coffee", "hogan.js",
+			"templayed", "handlebars", "underscore", "lodash", "walrus", "mustache",
+			"just", "ect", "mote", "toffee", "dot", "bracket-template", "ractive",
+			"nunjucks", "htmling", "babel-core", "plates", "react-dom/server", "react",
+			"arc-templates", "vash", "slm", "marko", "teacup/lib/express", "teacup",
+			"coffee-script", "squirrelly", "twing",
 		],
 
 		// Minification (production only)
