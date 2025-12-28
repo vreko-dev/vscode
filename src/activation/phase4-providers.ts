@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { AuthedApiClient } from "../api/authedApiClient";
 import type { CredentialsManager } from "../auth/credentials";
+import { registerDashboardCommands } from "../commands/dashboardCommands";
 import { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider";
 import { SnapshotDecorations } from "../decorations/snapshotDecorations";
 import { DetectionCodeActionProvider } from "../providers/DetectionCodeActionProvider";
@@ -145,6 +146,14 @@ export async function initializePhase4Providers(
 		registerVitalsCommands(context, vitalsUIIntegration);
 		context.subscriptions.push(vitalsUIIntegration);
 		console.log("[PERF] VitalsUIIntegration", { ms: Date.now() - t });
+
+		// Register new Dashboard commands (3-tab dashboard)
+		t = Date.now();
+		const dashboardDisposables = registerDashboardCommands(context, phase3Result.operationCoordinator);
+		for (const d of dashboardDisposables) {
+			context.subscriptions.push(d);
+		}
+		console.log("[PERF] DashboardCommands", { ms: Date.now() - t });
 
 		console.log("[PERF] Phase 4 completed", { ms: Date.now() - phase4Start });
 		PhaseLogger.logPhase("4: UI Providers");

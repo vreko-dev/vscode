@@ -50,6 +50,7 @@ import { initializeSecureConfig } from "./security/SecureConfigService"; // 🆕
 import { NoopAIRiskService, RemoteAIRiskService } from "./services/aiRiskService";
 import { ApiClient } from "./services/api-client";
 import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService
+import { activateLanguageServer, deactivateLanguageServer, preCacheVitals } from "./services/LanguageClient";
 import { TelemetryProxy } from "./services/telemetry-proxy";
 import { UserIdentityService } from "./services/UserIdentityService";
 import { createWorkspaceContextManager } from "./services/WorkspaceContextManager"; // 🆕 Import WorkspaceContextManager
@@ -406,6 +407,23 @@ export async function activate(context: vscode.ExtensionContext) {
 		const phase1Start = Date.now();
 		initializePhase1Services();
 		phaseTimings["Phase 1 (Services)"] = Date.now() - phase1Start;
+
+		// 🆕 Phase 1.5: Start Language Server (heavy packages like @snapback/intelligence)
+		// The LSP runs in a separate process, keeping extension bundle lightweight (<1MB)
+		const lspStart = Date.now();
+		try {
+			await activateLanguageServer(context);
+			// Pre-cache vitals for primary workspace to enable sync access in constructors
+			const primaryWorkspaceId = workspaceFolders[0]?.uri.toString() || "default";
+			await preCacheVitals(primaryWorkspaceId);
+			logger.info("Language Server activated and vitals pre-cached", { primaryWorkspaceId });
+		} catch (error) {
+			logger.warn("Language Server failed to start - Intelligence features unavailable", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			// Non-fatal: extension continues with limited functionality
+		}
+		phaseTimings["Phase 1.5 (LSP)"] = Date.now() - lspStart;
 
 		// Phase 2: Storage and configuration (fail-fast if unavailable)
 		const phase2Start = Date.now();
@@ -1379,6 +1397,16 @@ export async function deactivate() {
 			logger.info("Intelligence instances disposed");
 		} catch (error) {
 			logger.warn("Failed to dispose Intelligence instances", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+
+		// 🆕 Dispose Language Server (LSP connection)
+		try {
+			await deactivateLanguageServer();
+			logger.info("Language Server disposed");
+		} catch (error) {
+			logger.warn("Failed to dispose Language Server", {
 				error: error instanceof Error ? error.message : String(error),
 			});
 		}

@@ -18,7 +18,6 @@
 import * as crypto from "node:crypto";
 import * as path from "node:path";
 import { SnapBackEvent, type SnapBackEventBus } from "@snapback/contracts";
-import type { WorkspaceVitals } from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
 import { SettingsLoader } from "../config/settingsLoader";
 import { AutoDecisionEngine } from "../domain/engine";
@@ -33,6 +32,7 @@ import { RecoveryUXNotification } from "../notifications/RecoveryUXNotification"
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskAssessment, AIRiskService, ChangeToAssess } from "../services/aiRiskService";
 import { getWorkspaceVitalsSync } from "../services/IntelligenceService";
+import type { WorkspaceVitalsProxy } from "../services/LanguageClient";
 import type { WorkspaceContextManager } from "../services/WorkspaceContextManager";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import { absoluteToWorkspaceRelative, createAbsolutePath } from "../types/PathBrands";
@@ -60,8 +60,8 @@ export class AutoDecisionIntegration {
 	private aiRiskService: AIRiskService | null = null;
 	private eventBus: SnapBackEventBus | null = null;
 
-	/** Workspace Vitals - adaptive risk sensing for dynamic threshold adjustment */
-	private vitals: WorkspaceVitals;
+	/** Workspace Vitals Proxy - provides vitals interface via LSP */
+	private vitals: WorkspaceVitalsProxy;
 
 	/** Handler for SNAPSHOT_CREATED events - needs to be stored for unsubscription */
 	private snapshotCreatedHandler: ((payload: unknown) => void) | null = null;
@@ -806,9 +806,9 @@ export class AutoDecisionIntegration {
 	}
 
 	/**
-	 * Get current Vitals snapshot (for testing and status display)
+	 * Get current Vitals proxy (for testing and status display)
 	 */
-	getVitals(): WorkspaceVitals {
+	getVitals(): WorkspaceVitalsProxy {
 		return this.vitals;
 	}
 }

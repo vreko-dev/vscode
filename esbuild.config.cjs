@@ -28,21 +28,56 @@ async function main() {
 			"onnxruntime-common",
 			"onnxruntime-web",
 			"@huggingface/transformers", // Uses onnxruntime-node for local inference
-			"sql.js",                     // Uses WASM, optional for SemanticRetriever
+			"sql.js", // Uses WASM, optional for SemanticRetriever
 			// Large dependencies externalized (lazy-loaded at runtime)
-			"simple-git",                 // ~200KB - lazy-loaded via git-lazy.ts
-			"chokidar",                   // ~400KB - only used in agent watcher
+			"simple-git", // ~200KB - lazy-loaded via git-lazy.ts
+			"chokidar", // ~400KB - only used in agent watcher
 			// Externalize heavy packages to language server
-			"@snapback/intelligence",     // Moved to language server
-			"@snapback/engine",           // Moved to language server (if needed)
+			"@snapback/intelligence", // Moved to language server
+			// "@snapback/engine",        // Must be bundled - ESM-only package, Node CJS can't resolve it
 			// Optional template engines from @vue/compiler-sfc's consolidate.js
-			"velocityjs", "dustjs-linkedin", "atpl", "liquor", "twig", "ejs", "eco",
-			"jazz", "jqtpl", "hamljs", "hamlet", "whiskers", "haml-coffee", "hogan.js",
-			"templayed", "handlebars", "underscore", "lodash", "walrus", "mustache",
-			"just", "ect", "mote", "toffee", "dot", "bracket-template", "ractive",
-			"nunjucks", "htmling", "babel-core", "plates", "react-dom/server", "react",
-			"arc-templates", "vash", "slm", "marko", "teacup/lib/express", "teacup",
-			"coffee-script", "squirrelly", "twing",
+			"velocityjs",
+			"dustjs-linkedin",
+			"atpl",
+			"liquor",
+			"twig",
+			"ejs",
+			"eco",
+			"jazz",
+			"jqtpl",
+			"hamljs",
+			"hamlet",
+			"whiskers",
+			"haml-coffee",
+			"hogan.js",
+			"templayed",
+			"handlebars",
+			"underscore",
+			"lodash",
+			"walrus",
+			"mustache",
+			"just",
+			"ect",
+			"mote",
+			"toffee",
+			"dot",
+			"bracket-template",
+			"ractive",
+			"nunjucks",
+			"htmling",
+			"babel-core",
+			"plates",
+			"react-dom/server",
+			"react",
+			"arc-templates",
+			"vash",
+			"slm",
+			"marko",
+			"teacup/lib/express",
+			"teacup",
+			"coffee-script",
+			"squirrelly",
+			"twing",
 		],
 
 		// Minification (production only)
@@ -77,7 +112,9 @@ async function main() {
 
 		// Environment
 		define: {
-			"process.env.NODE_ENV": production ? '"production"' : '"development"',
+			"process.env.NODE_ENV": production
+				? '"production"'
+				: '"development"',
 			"process.env.VSCODE_EXTENSION": '"true"',
 		},
 
@@ -97,10 +134,18 @@ async function main() {
 									title: "SnapBack VSCode Bundle Analysis",
 									template: "treemap",
 								});
-								fs.writeFileSync("dist/bundle-analysis.html", html);
-								console.log("📊 Bundle analysis: dist/bundle-analysis.html");
+								fs.writeFileSync(
+									"dist/bundle-analysis.html",
+									html
+								);
+								console.log(
+									"📊 Bundle analysis: dist/bundle-analysis.html"
+								);
 							} catch (err) {
-								console.warn("⚠️  Failed to generate bundle analysis", err);
+								console.warn(
+									"⚠️  Failed to generate bundle analysis",
+									err
+								);
 							}
 						}
 					});
@@ -131,25 +176,34 @@ async function main() {
 					});
 
 					// Provide stub for worker thread dependencies
-					build.onLoad({ filter: /.*/, namespace: "worker-stub" }, () => {
-						return {
-							contents: "module.exports = {}",
-							loader: "js",
-						};
-					});
+					build.onLoad(
+						{ filter: /.*/, namespace: "worker-stub" },
+						() => {
+							return {
+								contents: "module.exports = {}",
+								loader: "js",
+							};
+						}
+					);
 
 					// Handle import.meta.url polyfill for @snapback/engine package
 					// The engine package uses import.meta.url which becomes undefined in CommonJS bundles
-					build.onLoad({ filter: /packages\/engine\/dist\/index\.js$/ }, async (args) => {
-						const contents = await fs.promises.readFile(args.path, "utf8");
-						// Replace fileURLToPath(import.meta.url) with safe fallback
-						// This prevents "Received undefined" errors during extension loading
-						const transformed = contents.replace(
-							/var __filename = fileURLToPath\(import\.meta\.url\);/g,
-							"var __filename = __filename || '';"
-						);
-						return { contents: transformed, loader: "js" };
-					});
+					build.onLoad(
+						{ filter: /packages\/engine\/dist\/index\.js$/ },
+						async (args) => {
+							const contents = await fs.promises.readFile(
+								args.path,
+								"utf8"
+							);
+							// Replace fileURLToPath(import.meta.url) with safe fallback
+							// This prevents "Received undefined" errors during extension loading
+							const transformed = contents.replace(
+								/var __filename = fileURLToPath\(import\.meta\.url\);/g,
+								"var __filename = __filename || '';"
+							);
+							return { contents: transformed, loader: "js" };
+						}
+					);
 				},
 			},
 		],
@@ -172,13 +226,48 @@ async function main() {
 			"@huggingface/transformers",
 			"sql.js",
 			// Optional template engines from @vue/compiler-sfc's consolidate.js
-			"velocityjs", "dustjs-linkedin", "atpl", "liquor", "twig", "ejs", "eco",
-			"jazz", "jqtpl", "hamljs", "hamlet", "whiskers", "haml-coffee", "hogan.js",
-			"templayed", "handlebars", "underscore", "lodash", "walrus", "mustache",
-			"just", "ect", "mote", "toffee", "dot", "bracket-template", "ractive",
-			"nunjucks", "htmling", "babel-core", "plates", "react-dom/server", "react",
-			"arc-templates", "vash", "slm", "marko", "teacup/lib/express", "teacup",
-			"coffee-script", "squirrelly", "twing",
+			"velocityjs",
+			"dustjs-linkedin",
+			"atpl",
+			"liquor",
+			"twig",
+			"ejs",
+			"eco",
+			"jazz",
+			"jqtpl",
+			"hamljs",
+			"hamlet",
+			"whiskers",
+			"haml-coffee",
+			"hogan.js",
+			"templayed",
+			"handlebars",
+			"underscore",
+			"lodash",
+			"walrus",
+			"mustache",
+			"just",
+			"ect",
+			"mote",
+			"toffee",
+			"dot",
+			"bracket-template",
+			"ractive",
+			"nunjucks",
+			"htmling",
+			"babel-core",
+			"plates",
+			"react-dom/server",
+			"react",
+			"arc-templates",
+			"vash",
+			"slm",
+			"marko",
+			"teacup/lib/express",
+			"teacup",
+			"coffee-script",
+			"squirrelly",
+			"twing",
 		],
 
 		// Minification (production only)
@@ -198,7 +287,9 @@ async function main() {
 
 		// Environment
 		define: {
-			"process.env.NODE_ENV": production ? '"production"' : '"development"',
+			"process.env.NODE_ENV": production
+				? '"production"'
+				: '"development"',
 		},
 	});
 
@@ -217,10 +308,16 @@ async function main() {
 		const serverStats = fs.statSync("./dist/server/index.js");
 		console.log("✅ Bundled successfully");
 		console.log("📦 Extension: dist/extension.js");
-		console.log(`📊 Extension size: ${Math.round(extensionStats.size / 1024)}KB`);
+		console.log(
+			`📊 Extension size: ${Math.round(extensionStats.size / 1024)}KB`
+		);
 		console.log("📦 Server: dist/server/index.js");
 		console.log(`📊 Server size: ${Math.round(serverStats.size / 1024)}KB`);
-		console.log(`📊 Total: ${Math.round((extensionStats.size + serverStats.size) / 1024)}KB`);
+		console.log(
+			`📊 Total: ${Math.round(
+				(extensionStats.size + serverStats.size) / 1024
+			)}KB`
+		);
 	}
 }
 

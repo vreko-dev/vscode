@@ -391,6 +391,12 @@
         "icon": "$(dashboard)"
       },
       {
+        "command": "snapback.openDashboard",
+        "title": "Open Dashboard",
+        "category": "SnapBack",
+        "icon": "$(home)"
+      },
+      {
         "command": "snapback.toggleVitalsDisplay",
         "title": "Toggle Vitals in Status Bar",
         "category": "SnapBack",

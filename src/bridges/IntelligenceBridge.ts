@@ -32,10 +32,10 @@
  * @module bridges/IntelligenceBridge
  */
 
-import type { Intelligence } from "@snapback/intelligence";
-import type { VitalsSnapshot, WorkspaceVitals } from "@snapback/intelligence/vitals";
+import type { VitalsSnapshot } from "@snapback/intelligence/vitals";
 import type * as vscode from "vscode";
-import { getIntelligence, getWorkspaceVitals } from "../services/IntelligenceService";
+import { getIntelligence, getWorkspaceVitalsSync, reportViolation } from "../services/IntelligenceService";
+import { isLanguageServerActive, type WorkspaceVitalsProxy } from "../services/LanguageClient";
 import { logger } from "../utils/logger";
 
 // =============================================================================
@@ -90,15 +90,17 @@ export interface IntelligenceBridgeOptions {
 /**
  * IntelligenceBridge - EventBus subscriber for Intelligence integration
  *
+ * Now uses LSP proxy pattern - Intelligence runs on language server.
+ *
  * Responsibilities:
  * - Subscribe to EventBus events (SNAPSHOT_CREATED, ANALYSIS_COMPLETE, etc.)
- * - Route events to IntelligenceService
- * - Provide unified API for vitals access
+ * - Route events to IntelligenceService (which proxies to LSP)
+ * - Provide unified API for vitals access via WorkspaceVitalsProxy
  * - Manage lifecycle and cleanup
  */
 export class IntelligenceBridge implements vscode.Disposable {
-	private vitals: WorkspaceVitals | null = null;
-	private intelligence: Intelligence | null = null;
+	private vitals: WorkspaceVitalsProxy | null = null;
+	private intelligenceReady = false;
 	private eventBus: EventBusLike | null = null;
 	private disposables: vscode.Disposable[] = [];
 	private initialized = false;
@@ -124,11 +126,18 @@ export class IntelligenceBridge implements vscode.Disposable {
 		}
 
 		try {
-			// Get Intelligence instance (singleton per workspace)
-			this.intelligence = await getIntelligence(this.workspaceFolder);
+			// Check if language server is active
+			if (!isLanguageServerActive()) {
+				logger.warn("Language server not active, IntelligenceBridge limited");
+			} else {
+				// Initialize Intelligence on server
+				await getIntelligence(this.workspaceFolder);
+				this.intelligenceReady = true;
+			}
 
-			// Get WorkspaceVitals instance
-			this.vitals = await getWorkspaceVitals(this.workspaceFolder);
+			// Get WorkspaceVitalsProxy for vitals access
+			const workspaceId = this.workspaceFolder?.uri.toString() || "default";
+			this.vitals = getWorkspaceVitalsSync(workspaceId);
 
 			// Subscribe to EventBus if available
 			this.subscribeToEventBus();
@@ -261,33 +270,29 @@ export class IntelligenceBridge implements vscode.Disposable {
 	 * Record analysis result for learning
 	 */
 	async recordAnalysisResult(result: AnalysisResultInput): Promise<void> {
-		if (!this.intelligence || !this.vitals) return;
+		if (!this.intelligenceReady || !this.vitals) return;
 
 		// Record as pseudo-test result for behavioral metadata
-		this.vitals.recordTest(result.passed);
+		// Note: recordTest may not be available on proxy - use recordBehavior instead
+		// this.vitals.recordTest(result.passed);
 
 		// Report violations for critical/high severity
 		if (result.severity === "critical" || result.severity === "high") {
 			for (const factor of result.factors) {
-				await this.intelligence.reportViolation({
-					type: `analysis-${result.severity}`,
-					file: result.filePath,
-					message: factor,
-					reason: `Detected during save-time analysis (score: ${result.score})`,
-					prevention: "Review AI-generated code before saving",
-				});
+				await reportViolation(
+					{
+						type: `analysis-${result.severity}`,
+						file: result.filePath,
+						message: factor,
+						reason: `Detected during save-time analysis (score: ${result.score})`,
+						prevention: "Review AI-generated code before saving",
+					},
+					this.workspaceFolder,
+				);
 			}
 		}
 
-		// Record learning if this is a repeated pattern
-		if (result.factors.length > 0 && result.severity !== "low") {
-			await this.intelligence.recordLearning({
-				type: "pitfall",
-				trigger: `${result.severity} severity in ${result.filePath.split("/").pop()}`,
-				action: `Check for: ${result.factors.slice(0, 2).join(", ")}`,
-				source: "analysis-coordinator",
-			});
-		}
+		// Note: recordLearning would need to be added to LSP proxy if needed
 	}
 
 	// =========================================================================
@@ -296,22 +301,20 @@ export class IntelligenceBridge implements vscode.Disposable {
 
 	/**
 	 * Start Intelligence session when SDK session starts
+	 * Note: Session management is now handled on the server via MCP
 	 */
-	startSession(sessionId: string, metadata?: SessionMetadata): void {
-		if (!this.intelligence) return;
-
-		this.intelligence.startSession(sessionId, {
-			workspaceId: this.workspaceFolder?.uri.toString(),
-			tags: metadata?.files?.slice(0, 5), // First 5 files as tags
-		});
+	startSession(_sessionId: string, _metadata?: SessionMetadata): void {
+		// Sessions are managed by MCP on the server
+		logger.debug("Session start handled by MCP server");
 	}
 
 	/**
 	 * End Intelligence session when SDK session ends
+	 * Note: Session management is now handled on the server via MCP
 	 */
-	endSession(sessionId: string): void {
-		if (!this.intelligence) return;
-		this.intelligence.endSession(sessionId);
+	endSession(_sessionId: string): void {
+		// Sessions are managed by MCP on the server
+		logger.debug("Session end handled by MCP server");
 	}
 
 	// =========================================================================
@@ -344,7 +347,7 @@ export class IntelligenceBridge implements vscode.Disposable {
 		}
 		this.disposables = [];
 
-		this.intelligence = null;
+		this.intelligenceReady = false;
 		this.vitals = null;
 		this.eventBus = null;
 		this.initialized = false;

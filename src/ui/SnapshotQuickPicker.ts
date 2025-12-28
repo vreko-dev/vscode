@@ -230,12 +230,18 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 
 			case "dashboard":
 				try {
-					await vscode.commands.executeCommand("snapback.openVitalsDashboard");
-				} catch (error) {
-					logger.error("Failed to open vitals dashboard", error as Error);
-					vscode.window.showErrorMessage(
-						`Failed to open dashboard: ${error instanceof Error ? error.message : "unknown error"}`,
-					);
+					// Try new Dashboard first, fallback to vitals
+					await vscode.commands.executeCommand("snapback.openDashboard");
+				} catch {
+					// Fallback to vitals dashboard if new one not available
+					try {
+						await vscode.commands.executeCommand("snapback.openVitalsDashboard");
+					} catch (error) {
+						logger.error("Failed to open dashboard", error as Error);
+						vscode.window.showErrorMessage(
+							`Failed to open dashboard: ${error instanceof Error ? error.message : "unknown error"}`,
+						);
+					}
 				}
 				break;
 		}
