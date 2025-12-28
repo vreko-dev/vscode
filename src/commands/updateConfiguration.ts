@@ -1,8 +1,8 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import type { ConfigDetector } from "@snapback-oss/sdk";
 import { minimatch } from "minimatch";
 import * as vscode from "vscode";
-import type { ConfigDetector } from "../config-detector";
 import type { SnapBackRC } from "../types/snapbackrc.types";
 import { logger } from "../utils/logger";
 import type { ProtectionLevel } from "../views/types";

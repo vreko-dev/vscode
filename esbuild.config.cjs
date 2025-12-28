@@ -7,7 +7,8 @@ const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
 
 async function main() {
-	const ctx = await esbuild.context({
+	// Build extension (thin client)
+	const extensionCtx = await esbuild.context({
 		entryPoints: ["./src/extension.ts"],
 		bundle: true,
 		format: "cjs",
@@ -28,6 +29,12 @@ async function main() {
 			"onnxruntime-web",
 			"@huggingface/transformers", // Uses onnxruntime-node for local inference
 			"sql.js",                     // Uses WASM, optional for SemanticRetriever
+			// Large dependencies externalized (lazy-loaded at runtime)
+			"simple-git",                 // ~200KB - lazy-loaded via git-lazy.ts
+			"chokidar",                   // ~400KB - only used in agent watcher
+			// Externalize heavy packages to language server
+			"@snapback/intelligence",     // Moved to language server
+			"@snapback/engine",           // Moved to language server (if needed)
 			// Optional template engines from @vue/compiler-sfc's consolidate.js
 			"velocityjs", "dustjs-linkedin", "atpl", "liquor", "twig", "ejs", "eco",
 			"jazz", "jqtpl", "hamljs", "hamlet", "whiskers", "haml-coffee", "hogan.js",
@@ -148,18 +155,72 @@ async function main() {
 		],
 	});
 
-	if (watch) {
-		await ctx.watch();
-		console.log("👀 Watching for changes...");
-	} else {
-		await ctx.rebuild();
-		await ctx.dispose();
+	// Build language server (heavy packages)
+	const serverCtx = await esbuild.context({
+		entryPoints: ["./server/index.ts"],
+		bundle: true,
+		format: "cjs",
+		platform: "node",
+		target: "node20",
+		outfile: "dist/server/index.js",
 
-		// Log bundle size
-		const stats = fs.statSync("./dist/extension.js");
+		// External - keep native modules external
+		external: [
+			"onnxruntime-node",
+			"onnxruntime-common",
+			"onnxruntime-web",
+			"@huggingface/transformers",
+			"sql.js",
+			// Optional template engines from @vue/compiler-sfc's consolidate.js
+			"velocityjs", "dustjs-linkedin", "atpl", "liquor", "twig", "ejs", "eco",
+			"jazz", "jqtpl", "hamljs", "hamlet", "whiskers", "haml-coffee", "hogan.js",
+			"templayed", "handlebars", "underscore", "lodash", "walrus", "mustache",
+			"just", "ect", "mote", "toffee", "dot", "bracket-template", "ractive",
+			"nunjucks", "htmling", "babel-core", "plates", "react-dom/server", "react",
+			"arc-templates", "vash", "slm", "marko", "teacup/lib/express", "teacup",
+			"coffee-script", "squirrelly", "twing",
+		],
+
+		// Minification (production only)
+		minify: production,
+		minifyWhitespace: production,
+		minifyIdentifiers: false,
+		minifySyntax: production,
+
+		// Tree-shaking
+		treeShaking: true,
+
+		// Source maps (dev only)
+		sourcemap: !production,
+
+		// Logging
+		logLevel: "info",
+
+		// Environment
+		define: {
+			"process.env.NODE_ENV": production ? '"production"' : '"development"',
+		},
+	});
+
+	if (watch) {
+		await extensionCtx.watch();
+		await serverCtx.watch();
+		console.log("👀 Watching extension and server for changes...");
+	} else {
+		await extensionCtx.rebuild();
+		await serverCtx.rebuild();
+		await extensionCtx.dispose();
+		await serverCtx.dispose();
+
+		// Log bundle sizes
+		const extensionStats = fs.statSync("./dist/extension.js");
+		const serverStats = fs.statSync("./dist/server/index.js");
 		console.log("✅ Bundled successfully");
-		console.log("📦 Output: dist/extension.js");
-		console.log(`📊 Bundle size: ${Math.round(stats.size / 1024)}KB`);
+		console.log("📦 Extension: dist/extension.js");
+		console.log(`📊 Extension size: ${Math.round(extensionStats.size / 1024)}KB`);
+		console.log("📦 Server: dist/server/index.js");
+		console.log(`📊 Server size: ${Math.round(serverStats.size / 1024)}KB`);
+		console.log(`📊 Total: ${Math.round((extensionStats.size + serverStats.size) / 1024)}KB`);
 	}
 }
 

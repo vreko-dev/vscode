@@ -413,6 +413,18 @@
         "title": "Quick Restore",
         "category": "SnapBack",
         "icon": "$(debug-step-back)"
+      },
+      {
+        "command": "snapback.ai.injectRules",
+        "title": "Inject AI Agent Rules",
+        "category": "SnapBack",
+        "icon": "$(extensions)"
+      },
+      {
+        "command": "snapback.ai.resetRulesConfig",
+        "title": "Reset Agent Rules Config",
+        "category": "SnapBack",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -1256,20 +1268,19 @@
     "@snapback/intelligence": "workspace:*",
     "@snapback/sdk": "workspace:*",
     "@snapback-oss/sdk": "workspace:*",
+    "vscode-languageclient": "^9.0.1",
     "ajv": "catalog:",
     "async-lock": "catalog:",
     "base64url": "catalog:",
     "chokidar": "catalog:",
-    "conf": "catalog:",
     "diff": "catalog:",
     "es-toolkit": "catalog:",
     "fast-glob": "catalog:",
+    "gray-matter": "catalog:",
     "ignore": "catalog:",
-    "inquirer": "catalog:",
     "json5": "catalog:",
     "minimatch": "catalog:",
     "node-machine-id": "^1.1.12",
-    "node-notifier": "catalog:",
     "object-hash": "catalog:",
     "p-queue": "catalog:",
     "pino": "catalog:",
@@ -1299,6 +1310,8 @@
     "@vitest/ui": "catalog:",
     "@vscode/test-cli": "catalog:",
     "@vscode/test-electron": "catalog:",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12",
     "esbuild": "catalog:",
     "esbuild-visualizer": "^0.7.0",
     "glob": "catalog:",

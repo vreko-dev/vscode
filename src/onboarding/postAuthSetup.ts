@@ -11,8 +11,8 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { type ConfigStoreV2Type, getInitializedConfigStore } from "../config/configStore";
+import { detectWorkspaceFrameworks } from "../services/IntelligenceService";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
-import { detectStacks } from "../stacks/stackDetection";
 import { logger } from "../utils/logger";
 
 /**
@@ -48,52 +48,54 @@ export async function runPostAuthSetup(workspaceRoot: string, telemetry?: Teleme
 
 		logger.info("Running post-authentication setup", { workspaceRoot });
 
-		// 1. Detect workspace stacks
-		logger.debug("Detecting workspace stacks...");
-		const stacks = await detectStacks(workspaceRoot);
-		logger.info(`Detected ${stacks.length} stacks`, {
-			stacks: stacks.map((s) => s.name).join(", "),
+		// 1. Detect workspace frameworks using Intelligence package
+		// NOTE: Migrated from local stacks/stackDetection.ts to @snapback/intelligence
+		logger.debug("Detecting workspace frameworks...");
+		const frameworks = await detectWorkspaceFrameworks();
+		logger.info(`Detected ${frameworks.length} frameworks`, {
+			frameworks: frameworks.map((f) => f.name).join(", "),
 		});
 
 		// Track telemetry for config generation
 		if (telemetry) {
 			await telemetry.trackEvent("activation_funnel", {
 				stage: "config_generated",
-				stacks_detected: stacks.length,
-				stack_names: stacks.map((s) => s.name),
+				frameworks_detected: frameworks.length,
+				framework_names: frameworks.map((f) => f.name),
 			});
 		}
 
-		// 2. Collect rules from detected stacks and ensure they have precedence
-		const detectedRules = stacks.flatMap((s) => s.rules);
-		const rulesWithPrecedence = detectedRules.map((rule) => ({
-			...rule,
-			// Stack rules may not have precedence, default to 50
-			precedence: "precedence" in rule ? (rule as any).precedence : 50,
-		}));
-
-		// Use detected rules, or fallback to security defaults if none detected
-		// Note: fallback rules need to match ProtectionRuleSchema (includes precedence)
-		const fallbackRules = [
+		// 2. Use security-focused default rules
+		// NOTE: Intelligence package handles framework-specific protection internally
+		// These defaults cover essential security patterns for all workspaces
+		const defaultRules = [
 			{ pattern: "*.env*", level: "block" as const, precedence: 100 },
 			{ pattern: "**/*.secret*", level: "block" as const, precedence: 100 },
 			{ pattern: "**/credentials*", level: "block" as const, precedence: 100 },
 			{ pattern: "package*.json", level: "warn" as const, precedence: 50 },
 			{ pattern: "**/migrations/*", level: "block" as const, precedence: 100 },
 			{ pattern: ".git/**", level: "watch" as const, precedence: 10 },
+			// Framework-specific rules (Next.js is most common)
+			...(frameworks.some((f) => f.id === "nextjs")
+				? [
+						{ pattern: "next.config.*", level: "block" as const, precedence: 90 },
+						{ pattern: ".env.local", level: "block" as const, precedence: 100 },
+					]
+				: []),
+			// Docker/infrastructure rules (always include as common patterns)
+			{ pattern: "docker-compose*.yml", level: "warn" as const, precedence: 70 },
+			{ pattern: "Dockerfile", level: "warn" as const, precedence: 70 },
 		];
-		const finalRules = rulesWithPrecedence.length > 0 ? rulesWithPrecedence : fallbackRules;
 
-		logger.debug("Protection rules collected", {
-			from_detected_stacks: detectedRules.length,
-			from_defaults: finalRules.length - detectedRules.length,
-			total: finalRules.length,
+		logger.debug("Protection rules configured", {
+			frameworks_detected: frameworks.length,
+			total_rules: defaultRules.length,
 		});
 
 		// 3. Build config object with proper typing
 		const config: ConfigStoreV2Type = {
 			version: 2,
-			protections: finalRules,
+			protections: defaultRules,
 			ignore: ["node_modules/**", ".git/**", "dist/**", "build/**", ".next/**", "__pycache__/**", "*.log"],
 			engine: {
 				maxDepth: 2,
@@ -183,8 +185,8 @@ export async function runPostAuthSetup(workspaceRoot: string, telemetry?: Teleme
 		logger.info("Config saved successfully", { rcPath });
 
 		// 5. Notify user
-		const stackNames = stacks.length > 0 ? stacks.map((s) => s.name).join(", ") : "default";
-		const message = `SnapBack configured for ${stackNames} workspace`;
+		const frameworkNames = frameworks.length > 0 ? frameworks.map((f) => f.name).join(", ") : "default";
+		const message = `SnapBack configured for ${frameworkNames} workspace`;
 
 		vscode.window.showInformationMessage(message, "View Config").then(
 			(selection) => {

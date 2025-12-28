@@ -22,6 +22,7 @@ import { initializePhase3Managers } from "./activation/phase3-managers";
 import { initializePhase4Providers } from "./activation/phase4-providers";
 import { initializePhase5Registration } from "./activation/phase5-registration";
 import { initializePioneerInfrastructure } from "./activation/pioneer"; // 🆕 Import Pioneer Initialization
+import { autoConfigureAgentRules, registerAgentRulesCommands } from "./ai/config"; // 🆕 Import Agent Rules auto-configure
 import { createAuthedApiClient } from "./api/authedApiClient";
 import { AnonymousIdManager } from "./auth/AnonymousIdManager";
 import { AuthState } from "./auth/AuthState";
@@ -746,6 +747,17 @@ export async function activate(context: vscode.ExtensionContext) {
 			});
 		});
 		phaseTimings["MCP Configuration"] = Date.now() - mcpStart;
+
+		// 🆕 Agent Rules Auto-Configuration (injects SnapBack context into .cursorrules, .clinerules, etc.)
+		const agentRulesStart = Date.now();
+		registerAgentRulesCommands(context);
+		// Run auto-configure asynchronously to not block activation
+		void autoConfigureAgentRules(context).catch((err) => {
+			logger.warn("Agent rules auto-configure failed (non-blocking)", {
+				error: err instanceof Error ? err.message : String(err),
+			});
+		});
+		phaseTimings["Agent Rules Configuration"] = Date.now() - agentRulesStart;
 
 		// 🆕 Phase 14: Initialize WorkspaceContextManager (fixes Antipattern #2)
 		const workspaceContextManager = createWorkspaceContextManager();

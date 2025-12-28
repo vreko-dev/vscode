@@ -228,45 +228,52 @@ export class ProtectionManager {
 	}
 
 	/**
-	 * Build a ProtectionPolicy from merged config + stack detection
+	 * Build a ProtectionPolicy from merged config + framework detection
 	 */
 	private async buildPolicy(mergedConfig: SnapBackRC): Promise<ProtectionPolicy> {
 		const protection = mergedConfig.protection || [];
 		const now = Date.now();
 
-		// Detect stacks and get their rules (async operation)
-		let stacks: Array<{ id: string; name: string }> = [];
-		let stackRules: typeof protection = [];
+		// Detect frameworks and generate default rules
+		let frameworks: Array<{ id: string; name: string }> = [];
+		const frameworkRules: typeof protection = [];
 
 		try {
-			// Import stack detection dynamically to avoid circular deps
-			const { detectStacks } = await import("../stacks/stackDetection.js");
-			const detectedStacks = await detectStacks(this.workspaceRoot);
+			// Use IntelligenceService for framework detection (consolidated from stacks/)
+			const { detectWorkspaceFrameworks } = await import("./IntelligenceService.js");
+			const detectedFrameworks = await detectWorkspaceFrameworks();
 
-			stacks = detectedStacks.map((s) => ({ id: s.id, name: s.name }));
-			stackRules = detectedStacks.flatMap((s) => s.rules);
+			frameworks = detectedFrameworks.map((f) => ({ id: f.id, name: f.name }));
 
-			logger.info(`Detected ${stacks.length} stacks for protection policy`, {
-				stacks: stacks.map((s) => s.id).join(", "),
+			// Generate framework-specific rules based on detection
+			if (detectedFrameworks.some((f) => f.id === "nextjs")) {
+				frameworkRules.push(
+					{ pattern: "next.config.*", level: "block" as const },
+					{ pattern: ".env.local", level: "block" as const },
+				);
+			}
+
+			logger.info(`Detected ${frameworks.length} frameworks for protection policy`, {
+				frameworks: frameworks.map((f) => f.id).join(", "),
 			});
 		} catch (error) {
-			logger.warn("Stack detection failed, using config only", error as Error);
+			logger.warn("Framework detection failed, using config only", error as Error);
 		}
 
-		// Merge rules: config rules take precedence over stack rules
-		const allRules = [...protection, ...stackRules];
+		// Merge rules: config rules take precedence over framework rules
+		const allRules = [...protection, ...frameworkRules];
 
 		// Estimate defaults vs user rules (heuristic)
-		const defaultRulesCount = stackRules.length;
+		const defaultRulesCount = frameworkRules.length;
 		const userRulesCount = protection.length;
 
 		return {
 			version: "1.0",
 			rules: allRules,
-			stacks,
+			stacks: frameworks, // Keep 'stacks' field name for backward compat
 			audit: {
 				loadedAt: now,
-				source: stacks.length > 0 ? "merged" : "snapbackrc",
+				source: frameworks.length > 0 ? "merged" : "snapbackrc",
 				rulesCount: allRules.length,
 				defaultRulesCount,
 				userRulesCount,
