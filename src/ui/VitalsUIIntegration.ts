@@ -18,6 +18,7 @@ import {
 	type SessionHealth,
 	UnifiedDataService,
 } from "../services/UnifiedDataService";
+import { logger } from "../utils/logger";
 import { SESSION_HEALTH_SIGNAGE, TRAJECTORY_SIGNAGE } from "../signage/constants";
 import type { SessionHealthCanonical, TrajectoryCanonical } from "../signage/types";
 import { SnapshotRecommendationUI, type SnapshotRecommendation as UIRecommendation } from "./SnapshotRecommendationUI";
@@ -154,13 +155,29 @@ export class VitalsUIIntegration implements vscode.Disposable {
 		const healthLevel = deriveHealthLevel(sessionHealth.healthScore);
 		const trajectory = mapTrajectoryToCanonical(sessionHealth.trajectory);
 
+		// Debug: Log health state for troubleshooting auto-snapshot triggers
+		logger.debug("Session health updated", {
+			healthScore: sessionHealth.healthScore,
+			healthLevel,
+			trajectory,
+			cooldownActive: !this.shouldAutoSnapshot(),
+			timeSinceLastAutoSnapshot: Date.now() - this.lastAutoSnapshotTime,
+		});
+
 		// Update status bar
 		this.statusBarManager.updateSessionHealth(healthLevel, trajectory);
 
 		// AUTO-SNAPSHOT ON CRITICAL: Don't just nag - protect the user's work!
-		if (healthLevel === "critical" && this.shouldAutoSnapshot()) {
-			void this.triggerAutoSnapshot("Session health critical - auto-protecting your work");
-			return; // Don't show recommendation, we're handling it
+		if (healthLevel === "critical") {
+			if (this.shouldAutoSnapshot()) {
+				void this.triggerAutoSnapshot("Session health critical - auto-protecting your work");
+				return; // Don't show recommendation, we're handling it
+			}
+			logger.debug("Auto-snapshot skipped due to cooldown", {
+				healthLevel,
+				timeSinceLastAutoSnapshot: Date.now() - this.lastAutoSnapshotTime,
+				cooldownMs: this.AUTO_SNAPSHOT_COOLDOWN,
+			});
 		}
 
 		// For non-critical: show recommendation if enabled
@@ -179,9 +196,12 @@ export class VitalsUIIntegration implements vscode.Disposable {
 
 	/**
 	 * Trigger auto-snapshot and update UI accordingly
+	 *
+	 * DESIGN: Only set cooldown AFTER successful snapshot to allow retry on failure.
+	 * This ensures users get protection even if the first attempt fails.
 	 */
-	private async triggerAutoSnapshot(_reason: string): Promise<void> {
-		this.lastAutoSnapshotTime = Date.now();
+	private async triggerAutoSnapshot(reason: string): Promise<void> {
+		logger.info("Auto-snapshot triggered", { reason });
 
 		// Show activity sequence in status bar
 		void this.statusBarManager.showActivitySequenceByType("vitals-degrading");
@@ -189,9 +209,21 @@ export class VitalsUIIntegration implements vscode.Disposable {
 		// Execute snapshot command
 		try {
 			await vscode.commands.executeCommand("snapback.createSnapshot");
+
+			// Only set cooldown AFTER successful snapshot
+			// This allows retry if the attempt fails
+			this.lastAutoSnapshotTime = Date.now();
+
 			// Clear any pending recommendation
 			this.recommendationUI.clearRecommendation();
+			logger.info("Auto-snapshot created successfully", { reason });
 		} catch (error) {
+			// Log the failure - don't set cooldown so we can retry
+			logger.warn("Auto-snapshot failed, showing recommendation fallback", {
+				reason,
+				error: error instanceof Error ? error.message : String(error),
+			});
+
 			// If snapshot fails, show recommendation as fallback
 			const sessionHealth = this.dataService.getSessionHealth();
 			this.triggerRecommendation(sessionHealth);

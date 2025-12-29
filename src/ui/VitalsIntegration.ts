@@ -12,7 +12,12 @@
  * @performance Budget: <1ms per update (throttled)
  */
 
-import type { TempLevel, Trajectory, VitalsSnapshot } from "@snapback/intelligence/vitals";
+import {
+	PRESSURE_THRESHOLDS,
+	type TempLevel,
+	type Trajectory,
+	type VitalsSnapshot,
+} from "@snapback/intelligence/vitals";
 import type { TemperatureLevelCanonical, TrajectoryCanonical } from "../signage/types";
 import type { StatusBarManager } from "./StatusBarManager";
 import type { VitalsDisplayData } from "./ux-types";
@@ -142,9 +147,9 @@ export class VitalsIntegration {
 	 */
 	private calculatePressureTrend(value: number): "rising" | "stable" | "falling" {
 		// In full implementation, would compare to previous value
-		// For now, estimate based on value
-		if (value > 75) return "rising";
-		if (value < 25) return "falling";
+		// For now, estimate based on value using centralized thresholds
+		if (value >= PRESSURE_THRESHOLDS.high) return "rising";
+		if (value < PRESSURE_THRESHOLDS.low) return "falling";
 		return "stable";
 	}
 
