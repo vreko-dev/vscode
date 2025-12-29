@@ -71,17 +71,18 @@ describe("Storage Utilities", () => {
 
 		it("should generate snapshot IDs with snap- prefix", () => {
 			const id = generateSnapshotId();
-			expect(id).toMatch(/^snap-\d+-[a-z0-9]{6}$/);
+			// Snapshot IDs use nanoid(9) for suffix
+			expect(id).toMatch(/^snap-\d{13}-[a-zA-Z0-9_-]{9}$/);
 		});
 
 		it("should generate session IDs with sess- prefix", () => {
 			const id = generateSessionId();
-			expect(id).toMatch(/^sess-\d+-[a-z0-9]{6}$/);
+			expect(id).toMatch(/^sess-\d{13}-[a-z0-9]{6}$/);
 		});
 
 		it("should generate audit IDs with audit- prefix", () => {
 			const id = generateAuditId();
-			expect(id).toMatch(/^audit-\d+-[a-z0-9]{6}$/);
+			expect(id).toMatch(/^audit-\d{13}-[a-z0-9]{6}$/);
 		});
 
 		it("should parse timestamp from snapshot ID", () => {
@@ -108,8 +109,9 @@ describe("Storage Utilities", () => {
 		});
 
 		it("should handle IDs with same timestamp but different random parts", () => {
-			const id1 = `snap-1234567890-abc123`;
-			const id2 = `snap-1234567890-xyz789`;
+			// Use 13-digit timestamp (milliseconds since epoch)
+			const id1 = `snap-1734567890123-abc123def`;
+			const id2 = `snap-1734567890123-xyz789ghi`;
 
 			const ts1 = parseTimestampFromId(id1);
 			const ts2 = parseTimestampFromId(id2);
