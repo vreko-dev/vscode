@@ -15,6 +15,10 @@
  *
  * This file re-exports from the SDK for backwards compatibility.
  */
+
+// Re-export Snapshot as an alias for backwards compatibility
+// Legacy interface alias
+export type { DeletableSnapshot as Snapshot, ISnapshotManagerForDeletion as ISnapshotManager } from "@snapback-oss/sdk";
 export {
 	type AutoCleanupConfig,
 	type DeletableSnapshot,
@@ -25,9 +29,3 @@ export {
 	SnapshotDeletionService,
 	type SnapshotDeletionServiceOptions,
 } from "@snapback-oss/sdk";
-
-// Re-export Snapshot as an alias for backwards compatibility
-export type { DeletableSnapshot as Snapshot } from "@snapback-oss/sdk";
-
-// Legacy interface alias
-export type { ISnapshotManagerForDeletion as ISnapshotManager } from "@snapback-oss/sdk";

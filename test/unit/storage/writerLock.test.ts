@@ -267,4 +267,61 @@ describe("WriterLock - Single Writer Guarantee", () => {
 			// Future: Consider FileLock for cross-process safety
 		});
 	});
+
+	// ═══════════════════════════════════════════════════════════════════════════
+	// BUG FIX: TOCTOU Race Condition in acquire()
+	// The acquire() method has a check-then-set pattern that is not atomic.
+	// This test ensures atomicity under high concurrency.
+	// ═══════════════════════════════════════════════════════════════════════════
+	describe("TOCTOU Race Condition Fix", () => {
+		it("should guarantee exactly one winner under high concurrency stress", async () => {
+			// RED: This test exposes the TOCTOU race condition
+			// Under high concurrency, the check (holderId !== null) and set (holderId = uuid)
+			// are not atomic, allowing multiple acquires to succeed
+			const lock = new WriterLockModule.WriterLock();
+
+			// Fire 100 concurrent acquires to stress the race window
+			const promises = Array.from({ length: 100 }, () => lock.acquire());
+			const results = await Promise.all(promises);
+
+			// Count successes
+			const successes = results.filter((r) => r === true).length;
+
+			// CRITICAL: Exactly one should succeed (atomic guarantee)
+			expect(successes).toBe(1);
+
+			await lock.release();
+		});
+
+		it("should use atomic acquireQueued for safe concurrent access", async () => {
+			// RED: acquireQueued should be the safe alternative to acquire()
+			const lock = new WriterLockModule.WriterLock();
+
+			const executionOrder: number[] = [];
+			let counter = 0;
+
+			// Fire 10 concurrent acquireQueued calls
+			const promises = Array.from({ length: 10 }, (_, i) =>
+				lock.acquireQueued().then((acquired) => {
+					if (acquired) {
+						const myOrder = ++counter;
+						executionOrder.push(myOrder);
+						// Simulate work
+						return new Promise<void>((resolve) => {
+							setTimeout(() => {
+								lock.release().then(() => resolve());
+							}, 5);
+						});
+					}
+				}),
+			);
+
+			await Promise.all(promises);
+
+			// All 10 should have executed in sequence
+			expect(executionOrder).toHaveLength(10);
+			// Order should be sequential (queued execution)
+			expect(executionOrder).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+		});
+	});
 });

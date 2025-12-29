@@ -13,4 +13,4 @@
  *
  * This file re-exports from the SDK for backwards compatibility.
  */
-export { type IconResult, type SnapshotMetadata, SnapshotIconStrategy } from "@snapback-oss/sdk";
+export { type IconResult, SnapshotIconStrategy, type SnapshotMetadata } from "@snapback-oss/sdk";

@@ -24,8 +24,8 @@ export {
 
 // VSCode-specific file search provider implementation
 import * as fs from "node:fs/promises";
-import * as vscode from "vscode";
 import type { IFileSearchProvider } from "@snapback-oss/sdk";
+import * as vscode from "vscode";
 
 /**
  * VSCode implementation of IFileSearchProvider

@@ -1,4 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
+// SDK imports (extracted business logic)
+import type { AutoCleanupConfig, DeletionOptions, DeletionResult } from "@snapback-oss/sdk";
+import { SnapshotDeletionService, SnapshotNamingStrategy } from "@snapback-oss/sdk";
 import * as vscode from "vscode";
 import type { GitFileChange as FileChange } from "../types/fileChanges";
 import type {
@@ -14,14 +17,11 @@ import type {
 	SnapshotNamingInfo as SnapshotInfo,
 	SnapshotIconMetadata as SnapshotMetadata,
 } from "../types/snapshotInfo";
+import { sdkLogger } from "../utils/sdkLoggerAdapter";
 import { EncryptionService } from "./EncryptionService";
 import type { SessionCoordinator } from "./SessionCoordinator";
 import type { FileState, SnapshotState } from "./SnapshotDeduplicator";
 import { SnapshotDeduplicator } from "./SnapshotDeduplicator";
-// SDK imports (extracted business logic)
-import type { AutoCleanupConfig, DeletionOptions, DeletionResult } from "@snapback-oss/sdk";
-import { SnapshotDeletionService, SnapshotNamingStrategy } from "@snapback-oss/sdk";
-import { sdkLogger } from "../utils/sdkLoggerAdapter";
 import { SnapshotIconStrategy } from "./SnapshotIconStrategy";
 
 /**
