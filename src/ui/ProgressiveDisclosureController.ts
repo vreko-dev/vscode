@@ -25,7 +25,7 @@ interface FeatureDefinition {
  */
 export class ProgressiveDisclosureController implements vscode.Disposable {
 	private disposables: vscode.Disposable[] = [];
-	private statusBarItem: vscode.StatusBarItem | undefined;
+	// REMOVED: statusBarItem - now consolidated in StatusBarManager
 	private hintQueue: string[] = [];
 	private lastHintTime = 0;
 	private readonly HINT_COOLDOWN_MS = 60000; // 1 minute between hints
@@ -50,15 +50,15 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 			await this.userExperienceService.isAdvanced(),
 		);
 
-		// Create status bar item for beginners
-		if (await this.userExperienceService.isBeginner()) {
-			this.createStatusBarItem();
-			logger.info("Created SnapBack Tips status bar item for beginner user");
-		} else {
-			logger.info("Skipped SnapBack Tips status bar (user is not beginner)", {
-				level: await this.userExperienceService.getExperienceLevel(),
-			});
-		}
+		// REMOVED: Separate status bar item for beginners
+		// Previously created "SnapBack Tips" as a separate status bar item.
+		// This caused UI clutter with multiple status bar items showing.
+		// Now tips are available via the main status bar tooltip and commands.
+		// Beginners can access tips via Command Palette > "SnapBack: Show Recommended Action"
+		logger.info("Progressive disclosure initialized", {
+			level: await this.userExperienceService.getExperienceLevel(),
+			isBeginner: await this.userExperienceService.isBeginner(),
+		});
 
 		// Show welcome message for first-time users
 		await this.showWelcomeMessageIfNeeded();
@@ -297,21 +297,8 @@ export class ProgressiveDisclosureController implements vscode.Disposable {
 		return grouped;
 	}
 
-	/**
-	 * Create status bar item for beginners
-	 */
-	private createStatusBarItem(): void {
-		this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-
-		this.statusBarItem.text = "$(lightbulb) SnapBack Tips";
-		this.statusBarItem.tooltip = "Click for helpful SnapBack tips";
-		this.statusBarItem.command = "snapback.showRecommendedAction";
-
-		this.statusBarItem.show();
-		this.disposables.push(this.statusBarItem);
-
-		logger.debug("Status bar item created for beginner mode");
-	}
+	// REMOVED: createStatusBarItem() - see comment in initializeController()
+	// Status bar items are now consolidated in StatusBarManager
 
 	/**
 	 * Show welcome message for first-time users

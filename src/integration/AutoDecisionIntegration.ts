@@ -33,6 +33,7 @@ import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskAssessment, AIRiskService, ChangeToAssess } from "../services/aiRiskService";
 import { getWorkspaceVitalsSync } from "../services/IntelligenceService";
 import type { WorkspaceVitalsProxy } from "../services/LanguageClient";
+import { refreshVitalsCache } from "../services/LanguageClient";
 import type { WorkspaceContextManager } from "../services/WorkspaceContextManager";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import { absoluteToWorkspaceRelative, createAbsolutePath } from "../types/PathBrands";
@@ -182,8 +183,18 @@ export class AutoDecisionIntegration {
 					filePath,
 				});
 
-				// Reset vitals pressure - this is the key fix for pressure not resetting
+				// Reset vitals pressure - sends to Language Server
 				this.vitals.onSnapshot({ filePath });
+
+				// CRITICAL FIX: Refresh vitals cache immediately after onSnapshot
+				// Without this, the cache (30s TTL) would still show stale high pressure
+				// which causes the popup to keep appearing
+				const workspaceId = this.workspaceContextManager.getWorkspaceRoot() || "default";
+				void refreshVitalsCache(workspaceId).catch((err) => {
+					logger.warn("Failed to refresh vitals cache after snapshot", {
+						error: err instanceof Error ? err.message : String(err),
+					});
+				});
 			};
 
 			this.eventBus.on(SnapBackEvent.SNAPSHOT_CREATED, this.snapshotCreatedHandler);
@@ -711,6 +722,10 @@ export class AutoDecisionIntegration {
 						this.vitals.onSnapshot({ filePath: relativePath });
 						// Record behavior for learning (user/AI created snapshot)
 						this.vitals.recordBehavior(true);
+
+						// CRITICAL: Refresh vitals cache to immediately reflect pressure release
+						const workspaceId = this.workspaceContextManager.getWorkspaceRoot() || "default";
+						void refreshVitalsCache(workspaceId);
 					} else {
 						// Fallback: Use SnapshotManager directly (UI won't refresh)
 						logger.warn(
@@ -730,6 +745,10 @@ export class AutoDecisionIntegration {
 							this.vitals.onSnapshot({ filePath: absolutePath });
 							// Record behavior for learning (user/AI created snapshot)
 							this.vitals.recordBehavior(true);
+
+							// CRITICAL: Refresh vitals cache for fallback path too
+							const fallbackWorkspaceId = this.workspaceContextManager.getWorkspaceRoot() || "default";
+							void refreshVitalsCache(fallbackWorkspaceId);
 						} catch (fallbackError) {
 							// SnapshotStorageAdapter throws "Direct save not supported"
 							// This is expected when OperationCoordinator is not wired

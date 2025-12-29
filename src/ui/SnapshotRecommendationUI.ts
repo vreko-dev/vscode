@@ -14,8 +14,10 @@
  */
 
 import * as vscode from "vscode";
-import { SESSION_HEALTH_SIGNAGE, TRAJECTORY_SIGNAGE } from "../signage/constants";
+import { SESSION_HEALTH_SIGNAGE } from "../signage/constants";
 import type { SessionHealthCanonical, TrajectoryCanonical } from "../signage/types";
+// REMOVED: TRAJECTORY_SIGNAGE - no longer needed (tooltip built by StatusBarManager)
+import type { RecommendationUrgency, StatusBarManager } from "./StatusBarManager";
 
 /**
  * Snapshot recommendation with context
@@ -56,16 +58,24 @@ export class SnapshotRecommendationUI implements vscode.Disposable {
 	private snoozeUntil = 0;
 	private disposables: vscode.Disposable[] = [];
 
-	// Status bar item for persistent recommendation indicator
-	private statusBarItem: vscode.StatusBarItem;
+	/**
+	 * Reference to StatusBarManager for consolidated status bar updates
+	 *
+	 * DESIGN: We no longer create our own status bar item.
+	 * Instead, we delegate to StatusBarManager.showRecommendation()
+	 * This consolidates all status bar state into a single item.
+	 */
+	private statusBarManager: StatusBarManager | undefined;
 
-	constructor() {
-		this.statusBarItem = vscode.window.createStatusBarItem(
-			vscode.StatusBarAlignment.Right,
-			99, // Just below main SnapBack status bar
-		);
-		this.statusBarItem.command = "snapback.createSnapshot";
-		this.disposables.push(this.statusBarItem);
+	constructor(statusBarManager?: StatusBarManager) {
+		this.statusBarManager = statusBarManager;
+	}
+
+	/**
+	 * Set StatusBarManager reference (for deferred initialization)
+	 */
+	setStatusBarManager(manager: StatusBarManager): void {
+		this.statusBarManager = manager;
 	}
 
 	/**
@@ -84,7 +94,7 @@ export class SnapshotRecommendationUI implements vscode.Disposable {
 	 * Clear recommendation (e.g., after snapshot created)
 	 */
 	clearRecommendation(): void {
-		this.statusBarItem.hide();
+		this.statusBarManager?.clearRecommendation();
 	}
 
 	/**
@@ -92,7 +102,7 @@ export class SnapshotRecommendationUI implements vscode.Disposable {
 	 */
 	snooze(durationMs: number): void {
 		this.snoozeUntil = Date.now() + durationMs;
-		this.statusBarItem.hide();
+		this.statusBarManager?.clearRecommendation();
 	}
 
 	/**
@@ -122,72 +132,24 @@ export class SnapshotRecommendationUI implements vscode.Disposable {
 
 	/**
 	 * Update status bar with recommendation indicator
+	 *
+	 * DESIGN: Now delegates to StatusBarManager for consolidated status bar.
 	 */
 	private updateStatusBar(recommendation: SnapshotRecommendation): void {
-		const healthSignage = SESSION_HEALTH_SIGNAGE[recommendation.sessionHealth];
-		const trajectorySignage = TRAJECTORY_SIGNAGE[recommendation.trajectory];
-
 		// Only show status bar indicator for medium+ urgency
 		if (recommendation.urgency === "low") {
-			this.statusBarItem.hide();
+			this.statusBarManager?.clearRecommendation();
 			return;
 		}
 
-		// Build status bar text
-		let icon: string;
-		let backgroundColor: vscode.ThemeColor | undefined;
-
-		switch (recommendation.urgency) {
-			case "critical":
-				icon = "$(alert)";
-				backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
-				break;
-			case "high":
-				icon = "$(warning)";
-				backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
-				break;
-			default:
-				icon = "$(info)";
-				backgroundColor = undefined;
-		}
-
-		this.statusBarItem.text = `${icon} Snapshot Recommended`;
-		this.statusBarItem.backgroundColor = backgroundColor;
-		this.statusBarItem.tooltip = this.buildTooltip(recommendation, healthSignage, trajectorySignage);
-		this.statusBarItem.show();
+		// Delegate to StatusBarManager
+		this.statusBarManager?.showRecommendation(
+			recommendation.urgency as RecommendationUrgency,
+			recommendation.reason,
+		);
 	}
 
-	/**
-	 * Build rich tooltip for status bar item
-	 */
-	private buildTooltip(
-		recommendation: SnapshotRecommendation,
-		healthSignage: (typeof SESSION_HEALTH_SIGNAGE)[SessionHealthCanonical],
-		trajectorySignage: (typeof TRAJECTORY_SIGNAGE)[TrajectoryCanonical],
-	): vscode.MarkdownString {
-		const md = new vscode.MarkdownString();
-		md.isTrusted = true;
-
-		md.appendMarkdown(`**${healthSignage.emoji} ${recommendation.reason}**\n\n`);
-
-		if (recommendation.details) {
-			md.appendMarkdown(`${recommendation.details}\n\n`);
-		}
-
-		if (recommendation.filesAtRisk) {
-			md.appendMarkdown(`**Files at risk:** ${recommendation.filesAtRisk}\n`);
-		}
-
-		if (recommendation.lastSnapshotAge) {
-			const ageStr = this.formatAge(recommendation.lastSnapshotAge);
-			md.appendMarkdown(`**Last snapshot:** ${ageStr} ago\n`);
-		}
-
-		md.appendMarkdown(`\n**Trajectory:** ${trajectorySignage.emoji} ${trajectorySignage.label}\n`);
-		md.appendMarkdown("\n*Click to create snapshot*");
-
-		return md;
-	}
+	// REMOVED: buildTooltip() - tooltip now built by StatusBarManager
 
 	/**
 	 * Show notification based on urgency
@@ -266,21 +228,7 @@ export class SnapshotRecommendationUI implements vscode.Disposable {
 		}
 	}
 
-	/**
-	 * Format age in seconds to human readable string
-	 */
-	private formatAge(seconds: number): string {
-		if (seconds < 60) {
-			return `${seconds}s`;
-		}
-		if (seconds < 3600) {
-			return `${Math.floor(seconds / 60)}m`;
-		}
-		if (seconds < 86400) {
-			return `${Math.floor(seconds / 3600)}h`;
-		}
-		return `${Math.floor(seconds / 86400)}d`;
-	}
+	// REMOVED: formatAge() - no longer needed (tooltip built by StatusBarManager)
 
 	dispose(): void {
 		for (const d of this.disposables) {

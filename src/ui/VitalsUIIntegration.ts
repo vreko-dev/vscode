@@ -84,6 +84,13 @@ export class VitalsUIIntegration implements vscode.Disposable {
 	private config: VitalsUIConfig;
 	private disposables: vscode.Disposable[] = [];
 
+	/**
+	 * Last auto-snapshot timestamp to prevent spam
+	 * Auto-snapshot is limited to once per 60 seconds minimum
+	 */
+	private lastAutoSnapshotTime = 0;
+	private readonly AUTO_SNAPSHOT_COOLDOWN = 60 * 1000; // 60 seconds
+
 	constructor(
 		workspaceId: string,
 		workspaceRoot: string,
@@ -98,8 +105,9 @@ export class VitalsUIIntegration implements vscode.Disposable {
 		// Initialize data service
 		this.dataService = UnifiedDataService.for(workspaceId, workspaceRoot);
 
-		// Initialize recommendation UI
-		this.recommendationUI = new SnapshotRecommendationUI();
+		// Initialize recommendation UI with StatusBarManager reference
+		// This ensures consolidated status bar (no duplicate items)
+		this.recommendationUI = new SnapshotRecommendationUI(statusBarManager);
 		this.disposables.push(this.recommendationUI);
 
 		// Wire up event listeners
@@ -137,6 +145,9 @@ export class VitalsUIIntegration implements vscode.Disposable {
 
 	/**
 	 * Handle session health update
+	 *
+	 * DESIGN: When health becomes critical, auto-create snapshot instead of just nagging.
+	 * This is the core value prop - protect the user's work proactively.
 	 */
 	private handleSessionHealthUpdate(): void {
 		const sessionHealth = this.dataService.getSessionHealth();
@@ -146,8 +157,43 @@ export class VitalsUIIntegration implements vscode.Disposable {
 		// Update status bar
 		this.statusBarManager.updateSessionHealth(healthLevel, trajectory);
 
-		// Check if we should show recommendation based on health
+		// AUTO-SNAPSHOT ON CRITICAL: Don't just nag - protect the user's work!
+		if (healthLevel === "critical" && this.shouldAutoSnapshot()) {
+			void this.triggerAutoSnapshot("Session health critical - auto-protecting your work");
+			return; // Don't show recommendation, we're handling it
+		}
+
+		// For non-critical: show recommendation if enabled
 		if (this.config.enableRecommendations && sessionHealth.healthScore < this.config.recommendationThreshold) {
+			this.triggerRecommendation(sessionHealth);
+		}
+	}
+
+	/**
+	 * Check if auto-snapshot should trigger (respects cooldown)
+	 */
+	private shouldAutoSnapshot(): boolean {
+		const now = Date.now();
+		return now - this.lastAutoSnapshotTime >= this.AUTO_SNAPSHOT_COOLDOWN;
+	}
+
+	/**
+	 * Trigger auto-snapshot and update UI accordingly
+	 */
+	private async triggerAutoSnapshot(_reason: string): Promise<void> {
+		this.lastAutoSnapshotTime = Date.now();
+
+		// Show activity sequence in status bar
+		void this.statusBarManager.showActivitySequenceByType("vitals-degrading");
+
+		// Execute snapshot command
+		try {
+			await vscode.commands.executeCommand("snapback.createSnapshot");
+			// Clear any pending recommendation
+			this.recommendationUI.clearRecommendation();
+		} catch (error) {
+			// If snapshot fails, show recommendation as fallback
+			const sessionHealth = this.dataService.getSessionHealth();
 			this.triggerRecommendation(sessionHealth);
 		}
 	}
