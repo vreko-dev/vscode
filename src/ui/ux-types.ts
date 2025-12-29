@@ -40,7 +40,8 @@ export type StatusBarState =
 	| "ai-session" // $(sparkle) Cursor session protected
 	| "checkpoint" // $(check) Checkpoint saved
 	| "restored" // $(history) Restored 47 lines
-	| "vitals"; // 💓45 🌡️🔥 📊78 🫁92 (power user mode)
+	| "vitals" // 💓45 🌡️🔥 📊78 🫁92 (power user mode)
+	| "recommendation"; // $(warning) Snapshot Recommended
 
 /**
  * Stats tracked for status bar display

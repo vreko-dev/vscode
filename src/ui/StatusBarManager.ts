@@ -47,6 +47,7 @@ const STATE_TIMEOUTS: Partial<Record<StatusBarState, number>> = {
 	"ai-session": 5000,
 	checkpoint: 3000,
 	restored: 5000,
+	recommendation: 0, // Persistent until cleared
 };
 
 /**
@@ -55,6 +56,11 @@ const STATE_TIMEOUTS: Partial<Record<StatusBarState, number>> = {
  * HINT: Use VS Code codicons like $(shield), $(sparkle), etc.
  * Full list: https://code.visualstudio.com/api/references/icons-in-labels
  */
+/**
+ * Recommendation urgency levels
+ */
+export type RecommendationUrgency = "low" | "medium" | "high" | "critical";
+
 const STATUS_TEXT: Record<StatusBarState, string | ((data: unknown) => string)> = {
 	idle: "$(shield) SnapBack",
 	"idle-stats": (stats: unknown) =>
@@ -64,6 +70,11 @@ const STATUS_TEXT: Record<StatusBarState, string | ((data: unknown) => string)> 
 	checkpoint: "$(check) Checkpoint saved",
 	restored: (lines: unknown) => `$(history) Restored${lines ? ` ${lines as number}` : ""} lines`,
 	vitals: (vitals: unknown) => formatVitalsText(vitals as VitalsDisplayData),
+	recommendation: (urgency: unknown) => {
+		const u = urgency as RecommendationUrgency;
+		const icon = u === "critical" ? "$(alert)" : u === "high" ? "$(warning)" : "$(info)";
+		return `${icon} Snapshot Recommended`;
+	},
 };
 
 /**
@@ -203,6 +214,67 @@ export class StatusBarManager implements vscode.Disposable {
 			this.item.backgroundColor = undefined;
 			this.showIdle();
 		}, STATE_TIMEOUTS.restored);
+	}
+
+	// ===========================================================================
+	// RECOMMENDATION STATE
+	// ===========================================================================
+
+	/**
+	 * Show snapshot recommendation (persistent until cleared)
+	 *
+	 * @param urgency - Recommendation urgency level
+	 * @param reason - Why snapshot is recommended (for tooltip)
+	 *
+	 * DESIGN: This replaces SnapshotRecommendationUI's separate status bar item
+	 * to provide a single, consolidated status bar experience.
+	 */
+	showRecommendation(urgency: RecommendationUrgency, reason?: string): void {
+		this.clearTransitionTimeout();
+		this.abortActiveSequence();
+		this.setState("recommendation", urgency);
+
+		// Set background color based on urgency
+		if (urgency === "critical") {
+			this.item.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+		} else if (urgency === "high") {
+			this.item.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+		} else {
+			this.item.backgroundColor = undefined;
+		}
+
+		// Set click action to create snapshot
+		this.item.command = "snapback.createSnapshot";
+
+		// Store reason for tooltip
+		if (reason) {
+			this.recommendationReason = reason;
+		}
+		this.item.tooltip = this.buildTooltip();
+	}
+
+	/**
+	 * Current recommendation reason for tooltip
+	 */
+	private recommendationReason: string | undefined;
+
+	/**
+	 * Clear recommendation state and return to idle
+	 */
+	clearRecommendation(): void {
+		if (this.state === "recommendation") {
+			this.item.backgroundColor = undefined;
+			this.item.command = "snapback.showQuickPicker"; // Reset to default command
+			this.recommendationReason = undefined;
+			this.showIdle();
+		}
+	}
+
+	/**
+	 * Check if currently showing a recommendation
+	 */
+	isShowingRecommendation(): boolean {
+		return this.state === "recommendation";
 	}
 
 	// ===========================================================================
@@ -482,6 +554,12 @@ export class StatusBarManager implements vscode.Disposable {
 		const trajectorySignage = TRAJECTORY_SIGNAGE[this.trajectory];
 
 		md.appendMarkdown(`**SnapBack** ${healthSignage.emoji} ${healthSignage.label}\n\n`);
+
+		// Recommendation reason if showing recommendation
+		if (this.state === "recommendation" && this.recommendationReason) {
+			md.appendMarkdown(`**$(warning) ${this.recommendationReason}**\n\n`);
+			md.appendMarkdown("*Click to create snapshot*\n\n");
+		}
 
 		// Session health section
 		md.appendMarkdown(`**Session Health:** ${healthSignage.emoji} ${healthSignage.label}`);
