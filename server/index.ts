@@ -543,6 +543,26 @@ connection.onRequest(
 	},
 );
 
+/**
+ * 🆕 Phase 2A: Handle edit recording from extension
+ */
+connection.onRequest(
+	"snapback/vitals/recordEdit",
+	async (params: {
+		workspaceId: string;
+		linesAdded: number;
+		linesDeleted: number;
+	}): Promise<{ success: boolean }> => {
+		try {
+			const vitals = WorkspaceVitals.for(params.workspaceId);
+			vitals.recordEdit(params.linesAdded, params.linesDeleted);
+			return { success: true };
+		} catch {
+			return { success: false };
+		}
+	},
+);
+
 // Listen to text document events
 documents.listen(connection);
 

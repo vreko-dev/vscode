@@ -93,6 +93,13 @@ export interface RiskDetectedEvent {
 	suggestion?: string;
 }
 
+export interface SnapshotCreatedEvent {
+	snapshotId: string;
+	filePath: string;
+	trigger: "manual" | "auto" | "mcp" | "ai-detection";
+	source: "extension" | "mcp" | "cli";
+}
+
 export interface SessionStatusResult {
 	active: boolean;
 	taskId?: string;
@@ -140,6 +147,9 @@ export class DaemonBridge extends vscode.Disposable {
 
 	private _onDaemonShuttingDown = new vscode.EventEmitter<void>();
 	public readonly onDaemonShuttingDown = this._onDaemonShuttingDown.event;
+
+	private _onSnapshotCreated = new vscode.EventEmitter<SnapshotCreatedEvent>();
+	public readonly onSnapshotCreated = this._onSnapshotCreated.event;
 
 	constructor() {
 		super(() => this.dispose());
@@ -346,6 +356,21 @@ export class DaemonBridge extends vscode.Disposable {
 					riskLevel: data.riskLevel as "low" | "medium" | "high",
 					reason: data.reason as string,
 					suggestion: data.suggestion as string | undefined,
+				});
+				break;
+
+			case "snapshot.created":
+				// MCP or CLI created a snapshot - notify Extension
+				// This enables vitals pressure reset across all snapshot sources
+				logger.debug("Snapshot created notification from daemon", {
+					snapshotId: data.snapshotId,
+					source: data.source,
+				});
+				this._onSnapshotCreated.fire({
+					snapshotId: data.snapshotId as string,
+					filePath: data.filePath as string,
+					trigger: data.trigger as "manual" | "auto" | "mcp" | "ai-detection",
+					source: data.source as "extension" | "mcp" | "cli",
 				});
 				break;
 
@@ -586,6 +611,7 @@ export class DaemonBridge extends vscode.Disposable {
 		this._onRiskDetected.dispose();
 		this._onConnectionChanged.dispose();
 		this._onDaemonShuttingDown.dispose();
+		this._onSnapshotCreated.dispose();
 	}
 }
 
