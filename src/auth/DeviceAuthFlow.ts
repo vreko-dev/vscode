@@ -1,43 +1,40 @@
 import { logger } from "@snapback/infrastructure";
+import {
+	type AuthResult,
+	createDeviceAuthClient,
+	DeviceAuthClient,
+	type DeviceCodeResponse,
+	type FlowState,
+} from "@snapback-oss/sdk";
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
 import { TelemetryProxy } from "../services/telemetry-proxy";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 
+// Re-export types for backward compatibility
+export type { AuthResult, FlowState };
+
 /**
- * Device Authorization Flow (RFC 8628)
+ * Device Authorization Flow (RFC 8628) for VS Code Extension
  *
- * Implements OAuth-less authentication for VS Code extension
+ * Uses shared DeviceAuthClient from @snapback-oss/sdk for core authentication,
+ * with VS Code-specific UI and credential storage.
+ *
  * Perfect for WSL, Remote SSH, and Codespaces where OAuth callbacks don't work
  *
  * Flow:
- * 1. Extension requests device code → /api/auth/device-code
+ * 1. Extension requests device code → /api/deviceAuth/requestCode
  * 2. Shows verification_uri + user_code to user
  * 3. User visits URL in browser, enters code, logs in via OAuth
- * 4. Extension polls /api/auth/device-token until approval
+ * 4. Extension polls /api/deviceAuth/pollToken until approval
  * 5. Returns API key for authenticated requests
  * 6. Events tracked: auth.provider.selected, auth.browser.opened, auth.approval.received
  */
-export interface AuthResult {
-	api_key: string;
-	user_id: string;
-	tier: "free" | "pro" | "enterprise";
-}
-
-export type FlowState = "idle" | "waiting_for_approval" | "approved" | "cancelled" | "error";
-
 export class DeviceAuthFlow {
-	private state: FlowState = "idle";
+	private client: DeviceAuthClient;
 	private lastError: Error | null = null;
-	private abortController: AbortController | null = null;
-	private isAuthenticating = false;
-
-	// Polling state
-	private currentInterval = 0;
-	private pollStartTime = 0;
-
-	// Event tracking
 	private diagnosticTracker: DiagnosticEventTracker;
+	private pollStartTime = 0;
 
 	constructor(
 		private context: ExtensionContext,
@@ -46,6 +43,9 @@ export class DeviceAuthFlow {
 		// Initialize diagnostic event tracker
 		const telemetryProxy = new TelemetryProxy(context);
 		this.diagnosticTracker = new DiagnosticEventTracker(telemetryProxy);
+
+		// Initialize shared device auth client
+		this.client = createDeviceAuthClient(apiBaseUrl, "vscode-extension");
 	}
 
 	/**
@@ -54,247 +54,80 @@ export class DeviceAuthFlow {
 	 * Tracks events: auth.provider.selected, auth.browser.opened, auth.approval.received
 	 */
 	async authenticate(): Promise<AuthResult> {
-		// Prevent concurrent authentications
-		if (this.isAuthenticating) {
-			throw new Error("Authentication already in progress");
-		}
-
-		this.isAuthenticating = true;
-		this.state = "idle";
 		this.lastError = null;
-		this.abortController = new AbortController();
+		this.pollStartTime = Date.now();
+
+		// Track: User selected device flow as auth provider
+		this.diagnosticTracker.trackAuthProviderSelected("device_flow", "user_selected");
+
+		// Create a new client for each authentication to reset state
+		this.client = createDeviceAuthClient(this.apiBaseUrl, "vscode-extension");
 
 		try {
-			// Track: User selected device flow as auth provider
-			this.diagnosticTracker.trackAuthProviderSelected("device_flow", "user_selected");
+			const result = await this.client.authenticate({
+				onDeviceCode: async (response: DeviceCodeResponse) => {
+					logger.info("Device code obtained, polling for approval", {
+						userCode: response.user_code,
+						expiresIn: response.expires_in,
+						initialInterval: response.interval,
+					});
 
-			// Step 1: Request device code
-			const deviceCodeResponse = await this.requestDeviceCode();
-
-			if (!deviceCodeResponse.device_code) {
-				throw new Error("Failed to get device code: Device code response missing required field");
-			}
-
-			const { device_code, expires_in, interval, verification_uri, user_code } = deviceCodeResponse;
-
-			// Step 2: Set up polling
-			this.currentInterval = interval * 1000; // Convert to milliseconds
-			this.pollStartTime = Date.now();
-			this.state = "waiting_for_approval";
-
-			logger.info("Device code obtained, polling for approval", {
-				userCode: user_code,
-				expiresIn: expires_in,
-				initialInterval: interval,
-			});
-
-			// Step 2a: Display verification URI to user and attempt to open browser
-			await this.showVerificationPrompt(verification_uri, user_code);
-
-			// Step 3: Poll for token with exponential backoff
-			return await this.pollForToken(device_code, expires_in);
-		} catch (error) {
-			// Don't override cancelled state (set by cancel() method)
-			// @ts-expect-error - state can be set by cancel() from outside
-			if (this.state !== "cancelled") {
-				this.state = "error";
-			}
-			this.lastError = error instanceof Error ? error : new Error(String(error));
-			logger.error("Device auth failed", {
-				error: this.lastError.message,
-				state: this.state,
-			});
-			throw this.lastError;
-		} finally {
-			this.isAuthenticating = false;
-		}
-	}
-
-	/**
-	 * Request device code from backend (oRPC endpoint)
-	 */
-	private async requestDeviceCode(): Promise<{
-		device_code: string;
-		user_code: string;
-		verification_uri: string;
-		verification_uri_complete?: string;
-		expires_in: number;
-		interval: number;
-	}> {
-		try {
-			const response = await fetch(`${this.apiBaseUrl}/deviceAuth/requestCode`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
+					// Show VS Code verification prompt
+					await this.showVerificationPrompt(response.verification_uri, response.user_code);
 				},
-				body: JSON.stringify({
-					client_id: "vscode-extension",
-				}),
-				signal: this.abortController?.signal,
-			});
 
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-			}
+				onPoll: (attempt: number, intervalMs: number) => {
+					logger.debug("Waiting for user approval...", {
+						attempt,
+						interval: intervalMs,
+					});
+				},
 
-			// oRPC returns the device code response directly
-			const data = (await response.json()) as {
-				device_code: string;
-				user_code: string;
-				verification_uri: string;
-				verification_uri_complete?: string;
-				expires_in: number;
-				interval: number;
-			};
-			return data;
-		} catch (error) {
-			const message = error instanceof Error ? error.message : "Failed to request device code";
-			throw new Error(`Device code request failed: ${message}`);
-		}
-	}
+				onSlowDown: (newIntervalMs: number) => {
+					logger.debug("Server requested slower polling", {
+						newInterval: newIntervalMs,
+					});
+				},
 
-	/**
-	 * Poll for token with exponential backoff and slow_down handling
-	 */
-	private async pollForToken(deviceCode: string, expiresInSeconds: number): Promise<AuthResult> {
-		const timeoutMs = expiresInSeconds * 1000;
-		const maxWaitTime = this.pollStartTime + timeoutMs;
-
-		while (true) {
-			// Check timeout
-			if (Date.now() > maxWaitTime) {
-				throw new Error("Device code expired - authentication timeout");
-			}
-
-			// Check for cancellation
-			if (this.abortController?.signal.aborted) {
-				this.state = "cancelled";
-				const error = new Error("Authentication cancelled");
-				this.lastError = error;
-				throw error;
-			}
-
-			try {
-				// Poll for token
-				const response = await fetch(`${this.apiBaseUrl}/deviceAuth/pollToken`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						device_code: deviceCode,
-						grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-					}),
-					signal: this.abortController?.signal,
-				});
-
-				if (!response.ok) {
-					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-				}
-
-				const data = (await response.json()) as
-					| {
-							access_token: string;
-							token_type: "Bearer";
-							expires_in?: number;
-							refresh_token?: string;
-							scope?: string;
-					  }
-					| {
-							error: "authorization_pending" | "slow_down" | "expired_token" | "invalid_request";
-							error_description?: string;
-					  };
-
-				// Handle success - oRPC returns token directly or error object
-				if ("access_token" in data) {
-					const { access_token } = data;
-
+				onApproved: async (result: AuthResult) => {
 					// Track: Server approved the authentication request
 					const approvalTimeMs = Date.now() - this.pollStartTime;
 					this.diagnosticTracker.trackAuthApprovalReceived(approvalTimeMs);
 
-					// Store access_token as API key for authenticated API calls
-					// In production, you could:
-					// 1. Exchange token for API key via backend
-					// 2. Extract user info from JWT payload
-					// 3. Validate token claims and scopes
-					const api_key = access_token;
-					const user_id = "user-from-token"; // Extract from JWT claims in production
-					const tier: "free" | "pro" | "enterprise" = "free"; // Extract from JWT claims in production
-
 					// Log successful token reception
 					logger.debug("Device auth token received", {
-						hasRefreshToken: !!data.refresh_token,
-						expiresIn: data.expires_in,
-						scope: data.scope,
+						hasRefreshToken: !!result.refresh_token,
+						expiresIn: result.expires_in,
 					});
 
 					// Store credentials securely in VS Code Secrets
-					await this.context.secrets.store("snapback.apiKey", api_key);
-					await this.context.secrets.store("snapback.userId", user_id);
-					await this.context.secrets.store("snapback.userTier", tier);
-
-					this.state = "approved";
+					await this.context.secrets.store("snapback.apiKey", result.api_key);
+					await this.context.secrets.store("snapback.userId", result.user_id);
+					await this.context.secrets.store("snapback.userTier", result.tier);
 
 					logger.info("Device auth approved", {
-						userId: user_id,
-						tier,
+						userId: result.user_id,
+						tier: result.tier,
 					});
+				},
 
-					return { api_key, user_id, tier };
-				}
+				onError: (error: Error) => {
+					this.lastError = error;
+					logger.error("Device auth failed", {
+						error: error.message,
+						state: this.getState(),
+					});
+				},
 
-				// Handle RFC 8628 errors
-				if ("error" in data) {
-					switch (data.error) {
-						case "authorization_pending":
-							// User hasn't approved yet - continue polling
-							logger.debug("Waiting for user approval...");
-							break;
+				onCancelled: () => {
+					logger.info("Device auth cancelled by user");
+				},
+			});
 
-						case "slow_down":
-							// Server requested slower polling - increase interval by 5s
-							this.currentInterval += 5000;
-							logger.debug("Server requested slower polling", {
-								newInterval: this.currentInterval,
-							});
-							break;
-
-						case "expired_token":
-							throw new Error("Device code has expired on server");
-
-						case "invalid_request":
-							throw new Error("Invalid device code format");
-
-						default: {
-							const _exhaustive: never = data.error;
-							throw new Error(`Unknown error: ${_exhaustive}`);
-						}
-					}
-				}
-			} catch (error) {
-				// Don't override cancelled state
-				if (this.state !== "cancelled") {
-					if (error instanceof Error) {
-						if (error.message.includes("cancelled")) {
-							throw error; // Re-throw cancellation
-						}
-						// Re-throw RFC 8628 errors (expired_token, invalid_request)
-						if (error.message.includes("expired") || error.message.includes("Invalid device code")) {
-							throw error;
-						}
-						logger.warn("Poll request failed, retrying", {
-							error: error.message,
-						});
-					}
-				} else {
-					// Already cancelled
-					throw error;
-				}
-			}
-
-			// Wait before next poll with exponential backoff
-			await this.delay(this.currentInterval);
+			return result;
+		} catch (error) {
+			this.lastError = error instanceof Error ? error : new Error(String(error));
+			throw this.lastError;
 		}
 	}
 
@@ -302,8 +135,7 @@ export class DeviceAuthFlow {
 	 * Cancel authentication flow
 	 */
 	cancel(): void {
-		this.abortController?.abort();
-		this.state = "cancelled";
+		this.client.cancel();
 		logger.info("Device auth cancelled by user");
 	}
 
@@ -311,7 +143,7 @@ export class DeviceAuthFlow {
 	 * Get current flow state
 	 */
 	getState(): FlowState {
-		return this.state;
+		return this.client.getState();
 	}
 
 	/**
@@ -319,19 +151,6 @@ export class DeviceAuthFlow {
 	 */
 	getLastError(): Error | null {
 		return this.lastError;
-	}
-
-	/**
-	 * Helper: delay execution
-	 */
-	private delay(ms: number): Promise<void> {
-		return new Promise((resolve) => {
-			const timeout = setTimeout(resolve, ms);
-			this.abortController?.signal.addEventListener("abort", () => {
-				clearTimeout(timeout);
-				resolve();
-			});
-		});
 	}
 
 	/**
