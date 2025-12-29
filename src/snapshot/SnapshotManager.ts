@@ -18,10 +18,11 @@ import { EncryptionService } from "./EncryptionService";
 import type { SessionCoordinator } from "./SessionCoordinator";
 import type { FileState, SnapshotState } from "./SnapshotDeduplicator";
 import { SnapshotDeduplicator } from "./SnapshotDeduplicator";
-import type { AutoCleanupConfig, DeletionOptions, DeletionResult } from "./SnapshotDeletionService";
-import { SnapshotDeletionService } from "./SnapshotDeletionService";
+// SDK imports (extracted business logic)
+import type { AutoCleanupConfig, DeletionOptions, DeletionResult } from "@snapback-oss/sdk";
+import { SnapshotDeletionService, SnapshotNamingStrategy } from "@snapback-oss/sdk";
+import { sdkLogger } from "../utils/sdkLoggerAdapter";
 import { SnapshotIconStrategy } from "./SnapshotIconStrategy";
-import { SnapshotNamingStrategy } from "./SnapshotNamingStrategy";
 
 /**
  * SnapshotManager - Central orchestrator for snapshot intelligence system
@@ -108,7 +109,9 @@ export class SnapshotManager {
 
 		// Initialize components
 		this.deduplicator = new SnapshotDeduplicator(500);
-		this.namingStrategy = new SnapshotNamingStrategy(this.getCurrentWorkspaceRoot());
+		this.namingStrategy = new SnapshotNamingStrategy(this.getCurrentWorkspaceRoot(), {
+			logger: sdkLogger,
+		});
 		this.iconStrategy = new SnapshotIconStrategy();
 		this.encryptionService = new EncryptionService();
 
@@ -121,6 +124,7 @@ export class SnapshotManager {
 				unprotect: this.unprotect.bind(this),
 			},
 			confirmationService,
+			{ logger: sdkLogger },
 		);
 	}
 
