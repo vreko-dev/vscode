@@ -29,6 +29,7 @@
  * @packageDocumentation
  */
 
+import { PRESSURE_THRESHOLDS } from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
 import {
 	PULSE_LEVEL_SIGNAGE,
@@ -505,13 +506,17 @@ export class StatusBarManager implements vscode.Disposable {
 	 */
 	private deriveSessionHealth(vitals: VitalsDisplayData): SessionHealthCanonical {
 		// High pressure or critical pulse/temp = critical
-		if (vitals.pressure.value > 80 || vitals.pulse.level === "critical" || vitals.temperature.level === "burning") {
+		if (
+			vitals.pressure.value >= PRESSURE_THRESHOLDS.critical ||
+			vitals.pulse.level === "critical" ||
+			vitals.temperature.level === "burning"
+		) {
 			return "critical";
 		}
 
 		// Elevated metrics = warning
 		if (
-			vitals.pressure.value > 50 ||
+			vitals.pressure.value >= PRESSURE_THRESHOLDS.moderate ||
 			vitals.pulse.level === "racing" ||
 			vitals.pulse.level === "elevated" ||
 			vitals.temperature.level === "hot"

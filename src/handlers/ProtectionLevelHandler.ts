@@ -1,12 +1,13 @@
 import * as path from "node:path";
 import type { EvaluationContext, ProtectionDecision, ProtectionDecisionEngine } from "@snapback/sdk";
+import { SnapshotNamingStrategy } from "@snapback-oss/sdk";
 import * as vscode from "vscode";
 import { RecoveryUXNotification } from "../notifications/RecoveryUXNotification";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { MilestoneService } from "../services/MilestoneService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
-import { SnapshotNamingStrategy } from "../snapshot/SnapshotNamingStrategy";
 import { logger } from "../utils/logger";
+import { sdkLogger } from "../utils/sdkLoggerAdapter";
 import type { ProtectionLevel } from "../views/types";
 import type { AuditLogger } from "./AuditLogger";
 import type { CooldownService } from "./CooldownService";
@@ -1032,7 +1033,7 @@ A snapshot will be created before saving.`,
 		}
 
 		// Use intelligent snapshot naming strategy for GitLens parity
-		const namingStrategy = new SnapshotNamingStrategy(workspaceRoot);
+		const namingStrategy = new SnapshotNamingStrategy(workspaceRoot, { logger: sdkLogger });
 		const snapshotInfo = {
 			files: [
 				{

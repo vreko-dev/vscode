@@ -49,7 +49,9 @@ import { RulesManager } from "./rules/RulesManager";
 import { initializeSecureConfig } from "./security/SecureConfigService"; // 🆕 Import SecureConfigService
 import { NoopAIRiskService, RemoteAIRiskService } from "./services/aiRiskService";
 import { ApiClient } from "./services/api-client";
+import { disposeDaemonBridge, getDaemonBridge, type SnapshotCreatedEvent } from "./services/DaemonBridge";
 import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService
+import { getWorkspaceVitalsSync } from "./services/IntelligenceService"; // 🆕 Import for Phase 2A
 import { activateLanguageServer, deactivateLanguageServer, preCacheVitals } from "./services/LanguageClient";
 import { TelemetryProxy } from "./services/telemetry-proxy";
 import { UserIdentityService } from "./services/UserIdentityService";
@@ -70,6 +72,34 @@ import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry";
 import { WelcomePanel } from "./welcome/WelcomePanel"; // 🆕 Fallback for 3rd party IDEs
 
 // 🆕 IntelligenceService imported dynamically after process.exit guard (see deactivate function)
+
+/**
+ * Calculate line diff from TextDocumentContentChangeEvent
+ * Used for Phase 2A behavioral tracking (edit velocity)
+ */
+function calculateLineDiff(changes: readonly vscode.TextDocumentContentChangeEvent[]): {
+	linesAdded: number;
+	linesDeleted: number;
+} {
+	let linesAdded = 0;
+	let linesDeleted = 0;
+
+	for (const change of changes) {
+		// Skip empty changes or malformed ranges
+		if (!change.range) continue;
+
+		const rangeLength = change.range.end.line - change.range.start.line;
+		const newLineCount = change.text.split("\n").length - 1;
+
+		if (newLineCount > rangeLength) {
+			linesAdded += newLineCount - rangeLength;
+		} else if (rangeLength > newLineCount) {
+			linesDeleted += rangeLength - newLineCount;
+		}
+	}
+
+	return { linesAdded, linesDeleted };
+}
 
 // Import the new EventBus and feature flag
 
@@ -455,6 +485,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		});
 		logger.info("PRWManager initialized for PRE/POST checkpoint coordination");
 
+		// 🆕 Cleanup orphan PRE checkpoints from previous crashes (fire-and-forget, non-fatal)
+		void phase2Result.storage.getPRWSnapshotStore().cleanupOldOrphanPREs(60 * 60 * 1000).catch((err) => {
+			logger.warn("Failed to cleanup orphan PRE checkpoints (non-critical)", { error: err });
+		});
+
 		// 🆕 Initialize SignalBridge for AI paste/burst detection (V2 engine only)
 		signalBridge = new SignalBridge({ burstThreshold: 30 });
 
@@ -465,6 +500,17 @@ export async function activate(context: vscode.ExtensionContext) {
 
 				// Compute burst state
 				const burstState = signalBridge.computeBurst(e.document, e.contentChanges);
+
+				// 🆕 Phase 2A: Track line changes for behavioral metadata
+				const { linesAdded, linesDeleted } = calculateLineDiff(e.contentChanges);
+				if (linesAdded > 0 || linesDeleted > 0) {
+					const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() || "default";
+					const vitals = getWorkspaceVitalsSync(workspaceId);
+					if (vitals) {
+						vitals.recordEdit(linesAdded, linesDeleted);
+						logger.debug("Vitals: Line changes tracked", { linesAdded, linesDeleted });
+					}
+				}
 
 				if (burstState.detected && burstState.velocity) {
 					// On burst detected → create PRE checkpoint
@@ -1074,6 +1120,47 @@ export async function activate(context: vscode.ExtensionContext) {
 			context.subscriptions.push({
 				dispose: () => bus.off(SnapBackEvent.ANALYSIS_COMPLETED, analysisCompletedHandler),
 			});
+
+			// 🆕 Initialize DaemonBridge for cross-surface snapshot coordination
+			// When MCP or CLI creates a snapshot, the daemon notifies us, and we forward to EventBus
+			// This enables vitals pressure reset regardless of snapshot source
+			const daemonBridge = getDaemonBridge();
+			void daemonBridge
+				.initialize()
+				.then(() => {
+					logger.info("DaemonBridge initialized for cross-surface coordination");
+				})
+				.catch((err) => {
+					// Non-fatal: Extension continues without daemon coordination
+					// Extension-only snapshots still work, just MCP/CLI won't reset vitals
+					logger.warn("DaemonBridge initialization failed - cross-surface events unavailable", {
+						error: err instanceof Error ? err.message : String(err),
+					});
+				});
+
+			// Forward daemon snapshot.created notifications to EventBus
+			const daemonSnapshotHandler = (event: SnapshotCreatedEvent) => {
+				logger.info("Snapshot created via daemon (MCP/CLI) - forwarding to EventBus", {
+					snapshotId: event.snapshotId,
+					source: event.source,
+					trigger: event.trigger,
+				});
+
+				// Forward to EventBus so AutoDecisionIntegration can reset vitals pressure
+				bus.publish(SnapBackEvent.SNAPSHOT_CREATED, {
+					id: event.snapshotId,
+					filePath: event.filePath,
+					source: event.source,
+					trigger: event.trigger,
+				});
+
+				// Refresh views
+				refreshViews();
+			};
+			daemonBridge.onSnapshotCreated(daemonSnapshotHandler);
+			context.subscriptions.push({
+				dispose: () => disposeDaemonBridge(),
+			});
 		}
 
 		// Create updateFileProtectionContext function
@@ -1188,10 +1275,10 @@ export async function activate(context: vscode.ExtensionContext) {
 				await updateHasProtectedFilesContext();
 				logger.info("Protected files context updated");
 
-				// Update file protection context for active editor
-				const activeEditor = vscode.window.activeTextEditor;
-				if (activeEditor) {
-					await updateFileProtectionContext(activeEditor.document.uri);
+				// Update file protection context for active editor (defensive: editor or document may be undefined)
+				const activeUri = vscode.window.activeTextEditor?.document?.uri;
+				if (activeUri) {
+					await updateFileProtectionContext(activeUri);
 					logger.info("File protection context updated for active editor");
 				}
 				console.log("[PERF] Context updates completed", {
@@ -1206,49 +1293,58 @@ export async function activate(context: vscode.ExtensionContext) {
 		//  TDD: Wire cache invalidation + dashboard refresh on protection changes
 		let auditDebounceTimer: NodeJS.Timeout | undefined;
 		const protectionChangeListener = phase2Result.protectedFileRegistry.onProtectionChanged(async (uris) => {
-			// Update the file protection context for the active editor
-			const activeEditor = vscode.window.activeTextEditor;
-			if (activeEditor) {
-				await updateFileProtectionContext(activeEditor.document.uri);
-			}
-			// Update hasProtectedFiles context
-			await updateHasProtectedFilesContext();
-			// Refresh all tree views when protection changes
-			refreshViews();
+			try {
+				// Update the file protection context for the active editor (defensive: editor or document may be undefined)
+				const activeUri = vscode.window.activeTextEditor?.document?.uri;
+				if (activeUri) {
+					await updateFileProtectionContext(activeUri);
+				}
+				// Update hasProtectedFiles context
+				await updateHasProtectedFilesContext();
+				// Refresh all tree views when protection changes
+				refreshViews();
 
-			// 🟢 TDD GREEN: Invalidate audit cache and refresh with debouncing
-			// Debounce to prevent excessive audits during bulk protection operations
-			if (auditDebounceTimer) {
-				clearTimeout(auditDebounceTimer);
-			}
-			auditDebounceTimer = setTimeout(async () => {
-				logger.info("Protection changed, refreshing audit...");
-				// Invalidate cache to ensure fresh scan
-				phase3Result.protectionService.invalidateAuditCache();
-				// Run audit with force=true to bypass cache
-				await phase3Result.protectionService.auditRepo(true);
-				// 🟢 Phase 2: Refresh SnapBack TreeView to show updated status
-				phase4Result.snapBackTreeProvider.refresh();
-			}, 300); // 300ms debounce for responsive feel
+				// 🟢 TDD GREEN: Invalidate audit cache and refresh with debouncing
+				// Debounce to prevent excessive audits during bulk protection operations
+				if (auditDebounceTimer) {
+					clearTimeout(auditDebounceTimer);
+				}
+				auditDebounceTimer = setTimeout(async () => {
+					logger.info("Protection changed, refreshing audit...");
+					// Invalidate cache to ensure fresh scan
+					phase3Result.protectionService.invalidateAuditCache();
+					// Run audit with force=true to bypass cache
+					await phase3Result.protectionService.auditRepo(true);
+					// 🟢 Phase 2: Refresh SnapBack TreeView to show updated status
+					phase4Result.snapBackTreeProvider.refresh();
+				}, 300); // 300ms debounce for responsive feel
 
-			// Publish event when protection changes
-			if (eventBus && uris.length > 0) {
-				const filePath = uris[0].fsPath;
-				// Simplified approach since we can't easily access getProtectionInfo
-				const payload: ProtectionChangedPayload = {
-					filePath,
-					level: "watch", // Default level
-					timestamp: Date.now(),
-				};
-				eventBus.publish(SnapBackEvent.PROTECTION_CHANGED, payload);
+				// Publish event when protection changes
+				if (eventBus && uris.length > 0) {
+					const filePath = uris[0].fsPath;
+					// Simplified approach since we can't easily access getProtectionInfo
+					const payload: ProtectionChangedPayload = {
+						filePath,
+						level: "watch", // Default level
+						timestamp: Date.now(),
+					};
+					eventBus.publish(SnapBackEvent.PROTECTION_CHANGED, payload);
+				}
+			} catch (err) {
+				logger.error("Error in protectionChangeListener", err as Error);
 			}
 		});
 		context.subscriptions.push(protectionChangeListener);
 
 		// Listen for active editor changes to update file protection context
 		const activeEditorChangeListener = vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-			if (editor) {
-				await updateFileProtectionContext(editor.document.uri);
+			try {
+				const uri = editor?.document?.uri;
+				if (uri) {
+					await updateFileProtectionContext(uri);
+				}
+			} catch (err) {
+				logger.error("Error in activeEditorChangeListener", err as Error);
 			}
 		});
 		context.subscriptions.push(activeEditorChangeListener);

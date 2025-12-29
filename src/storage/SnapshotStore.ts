@@ -7,6 +7,7 @@ import {
 	allocateSeq,
 	DEFAULT_INDEX,
 	DEFAULT_STATE,
+	removeFromIndex,
 	type SeqIndex,
 	type StoreState,
 	updateHead,
@@ -341,8 +342,7 @@ export class SnapshotStore {
 	/**
 	 * Detect orphan PRE checkpoints at startup for observability.
 	 * Logs orphan PREs at debug level for visibility without runtime intervention.
-	 *
-	 * TODO(v2): Consider TTL-based cleanup for orphan PREs
+	 * See cleanupOldOrphanPREs() for TTL-based cleanup.
 	 */
 	async detectOrphanPREs(): Promise<{ orphanCount: number; orphanIds: string[] }> {
 		const manifests = await this.listV2({ limit: 500, includeOrphanStatus: true });
@@ -365,6 +365,45 @@ export class SnapshotStore {
 		}
 
 		return { orphanCount: orphanIds.length, orphanIds };
+	}
+
+	/**
+	 * Clean up orphan PRE checkpoints older than specified age.
+	 * Called during startup to prevent storage bloat from crashes.
+	 *
+	 * @param maxAgeMs - Maximum age in milliseconds (default: 1 hour)
+	 * @returns Number of orphan PREs cleaned up
+	 */
+	async cleanupOldOrphanPREs(maxAgeMs = 60 * 60 * 1000): Promise<number> {
+		const { orphanIds } = await this.detectOrphanPREs();
+		const cutoffTime = Date.now() - maxAgeMs;
+
+		const toDelete: string[] = [];
+		for (const id of orphanIds) {
+			const manifest = await this.getManifestV2(id);
+			if (manifest && manifest.timestamp < cutoffTime) {
+				toDelete.push(id);
+			}
+		}
+
+		if (toDelete.length === 0) {
+			return 0;
+		}
+
+		let cleaned = 0;
+		for (const id of toDelete) {
+			const deleted = await this.delete(id);
+			if (deleted) {
+				cleaned++;
+				console.debug("[SnapBack Manifest] Cleaned orphan PRE", { id });
+			}
+		}
+
+		if (cleaned > 0) {
+			console.log(`[SnapBack Manifest] Cleaned ${cleaned} orphan PRE checkpoint(s) older than ${maxAgeMs / 60000} minutes`);
+		}
+
+		return cleaned;
 	}
 
 	/**
@@ -677,13 +716,27 @@ export class SnapshotStore {
 	/**
 	 * Delete a snapshot (manifest only, blobs may still be referenced)
 	 * Protected by WriterLock to prevent concurrent state corruption.
+	 * Updates index to remove the deleted entry.
+	 *
+	 * NOTE: Does not update headId - callers should ensure they don't delete
+	 * the current head, or handle state rebuild if needed.
 	 */
 	async delete(id: string): Promise<boolean> {
 		return withLock(this.lock, async () => {
+			await this.loadState();
+
 			const manifestUri = vscode.Uri.joinPath(this.snapshotsUri, `${id}.json`);
 
 			try {
 				await vscode.workspace.fs.delete(manifestUri);
+
+				// Remove from index if present
+				const seq = this.index.byId[id];
+				if (seq !== undefined) {
+					removeFromIndex(this.index, seq, id);
+					await this.saveState();
+				}
+
 				return true;
 			} catch {
 				return false;

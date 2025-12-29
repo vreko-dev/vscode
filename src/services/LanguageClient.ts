@@ -12,7 +12,7 @@
 
 import * as path from "node:path";
 import type { DetectedFramework, PipelineResult } from "@snapback/intelligence";
-import type { VitalsSnapshot } from "@snapback/intelligence/vitals";
+import { PRESSURE_THRESHOLDS, type VitalsSnapshot } from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
 import {
 	LanguageClient,
@@ -111,12 +111,28 @@ export class WorkspaceVitalsProxy {
 	}
 
 	/**
+	 * 🆕 Phase 2A: Record edit for behavioral metadata
+	 */
+	recordEdit(linesAdded: number, linesDeleted: number): void {
+		if (isLanguageServerActive()) {
+			sendRequest("snapback/vitals/recordEdit", {
+				workspaceId: this.workspaceId,
+				linesAdded,
+				linesDeleted,
+			}).catch(() => {
+				// Ignore errors - this is a notification
+			});
+		}
+	}
+
+	/**
 	 * Get agent guidance synchronously (from current snapshot)
+	 * Uses centralized thresholds from @snapback/intelligence/vitals
 	 */
 	getAgentGuidance(): { shouldSnapshot: boolean; reason: string } {
 		const vitals = this.current();
-		// Simple heuristic based on vitals - the real logic is on server
-		const shouldSnapshot = vitals.pressure.value > 70 || vitals.trajectory === "critical";
+		// Use centralized threshold - the real logic is on server
+		const shouldSnapshot = vitals.pressure.value >= PRESSURE_THRESHOLDS.high || vitals.trajectory === "critical";
 		return {
 			shouldSnapshot,
 			reason: shouldSnapshot ? "High pressure or critical trajectory" : "Vitals are stable",
@@ -125,10 +141,11 @@ export class WorkspaceVitalsProxy {
 
 	/**
 	 * Check if should snapshot (from current snapshot)
+	 * Uses centralized thresholds from @snapback/intelligence/vitals
 	 */
 	shouldSnapshot(): boolean {
 		const vitals = this.current();
-		return vitals.pressure.value > 70 || vitals.trajectory === "critical";
+		return vitals.pressure.value >= PRESSURE_THRESHOLDS.high || vitals.trajectory === "critical";
 	}
 }
 

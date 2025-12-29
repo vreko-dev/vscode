@@ -454,6 +454,7 @@ export class StorageManager implements IStorageManager {
 		createPRE(options: import("./SnapshotStore").CreatePREOptions): Promise<SnapshotManifestV2>;
 		createPOST(options: import("./SnapshotStore").CreatePOSTOptions): Promise<SnapshotManifestV2>;
 		createPreRollbackCheckpoint(targetId: string): Promise<SnapshotManifestV2>;
+		cleanupOldOrphanPREs(maxAgeMs?: number): Promise<number>;
 	} {
 		return this.snapshotStore;
 	}

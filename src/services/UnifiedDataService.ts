@@ -14,7 +14,12 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { VitalsSnapshot } from "@snapback/intelligence/vitals";
+import {
+	OXYGEN_THRESHOLDS,
+	PRESSURE_THRESHOLDS,
+	TIME_THRESHOLDS,
+	type VitalsSnapshot,
+} from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";
 
@@ -468,10 +473,10 @@ export class UnifiedDataService implements vscode.Disposable {
 		if (vitals.temperature.level === "hot" || vitals.temperature.level === "burning") {
 			warnings.push(`High AI change density: ${vitals.temperature.aiPercentage}%`);
 		}
-		if (vitals.pressure.value > 75) {
+		if (vitals.pressure.value >= PRESSURE_THRESHOLDS.high) {
 			warnings.push(`Pressure at ${vitals.pressure.value}% - snapshot recommended`);
 		}
-		if (vitals.oxygen.value < 50) {
+		if (vitals.oxygen.value < OXYGEN_THRESHOLDS.low) {
 			warnings.push(`Low oxygen: ${vitals.oxygen.value}%`);
 		}
 
@@ -488,7 +493,7 @@ export class UnifiedDataService implements vscode.Disposable {
 		if (warnings.length > 2) {
 			suggestions.push("Consider slowing down to review changes");
 		}
-		if (lastSnapshotMinutesAgo && lastSnapshotMinutesAgo > 30) {
+		if (lastSnapshotMinutesAgo && lastSnapshotMinutesAgo > TIME_THRESHOLDS.staleSnapshotMinutes) {
 			suggestions.push(`Last snapshot was ${lastSnapshotMinutesAgo} minutes ago`);
 		}
 
@@ -526,7 +531,7 @@ export class UnifiedDataService implements vscode.Disposable {
 		}
 
 		// High pressure: snapshot soon
-		if (vitals.pressure.value > 75) {
+		if (vitals.pressure.value >= PRESSURE_THRESHOLDS.high) {
 			return {
 				should: true,
 				reason: `High pressure (${vitals.pressure.value}%) - snapshot recommended`,
@@ -535,7 +540,7 @@ export class UnifiedDataService implements vscode.Disposable {
 		}
 
 		// Degrading trajectory with moderate pressure
-		if (vitals.trajectory === "escalating" && vitals.pressure.value > 50) {
+		if (vitals.trajectory === "escalating" && vitals.pressure.value >= PRESSURE_THRESHOLDS.moderate) {
 			return {
 				should: true,
 				reason: "Escalating pressure - consider creating a snapshot",
@@ -544,7 +549,7 @@ export class UnifiedDataService implements vscode.Disposable {
 		}
 
 		// Long time since last snapshot
-		if (health.lastSnapshotMinutesAgo && health.lastSnapshotMinutesAgo > 60) {
+		if (health.lastSnapshotMinutesAgo && health.lastSnapshotMinutesAgo > TIME_THRESHOLDS.optionalSnapshotMinutes) {
 			return {
 				should: true,
 				reason: `No snapshot in ${health.lastSnapshotMinutesAgo} minutes`,
@@ -577,10 +582,10 @@ export class UnifiedDataService implements vscode.Disposable {
 		let suggestion = "";
 
 		// High pressure blocks risky operations
-		if (vitals.pressure.value > 75) {
+		if (vitals.pressure.value >= PRESSURE_THRESHOLDS.high) {
 			blockedOps.push("refactor large files", "delete files", "major restructuring");
 			suggestion = "High pressure - complete current changes before major refactoring";
-		} else if (vitals.pressure.value > 50) {
+		} else if (vitals.pressure.value >= PRESSURE_THRESHOLDS.moderate) {
 			safeOps.push("small edits", "add comments", "fix typos");
 			blockedOps.push("large refactoring");
 			suggestion = "Moderate pressure - keep changes small";

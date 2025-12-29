@@ -367,6 +367,30 @@
         "icon": "$(extensions)"
       },
       {
+        "command": "snapback.mcp.check",
+        "title": "Run Code Check",
+        "category": "SnapBack MCP",
+        "icon": "$(check)"
+      },
+      {
+        "command": "snapback.mcp.checkPatterns",
+        "title": "Check Code Patterns",
+        "category": "SnapBack MCP",
+        "icon": "$(search)"
+      },
+      {
+        "command": "snapback.mcp.startTask",
+        "title": "Start Development Task",
+        "category": "SnapBack MCP",
+        "icon": "$(play)"
+      },
+      {
+        "command": "snapback.mcp.endTask",
+        "title": "End Development Task",
+        "category": "SnapBack MCP",
+        "icon": "$(debug-stop)"
+      },
+      {
         "command": "snapback.mcp.status",
         "title": "Show AI Assistant Status",
         "category": "SnapBack MCP",
@@ -1268,6 +1292,7 @@
     "@snapback/config": "workspace:*",
     "@snapback/contracts": "workspace:*",
     "@snapback/mcp-config": "workspace:*",
+    "@snapback/mcp": "workspace:*",
     "@snapback/core": "workspace:*",
     "@snapback/engine": "workspace:*",
     "@snapback/infrastructure": "workspace:*",

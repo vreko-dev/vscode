@@ -33,8 +33,10 @@ export interface Phase3Result {
 	snapshotNavigatorProvider: SnapshotNavigatorProvider;
 	protectionService: ProtectionService; // 🟢 TDD GREEN: Protection audit service
 	milestoneService: MilestoneService;
+	mcpToolsService: MCPToolsService | null; // 🔧 MCP Tools integration
 }
 
+import { MCPToolsService } from "../services/MCPToolsService";
 import { MilestoneService } from "../services/MilestoneService";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
 
@@ -184,6 +186,21 @@ export async function initializePhase3Managers(
 			});
 		}
 
+		// 🔧 Initialize MCPToolsService for direct MCP tool access
+		t = Date.now();
+		let mcpToolsService: MCPToolsService | null = null;
+		if (protectedFileRegistry) {
+			mcpToolsService = new MCPToolsService({
+				workspaceRoot,
+				sessionCoordinator,
+				protectedFileRegistry,
+				storage,
+			});
+			console.log("[PERF] MCPToolsService", { ms: Date.now() - t });
+		} else {
+			console.log("[PERF] MCPToolsService skipped (no registry)");
+		}
+
 		console.log("[PERF] Phase 3 completed", { ms: Date.now() - phase3Start });
 		PhaseLogger.logPhase("3: Business Logic Managers");
 
@@ -201,6 +218,7 @@ export async function initializePhase3Managers(
 			snapshotNavigatorProvider,
 			protectionService, // 🟢 TDD GREEN
 			milestoneService,
+			mcpToolsService, // 🔧 MCP Tools integration
 		};
 	} catch (error) {
 		PhaseLogger.logError("3: Business Logic Managers", error as Error);
