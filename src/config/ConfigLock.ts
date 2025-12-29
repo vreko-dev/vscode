@@ -33,9 +33,7 @@ async function removeIfExists(path: string): Promise<void> {
 }
 
 /** Check if path exists - used in future enhancements */
-// @ts-expect-error Reserved for future use
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function pathExists(path: string): Promise<boolean> {
+async function _pathExists(path: string): Promise<boolean> {
 	try {
 		await fs.access(path);
 		return true;

@@ -58,9 +58,6 @@ export class CliLinkManager implements vscode.Disposable {
 	private pollingTimer: NodeJS.Timeout | null = null;
 	private heartbeatTimer: NodeJS.Timeout | null = null;
 	private currentLinkData: CliLockData | null = null;
-	/** Reserved for reconnect logic */
-	// @ts-expect-error Reserved for future reconnect enhancement
-	private _reconnectAttempts = 0;
 	private readonly config: LinkConfig;
 	private readonly eventHandlers: Partial<CliLinkEvents> = {};
 	private readonly extensionId: string;
@@ -153,7 +150,6 @@ export class CliLinkManager implements vscode.Disposable {
 			// 3. Update internal state
 			this.isLinked = true;
 			this.currentLinkData = data;
-			this._reconnectAttempts = 0;
 
 			// 4. Start heartbeat monitoring
 			this.startHeartbeatMonitor();

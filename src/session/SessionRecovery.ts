@@ -72,8 +72,7 @@ export class SessionRecovery {
 	constructor(
 		private readonly context: vscode.ExtensionContext,
 		private readonly storage: IStorageManager,
-		// @ts-expect-error Reserved for future session coordination features
-		private readonly _sessionCoordinator?: SessionCoordinator,
+		readonly _sessionCoordinator?: SessionCoordinator,
 		config: Partial<SessionRecoveryConfig> = {},
 	) {
 		this.config = { ...DEFAULT_CONFIG, ...config };
