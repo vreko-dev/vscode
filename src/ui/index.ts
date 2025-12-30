@@ -25,8 +25,12 @@ export { FileDecorationProvider } from "./fileDecorations";
 export { registerSnapshotQuickPickerCommands, SnapshotQuickPicker } from "./SnapshotQuickPicker";
 // Snapshot Restore UI
 export { SnapshotRestoreUI } from "./SnapshotRestoreUI";
-// Status Bar
+export { StatusBarController } from "./StatusBarController";
+// Status Bar (Legacy - being replaced by UnifiedStatusBar)
 export { createStatusBarManager, StatusBarManager } from "./StatusBarManager";
+export type { StateOptions } from "./UnifiedStatusBar";
+// Status Bar (New Consolidated)
+export { StatusBarState as UnifiedStatusBarState, UnifiedStatusBar } from "./UnifiedStatusBar";
 // User Tier Service (progressive disclosure)
 export { createUserTierService, type TierFeatures, type UserTier, UserTierService } from "./UserTierService";
 // Types

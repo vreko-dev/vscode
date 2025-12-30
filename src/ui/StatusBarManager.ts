@@ -57,10 +57,50 @@ const STATE_TIMEOUTS: Partial<Record<StatusBarState, number>> = {
  * HINT: Use VS Code codicons like $(shield), $(sparkle), etc.
  * Full list: https://code.visualstudio.com/api/references/icons-in-labels
  */
+
 /**
  * Recommendation urgency levels
  */
 export type RecommendationUrgency = "low" | "medium" | "high" | "critical";
+
+/**
+ * Priority levels for queued messages
+ * Higher number = higher priority
+ */
+export type MessagePriority = "low" | "medium" | "high" | "critical";
+
+const PRIORITY_VALUES: Record<MessagePriority, number> = {
+	low: 1,
+	medium: 2,
+	high: 3,
+	critical: 4,
+};
+
+/**
+ * Queued message for priority-based display
+ *
+ * DESIGN: Multiple components can enqueue messages.
+ * Only the highest priority message is shown.
+ * When it expires, the next highest priority takes over.
+ */
+export interface QueuedMessage {
+	/** Unique message ID (returned on enqueue for later removal) */
+	id: string;
+	/** Priority level - determines display order */
+	priority: MessagePriority;
+	/** Status bar text (supports codicons) */
+	text: string;
+	/** Optional tooltip (MarkdownString content) */
+	tooltip?: string;
+	/** Display duration in ms (0 = persistent until manually removed) */
+	duration?: number;
+	/** Theme color ID for background (e.g., "statusBarItem.warningBackground") */
+	backgroundColor?: string;
+	/** Command to execute on click */
+	command?: string;
+	/** Timestamp when message was enqueued */
+	timestamp: number;
+}
 
 const STATUS_TEXT: Record<StatusBarState, string | ((data: unknown) => string)> = {
 	idle: "$(shield) SnapBack",
@@ -134,9 +174,37 @@ export class StatusBarManager implements vscode.Disposable {
 	 */
 	private currentVitals: VitalsDisplayData | undefined;
 
+	// ===========================================================================
+	// MESSAGE QUEUE STATE
+	// ===========================================================================
+
+	/**
+	 * Priority queue for messages from multiple components
+	 *
+	 * DESIGN: Other components (PioneerStatusItem, FeedbackManager, etc.)
+	 * can enqueue messages here instead of creating separate status bar items.
+	 */
+	private messageQueue: QueuedMessage[] = [];
+
+	/**
+	 * Currently displayed message from the queue
+	 */
+	private activeMessageId: string | undefined;
+
+	/**
+	 * Timeout for auto-removing queued messages
+	 */
+	private queuedMessageTimeout: NodeJS.Timeout | undefined;
+
+	/**
+	 * Counter for generating unique message IDs
+	 */
+	private messageIdCounter = 0;
+
 	constructor() {
-		// HINT: Use Right alignment with high priority to appear left of other items
-		this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+		// Use Left alignment with priority 999 (just after primary at 1000)
+		// ID-based API ensures stable ordering across sessions (per GitHub #177835)
+		this.item = vscode.window.createStatusBarItem("snapback.secondary", vscode.StatusBarAlignment.Left, 999);
 
 		// Wire click to QuickPicker for restore flow
 		this.item.command = "snapback.showQuickPicker";
@@ -152,7 +220,8 @@ export class StatusBarManager implements vscode.Disposable {
 	/**
 	 * Show idle state
 	 *
-	 * If we have stats, show idle-stats instead of plain idle
+	 * If we have stats, show idle-stats instead of plain idle.
+	 * After entering idle, process the message queue so queued messages can display.
 	 */
 	showIdle(): void {
 		this.clearTransitionTimeout();
@@ -161,6 +230,12 @@ export class StatusBarManager implements vscode.Disposable {
 			this.setState("idle-stats");
 		} else {
 			this.setState("idle");
+		}
+
+		// Now that we're in idle, allow queued messages to display
+		// Only process if there are messages to avoid recursion
+		if (this.messageQueue.length > 0) {
+			this.processQueue();
 		}
 	}
 
@@ -533,14 +608,27 @@ export class StatusBarManager implements vscode.Disposable {
 
 	/**
 	 * Set state and update display
+	 *
+	 * IMPORTANT: State machine states take precedence over queued messages.
+	 * When entering any state, we clear the active queued message display
+	 * to ensure the state machine controls the status bar.
 	 */
 	private setState(state: StatusBarState, data?: unknown): void {
+		// Clear any active queued message - state machine takes precedence
+		if (this.activeMessageId) {
+			this.clearQueuedMessageTimeout();
+			this.activeMessageId = undefined;
+		}
+
 		this.state = state;
 
 		const template = STATUS_TEXT[state];
 		// Only use stats as default for idle-stats state, otherwise pass data as-is
 		const templateData = state === "idle-stats" ? (data ?? this.stats) : data;
 		this.item.text = typeof template === "function" ? template(templateData) : template;
+
+		// Reset command to default (queue might have changed it)
+		this.item.command = "snapback.showQuickPicker";
 
 		this.item.tooltip = this.buildTooltip();
 	}
@@ -666,11 +754,182 @@ export class StatusBarManager implements vscode.Disposable {
 	}
 
 	// ===========================================================================
+	// MESSAGE QUEUE API
+	// ===========================================================================
+
+	/**
+	 * Enqueue a message for display
+	 *
+	 * Messages are displayed by priority (highest first).
+	 * When a message expires, the next highest priority is shown.
+	 *
+	 * @param message - Message configuration (id is auto-generated if not provided)
+	 * @returns Message ID for later removal
+	 *
+	 * @example
+	 * ```typescript
+	 * // Enqueue a pioneer tip
+	 * const id = statusBar.enqueueMessage({
+	 *   priority: "low",
+	 *   text: "$(rocket) Join Pioneers for early access",
+	 *   duration: 10000, // 10 seconds
+	 *   command: "snapback.showPioneerSignup",
+	 * });
+	 *
+	 * // Later: remove it manually
+	 * statusBar.dequeueMessage(id);
+	 * ```
+	 */
+	enqueueMessage(message: Omit<QueuedMessage, "id" | "timestamp"> & { id?: string }): string {
+		// Generate unique ID if not provided
+		const id = message.id ?? `msg-${++this.messageIdCounter}-${Date.now()}`;
+
+		const queuedMessage: QueuedMessage = {
+			...message,
+			id,
+			timestamp: Date.now(),
+		};
+
+		// Add to queue (maintain sorted by priority desc, then timestamp asc)
+		this.messageQueue.push(queuedMessage);
+		this.messageQueue.sort((a, b) => {
+			const priorityDiff = PRIORITY_VALUES[b.priority] - PRIORITY_VALUES[a.priority];
+			if (priorityDiff !== 0) {
+				return priorityDiff;
+			}
+			return a.timestamp - b.timestamp; // Older first within same priority
+		});
+
+		// Process queue to potentially show this message
+		this.processQueue();
+
+		return id;
+	}
+
+	/**
+	 * Remove a message from the queue
+	 *
+	 * @param id - Message ID returned from enqueueMessage
+	 *
+	 * @example
+	 * ```typescript
+	 * statusBar.dequeueMessage(pioneerMsgId);
+	 * ```
+	 */
+	dequeueMessage(id: string): void {
+		const index = this.messageQueue.findIndex((m) => m.id === id);
+		if (index >= 0) {
+			this.messageQueue.splice(index, 1);
+		}
+
+		// If we removed the active message, show next or return to idle
+		if (this.activeMessageId === id) {
+			this.clearQueuedMessageTimeout();
+			this.activeMessageId = undefined;
+
+			if (this.messageQueue.length === 0) {
+				this.showIdle();
+			} else {
+				this.processQueue();
+			}
+		}
+	}
+
+	/**
+	 * Clear all queued messages
+	 */
+	clearQueue(): void {
+		this.messageQueue = [];
+		this.clearQueuedMessageTimeout();
+		this.activeMessageId = undefined;
+		this.showIdle();
+	}
+
+	/**
+	 * Get current queue depth (for debugging/testing)
+	 */
+	getQueueDepth(): number {
+		return this.messageQueue.length;
+	}
+
+	/**
+	 * Process the message queue
+	 *
+	 * Displays the highest priority message from the queue.
+	 * If queue is empty, falls back to idle state.
+	 *
+	 * IMPORTANT: Only processes when in idle/idle-stats state.
+	 * State machine states (vitals, checkpoint, ai-session, etc.) take precedence.
+	 */
+	private processQueue(): void {
+		// ONLY process queue when in idle state - state machine takes precedence
+		if (this.state !== "idle" && this.state !== "idle-stats") {
+			return;
+		}
+
+		// Clear any pending queue timeout
+		this.clearQueuedMessageTimeout();
+
+		// Get highest priority message (queue is pre-sorted)
+		const message = this.messageQueue[0];
+		if (!message) {
+			// Queue empty - already in idle, nothing to do
+			this.activeMessageId = undefined;
+			return;
+		}
+
+		// Display this message
+		this.activeMessageId = message.id;
+		this.item.text = message.text;
+
+		// Set background color
+		if (message.backgroundColor) {
+			this.item.backgroundColor = new vscode.ThemeColor(message.backgroundColor);
+		} else {
+			this.item.backgroundColor = undefined;
+		}
+
+		// Set command
+		if (message.command) {
+			this.item.command = message.command;
+		} else {
+			this.item.command = "snapback.showQuickPicker"; // Default
+		}
+
+		// Set tooltip
+		if (message.tooltip) {
+			const md = new vscode.MarkdownString(message.tooltip);
+			md.isTrusted = true;
+			this.item.tooltip = md;
+		} else {
+			this.item.tooltip = this.buildTooltip();
+		}
+
+		// Schedule auto-removal if message has duration
+		if (message.duration && message.duration > 0) {
+			this.queuedMessageTimeout = setTimeout(() => {
+				this.dequeueMessage(message.id);
+			}, message.duration);
+		}
+	}
+
+	/**
+	 * Clear queued message timeout
+	 */
+	private clearQueuedMessageTimeout(): void {
+		if (this.queuedMessageTimeout) {
+			clearTimeout(this.queuedMessageTimeout);
+			this.queuedMessageTimeout = undefined;
+		}
+	}
+
+	// ===========================================================================
 	// LIFECYCLE
 	// ===========================================================================
 
 	dispose(): void {
 		this.clearTransitionTimeout();
+		this.clearQueuedMessageTimeout();
 		this.abortActiveSequence();
 		this.item.dispose();
 	}

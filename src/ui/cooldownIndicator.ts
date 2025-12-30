@@ -26,9 +26,12 @@ export class CooldownIndicator {
 		this.protectedFileRegistry = protectedFileRegistry;
 
 		// Create status bar item for cooldown indicator
+		// ID-based API with priority 998 (after primary=1000, secondary=999)
+		// Keeps all SnapBack items together on the left side
 		this.statusBarItem = vscode.window.createStatusBarItem(
+			"snapback.cooldown",
 			vscode.StatusBarAlignment.Left,
-			99, // Just to the right of the main status bar
+			998,
 		);
 		this.statusBarItem.name = "SnapBack Cooldown Indicator";
 		this.statusBarItem.hide(); // Hidden by default
