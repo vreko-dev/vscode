@@ -12,17 +12,24 @@
  * @packageDocumentation
  */
 
+import {
+	PRESSURE_THRESHOLDS,
+	type TempLevel,
+	type Trajectory,
+	type VitalsSnapshot,
+} from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
 import {
 	type SnapshotRecommendation as DataRecommendation,
 	type SessionHealth,
 	UnifiedDataService,
 } from "../services/UnifiedDataService";
-import { logger } from "../utils/logger";
 import { SESSION_HEALTH_SIGNAGE, TRAJECTORY_SIGNAGE } from "../signage/constants";
-import type { SessionHealthCanonical, TrajectoryCanonical } from "../signage/types";
+import type { SessionHealthCanonical, TemperatureLevelCanonical, TrajectoryCanonical } from "../signage/types";
+import { logger } from "../utils/logger";
 import { SnapshotRecommendationUI, type SnapshotRecommendation as UIRecommendation } from "./SnapshotRecommendationUI";
 import type { StatusBarManager } from "./StatusBarManager";
+import type { VitalsDisplayData } from "./ux-types";
 import { VitalsDashboardPanel } from "./VitalsDashboardPanel";
 
 /**
@@ -75,6 +82,75 @@ function deriveHealthLevel(healthScore: number): SessionHealthCanonical {
 }
 
 /**
+ * Map intelligence package temperature level to canonical signage level
+ * Intelligence uses "cold", signage uses "cool"
+ */
+function mapTemperatureToCanonical(level: TempLevel): TemperatureLevelCanonical {
+	if (level === "cold") {
+		return "cool";
+	}
+	return level; // "warm", "hot", "burning" are the same
+}
+
+/**
+ * Map intelligence package trajectory to canonical signage trajectory
+ * Intelligence: stable, escalating, critical, recovering
+ * Signage: stable, degrading, critical, improving
+ */
+function mapVitalsTrajectoryToCanonical(trajectory: Trajectory): TrajectoryCanonical {
+	switch (trajectory) {
+		case "escalating":
+			return "degrading";
+		case "recovering":
+			return "improving";
+		default:
+			return trajectory; // "stable" and "critical" are the same
+	}
+}
+
+/**
+ * Transform VitalsSnapshot to VitalsDisplayData for StatusBar
+ */
+function transformVitalsToDisplayData(
+	snapshot: VitalsSnapshot,
+	sessionHealth?: SessionHealthCanonical,
+): VitalsDisplayData {
+	return {
+		pulse: {
+			level: snapshot.pulse.level,
+			value: snapshot.pulse.changesPerMinute,
+		},
+		temperature: {
+			level: mapTemperatureToCanonical(snapshot.temperature.level),
+			percentage: snapshot.temperature.aiPercentage,
+			...(snapshot.temperature.detectedTool && { tool: snapshot.temperature.detectedTool }),
+		},
+		pressure: {
+			value: snapshot.pressure.value,
+			trend: calculatePressureTrend(snapshot.pressure.value),
+		},
+		oxygen: {
+			value: snapshot.oxygen.value,
+		},
+		trajectory: mapVitalsTrajectoryToCanonical(snapshot.trajectory),
+		sessionHealth,
+	};
+}
+
+/**
+ * Calculate pressure trend based on value
+ */
+function calculatePressureTrend(value: number): "rising" | "stable" | "falling" {
+	if (value >= PRESSURE_THRESHOLDS.high) {
+		return "rising";
+	}
+	if (value < PRESSURE_THRESHOLDS.low) {
+		return "falling";
+	}
+	return "stable";
+}
+
+/**
  * Main integration class connecting data service to UI components
  */
 export class VitalsUIIntegration implements vscode.Disposable {
@@ -123,15 +199,17 @@ export class VitalsUIIntegration implements vscode.Disposable {
 	 */
 	private setupEventListeners(): void {
 		// Listen for data changes from UnifiedDataService
+		// NOTE: Only listen to health-changed (not vitals-updated) to avoid duplicate notifications.
+		// UnifiedDataService fires both events in sequence from updateVitals(), and both
+		// would trigger handleSessionHealthUpdate() causing duplicate warnings.
 		const dataChangeDisposable = this.dataService.onDataChange((event) => {
 			switch (event.type) {
-				case "vitals-updated":
 				case "health-changed":
 					this.handleSessionHealthUpdate();
 					break;
-				case "recommendation-changed":
-					this.handleRecommendationUpdate();
-					break;
+				// NOTE: Intentionally NOT handling "recommendation-changed" here.
+				// handleSessionHealthUpdate() already calls triggerRecommendation() when needed,
+				// so handling both events would show duplicate notifications.
 				case "learnings-updated":
 				case "violations-updated":
 				case "patterns-updated":
@@ -149,6 +227,10 @@ export class VitalsUIIntegration implements vscode.Disposable {
 	 *
 	 * DESIGN: When health becomes critical, auto-create snapshot instead of just nagging.
 	 * This is the core value prop - protect the user's work proactively.
+	 *
+	 * CONSOLIDATION: This method now handles BOTH:
+	 * 1. Session health updates (updateSessionHealth)
+	 * 2. Power user vitals display (showVitals) - previously in separate VitalsIntegration class
 	 */
 	private handleSessionHealthUpdate(): void {
 		const sessionHealth = this.dataService.getSessionHealth();
@@ -164,13 +246,26 @@ export class VitalsUIIntegration implements vscode.Disposable {
 			timeSinceLastAutoSnapshot: Date.now() - this.lastAutoSnapshotTime,
 		});
 
-		// Update status bar
+		// Update session health (background color, tooltip)
 		this.statusBarManager.updateSessionHealth(healthLevel, trajectory);
 
-		// AUTO-SNAPSHOT ON CRITICAL: Don't just nag - protect the user's work!
-		if (healthLevel === "critical") {
+		// CONSOLIDATED: Also update power user vitals display if enabled
+		// This replaces the separate VitalsIntegration class
+		const vitals = this.dataService.getVitals();
+		if (vitals && this.config.showVitalsInStatusBar) {
+			const displayData = transformVitalsToDisplayData(vitals, healthLevel);
+			this.statusBarManager.showVitals(displayData);
+		}
+
+		// AUTO-SNAPSHOT ON WARNING OR CRITICAL: Don't wait for disaster - protect proactively!
+		// User insight: "Its a stupid idea to see the codebase in a severe state and wait for user action"
+		if (healthLevel === "critical" || healthLevel === "warning") {
 			if (this.shouldAutoSnapshot()) {
-				void this.triggerAutoSnapshot("Session health critical - auto-protecting your work");
+				const reason =
+					healthLevel === "critical"
+						? "Session health critical - auto-protecting your work"
+						: "Session health degrading - creating safety checkpoint";
+				void this.triggerAutoSnapshot(reason);
 				return; // Don't show recommendation, we're handling it
 			}
 			logger.debug("Auto-snapshot skipped due to cooldown", {
@@ -180,7 +275,7 @@ export class VitalsUIIntegration implements vscode.Disposable {
 			});
 		}
 
-		// For non-critical: show recommendation if enabled
+		// For healthy sessions: show recommendation if enabled and below threshold
 		if (this.config.enableRecommendations && sessionHealth.healthScore < this.config.recommendationThreshold) {
 			this.triggerRecommendation(sessionHealth);
 		}
@@ -239,7 +334,7 @@ export class VitalsUIIntegration implements vscode.Disposable {
 		}
 
 		const recommendation = this.dataService.getSnapshotRecommendation();
-		if (recommendation && recommendation.should) {
+		if (recommendation?.should) {
 			const sessionHealth = this.dataService.getSessionHealth();
 			const uiRecommendation = this.transformRecommendation(recommendation, sessionHealth);
 			this.recommendationUI.updateRecommendation(uiRecommendation);
@@ -314,7 +409,6 @@ export class VitalsUIIntegration implements vscode.Disposable {
 				return "critical";
 			case "soon":
 				return "high";
-			case "optional":
 			default:
 				return "low";
 		}

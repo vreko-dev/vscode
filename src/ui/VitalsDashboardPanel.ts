@@ -36,7 +36,8 @@ import {
  * Message types from webview to extension
  */
 interface WebviewMessage {
-	command: "createSnapshot" | "openLearnings" | "openViolations" | "refresh" | "dismiss";
+	type?: "webviewReady";
+	command?: "createSnapshot" | "openLearnings" | "openViolations" | "refresh" | "dismiss";
 }
 
 /**
@@ -67,29 +68,53 @@ export class VitalsDashboardPanel {
 	private disposables: vscode.Disposable[] = [];
 	private updateInterval: NodeJS.Timeout | null = null;
 	private useReactWebview = true; // Enable React WebView bundle
+	private isWebviewReady = false; // Track if React has mounted and is ready for messages
 
 	private constructor(panel: vscode.WebviewPanel, dataService: UnifiedDataService, extensionUri: vscode.Uri) {
 		this.panel = panel;
 		this.dataService = dataService;
 		this.extensionUri = extensionUri;
 
-		// Set initial HTML content (React bundle or fallback)
-		if (this.useReactWebview) {
-			this.panel.webview.html = this.getReactWebviewHtml();
-		}
-		this.updateContent();
-
-		// Handle messages from webview
+		// Handle messages from webview FIRST (before setting HTML)
 		this.panel.webview.onDidReceiveMessage((message) => this.handleMessage(message), null, this.disposables);
 
 		// Handle panel disposal
 		this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
-		// Subscribe to data changes
-		this.disposables.push(this.dataService.onDataChange(() => this.updateContent()));
+		// Handle visibility changes - pause/resume updates
+		this.panel.onDidChangeViewState(
+			() => {
+				if (this.panel.visible && this.isWebviewReady) {
+					this.startPeriodicUpdates();
+				} else {
+					this.stopPeriodicUpdates();
+				}
+			},
+			null,
+			this.disposables,
+		);
 
-		// Periodic refresh for real-time feel (every 1s)
-		this.updateInterval = setInterval(() => this.updateContent(), 1000);
+		// Subscribe to data changes (only update if ready)
+		this.disposables.push(
+			this.dataService.onDataChange(() => {
+				if (this.isWebviewReady) {
+					this.updateContent();
+				}
+			}),
+		);
+
+		// Set HTML content AFTER handlers are registered
+		// For React: HTML loads bundle, we wait for "webviewReady" before sending data
+		// For fallback: updateContent() sets HTML directly
+		if (this.useReactWebview) {
+			this.panel.webview.html = this.getReactWebviewHtml();
+			// Don't call updateContent() - wait for webviewReady message
+		} else {
+			// Fallback mode doesn't need handshake
+			this.isWebviewReady = true;
+			this.updateContent();
+			this.startPeriodicUpdates();
+		}
 	}
 
 	/**
@@ -182,6 +207,14 @@ export class VitalsDashboardPanel {
 
 		const msg = message as WebviewMessage;
 
+		// Handle webview ready signal (React has mounted)
+		if (msg.type === "webviewReady") {
+			this.isWebviewReady = true;
+			this.updateContent(); // Send initial data now that React is ready
+			this.startPeriodicUpdates();
+			return;
+		}
+
 		switch (msg.command) {
 			case "createSnapshot":
 				vscode.commands.executeCommand("snapback.createSnapshot").then(
@@ -218,15 +251,32 @@ export class VitalsDashboardPanel {
 	}
 
 	/**
-	 * Clean up resources
+	 * Start periodic updates (every 1s for real-time feel)
 	 */
-	private dispose(): void {
-		VitalsDashboardPanel.instance = undefined;
+	private startPeriodicUpdates(): void {
+		if (this.updateInterval) {
+			return; // Already running
+		}
+		this.updateInterval = setInterval(() => this.updateContent(), 1000);
+	}
 
+	/**
+	 * Stop periodic updates (when panel hidden or disposed)
+	 */
+	private stopPeriodicUpdates(): void {
 		if (this.updateInterval) {
 			clearInterval(this.updateInterval);
 			this.updateInterval = null;
 		}
+	}
+
+	/**
+	 * Clean up resources
+	 */
+	private dispose(): void {
+		VitalsDashboardPanel.instance = undefined;
+		this.isWebviewReady = false;
+		this.stopPeriodicUpdates();
 
 		while (this.disposables.length) {
 			const disposable = this.disposables.pop();

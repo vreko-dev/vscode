@@ -14,6 +14,7 @@ import * as vscode from "vscode";
 import { getHeatIntegration } from "../heat";
 import type { HeatTracker } from "../heat/HeatTracker";
 import type { OperationCoordinator } from "../operationCoordinator";
+import { MCPStorageReader, SnapshotBridge, type UnifiedSnapshot } from "../storage/bridge";
 import { logger } from "../utils/logger";
 
 // =============================================================================
@@ -125,15 +126,24 @@ export class DashboardDataService implements vscode.Disposable {
 	private disposables: vscode.Disposable[] = [];
 	private _heatTrackerWired = false;
 
+	/** Bridge for unified snapshot access (extension + MCP) */
+	private snapshotBridge: SnapshotBridge | null = null;
+
 	private readonly _onDataChange = new vscode.EventEmitter<void>();
 	readonly onDataChange = this._onDataChange.event;
 
 	private constructor(
 		private readonly coordinator: OperationCoordinator,
 		private readonly _injectedHeatTracker?: HeatTracker,
+		readonly _injectedSnapshotBridge?: SnapshotBridge,
 	) {
 		// Wire heat tracker if injected
 		this.wireHeatTracker(this._injectedHeatTracker);
+
+		// Use injected bridge (for testing) or create lazily
+		if (_injectedSnapshotBridge) {
+			this.snapshotBridge = _injectedSnapshotBridge;
+		}
 
 		logger.debug("DashboardDataService initialized");
 	}
@@ -180,11 +190,88 @@ export class DashboardDataService implements vscode.Disposable {
 	/**
 	 * Get or create singleton instance
 	 */
-	static getInstance(coordinator: OperationCoordinator, heatTracker?: HeatTracker): DashboardDataService {
+	static getInstance(
+		coordinator: OperationCoordinator,
+		heatTracker?: HeatTracker,
+		snapshotBridge?: SnapshotBridge,
+	): DashboardDataService {
 		if (!DashboardDataService.instance) {
-			DashboardDataService.instance = new DashboardDataService(coordinator, heatTracker);
+			DashboardDataService.instance = new DashboardDataService(coordinator, heatTracker, snapshotBridge);
 		}
 		return DashboardDataService.instance;
+	}
+
+	/**
+	 * Get or create the SnapshotBridge for unified snapshot access.
+	 * Creates the bridge lazily using the current workspace.
+	 */
+	private getSnapshotBridge(): SnapshotBridge | null {
+		if (this.snapshotBridge) {
+			return this.snapshotBridge;
+		}
+
+		// Get workspace root for MCP storage access
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+		if (!workspaceFolder) {
+			return null;
+		}
+
+		const workspaceRoot = workspaceFolder.uri.fsPath;
+		const mcpReader = new MCPStorageReader(workspaceRoot);
+
+		// Create adapter that wraps coordinator for extension snapshots
+		const extensionAdapter = {
+			listSnapshots: async (): Promise<UnifiedSnapshot[]> => {
+				try {
+					// Get raw manifests from coordinator's storage
+					const manifests = await this.coordinator.listSnapshots();
+					return manifests.map((m) => {
+						// Convert to UnifiedSnapshot format
+						// Use fileCount from manifest to populate files array (for stats calculation)
+						const files = m.fileCount > 0 ? Array(m.fileCount).fill("") : [];
+						return {
+							id: m.id,
+							timestamp: m.timestamp,
+							name: m.name,
+							source: "extension" as const,
+							files, // Array with length = fileCount for stats calculation
+							totalSize: 0,
+							trigger: "auto" as const,
+						};
+					});
+				} catch {
+					return [];
+				}
+			},
+		};
+
+		this.snapshotBridge = new SnapshotBridge(extensionAdapter, mcpReader);
+		return this.snapshotBridge;
+	}
+
+	/**
+	 * Get all snapshots from both extension and MCP storage.
+	 * Returns unified snapshot format sorted by timestamp (newest first).
+	 */
+	async getUnifiedSnapshots(): Promise<UnifiedSnapshot[]> {
+		const bridge = this.getSnapshotBridge();
+		if (!bridge) {
+			// Fall back to coordinator-only if no workspace
+			const snapshots = await this.coordinator.listSnapshots();
+			return snapshots.map((m) => {
+				// Use fileCount from manifest to populate files array (for stats calculation)
+				const files = m.fileCount > 0 ? Array(m.fileCount).fill("") : [];
+				return {
+					id: m.id,
+					timestamp: m.timestamp,
+					name: m.name,
+					source: "extension" as const,
+					files, // Array with length = fileCount for stats calculation
+					totalSize: 0,
+				};
+			});
+		}
+		return bridge.listAll();
 	}
 
 	/**
@@ -201,10 +288,13 @@ export class DashboardDataService implements vscode.Disposable {
 
 	/**
 	 * Get dashboard stats for Home tab
+	 *
+	 * Now includes snapshots from BOTH extension storage AND MCP storage.
 	 */
 	async getStats(): Promise<DashboardStats> {
 		try {
-			const snapshots = await this.coordinator.listSnapshots();
+			// Use unified snapshots from both sources (extension + MCP)
+			const snapshots = await this.getUnifiedSnapshots();
 			const now = Date.now();
 			const todayStart = new Date().setHours(0, 0, 0, 0);
 			const weekStart = now - 7 * 24 * 60 * 60 * 1000;
@@ -218,8 +308,8 @@ export class DashboardDataService implements vscode.Disposable {
 			// Calculate token savings
 			const tokensSaved = weekRestores.reduce((sum, r) => sum + r.tokensEstimate, 0);
 
-			// Lines protected estimate
-			const linesProtected = todaySnapshots.reduce((sum, s) => sum + (s.fileCount || 0) * 50, 0);
+			// Lines protected estimate (use file count from unified snapshots)
+			const linesProtected = todaySnapshots.reduce((sum, s) => sum + (s.files.length || 0) * 50, 0);
 
 			// Efficiency percentile (simple formula for now)
 			const efficiencyPercentile = Math.min(20 + snapshots.length + weekRestores.length * 5, 95);
@@ -434,30 +524,46 @@ export class DashboardDataService implements vscode.Disposable {
 
 	/**
 	 * Build activity timeline from various sources
+	 *
+	 * Now includes snapshots from BOTH extension storage AND MCP storage.
 	 */
 	private async buildTimeline(): Promise<ActivityEvent[]> {
 		const events: ActivityEvent[] = [...this.activityEvents];
 
 		try {
-			// Add snapshot events
-			const snapshots = await this.coordinator.listSnapshots();
+			// Add snapshot events from BOTH sources (extension + MCP)
+			const snapshots = await this.getUnifiedSnapshots();
 			const recentSnapshots = snapshots
 				.filter((s) => s.timestamp > Date.now() - 7 * 24 * 60 * 60 * 1000)
 				.slice(0, 50); // Limit to 50 recent snapshots
 
 			for (const snapshot of recentSnapshots) {
-				const type = snapshot.name?.includes("Auto")
-					? "auto-snapshot"
-					: snapshot.name?.includes("AI")
-						? "ai-edit"
-						: "manual-snapshot";
+				// Determine event type based on trigger and name
+				let type: ActivityEvent["type"] = "auto-snapshot";
+				if (snapshot.trigger === "ai-detection" || snapshot.name?.includes("AI")) {
+					type = "ai-edit";
+				} else if (snapshot.trigger === "manual" || snapshot.name?.includes("Manual")) {
+					type = "manual-snapshot";
+				}
+
+				// Display file name or timestamp instead of redundant text
+				let displayText: string;
+				if (type === "manual-snapshot" && snapshot.name?.toLowerCase().includes("manual")) {
+					displayText = new Date(snapshot.timestamp).toLocaleTimeString();
+				} else {
+					displayText = snapshot.name || "Unknown";
+				}
+
+				// Add source indicator for MCP snapshots
+				const sourceIndicator = snapshot.source === "mcp" ? " (MCP)" : "";
 
 				events.push({
 					id: snapshot.id,
-					type: type as ActivityEvent["type"],
-					file: snapshot.name || "Unknown",
+					type,
+					file: displayText + sourceIndicator,
 					timestamp: snapshot.timestamp,
-					details: `${snapshot.fileCount} files`,
+					details: `${snapshot.files.length} files`,
+					aiTool: snapshot.metadata?.aiTool,
 				});
 			}
 
