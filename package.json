@@ -770,417 +770,59 @@
     "configuration": {
       "title": "SnapBack",
       "properties": {
-        "snapback.protectionLevels.defaultLevel": {
-          "type": "string",
-          "enum": [
-            "watch",
-            "warn",
-            "block"
-          ],
-          "enumDescriptions": [
-            "Silent auto-snapshotting (recommended for most files)",
-            "Confirmation before save (for important files)",
-            "Required snapshot note (for critical files)"
-          ],
-          "default": "watch",
-          "description": "Default protection level when protecting new files",
+        "snapback.aiDetection.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "**Enable AI Detection**\n\nDetects AI-generated code changes and creates automatic protection snapshots.",
           "order": 1
-        },
-        "snapback.protectionLevels.showLevelBadges": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show protection level badges in file explorer",
-          "order": 2
-        },
-        "snapback.showFileHealthDecorations": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show file health indicators (🛡/⚠️/🚨) based on detected risk",
-          "order": 3
-        },
-        "snapback.snapshot.naming.useGit": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use git context for intelligent snapshot naming",
-          "order": 10
-        },
-        "snapback.snapshot.naming.gitTimeout": {
-          "type": "number",
-          "default": 5000,
-          "description": "Git command timeout in milliseconds",
-          "minimum": 1000,
-          "maximum": 30000,
-          "order": 11
-        },
-        "snapback.snapshot.deduplication.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically replace duplicate snapshots with identical file states",
-          "order": 12
-        },
-        "snapback.snapshot.deduplication.cacheSize": {
-          "type": "number",
-          "default": 500,
-          "description": "Maximum number of snapshot hashes to cache for deduplication",
-          "minimum": 100,
-          "maximum": 10000,
-          "order": 13
-        },
-        "snapback.snapshot.deletion.confirmDelete": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show confirmation dialog before deleting snapshots",
-          "order": 14
-        },
-        "snapback.snapshot.deletion.autoCleanup": {
-          "type": "object",
-          "default": {
-            "enabled": false,
-            "olderThanDays": 30,
-            "keepProtected": true,
-            "minimumSnapshots": 10
-          },
-          "description": "Automatic snapshot cleanup settings",
-          "order": 15,
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Enable automatic cleanup"
-            },
-            "olderThanDays": {
-              "type": "number",
-              "description": "Delete snapshots older than this many days",
-              "minimum": 1
-            },
-            "keepProtected": {
-              "type": "boolean",
-              "description": "Keep protected snapshots even if old"
-            },
-            "minimumSnapshots": {
-              "type": "number",
-              "description": "Never delete below this count",
-              "minimum": 0
-            }
-          }
-        },
-        "snapback.notifications.showSnapshotCreated": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show notification when snapshots are created (Watch level only)",
-          "order": 20
-        },
-        "snapback.notifications.duration": {
-          "type": "number",
-          "default": 3000,
-          "description": "Duration to show snapshot notifications (milliseconds)",
-          "order": 21
-        },
-        "snapback.notifications.showConfigSync": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show notifications when .snapbackrc protection rules are loaded (silent by default)",
-          "order": 22
         },
         "snapback.showAutoSnapshotNotifications": {
           "type": "boolean",
           "default": true,
-          "description": "Show notifications when auto-snapshots are created for protected files",
-          "order": 23
+          "markdownDescription": "**Show Snapshot Notifications**\n\nDisplay brief notifications when auto-snapshots are created.",
+          "order": 2
         },
         "snapback.guardian.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable SnapBack Guardian AI detection and protection",
-          "order": 30
-        },
-        "snapback.guardian.protectionLevel": {
-          "type": "string",
-          "enum": [
-            "none",
-            "warn",
-            "block"
-          ],
-          "default": "warn",
-          "description": "Protection level for AI-generated code",
-          "order": 31
-        },
-        "snapback.guardian.plugins.secretDetection": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable secret detection plugin",
-          "order": 32
-        },
-        "snapback.guardian.plugins.mockReplacement": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable mock replacement detection plugin",
-          "order": 33
-        },
-        "snapback.guardian.plugins.phantomDependency": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable phantom dependency detection plugin",
-          "order": 34
-        },
-        "snapback.guardian.thresholds.warn": {
-          "type": "number",
-          "default": 6,
-          "description": "Risk score threshold for warnings (0-10 scale)",
-          "order": 35
-        },
-        "snapback.guardian.thresholds.block": {
-          "type": "number",
-          "default": 8,
-          "description": "Risk score threshold for blocking changes (0-10 scale)",
-          "order": 36
-        },
-        "snapback.aiDetection.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable AI detection and session tracking",
-          "order": 40
-        },
-        "snapback.aiDetection.showSessionBadge": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show AI detection result badge in status bar",
-          "order": 41
-        },
-        "snapback.aiDetection.confidenceThreshold": {
-          "type": "number",
-          "default": 6,
-          "minimum": 0,
-          "maximum": 10,
-          "description": "Confidence threshold for showing AI detection results (0-10 scale)",
-          "order": 42
-        },
-        "snapback.api.baseUrl": {
-          "type": "string",
-          "default": "https://api.snapback.dev/api",
-          "description": "Base URL for the SnapBack API",
-          "order": 50
-        },
-        "snapback.apiBaseUrl": {
-          "type": "string",
-          "default": "https://api.snapback.dev",
-          "description": "Base URL for the SnapBack API (used by Explorer tree)",
-          "order": 51
-        },
-        "snapback.webBaseUrl": {
-          "type": "string",
-          "default": "https://console.snapback.dev",
-          "description": "Base URL for the SnapBack web application",
-          "order": 52
-        },
-        "snapback.api.key": {
-          "type": "string",
-          "default": "",
-          "description": "API key for SnapBack (legacy - OAuth is preferred)",
-          "order": 53
-        },
-        "snapback.api.preferOAuth": {
-          "type": "boolean",
-          "default": true,
-          "description": "Prefer OAuth 2.0 authentication over API key when available",
-          "order": 54
+          "markdownDescription": "**Enable Guardian**\n\nProtects against risky code patterns: secrets, mock replacements, phantom dependencies.",
+          "order": 3
         },
         "snapback.mcp.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Model Context Protocol (MCP) integration for AI assistance",
-          "order": 60
-        },
-        "snapback.mcp.autoEnable": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically configure SnapBack MCP for detected AI assistants (Claude Desktop, Cursor, Windsurf, Continue)",
-          "order": 60.1
-        },
-        "snapback.mcp.preferBinary": {
-          "type": "boolean",
-          "default": false,
-          "description": "Use installed binary instead of npx for MCP server (faster startup, requires manual updates)",
-          "order": 60.2
+          "markdownDescription": "**Enable MCP Integration**\n\nAllows AI assistants (Claude, Cursor, Windsurf) to interact with SnapBack.",
+          "order": 4
         },
         "snapback.mcp.serverUrl": {
           "type": "string",
           "default": "https://mcp.snapback.dev",
-          "description": "URL of the remote MCP server (when empty, uses bundled local server)",
-          "order": 61
-        },
-        "snapback.mcp.authType": {
-          "type": "string",
-          "enum": [
-            "bearer",
-            "apikey"
-          ],
-          "default": "bearer",
-          "description": "Authentication type for the remote MCP server",
-          "order": 62
-        },
-        "snapback.mcp.authToken": {
-          "type": "string",
-          "default": "",
-          "description": "Authentication token for the remote MCP server",
-          "order": 63
-        },
-        "snapback.mcp.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "API key for the remote MCP server (when using apikey authentication)",
-          "order": 64
-        },
-        "snapback.mcp.timeout": {
-          "type": "number",
-          "default": 5000,
-          "description": "Timeout for MCP server connections (milliseconds)",
-          "minimum": 1000,
-          "maximum": 30000,
-          "order": 65
-        },
-        "snapback.config.enableExecutableConfigs": {
-          "type": "boolean",
-          "default": false,
-          "description": "⚠️ Enable loading of executable configuration files (CJS/MJS). WARNING: Only enable in trusted environments.",
-          "order": 70
+          "markdownDescription": "**MCP Server URL**\n\nURL for the remote MCP server. Leave default for cloud, or set to local server.",
+          "order": 5
         },
         "snapback.offlineMode.enabled": {
           "type": "boolean",
           "default": false,
-          "description": "Enable offline mode to disable all network requests",
-          "order": 71
-        },
-        "snapback.vitals.showInStatusBar": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show workspace vitals (pulse, temperature, pressure) in the status bar (power user mode)",
-          "order": 72
-        },
-        "snapback.vitals.enableRecommendations": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable snapshot recommendations based on session health",
-          "order": 73
-        },
-        "snapback.vitals.recommendationThreshold": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100,
-          "default": 70,
-          "description": "Show snapshot recommendations when health score drops below this threshold (0-100)",
-          "order": 74
-        },
-        "snapback.onboarding.showWelcome": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show welcome experience on first run",
-          "order": 80
-        },
-        "snapback.onboarding.autoDetectCriticalFiles": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically suggest protection for critical files (package.json, .env, etc.)",
-          "order": 81
+          "markdownDescription": "**Offline Mode**\n\nDisable all network requests. Snapshots work locally only.",
+          "order": 6
         },
         "snapback.logLevel": {
           "type": "string",
           "enum": [
-            "debug",
-            "info",
+            "error",
             "warn",
-            "error"
+            "info",
+            "debug"
           ],
           "default": "info",
-          "description": "Logging level for SnapBack extension",
-          "order": 82
-        },
-        "snapback.autoDecision.riskThreshold": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100,
-          "default": 60,
-          "scope": "resource",
-          "markdownDescription": "**Risk Score Threshold for Automatic Snapshots** (0-100)\n\nSnapBack creates automatic snapshots when detected risk score exceeds this threshold.\n\n- **Lower values** (30-50): More aggressive, snapshots triggered more often\n- **Moderate** (60-70): Balanced approach, catches most threats\n- **Higher values** (80+): Only snapshot for critical changes\n\n📊 *Must be ≥ notifyThreshold to avoid conflicting thresholds*\n\n[Learn more about risk scoring](https://docs.snapback.dev/risk-scoring)",
-          "order": 80
-        },
-        "snapback.autoDecision.notifyThreshold": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100,
-          "default": 40,
-          "scope": "resource",
-          "markdownDescription": "**Risk Score Threshold for User Notifications** (0-100)\n\nSnapBack notifies you when detected risk score exceeds this threshold (without creating snapshots).\n\n- **Lower values** (20-40): More notifications, higher awareness\n- **Moderate** (50-60): Balanced, notifies on significant risk\n- **Higher values** (70+): Only critical changes trigger notifications\n\n📊 *Should be ≤ riskThreshold for proper layered protection*\n\n[Learn more about notifications](https://docs.snapback.dev/notifications)",
-          "order": 81
-        },
-        "snapback.autoDecision.minFilesForBurst": {
-          "type": "number",
-          "minimum": 1,
-          "maximum": 50,
-          "default": 3,
-          "scope": "window",
-          "markdownDescription": "**Minimum Files for Burst Detection** (1-50)\n\nTriggers elevated protection when more than this many files change simultaneously within the debounce window.\n\n- **Low** (1-2): Any multi-file change triggers burst mode\n- **Moderate** (3-5): Multiple file patterns detected as burst\n- **High** (6+): Only mass changes trigger burst protection\n\n💡 *Common mass-change scenarios: package.json, lock files, auto-formatted code*\n\n[Burst protection explained](https://docs.snapback.dev/burst-detection)",
-          "order": 82
-        },
-        "snapback.autoDecision.maxSnapshotsPerMinute": {
-          "type": "number",
-          "minimum": 1,
-          "maximum": 100,
-          "default": 4,
-          "scope": "window",
-          "markdownDescription": "**Rate Limit: Maximum Snapshots Per Minute**\n\nPrevents snapshot spam during rapid save sequences.\n\n- **Low** (1-2): Strict rate limiting, minimum overhead\n- **Moderate** (4-6): Typical snapshot rate, catches most changes\n- **High** (10+): Very permissive, higher storage usage\n\n⚡ *Rate limiting protects storage and performance during intensive editing sessions*\n\n[Storage management guide](https://docs.snapback.dev/storage-limits)",
-          "order": 83
-        },
-        "snapback.snapshot.aiDetectionEnabled": {
-          "type": "boolean",
-          "default": true,
-          "scope": "window",
-          "markdownDescription": "**Enable AI Code Detection**\n\nEnables SnapBack Guardian to detect AI-generated code patterns (GPT, Claude, etc.).\n\n✅ **Enabled** - Identifies AI-generated changes, applies protection accordingly\n❌ **Disabled** - Treats all code changes equally, no AI detection\n\n⚠️ *AI detection helps catch potential issues in AI-assisted code. Disabling removes this safety layer.*\n\n[AI detection threat model](https://docs.snapback.dev/ai-detection)",
-          "order": 84
-        },
-        "snapback.snapshot.autoRestoreOnDetection": {
-          "type": "boolean",
-          "default": false,
-          "scope": "window",
-          "markdownDescription": "**Auto-Restore on Critical Detection** (Experimental)\n\nAutomatically restore snapshots when critical threats are detected.\n\n⚠️ **Use with caution** - May interrupt your workflow if overly sensitive\n",
-          "order": 85
-        },
-        "snapback.testMode": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable test mode (uses mock auth and API)",
-          "scope": "resource"
-        },
-        "snapback.telemetry.endpoint": {
-          "type": "string",
-          "default": "http://localhost:4318/v1/traces",
-          "description": "OpenTelemetry OTLP trace collector endpoint (e.g., Jaeger, Grafana, Datadog)",
-          "order": 90
-        },
-        "snapback.telemetry.enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable telemetry and distributed tracing",
-          "order": 91
-        },
-        "snapback.telemetry.console": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable console trace output for debugging (logs to Output panel)",
-          "order": 92
-        },
-        "snapback.telemetry.sampleRate": {
-          "type": "number",
-          "default": 1,
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Sampling rate for traces (0.0 = disabled, 1.0 = all traces)",
-          "order": 93
+          "markdownDescription": "**Log Level**\n\nFor troubleshooting. Set to `debug` for verbose output.",
+          "order": 7
         },
         "snapback.ui.showTreeView": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "**Show Tree View in Sidebar**\n\nWhen disabled (default), SnapBack uses a minimal status bar + QuickPick UI. Click the status bar to access snapshot restore.\n\nEnable this to show the full tree view in the Activity Bar sidebar.",
-          "order": 94
+          "markdownDescription": "**Show Sidebar Tree View**\n\nEnable the full SnapBack tree view in the Activity Bar. When off, uses minimal status bar UI.",
+          "order": 8
         }
       }
     },

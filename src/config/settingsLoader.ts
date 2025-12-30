@@ -1,15 +1,19 @@
 /**
  * SettingsLoader
  *
- * Loads and manages AutoDecisionEngine settings from VS Code workspace configuration.
- * Provides type-safe access to all settings with validation and defaults.
- * Supports settings changes via configuration update events.
+ * Provides access to AutoDecisionEngine settings.
+ * Now uses hardcoded defaults for internal optimization settings.
+ * Only core user-facing settings remain configurable.
+ *
+ * Settings simplification: 56 → 8 (86% fewer settings)
  */
 
 import * as vscode from "vscode";
+import { AUTO_DECISION_DEFAULTS, SNAPSHOT_DEFAULTS } from "./hardcodedDefaults";
 
 /**
  * AutoDecisionEngine configuration settings
+ * These are now hardcoded - users don't know what "6" means
  */
 export interface AutoDecisionSettings {
 	/** Risk score threshold (0-100) for automatic snapshot creation */
@@ -41,59 +45,43 @@ export interface AllSettings {
 }
 
 /**
- * Loads and validates settings from VS Code workspace configuration
+ * Loads settings - now mostly hardcoded with smart defaults
+ * Only aiDetection.enabled remains user-configurable
  */
 export class SettingsLoader {
 	private onSettingsChangeEmitter = new vscode.EventEmitter<AllSettings>();
 	readonly onSettingsChange = this.onSettingsChangeEmitter.event;
 
 	constructor(context: vscode.ExtensionContext) {
-		// Listen for configuration changes
+		// Listen for configuration changes (only for remaining user settings)
 		context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((e) => this.onConfigurationChanged(e)));
 	}
 
 	/**
-	 * Load AutoDecisionEngine settings with defaults and validation
+	 * Load AutoDecisionEngine settings - now hardcoded
+	 * These are internal optimizations, not user choices
 	 */
 	loadAutoDecisionSettings(): AutoDecisionSettings {
-		const config = vscode.workspace.getConfiguration("snapback");
-
-		const riskThreshold = this.clamp(config.get<number>("autoDecision.riskThreshold", 60), 0, 100);
-
-		const notifyThreshold = this.clamp(config.get<number>("autoDecision.notifyThreshold", 40), 0, 100);
-
-		const minFilesForBurst = Math.max(1, config.get<number>("autoDecision.minFilesForBurst", 3));
-
-		const maxSnapshotsPerMinute = Math.max(1, config.get<number>("autoDecision.maxSnapshotsPerMinute", 4));
-
-		// Validate threshold relationships
-		if (notifyThreshold > riskThreshold) {
-			console.warn("SnapBack: notifyThreshold > riskThreshold. Using defaults.");
-			return {
-				riskThreshold: 60,
-				notifyThreshold: 40,
-				minFilesForBurst,
-				maxSnapshotsPerMinute,
-			};
-		}
-
 		return {
-			riskThreshold,
-			notifyThreshold,
-			minFilesForBurst,
-			maxSnapshotsPerMinute,
+			riskThreshold: AUTO_DECISION_DEFAULTS.riskThreshold,
+			notifyThreshold: AUTO_DECISION_DEFAULTS.notifyThreshold,
+			minFilesForBurst: AUTO_DECISION_DEFAULTS.minFilesForBurst,
+			maxSnapshotsPerMinute: AUTO_DECISION_DEFAULTS.maxSnapshotsPerMinute,
 		};
 	}
 
 	/**
-	 * Load snapshot settings with defaults
+	 * Load snapshot settings
+	 * aiDetectionEnabled controlled by user setting, rest hardcoded
 	 */
 	loadSnapshotSettings(): SnapshotSettings {
 		const config = vscode.workspace.getConfiguration("snapback");
 
 		return {
-			aiDetectionEnabled: config.get<boolean>("snapshot.aiDetectionEnabled", true),
-			autoRestoreOnDetection: config.get<boolean>("snapshot.autoRestoreOnDetection", false),
+			// This is controlled by the user-facing aiDetection.enabled setting
+			aiDetectionEnabled: config.get<boolean>("aiDetection.enabled", true),
+			// Hardcoded - auto-restore is too disruptive
+			autoRestoreOnDetection: SNAPSHOT_DEFAULTS.autoRestoreOnDetection,
 		};
 	}
 
@@ -108,49 +96,50 @@ export class SettingsLoader {
 	}
 
 	/**
-	 * Get current riskThreshold value
+	 * Get current riskThreshold value (hardcoded)
 	 */
 	getRiskThreshold(): number {
-		return this.loadAutoDecisionSettings().riskThreshold;
+		return AUTO_DECISION_DEFAULTS.riskThreshold;
 	}
 
 	/**
-	 * Get current notifyThreshold value
+	 * Get current notifyThreshold value (hardcoded)
 	 */
 	getNotifyThreshold(): number {
-		return this.loadAutoDecisionSettings().notifyThreshold;
+		return AUTO_DECISION_DEFAULTS.notifyThreshold;
 	}
 
 	/**
-	 * Get current minFilesForBurst value
+	 * Get current minFilesForBurst value (hardcoded)
 	 */
 	getMinFilesForBurst(): number {
-		return this.loadAutoDecisionSettings().minFilesForBurst;
+		return AUTO_DECISION_DEFAULTS.minFilesForBurst;
 	}
 
 	/**
-	 * Get current maxSnapshotsPerMinute value
+	 * Get current maxSnapshotsPerMinute value (hardcoded)
 	 */
 	getMaxSnapshotsPerMinute(): number {
-		return this.loadAutoDecisionSettings().maxSnapshotsPerMinute;
+		return AUTO_DECISION_DEFAULTS.maxSnapshotsPerMinute;
 	}
 
 	/**
 	 * Get current aiDetectionEnabled value
+	 * This one is still user-configurable
 	 */
 	isAiDetectionEnabled(): boolean {
 		return this.loadSnapshotSettings().aiDetectionEnabled;
 	}
 
 	/**
-	 * Get current autoRestoreOnDetection value
+	 * Get current autoRestoreOnDetection value (hardcoded to false)
 	 */
 	isAutoRestoreEnabled(): boolean {
-		return this.loadSnapshotSettings().autoRestoreOnDetection;
+		return SNAPSHOT_DEFAULTS.autoRestoreOnDetection;
 	}
 
 	/**
-	 * Update a setting value
+	 * Update a setting value (only for remaining user settings)
 	 */
 	async updateSetting<T>(
 		section: string,
@@ -173,13 +162,6 @@ export class SettingsLoader {
 		// Reload and emit new settings
 		const settings = this.loadAllSettings();
 		this.onSettingsChangeEmitter.fire(settings);
-	}
-
-	/**
-	 * Clamp value between min and max
-	 */
-	private clamp(value: number, min: number, max: number): number {
-		return Math.min(Math.max(value, min), max);
 	}
 
 	/**
