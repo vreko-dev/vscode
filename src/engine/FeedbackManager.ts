@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { TelemetryService } from "../analytics/telemetry";
 import { PointsTracker } from "../pioneer/PointsTracker";
+import type { StatusBarManager } from "../ui/StatusBarManager";
 
 interface DetectionContext {
 	id: string;
@@ -11,6 +12,9 @@ interface DetectionContext {
 
 /**
  * FeedbackManager - Handles AI detection feedback from users
+ *
+ * REFACTORED: Now delegates to StatusBarManager's message queue
+ * instead of creating a separate status bar item.
  *
  * Fixes:
  * 1. Self-heals document reference from active editor (no caller dependency)
@@ -25,7 +29,19 @@ interface DetectionContext {
  */
 export class FeedbackManager {
 	private static instance: FeedbackManager;
-	private statusBar: vscode.StatusBarItem;
+
+	/**
+	 * StatusBarManager for unified status bar (injected after initialization)
+	 */
+	private statusBarManager?: StatusBarManager;
+
+	/**
+	 * Current message ID in the queue (for dequeuing on dismiss)
+	 */
+	private currentMessageId?: string;
+
+	/** Unique message ID prefix for this component */
+	private static readonly MESSAGE_PREFIX = "ai-feedback";
 
 	// State Management
 	private currentDetection?: DetectionContext;
@@ -37,8 +53,7 @@ export class FeedbackManager {
 	private readonly MAX_CACHE_SIZE = 1000;
 
 	private constructor() {
-		this.statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-		this.statusBar.command = "snapback.feedback.reportFalsePositive";
+		// No longer creates its own status bar item
 	}
 
 	public static getInstance(): FeedbackManager {
@@ -46,6 +61,15 @@ export class FeedbackManager {
 			FeedbackManager.instance = new FeedbackManager();
 		}
 		return FeedbackManager.instance;
+	}
+
+	/**
+	 * Inject StatusBarManager for unified status bar
+	 *
+	 * Call this after StatusBarManager is created in extension.ts
+	 */
+	public setStatusBarManager(manager: StatusBarManager): void {
+		this.statusBarManager = manager;
 	}
 
 	/**
@@ -72,18 +96,33 @@ export class FeedbackManager {
 			timestamp: Date.now(),
 		};
 
-		// 1. Configure Status Bar
-		if (confidence > 0.8) {
-			this.statusBar.text = "$(robot) AI Detected";
-			this.statusBar.tooltip = "SnapBack is protecting this burst.\n\nIncorrect? Click to report (+50 pts)";
-			this.statusBar.backgroundColor = undefined;
-		} else {
-			this.statusBar.text = "$(robot)? AI Uncertain";
-			this.statusBar.tooltip = "Unsure detection. Help us verify (+20 pts)";
-			this.statusBar.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+		// Only show if StatusBarManager is available
+		if (!this.statusBarManager) {
+			return;
 		}
 
-		this.statusBar.show();
+		// 1. Configure Status Bar via queue
+		if (confidence > 0.8) {
+			this.currentMessageId = this.statusBarManager.enqueueMessage({
+				id: `${FeedbackManager.MESSAGE_PREFIX}-${detectionId}`,
+				priority: "medium", // Higher than pioneer tips, lower than health warnings
+				text: "$(robot) AI Detected",
+				tooltip:
+					"**AI Activity Detected**\nSnapBack is protecting this burst.\n\n*Incorrect? Click to report (+50 pts)*",
+				duration: 0, // Persistent until dismissed
+				command: "snapback.feedback.reportFalsePositive",
+			});
+		} else {
+			this.currentMessageId = this.statusBarManager.enqueueMessage({
+				id: `${FeedbackManager.MESSAGE_PREFIX}-${detectionId}`,
+				priority: "medium",
+				text: "$(robot)? AI Uncertain",
+				tooltip: "**Uncertain Detection**\nHelp us verify (+20 pts)\n\n*Click to provide feedback*",
+				duration: 0,
+				backgroundColor: "statusBarItem.warningBackground",
+				command: "snapback.feedback.reportFalsePositive",
+			});
+		}
 
 		// 2. Register Context-Aware Dismissal Triggers
 		this.registerDismissalTriggers();
@@ -187,7 +226,13 @@ export class FeedbackManager {
 		if (logImplicit && this.currentDetection) {
 			this.logImplicitAcceptance();
 		}
-		this.statusBar.hide();
+
+		// Remove from queue
+		if (this.currentMessageId && this.statusBarManager) {
+			this.statusBarManager.dequeueMessage(this.currentMessageId);
+			this.currentMessageId = undefined;
+		}
+
 		this.currentDetection = undefined;
 		this.resetState();
 	}

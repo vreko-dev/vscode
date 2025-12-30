@@ -259,6 +259,106 @@ describe("SnapshotStore V2", () => {
 				}),
 			).rejects.toThrow(/anchor file.*not found/i);
 		});
+
+		it("should reject POST with 0-delta (identical content to parent)", async () => {
+			// 0-delta prevention: no snapshot when content matches parent
+			const SnapshotStoreModule = await import("../../../src/storage/SnapshotStore");
+
+			// Mock BlobStore - same hash means same content
+			const FIXED_HASH = "abc123def456";
+			const mockBlobStore = {
+				store: vi.fn().mockResolvedValue({ hash: FIXED_HASH, size: 100, isNew: false }),
+				retrieve: vi.fn(),
+				initialize: vi.fn(),
+			};
+
+			const store = new SnapshotStoreModule.SnapshotStore(
+				{ fsPath: "/storage" } as vscode.Uri,
+				mockBlobStore as any,
+			);
+
+			// Create initial POST (no parent, so no 0-delta check)
+			const firstPost = await store.createPOST({
+				files: new Map([["/src/file.ts", "const x = 1;"]]),
+				name: "First POST",
+				anchorFile: "/src/file.ts",
+				parentSeq: null,
+				parentId: null,
+			});
+
+			// Mock reading the parent manifest for 0-delta comparison
+			mockReadFile.mockImplementation((uri: { fsPath: string }) => {
+				if (uri.fsPath.includes(firstPost.id)) {
+					return Promise.resolve(Buffer.from(JSON.stringify(firstPost)));
+				}
+				const error = new Error("FileNotFound") as Error & { code: string };
+				error.code = "FileNotFound";
+				return Promise.reject(error);
+			});
+
+			// Attempt second POST with identical content (same hash)
+			await expect(
+				store.createPOST({
+					files: new Map([["/src/file.ts", "const x = 1;"]]), // Same content
+					name: "Second POST (should fail)",
+					anchorFile: "/src/file.ts",
+					parentSeq: firstPost.seq,
+					parentId: firstPost.id,
+				}),
+			).rejects.toThrow(SnapshotStoreModule.NoChangeError);
+		});
+
+		it("should allow POST when content differs from parent", async () => {
+			// Ensure normal flow works when content actually changes
+			const SnapshotStoreModule = await import("../../../src/storage/SnapshotStore");
+
+			let callCount = 0;
+			const mockBlobStore = {
+				store: vi.fn().mockImplementation(() => {
+					callCount++;
+					// Return different hash for each call
+					return Promise.resolve({ hash: `hash${callCount}`, size: 100, isNew: true });
+				}),
+				retrieve: vi.fn(),
+				initialize: vi.fn(),
+			};
+
+			const store = new SnapshotStoreModule.SnapshotStore(
+				{ fsPath: "/storage" } as vscode.Uri,
+				mockBlobStore as any,
+			);
+
+			// Create initial POST
+			const firstPost = await store.createPOST({
+				files: new Map([["/src/file.ts", "const x = 1;"]]),
+				name: "First POST",
+				anchorFile: "/src/file.ts",
+				parentSeq: null,
+				parentId: null,
+			});
+
+			// Mock reading the parent manifest
+			mockReadFile.mockImplementation((uri: { fsPath: string }) => {
+				if (uri.fsPath.includes(firstPost.id)) {
+					return Promise.resolve(Buffer.from(JSON.stringify(firstPost)));
+				}
+				const error = new Error("FileNotFound") as Error & { code: string };
+				error.code = "FileNotFound";
+				return Promise.reject(error);
+			});
+
+			// Second POST with different content (different hash) should succeed
+			const secondPost = await store.createPOST({
+				files: new Map([["/src/file.ts", "const x = 2;"]]), // Different content
+				name: "Second POST (with changes)",
+				anchorFile: "/src/file.ts",
+				parentSeq: firstPost.seq,
+				parentId: firstPost.id,
+			});
+
+			expect(secondPost.id).toBeDefined();
+			expect(secondPost.seq).toBeGreaterThan(firstPost.seq);
+		});
 	});
 
 	// ═══════════════════════════════════════════════════════════════════════════

@@ -24,6 +24,7 @@ import type * as vscode from "vscode";
 import { VscodeEventEmitterAdapter } from "../adapters/VscodeEventEmitterAdapter";
 import { getSessionPerfMonitor } from "../performance/sessionPerfMonitor";
 import type { IStorageManager } from "../storage/types.js";
+import { getCoreEventTracker } from "../telemetry/core-event-tracker";
 import { logger } from "../utils/logger";
 
 /**
@@ -61,6 +62,8 @@ class VscodeStorageAdapter implements ISessionStorage {
 	 */
 	async storeSessionManifest(manifest: SessionManifest): Promise<void> {
 		const files = (manifest as any).files || [];
+		const reason = (manifest as any).reason || "manual";
+		const triggers = (manifest as any).triggers || [reason];
 
 		console.log("[VscodeStorageAdapter] storeSessionManifest() called", {
 			manifestId: manifest.id,
@@ -79,11 +82,44 @@ class VscodeStorageAdapter implements ISessionStorage {
 
 		console.log("[VscodeStorageAdapter] Calling storage.finalizeSession()", {
 			manifestId: manifest.id,
-			reason: (manifest as any).reason || "manual",
+			reason,
 			filesCount: files.length,
 		});
-		await this.storage.finalizeSession(manifest.id, manifest.endedAt, (manifest as any).reason || "manual", files);
+		await this.storage.finalizeSession(manifest.id, manifest.endedAt, reason, files);
 		console.log("[VscodeStorageAdapter] storage.finalizeSession() completed");
+
+		// Track session_finalized event (P0 - Demo Critical)
+		// Fire-and-forget to avoid blocking session finalization
+		const coreTracker = getCoreEventTracker();
+		if (coreTracker) {
+			const duration_ms = manifest.endedAt - manifest.startedAt;
+			const extManifest = manifest as any;
+
+			// Extract file paths from manifest (privacy: use relative paths only)
+			const filePaths = files.map((f: any) => (typeof f === "string" ? f : f.path || f.filePath || "unknown"));
+
+			coreTracker.trackSessionFinalized({
+				session_id: manifest.id,
+				files: filePaths,
+				triggers,
+				duration_ms,
+				ai_present: extManifest.ai_present ?? false,
+				ai_burst: extManifest.ai_burst ?? false,
+				highest_severity: extManifest.highest_severity || "info",
+				// Optional AI detection v1 fields
+				ai_assist_level: extManifest.ai_assist_level,
+				ai_confidence_score: extManifest.ai_confidence_score,
+				ai_provider: extManifest.ai_provider,
+				ai_large_insert_count: extManifest.ai_large_insert_count,
+				ai_total_chars: extManifest.ai_total_chars,
+			});
+
+			logger.debug("session_finalized event tracked", {
+				session_id: manifest.id,
+				files_count: filePaths.length,
+				duration_ms,
+			});
+		}
 	}
 
 	async listSessionManifests(): Promise<SessionManifest[]> {

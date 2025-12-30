@@ -1,42 +1,72 @@
 import * as vscode from "vscode";
 import { PIONEER_DASHBOARD_URL } from "../constants";
 import type { PioneerGatekeeper } from "../pioneer/PioneerGatekeeper";
+import type { StatusBarManager } from "../ui/StatusBarManager";
 
+/**
+ * Pioneer Status Item
+ *
+ * REFACTORED: Now delegates to StatusBarManager's message queue
+ * instead of creating a separate status bar item.
+ *
+ * This reduces status bar clutter by sharing the single SnapBack status bar.
+ */
 export class PioneerStatusItem implements vscode.Disposable {
-	private statusBarItem: vscode.StatusBarItem;
 	private disposables: vscode.Disposable[] = [];
+	private currentMessageId: string | undefined;
+
+	/** Unique ID prefix for this component's messages */
+	private static readonly MESSAGE_PREFIX = "pioneer";
 
 	constructor(
 		_context: vscode.ExtensionContext,
 		private readonly gatekeeper: PioneerGatekeeper,
+		private readonly statusBarManager: StatusBarManager,
 	) {
-		this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-		this.disposables.push(this.statusBarItem);
-
-		// Register command for click action
+		// Register command for click action (used by queued message)
 		const commandId = "snapback.pioneer.statusBarClick";
 		this.disposables.push(vscode.commands.registerCommand(commandId, this.handleClick.bind(this)));
-		this.statusBarItem.command = commandId;
 
-		// Listen for status changes - VS Code EventEmitter returns disposable
+		// Listen for status changes
 		this.disposables.push(this.gatekeeper.onDidChangeStatus(() => this.update()));
 
-		// Initial update
+		// Initial update - show pioneer status with low priority
 		this.update();
-		this.statusBarItem.show();
 	}
 
 	private update() {
 		const profile = this.gatekeeper.getProfile();
 
+		// Remove existing message if any
+		if (this.currentMessageId) {
+			this.statusBarManager.dequeueMessage(this.currentMessageId);
+			this.currentMessageId = undefined;
+		}
+
+		// Build message based on profile status
 		if (profile) {
 			const emoji = this.gatekeeper.getTierEmoji(profile.tier);
 			const tierName = profile.tier.charAt(0).toUpperCase() + profile.tier.slice(1);
-			this.statusBarItem.text = `${emoji} ${profile.totalPoints} pts`;
-			this.statusBarItem.tooltip = `Pioneer: ${tierName} tier\n${profile.totalPoints} points\nClick to open dashboard`;
+
+			// Logged in pioneers: show points briefly, then let other messages take over
+			this.currentMessageId = this.statusBarManager.enqueueMessage({
+				id: `${PioneerStatusItem.MESSAGE_PREFIX}-points`,
+				priority: "low",
+				text: `${emoji} ${profile.totalPoints} pts`,
+				tooltip: `**Pioneer: ${tierName} tier**\n${profile.totalPoints} points\n\n*Click to open dashboard*`,
+				duration: 8000, // Show for 8 seconds, then cycle to next message
+				command: "snapback.pioneer.statusBarClick",
+			});
 		} else {
-			this.statusBarItem.text = "$(rocket) Join Pioneers";
-			this.statusBarItem.tooltip = "Click to join the Pioneer program";
+			// Non-pioneers: show join prompt occasionally
+			this.currentMessageId = this.statusBarManager.enqueueMessage({
+				id: `${PioneerStatusItem.MESSAGE_PREFIX}-join`,
+				priority: "low",
+				text: "$(rocket) Join Pioneers",
+				tooltip: "**Pioneer Program**\nUnlock exclusive features!\n\n*Click to join*",
+				duration: 10000, // Show for 10 seconds
+				command: "snapback.pioneer.statusBarClick",
+			});
 		}
 	}
 
@@ -57,6 +87,10 @@ export class PioneerStatusItem implements vscode.Disposable {
 	}
 
 	dispose() {
+		// Remove queued message
+		if (this.currentMessageId) {
+			this.statusBarManager.dequeueMessage(this.currentMessageId);
+		}
 		for (const d of this.disposables) {
 			d.dispose();
 		}

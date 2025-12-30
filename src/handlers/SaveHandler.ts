@@ -12,6 +12,7 @@ import { recordFileModification } from "../services/IntelligenceService";
 import type { MilestoneService } from "../services/MilestoneService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
+import { getCoreEventTracker } from "../telemetry/core-event-tracker";
 import type { AnalysisResult, BasicAnalysisResult } from "../types/api";
 import type { CooldownIndicator } from "../ui/cooldownIndicator";
 import { logger } from "../utils/logger";
@@ -563,6 +564,25 @@ export class SaveHandler {
 		// If protection handler blocks the save, it will throw CancellationError
 		// If we get here, save is allowed to proceed
 
+		// Track save_attempt event (P0 - Demo Critical)
+		// Fire-and-forget to avoid blocking save operation
+		const coreTracker = getCoreEventTracker();
+		if (coreTracker) {
+			const fileExtension = path.extname(filePath).slice(1) || "unknown";
+			const analysisResult = this.analysisCoordinator.lastAnalysisResult;
+			const iterationStats = this.getIterationStats(filePath);
+
+			coreTracker.trackSaveAttempt({
+				protection: protectionLevel as "watch" | "warn" | "block",
+				severity: this.mapSeverity(analysisResult?.score),
+				file_kind: fileExtension,
+				reason: protectionResult.reason,
+				ai_present: aiDetectionResult.tool !== null,
+				ai_burst: iterationStats.riskLevel === "high",
+				outcome: "saved", // If we reach here, save succeeded
+			});
+		}
+
 		const decorationStartTime = Date.now();
 		logger.debug("Starting decoration update", {
 			correlationId,
@@ -779,6 +799,25 @@ export class SaveHandler {
 
 		// Default: protected
 		return "protected";
+	}
+
+	/**
+	 * Map risk score to severity level for telemetry
+	 *
+	 * @param score - Risk score (0-1 scale) or undefined
+	 * @returns Severity level for telemetry event
+	 */
+	private mapSeverity(score: number | undefined): "low" | "medium" | "high" | "critical" {
+		if (score === undefined || score < 0.3) {
+			return "low";
+		}
+		if (score < 0.5) {
+			return "medium";
+		}
+		if (score < 0.7) {
+			return "high";
+		}
+		return "critical";
 	}
 
 	/**

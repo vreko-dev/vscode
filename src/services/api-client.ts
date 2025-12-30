@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+import { API_DEFAULTS } from "../config/hardcodedDefaults";
 import type { NetworkAdapter } from "../network/NetworkAdapter";
 import { QueuedNetworkAdapter } from "../network/QueuedNetworkAdapter";
 import { getSecureConfig } from "../security/SecureConfigService";
@@ -15,21 +15,11 @@ export class ApiClient {
 		// Use provided network adapter or default to queued implementation
 		this.networkAdapter = networkAdapter || new QueuedNetworkAdapter();
 
-		try {
-			// Get API configuration from VS Code settings
-			const config = vscode.workspace.getConfiguration("snapback");
-			this.baseUrl = config.get("api.baseUrl", "https://api.snapback.dev/api");
+		// Use hardcoded API URL - no user configuration needed
+		this.baseUrl = API_DEFAULTS.baseUrl;
 
-			// ✅ SECURITY (AUTH-030): API key now loaded lazily from SecureConfigService
-			// No longer retrieved from workspace config to prevent exposure in settings.json
-		} catch (error) {
-			// In test environments, vscode.workspace might not be available
-			// Use default values
-			this.baseUrl = "https://api.snapback.dev/api";
-			logger.debug("Using default API configuration", {
-				reason: error instanceof Error ? error.message : "test environment",
-			});
-		}
+		// ✅ SECURITY (AUTH-030): API key now loaded lazily from SecureConfigService
+		// No longer retrieved from workspace config to prevent exposure in settings.json
 	}
 
 	/**

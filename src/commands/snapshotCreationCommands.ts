@@ -12,6 +12,7 @@
 
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
+import { NoChangeError } from "../storage/SnapshotStore";
 import type { CommandContext } from "./types";
 
 /**
@@ -61,6 +62,13 @@ export function registerSnapshotCreationCommands(
 					return;
 				}
 			} catch (error) {
+				// Handle 0-delta case gracefully - not an error, just no changes
+				if (error instanceof NoChangeError) {
+					vscode.window.showInformationMessage(
+						"No changes to snapshot - files are identical to the previous snapshot",
+					);
+					return;
+				}
 				vscode.window.showErrorMessage(`Failed to create snapshot: ${error}`);
 			}
 		}),

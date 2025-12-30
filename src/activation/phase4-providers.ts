@@ -13,6 +13,7 @@ import { WorkspaceSafetyService } from "../services/WorkspaceSafetyService";
 import type { IStorageManager } from "../storage/types";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
+import { StatusBarController } from "../ui/StatusBarController";
 import { createStatusBarManager, type StatusBarManager } from "../ui/StatusBarManager";
 import { createVitalsUIIntegration, registerVitalsCommands, type VitalsUIIntegration } from "../ui/VitalsUIIntegration";
 import { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
@@ -29,7 +30,8 @@ export interface Phase4Result {
 	snapshotDocumentProvider: SnapshotDocumentProvider;
 	protectionDecorationProvider: ProtectionDecorationProvider;
 	protectionCodeLensProvider: ProtectionCodeLensProvider;
-	statusBarManager: StatusBarManager; // Vitals-aware status bar
+	statusBarManager: StatusBarManager; // Legacy vitals-aware status bar
+	statusBarController: StatusBarController; // New consolidated status bar
 	welcomeView: WelcomeView;
 	snapshotDecorations: SnapshotDecorations;
 	snapshotNavigatorProvider: SnapshotNavigatorProvider;
@@ -128,11 +130,17 @@ export async function initializePhase4Providers(
 		workspaceSafetyService.startAutoRefresh(); // Auto-refresh every 60s
 		console.log("[PERF] WorkspaceSafetyService", { ms: Date.now() - t });
 
-		// Initialize StatusBarManager for vitals display
+		// Initialize StatusBarManager for vitals display (legacy)
 		t = Date.now();
 		const statusBarManager = createStatusBarManager();
 		context.subscriptions.push(statusBarManager);
 		console.log("[PERF] StatusBarManager", { ms: Date.now() - t });
+
+		// Initialize StatusBarController (new consolidated status bar)
+		t = Date.now();
+		const statusBarController = new StatusBarController();
+		context.subscriptions.push(statusBarController);
+		console.log("[PERF] StatusBarController", { ms: Date.now() - t });
 
 		// Initialize VitalsUIIntegration - connects data service to UI components
 		t = Date.now();
@@ -165,6 +173,7 @@ export async function initializePhase4Providers(
 			protectionDecorationProvider,
 			protectionCodeLensProvider,
 			statusBarManager,
+			statusBarController,
 			welcomeView,
 			snapshotDecorations,
 			snapshotNavigatorProvider,

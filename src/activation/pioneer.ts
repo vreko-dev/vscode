@@ -7,7 +7,9 @@ import { PioneerSocket } from "../pioneer/PioneerSocket";
 import { PointsTracker } from "../pioneer/PointsTracker";
 import { isValidTier } from "../pioneer/types";
 import { logger } from "../utils/logger";
-import { PioneerStatusItem } from "../views/PioneerStatusItem";
+
+// NOTE: PioneerStatusItem removed from status bar per user request.
+// Pioneer info is shown in the dashboard/tree view instead.
 
 export async function initializePioneerInfrastructure(context: vscode.ExtensionContext) {
 	const auth = new PioneerAuth();
@@ -15,7 +17,6 @@ export async function initializePioneerInfrastructure(context: vscode.ExtensionC
 	const gatekeeper = PioneerGatekeeper.getInstance();
 	const pointsTracker = new PointsTracker();
 	const pioneerSocket = new PioneerSocket(auth);
-	const statusItem = new PioneerStatusItem(context, gatekeeper);
 
 	// Wire up dependencies
 	auth.setContext(context);
@@ -83,7 +84,6 @@ export async function initializePioneerInfrastructure(context: vscode.ExtensionC
 	);
 
 	// Register all disposable resources
-	context.subscriptions.push(statusItem);
 	context.subscriptions.push(pioneerSocket);
 	context.subscriptions.push(pointsTracker);
 	context.subscriptions.push(gatekeeper);

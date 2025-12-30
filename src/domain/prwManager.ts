@@ -16,7 +16,7 @@
  */
 
 import * as vscode from "vscode";
-import type { CreatePOSTOptions, CreatePREOptions } from "../storage/SnapshotStore";
+import { type CreatePOSTOptions, type CreatePREOptions, NoChangeError } from "../storage/SnapshotStore";
 import type { SnapshotManifestV2 } from "../storage/types";
 
 /** State for an active PRE checkpoint */
@@ -181,6 +181,17 @@ export class PRWManager {
 			// Always clear activePRE on failure - no retry mechanism exists
 			// Orphan PRE is better than stuck state blocking future snapshots
 			this.activePREs.delete(filePath);
+
+			// Handle 0-delta case - content unchanged since parent snapshot
+			// This is expected behavior, not an error
+			if (error instanceof NoChangeError) {
+				console.debug("[PRWManager] No changes since last snapshot, skipping POST", {
+					filePath,
+					preId: activePRE.preId,
+					parentId: error.parentId,
+				});
+				return null;
+			}
 
 			// Check if file was deleted (ENOENT/FileNotFound)
 			const isFileNotFound =

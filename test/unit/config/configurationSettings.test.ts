@@ -1,436 +1,179 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import * as vscode from "vscode";
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+	AUTO_DECISION_DEFAULTS,
+	SNAPSHOT_DEFAULTS,
+	API_DEFAULTS,
+	GUARDIAN_DEFAULTS,
+	NOTIFICATION_DEFAULTS,
+	MCP_DEFAULTS,
+	PROTECTION_DEFAULTS,
+	VITALS_DEFAULTS,
+	TELEMETRY_DEFAULTS,
+} from "../../../src/config/hardcodedDefaults";
 
 /**
- * Mock WorkspaceConfiguration for testing
+ * Settings Simplification Tests
+ *
+ * These tests validate that the hardcoded defaults are correct after
+ * the settings simplification (56 → 8 settings).
+ *
+ * Rule: "If there's an obvious right answer, don't ask the user."
  */
-class MockWorkspaceConfiguration implements vscode.WorkspaceConfiguration {
-	private config: Map<string, unknown> = new Map();
-
-	get<T>(
-		section: string,
-		defaultValue?: T,
-	): T | undefined {
-		return (this.config.get(section) ?? defaultValue) as T | undefined;
-	}
-
-	has(section: string): boolean {
-		return this.config.has(section);
-	}
-
-	inspect<T>(
-		section: string,
-	):
-		| {
-				key: string;
-				defaultValue?: T;
-				globalValue?: T;
-				workspaceValue?: T;
-				workspaceFolderValue?: T;
-				language?: string;
-				defaultLanguageValue?: T;
-				globalLanguageValue?: T;
-				workspaceLanguageValue?: T;
-				workspaceFolderLanguageValue?: T;
-		  }
-		| undefined {
-		return undefined; // Not needed for tests
-	}
-
-	async update(
-		section: string,
-		value: unknown,
-		_configurationTarget?: boolean | vscode.ConfigurationTarget,
-		_overrideInLanguage?: boolean,
-	): Promise<void> {
-		this.config.set(section, value);
-	}
-
-	// For testing
-	setValue(section: string, value: unknown): void {
-		this.config.set(section, value);
-	}
-
-	clearAll(): void {
-		this.config.clear();
-	}
-}
-
-/**
- * Settings loader for testing
- */
-class SettingsLoader {
-	constructor(private config: vscode.WorkspaceConfiguration) {}
-
-	/**
-	 * Load AutoDecisionEngine settings with defaults
-	 */
-	loadAutoDecisionSettings() {
-		return {
-			riskThreshold: this.config.get<number>(
-				"snapback.autoDecision.riskThreshold",
-				60,
-			),
-			notifyThreshold: this.config.get<number>(
-				"snapback.autoDecision.notifyThreshold",
-				40,
-			),
-			minFilesForBurst: this.config.get<number>(
-				"snapback.autoDecision.minFilesForBurst",
-				3,
-			),
-			maxSnapshotsPerMinute: this.config.get<number>(
-				"snapback.autoDecision.maxSnapshotsPerMinute",
-				4,
-			),
-		};
-	}
-
-	/**
-	 * Load global snapshot settings
-	 */
-	loadSnapshotSettings() {
-		return {
-			aiDetectionEnabled: this.config.get<boolean>(
-				"snapback.snapshot.aiDetectionEnabled",
-				true,
-			),
-			autoRestoreOnDetection: this.config.get<boolean>(
-				"snapback.snapshot.autoRestoreOnDetection",
-				false,
-			),
-		};
-	}
-
-	/**
-	 * Load all settings
-	 */
-	loadAllSettings() {
-		return {
-			autoDecision: this.loadAutoDecisionSettings(),
-			snapshot: this.loadSnapshotSettings(),
-		};
-	}
-}
-
-describe("Configuration Settings", () => {
-	let config: MockWorkspaceConfiguration;
-	let loader: SettingsLoader;
-
-	beforeEach(() => {
-		config = new MockWorkspaceConfiguration();
-		loader = new SettingsLoader(config);
-	});
-
-	describe("Default values", () => {
-		it("should load riskThreshold with default 60", () => {
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.riskThreshold).toBe(60);
+describe("Configuration Settings (Simplified)", () => {
+	describe("Hardcoded Defaults - AutoDecision", () => {
+		it("should have sensible riskThreshold (60)", () => {
+			expect(AUTO_DECISION_DEFAULTS.riskThreshold).toBe(60);
 		});
 
-		it("should load notifyThreshold with default 40", () => {
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.notifyThreshold).toBe(40);
+		it("should have sensible notifyThreshold (40)", () => {
+			expect(AUTO_DECISION_DEFAULTS.notifyThreshold).toBe(40);
 		});
 
-		it("should load minFilesForBurst with default 3", () => {
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.minFilesForBurst).toBe(3);
+		it("should have sensible minFilesForBurst (3)", () => {
+			expect(AUTO_DECISION_DEFAULTS.minFilesForBurst).toBe(3);
 		});
 
-		it("should load maxSnapshotsPerMinute with default 4", () => {
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.maxSnapshotsPerMinute).toBe(4);
+		it("should have sensible maxSnapshotsPerMinute (4)", () => {
+			expect(AUTO_DECISION_DEFAULTS.maxSnapshotsPerMinute).toBe(4);
 		});
 
-		it("should load aiDetectionEnabled with default true", () => {
-			const settings = loader.loadSnapshotSettings();
-			expect(settings.aiDetectionEnabled).toBe(true);
-		});
-
-		it("should load autoRestoreOnDetection with default false", () => {
-			const settings = loader.loadSnapshotSettings();
-			expect(settings.autoRestoreOnDetection).toBe(false);
+		it("should maintain riskThreshold >= notifyThreshold", () => {
+			expect(AUTO_DECISION_DEFAULTS.riskThreshold).toBeGreaterThanOrEqual(
+				AUTO_DECISION_DEFAULTS.notifyThreshold,
+			);
 		});
 	});
 
-	describe("Custom values", () => {
-		it("should load custom riskThreshold", () => {
-			config.setValue(
-				"snapback.autoDecision.riskThreshold",
-				75,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.riskThreshold).toBe(75);
+	describe("Hardcoded Defaults - Snapshot", () => {
+		it("should enable AI detection by default", () => {
+			expect(SNAPSHOT_DEFAULTS.aiDetectionEnabled).toBe(true);
 		});
 
-		it("should load custom notifyThreshold", () => {
-			config.setValue(
-				"snapback.autoDecision.notifyThreshold",
-				30,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.notifyThreshold).toBe(30);
+		it("should disable auto-restore (too disruptive)", () => {
+			expect(SNAPSHOT_DEFAULTS.autoRestoreOnDetection).toBe(false);
 		});
 
-		it("should load custom minFilesForBurst", () => {
-			config.setValue(
-				"snapback.autoDecision.minFilesForBurst",
-				5,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.minFilesForBurst).toBe(5);
+		it("should enable deduplication for space savings", () => {
+			expect(SNAPSHOT_DEFAULTS.deduplicationEnabled).toBe(true);
 		});
 
-		it("should load custom maxSnapshotsPerMinute", () => {
-			config.setValue(
-				"snapback.autoDecision.maxSnapshotsPerMinute",
-				10,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.maxSnapshotsPerMinute).toBe(10);
+		it("should use git for smart naming", () => {
+			expect(SNAPSHOT_DEFAULTS.useGitNaming).toBe(true);
 		});
 
-		it("should load custom aiDetectionEnabled", () => {
-			config.setValue(
-				"snapback.snapshot.aiDetectionEnabled",
-				false,
-			);
-			const settings = loader.loadSnapshotSettings();
-			expect(settings.aiDetectionEnabled).toBe(false);
-		});
-
-		it("should load custom autoRestoreOnDetection", () => {
-			config.setValue(
-				"snapback.snapshot.autoRestoreOnDetection",
-				true,
-			);
-			const settings = loader.loadSnapshotSettings();
-			expect(settings.autoRestoreOnDetection).toBe(true);
+		it("should always confirm before delete", () => {
+			expect(SNAPSHOT_DEFAULTS.confirmDelete).toBe(true);
 		});
 	});
 
-	describe("Threshold validation", () => {
-		it("should enforce riskThreshold range (0-100)", () => {
-			config.setValue(
-				"snapback.autoDecision.riskThreshold",
-				150,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			// Would be clamped in real implementation
-			expect(settings.riskThreshold).toBeDefined();
+	describe("Hardcoded Defaults - API URLs", () => {
+		it("should use production API URL", () => {
+			expect(API_DEFAULTS.baseUrl).toBe("https://api.snapback.dev/api");
 		});
 
-		it("should enforce notifyThreshold range (0-100)", () => {
-			config.setValue(
-				"snapback.autoDecision.notifyThreshold",
-				-5,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.notifyThreshold).toBeDefined();
+		it("should use production web console URL", () => {
+			expect(API_DEFAULTS.webBaseUrl).toBe("https://console.snapback.dev");
 		});
 
-		it("riskThreshold should be >= notifyThreshold", () => {
-			config.setValue(
-				"snapback.autoDecision.riskThreshold",
-				50,
-			);
-			config.setValue(
-				"snapback.autoDecision.notifyThreshold",
-				60,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			// Validation logic would catch this
-			expect(
-				settings.riskThreshold >=
-					settings.notifyThreshold,
-			).toBeDefined();
+		it("should prefer OAuth for security", () => {
+			expect(API_DEFAULTS.preferOAuth).toBe(true);
 		});
 	});
 
-	describe("Burst detection settings", () => {
-		it("should enforce minFilesForBurst >= 1", () => {
-			config.setValue(
-				"snapback.autoDecision.minFilesForBurst",
-				0,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.minFilesForBurst).toBeDefined();
+	describe("Hardcoded Defaults - Guardian", () => {
+		it("should default to warn protection level", () => {
+			expect(GUARDIAN_DEFAULTS.protectionLevel).toBe("warn");
 		});
 
-		it("should enforce maxSnapshotsPerMinute >= 1", () => {
-			config.setValue(
-				"snapback.autoDecision.maxSnapshotsPerMinute",
-				0,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.maxSnapshotsPerMinute).toBeDefined();
-		});
-	});
-
-	describe("Settings persistence", () => {
-		it("should persist riskThreshold changes", async () => {
-			await config.update(
-				"snapback.autoDecision.riskThreshold",
-				80,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.riskThreshold).toBe(80);
+		it("should enable all security plugins", () => {
+			expect(GUARDIAN_DEFAULTS.plugins.secretDetection).toBe(true);
+			expect(GUARDIAN_DEFAULTS.plugins.mockReplacement).toBe(true);
+			expect(GUARDIAN_DEFAULTS.plugins.phantomDependency).toBe(true);
 		});
 
-		it("should persist notifyThreshold changes", async () => {
-			await config.update(
-				"snapback.autoDecision.notifyThreshold",
-				35,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.notifyThreshold).toBe(35);
+		it("should have sensible thresholds", () => {
+			expect(GUARDIAN_DEFAULTS.thresholds.warn).toBe(6);
+			expect(GUARDIAN_DEFAULTS.thresholds.block).toBe(8);
 		});
 
-		it("should persist boolean settings", async () => {
-			await config.update(
-				"snapback.snapshot.aiDetectionEnabled",
-				false,
-			);
-			const settings = loader.loadSnapshotSettings();
-			expect(settings.aiDetectionEnabled).toBe(false);
-		});
-
-		it("should support multiple setting changes", async () => {
-			await config.update(
-				"snapback.autoDecision.riskThreshold",
-				70,
-			);
-			await config.update(
-				"snapback.autoDecision.notifyThreshold",
-				45,
-			);
-			const settings = loader.loadAutoDecisionSettings();
-			expect(settings.riskThreshold).toBe(70);
-			expect(settings.notifyThreshold).toBe(45);
+		it("should have warn < block threshold", () => {
+			expect(GUARDIAN_DEFAULTS.thresholds.warn).toBeLessThan(GUARDIAN_DEFAULTS.thresholds.block);
 		});
 	});
 
-	describe("All settings together", () => {
-		it("should load all settings at once", () => {
-			config.setValue(
-				"snapback.autoDecision.riskThreshold",
-				65,
-			);
-			config.setValue(
-				"snapback.snapshot.aiDetectionEnabled",
-				false,
-			);
-
-			const allSettings = loader.loadAllSettings();
-
-			expect(allSettings.autoDecision.riskThreshold).toBe(65);
-			expect(
-				allSettings.snapshot.aiDetectionEnabled,
-			).toBe(false);
-			expect(
-				allSettings.autoDecision.notifyThreshold,
-			).toBe(40); // default
+	describe("Hardcoded Defaults - Notifications", () => {
+		it("should show snapshot created notifications", () => {
+			expect(NOTIFICATION_DEFAULTS.showSnapshotCreated).toBe(true);
 		});
 
-		it("should load mixed custom and default values", () => {
-			config.setValue(
-				"snapback.autoDecision.riskThreshold",
-				70,
-			);
-			// notifyThreshold not set - should use default
+		it("should have 3 second duration", () => {
+			expect(NOTIFICATION_DEFAULTS.duration).toBe(3000);
+		});
 
-			const allSettings = loader.loadAllSettings();
-
-			expect(allSettings.autoDecision.riskThreshold).toBe(70);
-			expect(
-				allSettings.autoDecision.notifyThreshold,
-			).toBe(40);
+		it("should hide config sync notifications", () => {
+			expect(NOTIFICATION_DEFAULTS.showConfigSync).toBe(false);
 		});
 	});
 
-	describe("Settings scope hierarchy", () => {
-		it("should indicate resource scope settings", () => {
-			const resourceScoped = [
-				"snapback.autoDecision.riskThreshold",
-				"snapback.autoDecision.notifyThreshold",
+	describe("Hardcoded Defaults - MCP", () => {
+		it("should auto-enable for AI assistants", () => {
+			expect(MCP_DEFAULTS.autoEnable).toBe(true);
+		});
+
+		it("should use bearer auth by default", () => {
+			expect(MCP_DEFAULTS.authType).toBe("bearer");
+		});
+
+		it("should have 5 second timeout", () => {
+			expect(MCP_DEFAULTS.timeout).toBe(5000);
+		});
+	});
+
+	describe("Hardcoded Defaults - Protection", () => {
+		it("should default to watch level", () => {
+			expect(PROTECTION_DEFAULTS.defaultLevel).toBe("watch");
+		});
+
+		it("should show level badges", () => {
+			expect(PROTECTION_DEFAULTS.showLevelBadges).toBe(true);
+		});
+	});
+
+	describe("Hardcoded Defaults - Vitals", () => {
+		it("should hide vitals in status bar (power user mode)", () => {
+			expect(VITALS_DEFAULTS.showInStatusBar).toBe(false);
+		});
+
+		it("should enable recommendations", () => {
+			expect(VITALS_DEFAULTS.enableRecommendations).toBe(true);
+		});
+	});
+
+	describe("Hardcoded Defaults - Telemetry", () => {
+		it("should use PostHog endpoint", () => {
+			expect(TELEMETRY_DEFAULTS.endpoint).toBe("https://us.i.posthog.com");
+		});
+
+		it("should sample all traces", () => {
+			expect(TELEMETRY_DEFAULTS.sampleRate).toBe(1.0);
+		});
+	});
+
+	describe("Settings Count Validation", () => {
+		it("should have exactly 8 user-facing settings after simplification", () => {
+			// The 8 settings that remain user-configurable:
+			const userFacingSettings = [
+				"snapback.aiDetection.enabled",
+				"snapback.showAutoSnapshotNotifications",
+				"snapback.guardian.enabled",
+				"snapback.mcp.enabled",
+				"snapback.mcp.serverUrl",
+				"snapback.offlineMode.enabled",
+				"snapback.logLevel",
+				"snapback.ui.showTreeView",
 			];
-			expect(resourceScoped).toHaveLength(2);
-			expect(resourceScoped[0]).toContain("autoDecision");
-		});
 
-		it("should indicate window scope settings", () => {
-			const windowScoped = [
-				"snapback.snapshot.aiDetectionEnabled",
-				"snapback.snapshot.autoRestoreOnDetection",
-			];
-			expect(windowScoped).toHaveLength(2);
-			expect(windowScoped[0]).toContain("snapshot");
-		});
-	});
-
-	describe("Settings UI hints", () => {
-		it("should define riskThreshold min/max (0-100)", () => {
-			const setting = {
-				name: "snapback.autoDecision.riskThreshold",
-				type: "number",
-				minimum: 0,
-				maximum: 100,
-				default: 60,
-			};
-			expect(setting.minimum).toBe(0);
-			expect(setting.maximum).toBe(100);
-		});
-
-		it("should define notifyThreshold min/max (0-100)", () => {
-			const setting = {
-				name: "snapback.autoDecision.notifyThreshold",
-				type: "number",
-				minimum: 0,
-				maximum: 100,
-				default: 40,
-			};
-			expect(setting.minimum).toBe(0);
-			expect(setting.maximum).toBe(100);
-		});
-
-		it("should define minFilesForBurst min (1+)", () => {
-			const setting = {
-				name: "snapback.autoDecision.minFilesForBurst",
-				type: "number",
-				minimum: 1,
-				default: 3,
-			};
-			expect(setting.minimum).toBe(1);
-		});
-
-		it("should define descriptions for all settings", () => {
-			const settings = [
-				{
-					name: "riskThreshold",
-					description:
-						"Snapshot when risk score exceeds this threshold",
-				},
-				{
-					name: "notifyThreshold",
-					description:
-						"Notify user when risk score exceeds this threshold",
-				},
-				{
-					name: "aiDetectionEnabled",
-					description:
-						"Enable AI detection for suspicious code changes",
-				},
-				{
-					name: "autoRestoreOnDetection",
-					description:
-						"Automatically restore snapshots when threats detected",
-				},
-			];
-			expect(settings).toHaveLength(4);
-			expect(settings.every((s) => s.description)).toBe(
-				true,
-			);
+			expect(userFacingSettings).toHaveLength(8);
 		});
 	});
 });

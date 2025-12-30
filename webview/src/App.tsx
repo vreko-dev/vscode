@@ -25,7 +25,7 @@ declare global {
 	}
 }
 
-const _vscodeAPI = window.acquireVsCodeApi?.();
+const vscodeAPI = window.acquireVsCodeApi?.();
 
 export function App() {
 	const [vitals, setVitals] = useState<VitalsData>({
@@ -52,6 +52,10 @@ export function App() {
 		};
 
 		window.addEventListener("message", messageHandler);
+
+		// Signal to extension that webview is ready to receive messages
+		vscodeAPI?.postMessage({ type: "webviewReady" });
+
 		return () => window.removeEventListener("message", messageHandler);
 	}, []);
 

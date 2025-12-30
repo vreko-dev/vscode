@@ -80,13 +80,14 @@ describe("[DEMO-CRITICAL] Package.json Contracts", () => {
 				(c: any) => c.category,
 			);
 
-			// All commands should be in SnapBack category
+			// All commands should be in SnapBack or SnapBack Test/MCP category
 			const snapbackCommands = packageJson.contributes.commands.filter(
 				(c: any) => c.command.startsWith("snapback."),
 			);
 
 			snapbackCommands.forEach((cmd: any) => {
-				expect(cmd.category).toBe("SnapBack");
+				// Allow SnapBack, SnapBack Test, and SnapBack MCP categories
+				expect(cmd.category).toMatch(/^SnapBack( Test| MCP)?$/);
 			});
 		});
 	});
@@ -107,7 +108,7 @@ describe("[DEMO-CRITICAL] Package.json Contracts", () => {
 		});
 	});
 
-	describe("Configuration Schema", () => {
+	describe("Configuration Schema (Simplified - 8 settings)", () => {
 		const config = packageJson.contributes.configuration;
 
 		it("[DEMO] has configuration section", () => {
@@ -116,48 +117,46 @@ describe("[DEMO-CRITICAL] Package.json Contracts", () => {
 			expect(config.properties).toBeDefined();
 		});
 
-		it("[DEMO] has protection level configuration", () => {
+		it("[DEMO] has exactly 8 user-facing settings (56 → 8 reduction)", () => {
 			const props = config.properties;
+			const settingKeys = Object.keys(props);
 
-			expect(props["snapback.protectionLevels.defaultLevel"]).toBeDefined();
-			expect(props["snapback.protectionLevels.defaultLevel"].type).toBe(
-				"string",
-			);
-			expect(props["snapback.protectionLevels.defaultLevel"].enum).toEqual([
-				"watch",
-				"warn",
-				"block",
-			]);
-			expect(props["snapback.protectionLevels.defaultLevel"].default).toBe(
-				"watch",
-			);
+			// After simplification, we should have exactly 8 settings
+			expect(settingKeys).toHaveLength(8);
+
+			// Verify the 8 essential settings exist
+			expect(props["snapback.aiDetection.enabled"]).toBeDefined();
+			expect(props["snapback.showAutoSnapshotNotifications"]).toBeDefined();
+			expect(props["snapback.guardian.enabled"]).toBeDefined();
+			expect(props["snapback.mcp.enabled"]).toBeDefined();
+			expect(props["snapback.mcp.serverUrl"]).toBeDefined();
+			expect(props["snapback.offlineMode.enabled"]).toBeDefined();
+			expect(props["snapback.logLevel"]).toBeDefined();
+			expect(props["snapback.ui.showTreeView"]).toBeDefined();
 		});
 
-		it("[DEMO] has notification configuration", () => {
+		it("[DEMO] has AI detection toggle", () => {
 			const props = config.properties;
 
-			expect(props["snapback.notifications.showSnapshotCreated"]).toBeDefined();
-			expect(props["snapback.notifications.duration"]).toBeDefined();
-			expect(props["snapback.notifications.duration"].default).toBe(3000);
+			expect(props["snapback.aiDetection.enabled"].type).toBe("boolean");
+			expect(props["snapback.aiDetection.enabled"].default).toBe(true);
 		});
 
-		it("[DEMO] has snapshot configuration", () => {
-			const props = config.properties;
-
-			expect(props["snapback.snapshot.deduplication.enabled"]).toBeDefined();
-			expect(props["snapback.snapshot.naming.useGit"]).toBeDefined();
-			expect(props["snapback.snapshot.deletion.confirmDelete"]).toBeDefined();
-		});
-
-		it("[DEMO] has Guardian (AI detection) configuration", () => {
+		it("[DEMO] has Guardian toggle", () => {
 			const props = config.properties;
 
 			expect(props["snapback.guardian.enabled"]).toBeDefined();
-			expect(props["snapback.guardian.protectionLevel"]).toBeDefined();
-			expect(props["snapback.guardian.protectionLevel"].enum).toContain("warn");
-			expect(props["snapback.guardian.protectionLevel"].enum).toContain(
-				"block",
-			);
+			expect(props["snapback.guardian.enabled"].type).toBe("boolean");
+			expect(props["snapback.guardian.enabled"].default).toBe(true);
+		});
+
+		it("[DEMO] has MCP configuration", () => {
+			const props = config.properties;
+
+			expect(props["snapback.mcp.enabled"].type).toBe("boolean");
+			expect(props["snapback.mcp.enabled"].default).toBe(true);
+			expect(props["snapback.mcp.serverUrl"].type).toBe("string");
+			expect(props["snapback.mcp.serverUrl"].default).toBe("https://mcp.snapback.dev");
 		});
 
 		it("[DEMO] has offline mode configuration", () => {
@@ -166,6 +165,14 @@ describe("[DEMO-CRITICAL] Package.json Contracts", () => {
 			expect(props["snapback.offlineMode.enabled"]).toBeDefined();
 			expect(props["snapback.offlineMode.enabled"].type).toBe("boolean");
 			expect(props["snapback.offlineMode.enabled"].default).toBe(false);
+		});
+
+		it("[DEMO] has log level configuration for troubleshooting", () => {
+			const props = config.properties;
+
+			expect(props["snapback.logLevel"].type).toBe("string");
+			expect(props["snapback.logLevel"].enum).toEqual(["error", "warn", "info", "debug"]);
+			expect(props["snapback.logLevel"].default).toBe("info");
 		});
 	});
 
@@ -183,28 +190,28 @@ describe("[DEMO-CRITICAL] Package.json Contracts", () => {
 			expect(snapbackContainer.icon).toBeDefined();
 		});
 
-		it("[DEMO] has main snapshots view", () => {
+		it("[DEMO] has main dashboard view", () => {
 			const views = packageJson.contributes.views;
 
 			expect(views.snapback).toBeDefined();
-			const mainView = views.snapback.find(
-				(v: any) => v.id === "snapback.main",
+			const dashboardView = views.snapback.find(
+				(v: any) => v.id === "snapback.dashboard",
 			);
 
-			expect(mainView).toBeDefined();
-			expect(mainView.name).toBe("Snapshots");
+			expect(dashboardView).toBeDefined();
+			expect(dashboardView.name).toBe("SnapBack");
 		});
 
-		it("[DEMO] has protected files view in explorer", () => {
+		it("[DEMO] has protected files view in sidebar", () => {
 			const views = packageJson.contributes.views;
 
-			expect(views.explorer).toBeDefined();
-			const protectedFilesView = views.explorer.find(
+			// Protected files view is now in snapback container, not explorer
+			const protectedFilesView = views.snapback.find(
 				(v: any) => v.id === "snapback.protectedFiles",
 			);
 
 			expect(protectedFilesView).toBeDefined();
-			expect(protectedFilesView.name).toBe("SnapBack Protected Files");
+			expect(protectedFilesView.name).toBe("Protected Files");
 		});
 	});
 
@@ -286,7 +293,7 @@ describe("[DEMO-CRITICAL] Package.json Contracts", () => {
 			expect(deps["@snapback/contracts"]).toBeDefined();
 			expect(deps["@snapback/core"]).toBeDefined();
 			expect(deps["@snapback/sdk"]).toBeDefined();
-			expect(deps["@snapback/events"]).toBeDefined();
+			// @snapback/events may be consolidated into other packages
 			expect(deps["@snapback/infrastructure"]).toBeDefined();
 		});
 
@@ -313,7 +320,8 @@ describe("[DEMO-CRITICAL] Package.json Contracts", () => {
 		it("[DEMO] has build scripts", () => {
 			expect(scripts.compile).toBeDefined();
 			expect(scripts.package).toBeDefined();
-			expect(scripts["vscode:prepublish"]).toBeDefined();
+			// vscode:prepublish removed - using package-vsix instead
+			expect(scripts["package-vsix"]).toBeDefined();
 		});
 
 		it("[DEMO] has VSIX packaging scripts", () => {

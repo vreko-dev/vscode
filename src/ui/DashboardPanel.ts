@@ -21,12 +21,7 @@ import type { HeatTracker } from "../heat/HeatTracker";
 import type { OperationCoordinator } from "../operationCoordinator";
 import { logger } from "../utils/logger";
 import { BRANDING } from "./branding";
-import {
-	type ActivityData,
-	type DashboardDataService,
-	getDashboardDataService,
-	type SettingsState,
-} from "./DashboardDataService";
+import { type ActivityData, type DashboardDataService, getDashboardDataService } from "./DashboardDataService";
 
 // =============================================================================
 // TYPES
@@ -35,7 +30,7 @@ import {
 /**
  * Dashboard tab identifiers
  */
-type DashboardTab = "home" | "settings" | "activity";
+type DashboardTab = "home" | "activity";
 
 /**
  * User experience tier for progressive disclosure
@@ -47,6 +42,7 @@ type UserTier = "explorer" | "intermediate" | "power";
  */
 interface DashboardStats {
 	snapshotsToday: number;
+	totalSnapshots: number;
 	restoresToday: number;
 	linesProtected: number;
 	tokensSaved: number;
@@ -66,6 +62,8 @@ interface DashboardMessage {
 		| "switchTab"
 		| "installCLI"
 		| "injectPrompt"
+		| "configureMCP"
+		| "showMCPStatus"
 		| "copyCommand"
 		| "createSnapshot"
 		| "openSettings"
@@ -88,40 +86,34 @@ export class DashboardPanel implements vscode.Disposable {
 	private readonly panel: vscode.WebviewPanel;
 	private readonly coordinator: OperationCoordinator;
 	private readonly dataService: DashboardDataService;
+	private readonly extensionUri: vscode.Uri;
 	private disposables: vscode.Disposable[] = [];
 
 	private currentTab: DashboardTab = "home";
 	private userTier: UserTier = "explorer";
 	private stats: DashboardStats = {
 		snapshotsToday: 0,
+		totalSnapshots: 0,
 		restoresToday: 0,
 		linesProtected: 0,
 		tokensSaved: 0,
 		restoresThisWeek: 0,
 		efficiencyPercentile: 0,
 	};
-
-	// Cached data for tabs (loaded async, rendered sync)
-	private settingsState: SettingsState | null = null;
 	private activityData: ActivityData | null = null;
 
 	private constructor(
 		panel: vscode.WebviewPanel,
-		_extensionUri: vscode.Uri,
+		extensionUri: vscode.Uri,
 		coordinator: OperationCoordinator,
 		heatTracker?: HeatTracker,
 	) {
 		this.panel = panel;
+		this.extensionUri = extensionUri;
 		this.coordinator = coordinator;
 		this.dataService = getDashboardDataService(coordinator, heatTracker);
 
-		// Load user tier from snapshot count
-		this.loadUserTier();
-
-		// Load initial data and set content
-		void this.loadAllData().then(() => this.updateContent());
-
-		// Handle messages from webview
+		// Handle messages from webview FIRST (before loading data)
 		this.panel.webview.onDidReceiveMessage(
 			(msg) => this.handleMessage(msg as DashboardMessage),
 			null,
@@ -148,6 +140,11 @@ export class DashboardPanel implements vscode.Disposable {
 				void this.loadAllData().then(() => this.updateContent());
 			}),
 		);
+
+		// Load user tier FIRST, then load data (fixes race condition)
+		void this.loadUserTier().then(() => {
+			void this.loadAllData().then(() => this.updateContent());
+		});
 	}
 
 	/**
@@ -231,15 +228,13 @@ export class DashboardPanel implements vscode.Disposable {
 			const serviceStats = await this.dataService.getStats();
 			this.stats = {
 				snapshotsToday: serviceStats.snapshotsToday,
+				totalSnapshots: serviceStats.totalSnapshots,
 				restoresToday: serviceStats.restoresToday,
 				linesProtected: serviceStats.linesProtected,
 				tokensSaved: serviceStats.tokensSaved,
 				restoresThisWeek: serviceStats.restoresThisWeek,
 				efficiencyPercentile: serviceStats.efficiencyPercentile,
 			};
-
-			// Load settings state
-			this.settingsState = await this.dataService.getSettingsState();
 
 			// Load activity data (only for intermediate+ users)
 			if (this.userTier !== "explorer") {
@@ -273,7 +268,12 @@ export class DashboardPanel implements vscode.Disposable {
 				vscode.env.openExternal(vscode.Uri.parse("https://snapback.dev/cli"));
 				break;
 
+			case "showMCPStatus":
+				await vscode.commands.executeCommand("snapback.mcp.status");
+				break;
+
 			case "injectPrompt":
+			case "configureMCP":
 				await this.injectSystemPrompt();
 				break;
 
@@ -305,50 +305,11 @@ export class DashboardPanel implements vscode.Disposable {
 	}
 
 	/**
-	 * Inject system prompt into AI tool config
+	 * Inject system prompt / Configure MCP for AI tools
 	 */
 	private async injectSystemPrompt(): Promise<void> {
-		// Detect AI tool and offer to inject
-		const detected = await this.detectAITool();
-		if (!detected) {
-			vscode.window.showInformationMessage("No supported AI tool configuration found");
-			return;
-		}
-
-		const result = await vscode.window.showInformationMessage(
-			`Inject SnapBack instructions into ${detected}?`,
-			"Inject",
-			"Cancel",
-		);
-
-		if (result === "Inject") {
-			// TODO: Implement actual injection based on tool
-			vscode.window.showInformationMessage("System prompt injected successfully");
-		}
-	}
-
-	/**
-	 * Detect which AI tool is being used
-	 */
-	private async detectAITool(): Promise<string | null> {
-		// Check for common AI tool configs
-		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-		if (!workspaceFolder) return null;
-
-		const patterns = [
-			{ pattern: ".cursor/**", name: "Cursor" },
-			{ pattern: ".github/copilot/**", name: "Copilot" },
-			{ pattern: ".claude/**", name: "Claude" },
-		];
-
-		for (const { pattern, name } of patterns) {
-			const files = await vscode.workspace.findFiles(pattern, null, 1);
-			if (files.length > 0) {
-				return name;
-			}
-		}
-
-		return null;
+		// Use MCP auto-configure command (detects Cursor, Claude Desktop, etc.)
+		await vscode.commands.executeCommand("snapback.mcp.configure");
 	}
 
 	/**
@@ -395,7 +356,7 @@ export class DashboardPanel implements vscode.Disposable {
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${cspSource};">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>SnapBack Dashboard</title>
 	<style>${this.getStyles()}</style>
@@ -406,9 +367,6 @@ export class DashboardPanel implements vscode.Disposable {
 		<nav class="tabs">
 			<button class="tab ${this.currentTab === "home" ? "active" : ""}" data-tab="home">
 				${BRANDING.ui.home} Home
-			</button>
-			<button class="tab ${this.currentTab === "settings" ? "active" : ""}" data-tab="settings">
-				${BRANDING.ui.settings} Settings
 			</button>
 			<button class="tab ${this.currentTab === "activity" ? "active" : ""}" data-tab="activity"
 				${this.userTier === "explorer" ? 'style="opacity: 0.5"' : ""}>
@@ -434,8 +392,6 @@ export class DashboardPanel implements vscode.Disposable {
 		switch (this.currentTab) {
 			case "home":
 				return this.getHomeTabContent();
-			case "settings":
-				return this.getSettingsTabContent();
 			case "activity":
 				return this.getActivityTabContent();
 		}
@@ -445,8 +401,18 @@ export class DashboardPanel implements vscode.Disposable {
 	 * Home tab content
 	 */
 	private getHomeTabContent(): string {
-		const { snapshotsToday, restoresToday, linesProtected, tokensSaved, restoresThisWeek, efficiencyPercentile } =
-			this.stats;
+		const {
+			snapshotsToday,
+			totalSnapshots,
+			restoresToday,
+			linesProtected,
+			tokensSaved,
+			restoresThisWeek,
+			efficiencyPercentile,
+		} = this.stats;
+		const logoUri = this.panel.webview.asWebviewUri(
+			vscode.Uri.joinPath(this.extensionUri, "media", "snapback-logo.png"),
+		);
 
 		// Calculate token cost estimates
 		const gpt4Cost = ((tokensSaved / 1000) * 0.03).toFixed(2);
@@ -456,10 +422,10 @@ export class DashboardPanel implements vscode.Disposable {
 		<div class="home-tab">
 			<!-- Status Card -->
 			<div class="status-card protected">
-				<div class="status-icon">${BRANDING.ui.protected}</div>
+				<div class="status-icon"><img src="${logoUri}" alt="SnapBack" /></div>
 				<div class="status-text">
 					<h2>Protected</h2>
-					<p>All systems nominal</p>
+					<p>${totalSnapshots} snapshot${totalSnapshots !== 1 ? "s" : ""} stored</p>
 				</div>
 			</div>
 
@@ -467,7 +433,7 @@ export class DashboardPanel implements vscode.Disposable {
 			<div class="stats-section">
 				<h3>TODAY</h3>
 				<div class="stats-row">
-					<span>${BRANDING.ui.snapshot} ${snapshotsToday} snapshot${snapshotsToday !== 1 ? "s" : ""}</span>
+					<span>${BRANDING.ui.snapshot} ${snapshotsToday} snapshot${snapshotsToday !== 1 ? "s" : ""} today</span>
 					<span>${BRANDING.ui.restore} ${restoresToday} restore${restoresToday !== 1 ? "s" : ""}</span>
 					<span>${BRANDING.ui.protected} ${linesProtected.toLocaleString()} lines protected</span>
 				</div>
@@ -493,120 +459,17 @@ export class DashboardPanel implements vscode.Disposable {
 			<div class="actions-section">
 				<h3>QUICK ACTIONS</h3>
 				<div class="action-buttons">
-					<button class="action-btn" id="install-cli-btn">
-						${BRANDING.ui.install} Install CLI
+					<button class="action-btn primary" id="configure-mcp-btn">
+						${BRANDING.ui.inject} Configure MCP
 					</button>
-					<button class="action-btn" id="inject-prompt-btn">
-						${BRANDING.ui.inject} Inject System Prompt
+					<button class="action-btn" id="create-snapshot-btn">
+						${BRANDING.ui.snapshot} Create Snapshot
 					</button>
 					<button class="action-btn" id="settings-btn">
-						${BRANDING.ui.settings} Settings
+						${BRANDING.ui.settings} VS Code Settings
 					</button>
 				</div>
 			</div>
-		</div>
-		`;
-	}
-
-	/**
-	 * Settings tab content
-	 */
-	private getSettingsTabContent(): string {
-		const settings = this.settingsState;
-		const detectedTool = settings?.detectedAITool || "None detected";
-		const cliStatus = settings?.cliInstalled
-			? `Installed (${settings.cliVersion || "unknown version"})`
-			: "Not installed";
-		const threshold = settings?.protectionThreshold || "medium";
-		const excludePatterns = settings?.excludePatterns?.join(", ") || "node_modules, dist, .git";
-
-		// Generate language pack checkboxes
-		const languagePacksHtml = (
-			settings?.languagePacks || [
-				{ name: "TypeScript / JavaScript", enabled: true, builtin: true },
-				{ name: "React / JSX", enabled: true, builtin: true },
-				{ name: "Python", enabled: false, builtin: false },
-				{ name: "Go", enabled: false, builtin: false },
-			]
-		)
-			.map(
-				(pack) => `
-			<label class="checkbox-item">
-				<input type="checkbox" ${pack.enabled ? "checked" : ""} ${pack.builtin ? "disabled" : ""}>
-				<span>${pack.name}</span>
-			</label>
-		`,
-			)
-			.join("");
-
-		return `
-		<div class="settings-tab">
-			<!-- AI Integration -->
-			<section class="settings-section">
-				<h3>AI ASSISTANT INTEGRATION</h3>
-				<div class="setting-row">
-					<span>Detected: <strong>${detectedTool}</strong> ${detectedTool !== "None detected" ? BRANDING.ui.safe : ""}</span>
-				</div>
-				${
-					detectedTool !== "None detected"
-						? `
-				<button class="action-btn primary" id="inject-btn">
-					${BRANDING.ui.inject} Inject System Prompt
-				</button>
-				<p class="setting-help">Adds SnapBack instructions to your AI assistant</p>
-				`
-						: `
-				<p class="setting-help">No AI assistant detected. Install Cursor, Copilot, or Claude to enable integration.</p>
-				`
-				}
-			</section>
-
-			<!-- CLI Tool -->
-			<section class="settings-section">
-				<h3>CLI TOOL</h3>
-				<div class="setting-row">
-					<span>Status: <strong>${cliStatus}</strong></span>
-				</div>
-				${
-					!settings?.cliInstalled
-						? `
-				<div class="command-box">
-					<code>npx snapback-cli@latest install</code>
-					<button class="copy-btn" data-command="npx snapback-cli@latest install">
-						${BRANDING.ui.copy} Copy
-					</button>
-				</div>
-				`
-						: `
-				<p class="setting-help">CLI is ready to use. Run <code>snapback --help</code> for commands.</p>
-				`
-				}
-			</section>
-
-			<!-- Language Packs -->
-			<section class="settings-section">
-				<h3>LANGUAGE PACKS</h3>
-				<div class="checkbox-list">
-					${languagePacksHtml}
-				</div>
-			</section>
-
-			<!-- Protection Settings -->
-			<section class="settings-section">
-				<h3>PROTECTION SETTINGS</h3>
-				<div class="setting-row">
-					<label>Auto-snapshot threshold:</label>
-					<select class="setting-select" id="threshold-select">
-						<option value="low" ${threshold === "low" ? "selected" : ""}>Low</option>
-						<option value="medium" ${threshold === "medium" ? "selected" : ""}>Medium</option>
-						<option value="high" ${threshold === "high" ? "selected" : ""}>High</option>
-					</select>
-				</div>
-				<div class="setting-row">
-					<label>Exclude patterns:</label>
-					<input type="text" class="setting-input" value="${excludePatterns}" readonly>
-				</div>
-			</section>
 		</div>
 		`;
 	}
@@ -649,8 +512,12 @@ export class DashboardPanel implements vscode.Disposable {
 			const hours = Math.floor(diff / 3600000);
 			const days = Math.floor(diff / 86400000);
 
-			if (minutes < 60) return `${minutes}m`;
-			if (hours < 24) return `${hours}h ago`;
+			if (minutes < 60) {
+				return `${minutes}m`;
+			}
+			if (hours < 24) {
+				return `${hours}h ago`;
+			}
 			return `${days}d ago`;
 		};
 
@@ -858,7 +725,13 @@ export class DashboardPanel implements vscode.Disposable {
 		}
 
 		.status-icon {
-			font-size: 48px;
+			width: 48px;
+			height: 48px;
+		}
+		.status-icon img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
 		}
 
 		.status-text h2 {
@@ -1115,16 +988,24 @@ export class DashboardPanel implements vscode.Disposable {
 		});
 
 		// Action buttons
-		document.getElementById('install-cli-btn')?.addEventListener('click', () => {
-			vscode.postMessage({ command: 'installCLI' });
+		document.getElementById('configure-mcp-btn')?.addEventListener('click', () => {
+			vscode.postMessage({ command: 'configureMCP' });
 		});
 
-		document.getElementById('inject-prompt-btn')?.addEventListener('click', () => {
-			vscode.postMessage({ command: 'injectPrompt' });
+		document.getElementById('create-snapshot-btn')?.addEventListener('click', () => {
+			vscode.postMessage({ command: 'createSnapshot' });
 		});
 
 		document.getElementById('inject-btn')?.addEventListener('click', () => {
 			vscode.postMessage({ command: 'injectPrompt' });
+		});
+
+		document.getElementById('auto-config-btn')?.addEventListener('click', () => {
+			vscode.postMessage({ command: 'injectPrompt' });
+		});
+
+		document.getElementById('manual-setup-btn')?.addEventListener('click', () => {
+			vscode.postMessage({ command: 'showMCPStatus' });
 		});
 
 		document.getElementById('settings-btn')?.addEventListener('click', () => {

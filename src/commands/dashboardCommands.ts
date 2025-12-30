@@ -26,10 +26,11 @@ export function registerDashboardCommands(
 		}),
 	);
 
-	// Command to open dashboard to specific tab
+	// Command to open dashboard to home tab (previously settings)
 	disposables.push(
 		vscode.commands.registerCommand("snapback.openDashboard.settings", () => {
-			createDashboardPanel(context.extensionUri, coordinator, "settings");
+			// Settings tab removed - open home tab which now has Configure MCP button
+			createDashboardPanel(context.extensionUri, coordinator, "home");
 		}),
 	);
 

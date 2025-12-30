@@ -616,4 +616,325 @@ describe('StatusBarManager', () => {
       });
     });
   });
+
+  // ===========================================================================
+  // MESSAGE QUEUE TESTS
+  // ===========================================================================
+
+  describe('message queue', () => {
+    describe('enqueueMessage', () => {
+      it('should display queued message when in idle state', () => {
+        const id = statusBar.enqueueMessage({
+          priority: 'low',
+          text: '$(rocket) Test message',
+          duration: 5000,
+        });
+
+        expect(id).toBeDefined();
+        expect(mockStatusBarItem.text).toBe('$(rocket) Test message');
+      });
+
+      it('should return unique message ID', () => {
+        const id1 = statusBar.enqueueMessage({
+          priority: 'low',
+          text: 'Message 1',
+        });
+        const id2 = statusBar.enqueueMessage({
+          priority: 'low',
+          text: 'Message 2',
+        });
+
+        expect(id1).not.toBe(id2);
+      });
+
+      it('should use provided ID if specified', () => {
+        const id = statusBar.enqueueMessage({
+          id: 'custom-id-123',
+          priority: 'low',
+          text: 'Custom ID message',
+        });
+
+        expect(id).toBe('custom-id-123');
+      });
+
+      it('should show higher priority message first', () => {
+        statusBar.enqueueMessage({
+          priority: 'low',
+          text: 'Low priority',
+        });
+        statusBar.enqueueMessage({
+          priority: 'high',
+          text: 'High priority',
+        });
+
+        // High priority should be displayed
+        expect(mockStatusBarItem.text).toBe('High priority');
+      });
+
+      it('should respect priority order: critical > high > medium > low', () => {
+        statusBar.enqueueMessage({ priority: 'low', text: 'Low' });
+        statusBar.enqueueMessage({ priority: 'medium', text: 'Medium' });
+        statusBar.enqueueMessage({ priority: 'high', text: 'High' });
+        statusBar.enqueueMessage({ priority: 'critical', text: 'Critical' });
+
+        expect(mockStatusBarItem.text).toBe('Critical');
+      });
+    });
+
+    describe('dequeueMessage', () => {
+      it('should remove message from queue', () => {
+        const id = statusBar.enqueueMessage({
+          priority: 'low',
+          text: 'To be removed',
+        });
+
+        statusBar.dequeueMessage(id);
+
+        // Should return to idle
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+      });
+
+      it('should show next highest priority message after removal', () => {
+        const lowId = statusBar.enqueueMessage({
+          priority: 'low',
+          text: 'Low priority',
+        });
+        const highId = statusBar.enqueueMessage({
+          priority: 'high',
+          text: 'High priority',
+        });
+
+        expect(mockStatusBarItem.text).toBe('High priority');
+
+        statusBar.dequeueMessage(highId);
+
+        // Should now show low priority
+        expect(mockStatusBarItem.text).toBe('Low priority');
+      });
+
+      it('should handle removal of non-existent message', () => {
+        // Should not throw
+        expect(() => statusBar.dequeueMessage('non-existent-id')).not.toThrow();
+      });
+    });
+
+    describe('clearQueue', () => {
+      it('should remove all messages and return to idle', () => {
+        statusBar.enqueueMessage({ priority: 'low', text: 'Message 1' });
+        statusBar.enqueueMessage({ priority: 'high', text: 'Message 2' });
+
+        statusBar.clearQueue();
+
+        expect(statusBar.getQueueDepth()).toBe(0);
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+      });
+    });
+
+    describe('getQueueDepth', () => {
+      it('should return correct queue size', () => {
+        expect(statusBar.getQueueDepth()).toBe(0);
+
+        statusBar.enqueueMessage({ priority: 'low', text: 'Message 1' });
+        expect(statusBar.getQueueDepth()).toBe(1);
+
+        statusBar.enqueueMessage({ priority: 'high', text: 'Message 2' });
+        expect(statusBar.getQueueDepth()).toBe(2);
+      });
+    });
+
+    describe('message duration', () => {
+      it('should auto-remove message after duration expires', () => {
+        statusBar.enqueueMessage({
+          priority: 'low',
+          text: 'Temporary message',
+          duration: 3000,
+        });
+
+        expect(mockStatusBarItem.text).toBe('Temporary message');
+
+        vi.advanceTimersByTime(3000);
+
+        // Should return to idle
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+      });
+
+      it('should show next message after duration expires', () => {
+        statusBar.enqueueMessage({
+          priority: 'low',
+          text: 'Persistent low',
+          duration: 0, // Persistent
+        });
+        statusBar.enqueueMessage({
+          priority: 'high',
+          text: 'Temporary high',
+          duration: 2000,
+        });
+
+        expect(mockStatusBarItem.text).toBe('Temporary high');
+
+        vi.advanceTimersByTime(2000);
+
+        // Should show low priority now
+        expect(mockStatusBarItem.text).toBe('Persistent low');
+      });
+
+      it('should persist message when duration is 0', () => {
+        statusBar.enqueueMessage({
+          priority: 'low',
+          text: 'Persistent message',
+          duration: 0,
+        });
+
+        vi.advanceTimersByTime(60000); // 1 minute
+
+        // Should still be showing
+        expect(mockStatusBarItem.text).toBe('Persistent message');
+      });
+    });
+
+    describe('message properties', () => {
+      it('should apply backgroundColor when specified', () => {
+        statusBar.enqueueMessage({
+          priority: 'high',
+          text: 'Warning message',
+          backgroundColor: 'statusBarItem.warningBackground',
+        });
+
+        expect(mockStatusBarItem.backgroundColor).toBeInstanceOf(vscode.ThemeColor);
+      });
+
+      it('should apply command when specified', () => {
+        statusBar.enqueueMessage({
+          priority: 'low',
+          text: 'Clickable message',
+          command: 'snapback.customCommand',
+        });
+
+        expect(mockStatusBarItem.command).toBe('snapback.customCommand');
+      });
+
+      it('should apply tooltip when specified', () => {
+        statusBar.enqueueMessage({
+          priority: 'low',
+          text: 'Message with tooltip',
+          tooltip: '**Custom Tooltip**\nWith markdown',
+        });
+
+        expect(mockStatusBarItem.tooltip).toBeDefined();
+        expect(mockStatusBarItem.tooltip.value).toContain('Custom Tooltip');
+      });
+    });
+  });
+
+  // ===========================================================================
+  // STATE MACHINE PRIORITY OVER QUEUE TESTS
+  // ===========================================================================
+
+  describe('state machine priority over queue', () => {
+    it('should NOT display queue when in vitals state', () => {
+      // Enable vitals and show them
+      statusBar.setVitalsEnabled(true);
+      statusBar.showVitals({
+        pulse: { level: 'racing', value: 45 },
+        temperature: { level: 'hot', percentage: 72 },
+        pressure: { value: 78, trend: 'rising' },
+        oxygen: { value: 92 },
+        trajectory: 'degrading',
+      });
+
+      // Try to enqueue a message
+      statusBar.enqueueMessage({
+        priority: 'critical',
+        text: 'This should NOT show',
+      });
+
+      // Vitals should still be displayed
+      expect(mockStatusBarItem.text).toContain('45');
+      expect(mockStatusBarItem.text).not.toBe('This should NOT show');
+    });
+
+    it('should NOT display queue when in ai-session state', () => {
+      statusBar.showAISession('Cursor');
+
+      statusBar.enqueueMessage({
+        priority: 'critical',
+        text: 'This should NOT show',
+      });
+
+      expect(mockStatusBarItem.text).toBe('$(sparkle) Cursor session protected');
+    });
+
+    it('should NOT display queue when in checkpoint state', () => {
+      statusBar.showCheckpointCreated();
+
+      statusBar.enqueueMessage({
+        priority: 'critical',
+        text: 'This should NOT show',
+      });
+
+      expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+    });
+
+    it('should NOT display queue when in restored state', () => {
+      statusBar.showRestored(100);
+
+      statusBar.enqueueMessage({
+        priority: 'critical',
+        text: 'This should NOT show',
+      });
+
+      expect(mockStatusBarItem.text).toBe('$(history) Restored 100 lines');
+    });
+
+    it('should clear active queue message when entering state machine state', () => {
+      // First, show a queued message
+      statusBar.enqueueMessage({
+        priority: 'high',
+        text: 'Queued message',
+        duration: 0, // Persistent
+      });
+      expect(mockStatusBarItem.text).toBe('Queued message');
+
+      // Now trigger a state machine state
+      statusBar.showCheckpointCreated();
+
+      // State machine should take over
+      expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+    });
+
+    it('should process queue after returning to idle from state machine state', () => {
+      // Enqueue a message
+      statusBar.enqueueMessage({
+        priority: 'low',
+        text: 'Queued for later',
+        duration: 0,
+      });
+
+      // Enter a state machine state
+      statusBar.showCheckpointCreated();
+      expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+
+      // Wait for transition to idle
+      vi.advanceTimersByTime(3000);
+
+      // Queue should now be processed
+      expect(mockStatusBarItem.text).toBe('Queued for later');
+    });
+
+    it('should reset command when entering state machine state', () => {
+      // Enqueue with custom command
+      statusBar.enqueueMessage({
+        priority: 'low',
+        text: 'Custom command message',
+        command: 'custom.command',
+      });
+      expect(mockStatusBarItem.command).toBe('custom.command');
+
+      // Enter state machine state
+      statusBar.showCheckpointCreated();
+
+      // Command should be reset to default
+      expect(mockStatusBarItem.command).toBe('snapback.showQuickPicker');
+    });
+  });
 });

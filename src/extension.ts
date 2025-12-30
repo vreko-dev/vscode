@@ -43,6 +43,7 @@ import { SaveHandler } from "./handlers/SaveHandler";
 import { disposeHeatIntegration, type HeatIntegration, initializeHeatIntegration } from "./heat"; // 🆕 Import Heat Integration
 import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration"; // 🆕 Import AutoDecisionIntegration
 import { autoConfigureMCP, registerMCPCommands } from "./mcp/auto-configure"; // 🆕 Import MCP auto-configure
+import { AIDetectionToast, type AISignal } from "./notifications/AIDetectionToast"; // 🆕 Import AIDetectionToast
 import { FileSystemWatcher } from "./protection/FileSystemWatcher";
 import { SnapshotContentProvider } from "./providers/SnapshotContentProvider"; // 🆕 Import SnapshotContentProvider
 import { RulesManager } from "./rules/RulesManager";
@@ -59,12 +60,14 @@ import { createWorkspaceContextManager } from "./services/WorkspaceContextManage
 import { WorkspaceManager } from "./services/WorkspaceManager"; // 🆕 Import WorkspaceManager
 import type { IStorageManager } from "./storage/types.js";
 import { disposeActivationFunnel, initializeActivationFunnel } from "./telemetry/ActivationFunnelIntegration"; // 🆕 Activation funnel tracking
+import { initializeCoreEventTracker } from "./telemetry/core-event-tracker";
 import type { ProtectionChangedPayload } from "./types/api";
 import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
 import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
+import type { StatusBarController } from "./ui/StatusBarController"; // 🆕 Import StatusBarController type
 import type { StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import Vitals StatusBar type
-import { VitalsIntegration } from "./ui/VitalsIntegration"; // 🆕 Import Vitals Integration
+// REMOVED: VitalsIntegration - consolidated into VitalsUIIntegration to eliminate duplicate status bar updates
 import { logger } from "./utils/logger";
 import { findProjectRoot } from "./utils/projectRoot";
 import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver"; // 🆕 Import WorkspaceFolderResolver
@@ -86,7 +89,9 @@ function calculateLineDiff(changes: readonly vscode.TextDocumentContentChangeEve
 
 	for (const change of changes) {
 		// Skip empty changes or malformed ranges
-		if (!change.range) continue;
+		if (!change.range) {
+			continue;
+		}
 
 		const rangeLength = change.range.end.line - change.range.start.line;
 		const newLineCount = change.text.split("\n").length - 1;
@@ -129,9 +134,13 @@ let signalBridge: SignalBridge | null = null;
 let mcpBridge: MCPBridge | null = null;
 // 🆕 Global reference to EventBridge for V2 engine telemetry
 let eventBridge: EventBridge | null = null;
-// 🆕 Global reference to Vitals StatusBar
+// 🆕 Global reference to Vitals StatusBar (legacy)
 let vitalsStatusBar: StatusBarManager | null = null;
-let vitalsIntegration: VitalsIntegration | null = null;
+// 🆕 Global reference to StatusBarController (new consolidated)
+let statusBarController: StatusBarController | null = null;
+// 🆕 Global reference to AIDetectionToast
+let aiDetectionToast: AIDetectionToast | null = null;
+// REMOVED: vitalsIntegration - consolidated into VitalsUIIntegration
 let vitalsUpdateInterval: NodeJS.Timeout | null = null;
 // 🆕 Global reference to Heat Integration
 let heatIntegration: HeatIntegration | null = null;
@@ -164,7 +173,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	// NOTE: These handlers catch ALL errors in the extension host, including from other extensions.
 	// We filter by stack trace to only log/show errors that originate from SnapBack code.
 	const isSnapBackError = (stack: string | undefined): boolean => {
-		if (!stack) return false;
+		if (!stack) {
+			return false;
+		}
 		// Check if error originates from SnapBack extension code
 		return stack.includes("/snapback/") || stack.includes("\\snapback\\") || stack.includes("@snapback");
 	};
@@ -486,9 +497,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		logger.info("PRWManager initialized for PRE/POST checkpoint coordination");
 
 		// 🆕 Cleanup orphan PRE checkpoints from previous crashes (fire-and-forget, non-fatal)
-		void phase2Result.storage.getPRWSnapshotStore().cleanupOldOrphanPREs(60 * 60 * 1000).catch((err) => {
-			logger.warn("Failed to cleanup orphan PRE checkpoints (non-critical)", { error: err });
-		});
+		void phase2Result.storage
+			.getPRWSnapshotStore()
+			.cleanupOldOrphanPREs(60 * 60 * 1000)
+			.catch((err) => {
+				logger.warn("Failed to cleanup orphan PRE checkpoints (non-critical)", { error: err });
+			});
 
 		// 🆕 Initialize SignalBridge for AI paste/burst detection (V2 engine only)
 		signalBridge = new SignalBridge({ burstThreshold: 30 });
@@ -496,7 +510,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Subscribe to document changes for burst detection
 		context.subscriptions.push(
 			vscode.workspace.onDidChangeTextDocument((e) => {
-				if (!signalBridge) return;
+				if (!signalBridge) {
+					return;
+				}
 
 				// Compute burst state
 				const burstState = signalBridge.computeBurst(e.document, e.contentChanges);
@@ -554,6 +570,17 @@ export async function activate(context: vscode.ExtensionContext) {
 					if (vitalsStatusBar) {
 						void vitalsStatusBar.showAIDetectedSequence(aiResult.tool);
 					}
+
+					// 🆕 Show AI detection toast notification (new consolidated UI)
+					if (aiDetectionToast) {
+						const signals: AISignal[] = [
+							{
+								type: aiResult.method || "paste",
+								confidence: aiResult.confidence,
+							},
+						];
+						void aiDetectionToast.show(signals);
+					}
 				}
 
 				// 🆕 Trigger status bar activity sequence for burst detection
@@ -584,6 +611,10 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Phase 3: Business logic managers
 		const phase3Start = Date.now();
 		const telemetryProxy = new TelemetryProxy(context); // Ensure telemetryProxy is defined here
+
+		// 🆕 Initialize CoreEventTracker for P0 product events (save_attempt, snapshot_created, session_finalized)
+		initializeCoreEventTracker(telemetryProxy);
+		logger.info("CoreEventTracker initialized for P0 product events");
 
 		// 🆕 Initialize EventBridge for V2 engine telemetry mapping
 		// This routes engine events to PostHog with PII scrubbing
@@ -886,17 +917,29 @@ export async function activate(context: vscode.ExtensionContext) {
 		phaseTimings["Phase 15 (Onboarding)"] = Date.now() - phase15Start;
 
 		// 🆕 Phase 16: Initialize Vitals StatusBar (power user feature)
+		// CONSOLIDATED: VitalsIntegration removed - now handled by VitalsUIIntegration
 		const phase16Start = Date.now();
 		try {
 			// Use StatusBarManager from Phase 4 (avoid creating duplicate)
 			vitalsStatusBar = phase4Result.statusBarManager;
 
-			// Create VitalsIntegration bridge for power user vitals display
-			vitalsIntegration = new VitalsIntegration(vitalsStatusBar);
+			// 🆕 Use StatusBarController from Phase 4 (new consolidated status bar)
+			statusBarController = phase4Result.statusBarController;
 
-			// Read vitals display setting from configuration (default: enabled)
-			const vitalsEnabled = config.get<boolean>("snapback.vitals.showInStatusBar", true);
-			vitalsIntegration.setVitalsEnabled(vitalsEnabled);
+			// 🆕 Create AIDetectionToast for AI detection notifications
+			aiDetectionToast = new AIDetectionToast();
+
+			// 🆕 Wire FeedbackManager to use unified StatusBarManager
+			// This ensures AI detection feedback uses the shared status bar
+			FeedbackManager.getInstance().setStatusBarManager(phase4Result.statusBarManager);
+
+			// REMOVED: VitalsIntegration creation - consolidated into VitalsUIIntegration
+			// VitalsUIIntegration now handles both session health AND power user vitals display
+
+			// Read vitals display setting from configuration
+			const vitalsEnabled = config.get<boolean>("snapback.vitals.showInStatusBar", false);
+			// Update VitalsUIIntegration config (it handles showVitals internally now)
+			phase4Result.vitalsUIIntegration.updateConfig({ showVitalsInStatusBar: vitalsEnabled });
 
 			// Get UnifiedDataService singleton for vitals data flow
 			const unifiedDataService = phase4Result.vitalsUIIntegration.getDataService();
@@ -907,14 +950,14 @@ export async function activate(context: vscode.ExtensionContext) {
 				let lastTrajectory: string | null = null;
 
 				vitalsUpdateInterval = setInterval(() => {
-					if (vitalsIntegration && workspaceVitals) {
+					if (workspaceVitals) {
 						const snapshot = workspaceVitals.current();
 
-						// 🆕 Wire vitals to UnifiedDataService (feeds VitalsUIIntegration)
+						// Wire vitals to UnifiedDataService (feeds VitalsUIIntegration)
+						// CONSOLIDATED: VitalsUIIntegration now handles BOTH:
+						// 1. Session health updates (updateSessionHealth)
+						// 2. Power user vitals display (showVitals) - no more duplicate call!
 						unifiedDataService.updateVitals(snapshot);
-
-						// Also update power user vitals display
-						vitalsIntegration.onVitalsSnapshot(snapshot);
 
 						// Track trajectory changes for telemetry (privacy-safe: no file content)
 						if (lastTrajectory !== null && lastTrajectory !== snapshot.trajectory) {
@@ -927,7 +970,7 @@ export async function activate(context: vscode.ExtensionContext) {
 								oxygen: snapshot.oxygen.value,
 							});
 
-							// 🆕 Trigger status bar activity sequence when vitals are degrading
+							// Trigger status bar activity sequence when vitals are degrading
 							if (
 								(snapshot.trajectory === "escalating" || snapshot.trajectory === "critical") &&
 								(lastTrajectory === "stable" || lastTrajectory === "recovering")
@@ -965,8 +1008,9 @@ export async function activate(context: vscode.ExtensionContext) {
 					if (e.affectsConfiguration("snapback.vitals.showInStatusBar")) {
 						const enabled = vscode.workspace
 							.getConfiguration()
-							.get<boolean>("snapback.vitals.showInStatusBar", true);
-						vitalsIntegration?.setVitalsEnabled(enabled);
+							.get<boolean>("snapback.vitals.showInStatusBar", false);
+						// Update via VitalsUIIntegration (consolidated)
+						phase4Result.vitalsUIIntegration.updateConfig({ showVitalsInStatusBar: enabled });
 						logger.info("Vitals status bar display updated", { enabled });
 					}
 				}),
@@ -1085,10 +1129,19 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Capture eventBus in closure to avoid null check issues
 			const bus = eventBus;
 
+			// 🆕 Track snapshot count for StatusBarController
+			let sessionSnapshotCount = 0;
+
 			const snapshotCreatedHandler = (payload: unknown) => {
 				logger.info("Snapshot created event received", payload);
 				// Refresh all tree views when snapshot is created
 				refreshViews();
+
+				// 🆕 Update StatusBarController snapshot count
+				sessionSnapshotCount++;
+				if (statusBarController) {
+					statusBarController.setSnapshotCount(sessionSnapshotCount);
+				}
 
 				// Show notification
 				const data = payload as { id: string };
@@ -1467,15 +1520,25 @@ export async function deactivate() {
 			clearInterval(vitalsUpdateInterval);
 			vitalsUpdateInterval = null;
 		}
-		if (vitalsIntegration) {
-			vitalsIntegration.dispose();
-			vitalsIntegration = null;
-			logger.info("VitalsIntegration disposed");
-		}
+		// REMOVED: vitalsIntegration dispose - consolidated into VitalsUIIntegration
+		// VitalsUIIntegration is disposed as part of phase4Result
 		if (vitalsStatusBar) {
 			vitalsStatusBar.dispose();
 			vitalsStatusBar = null;
 			logger.info("Vitals StatusBar disposed");
+		}
+
+		// 🆕 Dispose StatusBarController (new consolidated status bar)
+		if (statusBarController) {
+			statusBarController.dispose();
+			statusBarController = null;
+			logger.info("StatusBarController disposed");
+		}
+
+		// 🆕 Clear AIDetectionToast
+		if (aiDetectionToast) {
+			aiDetectionToast = null;
+			logger.info("AIDetectionToast cleared");
 		}
 
 		// 🆕 Dispose ActivationFunnelIntegration

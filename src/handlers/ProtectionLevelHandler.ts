@@ -6,6 +6,7 @@ import { RecoveryUXNotification } from "../notifications/RecoveryUXNotification"
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { MilestoneService } from "../services/MilestoneService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { getCoreEventTracker } from "../telemetry/core-event-tracker";
 import { logger } from "../utils/logger";
 import { sdkLogger } from "../utils/sdkLoggerAdapter";
 import type { ProtectionLevel } from "../views/types";
@@ -982,6 +983,9 @@ A snapshot will be created before saving.`,
 		preSaveContent: string,
 		userContext?: string,
 	): Promise<string | undefined> {
+		// Track timing for telemetry
+		const snapshotStartTime = Date.now();
+
 		// 🔍 DIAGNOSTIC: Before snapshot creation
 		console.log(`[ProtectionLevel] Creating snapshot for: ${filePath}`);
 		console.log("[ProtectionLevel] Snapshot ID will be: pending");
@@ -1066,6 +1070,8 @@ A snapshot will be created before saving.`,
 		}
 
 		if (snapshotId) {
+			const latencyMs = Date.now() - snapshotStartTime;
+
 			await this.registry.markSnapshot(snapshotId, [filePath]);
 			this.cooldownService.recordSnapshotTime(filePath);
 
@@ -1081,10 +1087,32 @@ A snapshot will be created before saving.`,
 				void this.milestoneService.trackFirstSnapshot();
 			}
 
+			// Track snapshot_created event (P0 - Demo Critical)
+			// Fire-and-forget to avoid blocking save operation
+			const coreTracker = getCoreEventTracker();
+			if (coreTracker) {
+				// Get active session ID from storage (if available)
+				const activeSessionId =
+					(this.operationCoordinator as any).storageManager?.getActiveSessionId?.() || "unknown";
+				const bytesOriginal = Buffer.byteLength(preSaveContent, "utf8");
+				// Estimate stored bytes (assume some compression/dedup benefit)
+				const bytesStored = bytesOriginal; // Actual stored size would require storage query
+
+				coreTracker.trackSnapshotCreated({
+					session_id: activeSessionId,
+					snapshot_id: snapshotId,
+					bytes_original: bytesOriginal,
+					bytes_stored: bytesStored,
+					dedup_hit: false, // Would need to check deduplicator result
+					latency_ms: latencyMs,
+				});
+			}
+
 			logger.info("Snapshot created successfully", {
 				filePath,
 				snapshotId,
 				snapshotName,
+				latencyMs,
 			});
 		}
 
