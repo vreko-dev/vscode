@@ -51,6 +51,20 @@ export class SnapshotChainError extends Error {
 }
 
 /**
+ * Error thrown when attempting to create a snapshot with no changes.
+ * This prevents 0-delta snapshots that waste storage.
+ */
+export class NoChangeError extends Error {
+	constructor(
+		message: string,
+		public readonly parentId: string,
+	) {
+		super(message);
+		this.name = "NoChangeError";
+	}
+}
+
+/**
  * Snapshot storage using content-addressable blobs.
  *
  * Each snapshot is a lightweight manifest (~500 bytes) that references
@@ -208,6 +222,8 @@ export class SnapshotStore {
 	 * POST checkpoints contain the actual file contents after a save.
 	 *
 	 * Protected by WriterLock to prevent concurrent seq allocation races.
+	 *
+	 * @throws {NoChangeError} If all file hashes match the parent snapshot (0-delta prevention)
 	 */
 	async createPOST(options: CreatePOSTOptions): Promise<SnapshotManifestV2> {
 		// Validate: POST requires at least one file
@@ -227,12 +243,29 @@ export class SnapshotStore {
 			const timestamp = Date.now();
 			const { newState, seq } = allocateSeq(this.state);
 
-			// Store each file in blob store
+			// Store each file in blob store and collect hashes
 			const fileRefs: Record<string, SnapshotFileRefV2> = {};
 
 			for (const [filePath, content] of options.files) {
 				const { hash, size } = await this.blobStore.store(content);
 				fileRefs[filePath] = { blobHash: hash, size };
+			}
+
+			// ============================================
+			// 0-Delta Prevention: Compare with parent POST
+			// ============================================
+			// Use explicit parentId if provided, otherwise fall back to current head
+			// This ensures manual snapshots (which have no parentId) still get 0-delta prevention
+			const comparisonParentId = options.parentId ?? this.state.headId;
+			if (comparisonParentId) {
+				const hasChanges = await this.hasChangesFromParent(comparisonParentId, fileRefs);
+				if (!hasChanges) {
+					console.debug("[SnapshotStore] Skipping 0-delta snapshot", {
+						parentId: comparisonParentId,
+						fileCount: Object.keys(fileRefs).length,
+					});
+					throw new NoChangeError("No changes detected since last snapshot", comparisonParentId);
+				}
 			}
 
 			const manifest: SnapshotManifestV2 = {
@@ -260,6 +293,81 @@ export class SnapshotStore {
 
 			return manifest;
 		});
+	}
+
+	/**
+	 * Check if file refs have any changes compared to parent POST snapshot.
+	 *
+	 * Compares blob hashes to detect actual content changes, not just file presence.
+	 * Returns true if:
+	 * - Parent doesn't exist or isn't a POST checkpoint
+	 * - File count differs
+	 * - Any file path differs
+	 * - Any blob hash differs
+	 *
+	 * @param parentId - ID of the parent snapshot to compare against
+	 * @param newFileRefs - New file references with blob hashes
+	 * @returns true if there are actual changes, false if 0-delta
+	 */
+	private async hasChangesFromParent(
+		parentId: string,
+		newFileRefs: Record<string, SnapshotFileRefV2>,
+	): Promise<boolean> {
+		// Find the nearest POST ancestor (skip PRE checkpoints)
+		let currentId: string | null = parentId;
+		let parentManifest: SnapshotManifestV2 | null = null;
+		let depth = 0;
+
+		while (currentId && depth < MAX_CHAIN_DEPTH) {
+			const manifest = await this.getManifestV2(currentId);
+			if (!manifest) {
+				// Parent not found - assume changes exist
+				return true;
+			}
+
+			if (manifest.type === "POST") {
+				parentManifest = manifest;
+				break;
+			}
+
+			// PRE/PRE_ROLLBACK - walk to their parent
+			currentId = manifest.parentId;
+			depth++;
+		}
+
+		if (!parentManifest) {
+			// No POST ancestor found - assume changes exist
+			return true;
+		}
+
+		const parentFiles = parentManifest.files;
+		const newPaths = Object.keys(newFileRefs).sort();
+		const parentPaths = Object.keys(parentFiles).sort();
+
+		// Check file count
+		if (newPaths.length !== parentPaths.length) {
+			return true;
+		}
+
+		// Check file paths match
+		for (let i = 0; i < newPaths.length; i++) {
+			if (newPaths[i] !== parentPaths[i]) {
+				return true;
+			}
+		}
+
+		// Check blob hashes for each file
+		for (const path of newPaths) {
+			const newHash = newFileRefs[path].blobHash;
+			const parentHash = parentFiles[path].blobHash;
+
+			if (newHash !== parentHash) {
+				return true;
+			}
+		}
+
+		// All paths and hashes match - 0 delta
+		return false;
 	}
 
 	/**
@@ -400,7 +508,9 @@ export class SnapshotStore {
 		}
 
 		if (cleaned > 0) {
-			console.log(`[SnapBack Manifest] Cleaned ${cleaned} orphan PRE checkpoint(s) older than ${maxAgeMs / 60000} minutes`);
+			console.log(
+				`[SnapBack Manifest] Cleaned ${cleaned} orphan PRE checkpoint(s) older than ${maxAgeMs / 60000} minutes`,
+			);
 		}
 
 		return cleaned;
@@ -679,9 +789,10 @@ export class SnapshotStore {
 
 		// Apply limit early if no other filters
 		const limit = filters?.limit ?? 100;
+		const hasMetadataFilters = filters?.taskId;
 		const filesToRead = jsonFiles.slice(
 			0,
-			filters?.after || filters?.before || filters?.trigger ? jsonFiles.length : limit,
+			filters?.after || filters?.before || filters?.trigger || hasMetadataFilters ? jsonFiles.length : limit,
 		);
 
 		// Read manifests
@@ -699,6 +810,10 @@ export class SnapshotStore {
 				continue;
 			}
 			if (filters?.trigger && manifest.trigger !== filters.trigger) {
+				continue;
+			}
+			// Filter by taskId in metadata
+			if (filters?.taskId && manifest.metadata?.taskId !== filters.taskId) {
 				continue;
 			}
 
@@ -785,6 +900,18 @@ export class SnapshotStore {
 	 */
 	async getByTrigger(trigger: SnapshotManifest["trigger"], limit = 50): Promise<SnapshotManifest[]> {
 		return this.list({ trigger, limit });
+	}
+
+	/**
+	 * Get snapshots by external task ID.
+	 * Useful for LLM agents to find snapshots related to their current task.
+	 *
+	 * @param taskId - External task ID to filter by
+	 * @param limit - Maximum number of snapshots to return (default: 50)
+	 * @returns Snapshots with matching taskId, newest first
+	 */
+	async getByTaskId(taskId: string, limit = 50): Promise<SnapshotManifest[]> {
+		return this.list({ taskId, limit });
 	}
 
 	// ============================================

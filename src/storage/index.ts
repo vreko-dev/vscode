@@ -2,7 +2,18 @@
 
 export { AuditLog } from "./AuditLog";
 export { BlobStore } from "./BlobStore";
-
+// Storage Bridge (unified read access to extension + MCP snapshots)
+export {
+	type ExtensionStorageAdapter,
+	fromExtensionManifest,
+	fromMCPManifest,
+	type MCPSnapshotManifest,
+	MCPStorageReader,
+	SnapshotBridge,
+	type SourceCounts,
+	type UnifiedSnapshot,
+	type UnifiedSnapshotFile,
+} from "./bridge";
 // Core components
 export { CooldownCache } from "./CooldownCache";
 export {
@@ -46,7 +57,6 @@ export {
 	StubTombstoneTracker,
 	type TombstoneTracker,
 } from "./tombstoneTracker";
-
 // Compatibility type re-exports
 export type { FileSystemStorage, SnapshotStorage } from "./types";
 // Types

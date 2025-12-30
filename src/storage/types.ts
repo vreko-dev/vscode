@@ -147,7 +147,10 @@ export interface SnapshotManifestV2 {
 			tool?: string;
 			confidence?: number;
 		};
+		/** SnapBack session ID */
 		sessionId?: string;
+		/** External task ID (e.g., from LLM agent task management) */
+		taskId?: string;
 	};
 }
 
@@ -274,6 +277,7 @@ export function normalizeToV2(manifest: SnapshotManifest): SnapshotManifestV2 {
 			reasons: [],
 			aiDetection: manifest.metadata?.aiDetection,
 			sessionId: manifest.metadata?.sessionId,
+			taskId: manifest.metadata?.taskId,
 		},
 	};
 }
@@ -311,6 +315,7 @@ export function normalizeToV1(v2: SnapshotManifestV2, triggerOverride?: Snapshot
 			riskScore: v2.metadata?.riskScore,
 			aiDetection: v2.metadata?.aiDetection,
 			sessionId: v2.metadata?.sessionId,
+			taskId: v2.metadata?.taskId,
 		},
 	};
 }
@@ -378,7 +383,10 @@ export interface SnapshotManifest {
 			tool?: string;
 			confidence?: number;
 		};
+		/** SnapBack session ID */
 		sessionId?: string;
+		/** External task ID (e.g., from LLM agent task management) */
+		taskId?: string;
 	};
 }
 
@@ -392,6 +400,8 @@ export interface SnapshotFilters {
 	before?: number;
 	trigger?: SnapshotManifest["trigger"];
 	limit?: number;
+	/** Filter by external task ID */
+	taskId?: string;
 }
 
 // ============================================
@@ -513,6 +523,8 @@ export interface IStorageManager {
 	listSnapshots(filters?: SnapshotFilters): Promise<SnapshotManifest[]>;
 	deleteSnapshot(id: string): Promise<void>;
 	getSnapshotsForFile(filePath: string, limit?: number): Promise<SnapshotManifest[]>;
+	/** Get snapshots by external task ID (for LLM agents) */
+	getSnapshotsByTaskId?(taskId: string, limit?: number): Promise<SnapshotManifest[]>;
 	snapshotExists(id: string): Promise<boolean>;
 	persistSnapshot(
 		cluster: { anchorFile: string; clusterFiles: Map<string, string> },

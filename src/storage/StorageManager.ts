@@ -426,6 +426,19 @@ export class StorageManager implements IStorageManager {
 		return this.snapshotStore.getForFile(filePath, limit);
 	}
 
+	/**
+	 * Get snapshots by external task ID.
+	 * Useful for LLM agents to find snapshots related to their current task.
+	 *
+	 * @param taskId - External task ID to filter by
+	 * @param limit - Maximum number of snapshots to return (default: 50)
+	 * @returns Snapshots with matching taskId, newest first
+	 */
+	async getSnapshotsByTaskId(taskId: string, limit?: number): Promise<SnapshotManifest[]> {
+		await this.ensureComponentsInitialized();
+		return this.snapshotStore.getByTaskId(taskId, limit);
+	}
+
 	async snapshotExists(id: string): Promise<boolean> {
 		// Lazy-initialize components on first use
 		await this.ensureComponentsInitialized();
