@@ -144,6 +144,9 @@ let aiDetectionToast: AIDetectionToast | null = null;
 let vitalsUpdateInterval: NodeJS.Timeout | null = null;
 // 🆕 Global reference to Heat Integration
 let heatIntegration: HeatIntegration | null = null;
+// 🆕 Timeout for AI recording state (auto-clear after inactivity)
+let aiRecordingTimeout: NodeJS.Timeout | null = null;
+const AI_RECORDING_TIMEOUT_MS = 30_000; // 30 seconds of no AI activity clears recording state
 
 // 🆕 Global reference to refresh views function
 let refreshViews = () => {};
@@ -581,6 +584,24 @@ export async function activate(context: vscode.ExtensionContext) {
 						];
 						void aiDetectionToast.show(signals);
 					}
+
+					// 🆕 Wire StatusBarController recording state
+					// Shows "Recording..." while AI activity is detected
+					if (statusBarController) {
+						// Clear existing timeout
+						if (aiRecordingTimeout) {
+							clearTimeout(aiRecordingTimeout);
+						}
+						// Set recording state
+						statusBarController.setRecording(true);
+						// Auto-clear after inactivity
+						aiRecordingTimeout = setTimeout(() => {
+							if (statusBarController) {
+								statusBarController.setRecording(false);
+							}
+							aiRecordingTimeout = null;
+						}, AI_RECORDING_TIMEOUT_MS);
+					}
 				}
 
 				// 🆕 Trigger status bar activity sequence for burst detection
@@ -987,6 +1008,20 @@ export async function activate(context: vscode.ExtensionContext) {
 									unsnapshotedChanges: snapshot.pressure.unsnapshotedChanges,
 								});
 							}
+
+							// 🆕 Wire StatusBarController attention state
+							// Shows "Review" when vitals become critical (action recommended)
+							if (statusBarController) {
+								if (snapshot.trajectory === "critical") {
+									statusBarController.setNeedsAttention(true);
+								} else if (
+									lastTrajectory === "critical" &&
+									(snapshot.trajectory === "stable" || snapshot.trajectory === "recovering")
+								) {
+									// Clear attention when recovering from critical
+									statusBarController.setNeedsAttention(false);
+								}
+							}
 						}
 						lastTrajectory = snapshot.trajectory;
 					}
@@ -1013,6 +1048,14 @@ export async function activate(context: vscode.ExtensionContext) {
 						phase4Result.vitalsUIIntegration.updateConfig({ showVitalsInStatusBar: enabled });
 						logger.info("Vitals status bar display updated", { enabled });
 					}
+
+					// TODO: Wire StatusBarController.setExtensionEnabled() when master enable/disable setting is added
+					// Currently no snapback.enabled setting exists - extension is always enabled
+					// When added, implement:
+					// if (e.affectsConfiguration("snapback.enabled")) {
+					//   const enabled = vscode.workspace.getConfiguration().get<boolean>("snapback.enabled", true);
+					//   statusBarController?.setExtensionEnabled(enabled);
+					// }
 				}),
 			);
 
@@ -1137,10 +1180,12 @@ export async function activate(context: vscode.ExtensionContext) {
 				// Refresh all tree views when snapshot is created
 				refreshViews();
 
-				// 🆕 Update StatusBarController snapshot count
+				// 🆕 Update StatusBarController snapshot count and clear attention
 				sessionSnapshotCount++;
 				if (statusBarController) {
 					statusBarController.setSnapshotCount(sessionSnapshotCount);
+					// Clear attention state when user takes action (creates snapshot)
+					statusBarController.setNeedsAttention(false);
 				}
 
 				// Show notification
@@ -1519,6 +1564,11 @@ export async function deactivate() {
 		if (vitalsUpdateInterval) {
 			clearInterval(vitalsUpdateInterval);
 			vitalsUpdateInterval = null;
+		}
+		// 🆕 Clear AI recording timeout
+		if (aiRecordingTimeout) {
+			clearTimeout(aiRecordingTimeout);
+			aiRecordingTimeout = null;
 		}
 		// REMOVED: vitalsIntegration dispose - consolidated into VitalsUIIntegration
 		// VitalsUIIntegration is disposed as part of phase4Result
