@@ -9,7 +9,7 @@
  * It does NOT modify where either system writes.
  */
 
-import type { CheckpointType, SnapshotManifestV2 } from "../types";
+import type { CheckpointType, SnapshotManifest, SnapshotManifestV2 } from "../types";
 import type { MCPSnapshotManifest } from "./MCPStorageReader";
 
 // =============================================================================
@@ -141,5 +141,61 @@ export function fromMCPManifest(manifest: MCPSnapshotManifest): UnifiedSnapshot 
 		})),
 		totalSize: manifest.totalSize,
 		trigger: manifest.trigger,
+	};
+}
+
+/**
+ * Map legacy trigger string to unified trigger
+ */
+function legacyTriggerToUnified(trigger: SnapshotManifest["trigger"]): UnifiedSnapshot["trigger"] {
+	switch (trigger) {
+		case "auto":
+		case "pre-save":
+			return "auto";
+		case "manual":
+			return "manual";
+		case "ai-detected":
+			return "ai-detection";
+		default:
+			return "auto";
+	}
+}
+
+/**
+ * Converts Legacy SnapshotManifest to UnifiedSnapshot
+ * Used when IStorageManager returns the legacy format
+ */
+export function fromLegacyManifest(manifest: SnapshotManifest): UnifiedSnapshot {
+	const files: UnifiedSnapshotFile[] = Object.entries(manifest.files).map(([path, info]) => ({
+		path,
+		contentId: info.blob, // Legacy uses 'blob' instead of 'blobHash'
+		size: info.size,
+	}));
+
+	const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+
+	// Build metadata only if there's actual content
+	let metadata: UnifiedSnapshot["metadata"] | undefined;
+	if (manifest.metadata) {
+		const hasContent =
+			manifest.metadata.riskScore !== undefined || manifest.metadata.aiDetection?.tool !== undefined;
+
+		if (hasContent) {
+			metadata = {
+				riskScore: manifest.metadata.riskScore,
+				aiTool: manifest.metadata.aiDetection?.tool,
+			};
+		}
+	}
+
+	return {
+		id: manifest.id,
+		timestamp: manifest.timestamp,
+		name: manifest.name,
+		source: "extension",
+		files,
+		totalSize,
+		trigger: legacyTriggerToUnified(manifest.trigger),
+		metadata,
 	};
 }

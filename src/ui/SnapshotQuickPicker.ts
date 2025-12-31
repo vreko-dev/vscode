@@ -12,10 +12,14 @@
  * @packageDocumentation
  */
 
-import * as path from "node:path";
 import { logger } from "@snapback/infrastructure";
 import * as vscode from "vscode";
-import type { IStorageManager, SnapshotManifest } from "../storage/types";
+import { MCPStorageReader } from "../storage/bridge/MCPStorageReader";
+import { type ExtensionStorageAdapter, SnapshotBridge } from "../storage/bridge/SnapshotBridge";
+import type { UnifiedSnapshot } from "../storage/bridge/UnifiedSnapshot";
+import { fromLegacyManifest } from "../storage/bridge/UnifiedSnapshot";
+import type { IStorageManager } from "../storage/types";
+import { formatRelativeTime, getFileTypeIcon } from "./snapshot-display/formatting";
 
 // =============================================================================
 // TYPES
@@ -57,17 +61,37 @@ const DEFAULT_CONFIG: SnapshotQuickPickerConfig = {
  *
  * Implements the "status bar → quick picker → restore" flow
  * as an alternative to the tree view.
+ *
+ * Uses SnapshotBridge to show snapshots from BOTH:
+ * - Extension storage (SQLite)
+ * - MCP storage (.snapback/ directory)
  */
 export class SnapshotQuickPicker implements vscode.Disposable {
 	private config: SnapshotQuickPickerConfig;
 	private disposables: vscode.Disposable[] = [];
+	private readonly bridge: SnapshotBridge;
 
 	constructor(
 		private readonly storageManager: IStorageManager,
-		_workspaceRoot: string, // Reserved for future relative path display
+		workspaceRoot: string,
 		config?: Partial<SnapshotQuickPickerConfig>,
 	) {
 		this.config = { ...DEFAULT_CONFIG, ...config };
+
+		// Create adapter that wraps IStorageManager for the bridge
+		const extensionAdapter: ExtensionStorageAdapter = {
+			listSnapshots: async (): Promise<UnifiedSnapshot[]> => {
+				const manifests = await this.storageManager.listSnapshots({});
+				// Convert legacy SnapshotManifest to UnifiedSnapshot
+				return manifests.map((m) => fromLegacyManifest(m));
+			},
+		};
+
+		// Create MCP reader for .snapback/ directory
+		const mcpReader = new MCPStorageReader(workspaceRoot);
+
+		// Create bridge that merges both sources
+		this.bridge = new SnapshotBridge(extensionAdapter, mcpReader);
 	}
 
 	/**
@@ -169,16 +193,15 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 	}
 
 	/**
-	 * Load recent snapshots from storage
+	 * Load recent snapshots from both extension and MCP storage via bridge
 	 */
-	private async loadRecentSnapshots(): Promise<SnapshotManifest[]> {
+	private async loadRecentSnapshots(): Promise<UnifiedSnapshot[]> {
 		try {
-			const manifests = await this.storageManager.listSnapshots({
-				limit: this.config.maxRecent,
-			});
+			// Bridge already merges and sorts by timestamp (newest first)
+			const allSnapshots = await this.bridge.listAll();
 
-			// Sort by timestamp (newest first)
-			return manifests.sort((a, b) => b.timestamp - a.timestamp);
+			// Apply limit
+			return allSnapshots.slice(0, this.config.maxRecent);
 		} catch (error) {
 			logger.error("Failed to load snapshots", error as Error);
 			return [];
@@ -187,28 +210,36 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 
 	/**
 	 * Create a QuickPick item for a snapshot
+	 *
+	 * Uses shared formatting utilities for consistent display:
+	 * - Emoji icons based on file type (e.g., ⚙️ for config, 📦 for package.json)
+	 * - Source badge: 🔌 MCP, 📦 Extension
+	 * - Relative time: "5m ago" format
 	 */
-	private createSnapshotItem(manifest: SnapshotManifest): SnapshotQuickPickItem {
-		const icon = this.getSnapshotIcon(manifest.trigger);
-		const fileName = this.getPrimaryFileName(manifest);
-		const timeAgo = this.formatRelativeTime(manifest.timestamp);
-		const fileCount = Object.keys(manifest.files).length;
+	private createSnapshotItem(snapshot: UnifiedSnapshot): SnapshotQuickPickItem {
+		// Get primary file from the snapshot
+		const primaryFile = snapshot.files[0]?.path ?? "";
+		const icon = primaryFile ? getFileTypeIcon(primaryFile) : "📄";
 
-		// Build label with optional AI badge
-		let label = `${icon} ${manifest.name || fileName}`;
-		if (this.config.showAIBadges && manifest.trigger === "ai-detected") {
-			label = `$(sparkle) ${manifest.name || fileName}`;
-		}
+		// Format file display: "api.ts (+2)" if multiple files
+		const fileName = primaryFile ? primaryFile.split("/").pop() : snapshot.name;
+		const fileCount = snapshot.files.length;
+		const fileDisplay = fileCount > 1 ? `${fileName} (+${fileCount - 1})` : fileName;
+
+		const timeAgo = formatRelativeTime(snapshot.timestamp);
+
+		// Source indicator: show if from MCP
+		const sourceLabel = snapshot.source === "mcp" ? " 🔌" : "";
 
 		return {
-			label,
+			label: `${icon}  ${fileDisplay}${sourceLabel}`,
 			description: timeAgo,
-			detail: fileCount > 1 ? `${fileCount} files • ${fileName}` : fileName,
-			snapshotId: manifest.id,
-			timestamp: manifest.timestamp,
-			trigger: manifest.trigger,
+			detail: fileCount > 1 ? `${fileCount} files • ${snapshot.name}` : snapshot.name,
+			snapshotId: snapshot.id,
+			timestamp: snapshot.timestamp,
+			trigger: snapshot.trigger,
 			fileCount,
-			primaryFile: this.getPrimaryFilePath(manifest),
+			primaryFile,
 			action: "restore",
 		};
 	}
@@ -260,13 +291,14 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 			return;
 		}
 
-		const manifest = await this.storageManager.getSnapshotManifest(snapshot.snapshotId);
-		if (!manifest) {
+		// Use the bridge to get snapshot from either storage
+		const unifiedSnapshot = await this.bridge.getById(snapshot.snapshotId);
+		if (!unifiedSnapshot) {
 			vscode.window.showErrorMessage("Snapshot not found");
 			return;
 		}
 
-		const fileCount = Object.keys(manifest.files).length;
+		const fileCount = unifiedSnapshot.files.length;
 		const items: SnapshotQuickPickItem[] = [];
 
 		// Single file: show diff directly
@@ -339,9 +371,10 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 		quickPick.show();
 
 		try {
-			// Load all snapshots (up to 100)
-			const manifests = await this.storageManager.listSnapshots({ limit: 100 });
-			const grouped = this.groupByTime(manifests);
+			// Load all snapshots from both sources (up to 100)
+			const allSnapshots = await this.bridge.listAll();
+			const snapshots = allSnapshots.slice(0, 100);
+			const grouped = this.groupByTime(snapshots);
 
 			const items: SnapshotQuickPickItem[] = [];
 
@@ -385,27 +418,27 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 	/**
 	 * Group snapshots by time period
 	 */
-	private groupByTime(manifests: SnapshotManifest[]): Record<string, SnapshotManifest[]> {
+	private groupByTime(snapshots: UnifiedSnapshot[]): Record<string, UnifiedSnapshot[]> {
 		const today = new Date().setHours(0, 0, 0, 0);
 		const yesterday = today - 24 * 60 * 60 * 1000;
 		const weekAgo = today - 7 * 24 * 60 * 60 * 1000;
 
-		const groups: Record<string, SnapshotManifest[]> = {
+		const groups: Record<string, UnifiedSnapshot[]> = {
 			Today: [],
 			Yesterday: [],
 			"This Week": [],
 			Older: [],
 		};
 
-		for (const manifest of manifests) {
-			if (manifest.timestamp >= today) {
-				groups.Today.push(manifest);
-			} else if (manifest.timestamp >= yesterday) {
-				groups.Yesterday.push(manifest);
-			} else if (manifest.timestamp >= weekAgo) {
-				groups["This Week"].push(manifest);
+		for (const snapshot of snapshots) {
+			if (snapshot.timestamp >= today) {
+				groups.Today.push(snapshot);
+			} else if (snapshot.timestamp >= yesterday) {
+				groups.Yesterday.push(snapshot);
+			} else if (snapshot.timestamp >= weekAgo) {
+				groups["This Week"].push(snapshot);
 			} else {
-				groups.Older.push(manifest);
+				groups.Older.push(snapshot);
 			}
 		}
 
@@ -415,60 +448,6 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 		}
 
 		return groups;
-	}
-
-	// =============================================================================
-	// HELPERS
-	// =============================================================================
-
-	private getSnapshotIcon(trigger?: string): string {
-		switch (trigger) {
-			case "ai-detected":
-				return "$(sparkle)";
-			case "manual":
-				return "$(save)";
-			case "pre-save":
-				return "$(arrow-up)";
-			default:
-				return "$(history)";
-		}
-	}
-
-	private getPrimaryFileName(manifest: SnapshotManifest): string {
-		const files = Object.keys(manifest.files);
-		if (files.length === 0) {
-			return "unknown";
-		}
-		return path.basename(files[0]);
-	}
-
-	private getPrimaryFilePath(manifest: SnapshotManifest): string {
-		const files = Object.keys(manifest.files);
-		if (files.length === 0) {
-			return "";
-		}
-		return files[0];
-	}
-
-	private formatRelativeTime(timestamp: number): string {
-		const diff = Date.now() - timestamp;
-		const minutes = Math.floor(diff / 60000);
-		const hours = Math.floor(diff / 3600000);
-		const days = Math.floor(diff / 86400000);
-
-		if (minutes < 1) {
-			return "just now";
-		}
-		if (minutes < 60) {
-			return `${minutes}m ago`;
-		}
-		if (hours < 24) {
-			return `${hours}h ago`;
-		}
-		if (days === 1) {
-			return "yesterday";
-		}
-		return `${days}d ago`;
 	}
 
 	dispose(): void {
