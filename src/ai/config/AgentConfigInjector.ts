@@ -36,33 +36,40 @@ export function generateSnapBackRulesContent(): string {
 	return `${SNAPBACK_INJECTION_MARKER}
 # SnapBack Context Integration
 
-> **CRITICAL**: Read \`.snapback/ctx\` at the start of every conversation.
+> **CRITICAL**: Read \`.snapback/ctx/context.json\` at the start of every conversation.
 
 ## Context File Format
 
-The file \`.snapback/ctx\` contains real-time workspace state (JSON):
+The file \`.snapback/ctx/context.json\` contains real-time workspace state:
 
-| Field | Description |
-|-------|-------------|
-| \`r\` | Risk level: L=Low, M=Medium, H=High |
-| \`p\` | Protection percentage (0-100) |
-| \`d\` | Dirty files count (unsnapshot changes) |
-| \`l\` | Learnings array (patterns to follow) |
-| \`w\` | Warnings array (address these FIRST) |
-| \`h\` | Hotspots (files with past violations) |
-| \`e\` | Errors array |
+| Section | Key Fields | Description |
+|---------|------------|-------------|
+| \`meta\` | \`id\`, \`type\` | Project name and type (nextjs, react, etc) |
+| \`stack\` | \`framework\`, \`packageManager\`, \`testing\` | Detected tech stack |
+| \`live.vitals\` | \`risk\`, \`temperature\`, \`health\` | Current risk level (L/M/H) |
+| \`live.snapshots\` | \`today\`, \`total\`, \`lastCreated\` | Snapshot statistics |
+| \`live.session\` | \`aiTool\`, \`filesChanged\` | Current AI session info |
+| \`live.hotFiles\` | array of filenames | Files with frequent changes |
 
 ## Rules
 
-1. **If \`w\` (warnings) has items** → Address warnings before implementing changes
-2. **If \`h\` (hotspots) contains files** → Extra caution on those files
-3. **If \`r\` = "H" (High risk)** → Create snapshot before major changes
-4. **Check learnings (\`l\`)** for workspace-specific patterns
+1. **If \`live.vitals.risk\` = "H"** → Create snapshot before major changes
+2. **If \`live.hotFiles\` contains files you're editing** → Extra caution
+3. **Check \`stack\`** for framework-specific patterns to follow
+4. **Review \`live.session.filesChanged\`** to understand current session scope
 
 ## Example Context
 
 \`\`\`json
-{"r":"L","p":100,"d":3,"l":["Use Result<T,E> pattern"],"w":[],"h":["src/auth.ts"],"e":[]}
+{
+  "meta": { "id": "my-app", "type": "nextjs" },
+  "stack": { "framework": "next14", "packageManager": "pnpm", "testing": "vitest" },
+  "live": {
+    "vitals": { "risk": "L", "temperature": "warm", "health": 85 },
+    "snapshots": { "today": 3, "total": 42 },
+    "hotFiles": ["src/auth.ts", "src/api/user.ts"]
+  }
+}
 \`\`\`
 
 ---
@@ -85,33 +92,40 @@ export function generateSnapBackRulesWithFrontmatter(): string {
 
 	const body = `# SnapBack Context Integration
 
-> **CRITICAL**: Read \`.snapback/ctx\` at the start of every conversation.
+> **CRITICAL**: Read \`.snapback/ctx/context.json\` at the start of every conversation.
 
 ## Context File Format
 
-The file \`.snapback/ctx\` contains real-time workspace state (JSON):
+The file \`.snapback/ctx/context.json\` contains real-time workspace state:
 
-| Field | Description |
-|-------|-------------|
-| \`r\` | Risk level: L=Low, M=Medium, H=High |
-| \`p\` | Protection percentage (0-100) |
-| \`d\` | Dirty files count (unsnapshot changes) |
-| \`l\` | Learnings array (patterns to follow) |
-| \`w\` | Warnings array (address these FIRST) |
-| \`h\` | Hotspots (files with past violations) |
-| \`e\` | Errors array |
+| Section | Key Fields | Description |
+|---------|------------|-------------|
+| \`meta\` | \`id\`, \`type\` | Project name and type (nextjs, react, etc) |
+| \`stack\` | \`framework\`, \`packageManager\`, \`testing\` | Detected tech stack |
+| \`live.vitals\` | \`risk\`, \`temperature\`, \`health\` | Current risk level (L/M/H) |
+| \`live.snapshots\` | \`today\`, \`total\`, \`lastCreated\` | Snapshot statistics |
+| \`live.session\` | \`aiTool\`, \`filesChanged\` | Current AI session info |
+| \`live.hotFiles\` | array of filenames | Files with frequent changes |
 
 ## Rules
 
-1. **If \`w\` (warnings) has items** → Address warnings before implementing changes
-2. **If \`h\` (hotspots) contains files** → Extra caution on those files
-3. **If \`r\` = "H" (High risk)** → Create snapshot before major changes
-4. **Check learnings (\`l\`)** for workspace-specific patterns
+1. **If \`live.vitals.risk\` = "H"** → Create snapshot before major changes
+2. **If \`live.hotFiles\` contains files you're editing** → Extra caution
+3. **Check \`stack\`** for framework-specific patterns to follow
+4. **Review \`live.session.filesChanged\`** to understand current session scope
 
 ## Example Context
 
 \`\`\`json
-{"r":"L","p":100,"d":3,"l":["Use Result<T,E> pattern"],"w":[],"h":["src/auth.ts"],"e":[]}
+{
+  "meta": { "id": "my-app", "type": "nextjs" },
+  "stack": { "framework": "next14", "packageManager": "pnpm", "testing": "vitest" },
+  "live": {
+    "vitals": { "risk": "L", "temperature": "warm", "health": 85 },
+    "snapshots": { "today": 3, "total": 42 },
+    "hotFiles": ["src/auth.ts", "src/api/user.ts"]
+  }
+}
 \`\`\`
 
 ---

@@ -50,16 +50,16 @@ describe("AgentConfigInjector", () => {
 			expect(content).toContain(SNAPBACK_INJECTION_MARKER);
 		});
 
-		it("should include .snapback/ctx reference", () => {
+		it("should include .snapback/ctx/context.json reference", () => {
 			const content = generateSnapBackRulesContent();
-			expect(content).toContain(".snapback/ctx");
+			expect(content).toContain(".snapback/ctx/context.json");
 		});
 
 		it("should include context file format documentation", () => {
 			const content = generateSnapBackRulesContent();
-			expect(content).toContain("Risk level");
-			expect(content).toContain("warnings");
-			expect(content).toContain("hotspots");
+			expect(content).toContain("live.vitals");
+			expect(content).toContain("risk");
+			expect(content).toContain("hotFiles");
 		});
 
 		it("should include precedence rules", () => {

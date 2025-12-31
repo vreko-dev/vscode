@@ -53,7 +53,7 @@ export interface InjectionOptions {
 }
 
 /**
- * SnapBack context file format (.snapback/ctx)
+ * SnapBack context file format (.snapback/ctx/context.json)
  * Wire format for push architecture
  */
 export interface SnapBackContextFile {

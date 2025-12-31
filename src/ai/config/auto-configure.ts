@@ -148,7 +148,7 @@ export async function autoConfigureAgentRules(context: vscode.ExtensionContext):
 		if (successful.length > 0) {
 			const names = successful.map((r) => r.agent).join(", ");
 			vscode.window.showInformationMessage(
-				`✓ SnapBack rules injected for ${names}. AI assistants will now read .snapback/ctx for context.`,
+				`✓ SnapBack rules injected for ${names}. AI assistants will now read .snapback/ctx/context.json for context.`,
 			);
 		}
 
