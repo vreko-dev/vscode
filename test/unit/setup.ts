@@ -223,25 +223,7 @@ export const mockVscodeWindow = {
 	showTextDocument: vi.fn().mockResolvedValue(undefined),
 	showOpenDialog: vi.fn().mockResolvedValue(undefined),
 	showSaveDialog: vi.fn().mockResolvedValue(undefined),
-	createQuickPick: vi.fn(() => ({
-		title: "",
-		placeholder: "",
-		canSelectMany: false,
-		matchOnDetail: false,
-		matchOnDescription: false,
-		items: [],
-		selectedItems: [],
-		activeItems: [],
-		value: "",
-		onDidAccept: vi.fn(() => ({ dispose: vi.fn() })),
-		onDidHide: vi.fn(() => ({ dispose: vi.fn() })),
-		onDidChangeValue: vi.fn(() => ({ dispose: vi.fn() })),
-		onDidChangeActive: vi.fn(() => ({ dispose: vi.fn() })),
-		onDidChangeSelection: vi.fn(() => ({ dispose: vi.fn() })),
-		show: vi.fn(),
-		hide: vi.fn(),
-		dispose: vi.fn(),
-	})),
+	createQuickPick: vi.fn(() => createMockQuickPick()),
 	tabGroups: {
 		all: [],
 		activeTabGroup: undefined,
@@ -264,17 +246,66 @@ export const mockVscodeAuthentication = {
 	registerAuthenticationProvider: vi.fn(() => ({ dispose: vi.fn() })),
 };
 
+// EventEmitter class for QuickPick and other VS Code APIs
+class MockEventEmitter<T = void> {
+	private listeners: ((e: T) => void)[] = [];
+
+	get event() {
+		return (listener: (e: T) => void) => {
+			this.listeners.push(listener);
+			return { dispose: () => {
+				const idx = this.listeners.indexOf(listener);
+				if (idx >= 0) this.listeners.splice(idx, 1);
+			}};
+		};
+	}
+
+	fire(data?: T): void {
+		for (const listener of this.listeners) {
+			listener(data as T);
+		}
+	}
+
+	dispose(): void {
+		this.listeners = [];
+	}
+}
+
+// Factory for QuickPick mock with proper event emitters
+function createMockQuickPick() {
+	const onDidAcceptEmitter = new MockEventEmitter<void>();
+	const onDidHideEmitter = new MockEventEmitter<void>();
+	const onDidChangeValueEmitter = new MockEventEmitter<string>();
+	const onDidChangeSelectionEmitter = new MockEventEmitter<any[]>();
+
+	return {
+		items: [] as any[],
+		selectedItems: [] as any[],
+		activeItems: [] as any[],
+		title: "",
+		placeholder: "",
+		value: "",
+		busy: false,
+		enabled: true,
+		canSelectMany: false,
+		matchOnDescription: false,
+		matchOnDetail: false,
+		onDidAccept: onDidAcceptEmitter.event,
+		onDidHide: onDidHideEmitter.event,
+		onDidChangeValue: onDidChangeValueEmitter.event,
+		onDidChangeSelection: onDidChangeSelectionEmitter.event,
+		onDidChangeActive: vi.fn(() => ({ dispose: vi.fn() })),
+		show: vi.fn(),
+		hide: vi.fn(),
+		dispose: vi.fn(),
+		// Test helpers for firing events
+		_onDidAcceptEmitter: onDidAcceptEmitter,
+		_onDidHideEmitter: onDidHideEmitter,
+	};
+}
+
 vi.mock("vscode", () => ({
-	EventEmitter: class MockEventEmitter {
-		private listeners: Map<string, Function[]> = new Map();
-		event = vi.fn();
-		fire(data?: unknown): void {
-			this.listeners.forEach((handlers) => handlers.forEach((h) => h(data)));
-		}
-		dispose(): void {
-			this.listeners.clear();
-		}
-	},
+	EventEmitter: MockEventEmitter,
 	Position: class MockPosition {
 		constructor(public line: number, public character: number) {}
 	},
@@ -371,6 +402,7 @@ vi.mock("vscode", () => ({
 	ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
 	LogLevel: { Trace: 0, Debug: 1, Info: 2, Warning: 3, Error: 4, Off: 5 },
 	TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
+	QuickPickItemKind: { Separator: -1, Default: 0 },
 	ProgressLocation: { SourceControl: 1, Window: 10, Notification: 15 },
 	StatusBarAlignment: { Left: 0, Right: 1 },
 	DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2, Hint: 3 },

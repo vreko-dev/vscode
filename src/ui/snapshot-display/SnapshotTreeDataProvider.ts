@@ -140,6 +140,7 @@ export class SnapshotTreeItem extends vscode.TreeItem {
 		const md = new vscode.MarkdownString();
 		md.appendMarkdown(`**${formatAnchorFile(snapshot)}**\n\n`);
 		const reasons = getSnapshotReasonsForTree(snapshot);
+		// biome-ignore lint/suspicious/noExplicitAny: formatReason expects ReasonCode[] but getSnapshotReasonsForTree returns string[]
 		md.appendMarkdown(`${formatReason(reasons as any)}\n\n`);
 
 		const fileCount = Object.keys(snapshot.files).length;
@@ -185,8 +186,7 @@ export class SnapshotTreeDataProvider implements vscode.TreeDataProvider<Snapsho
 	 * Refresh the tree view
 	 */
 	refresh(): void {
-		this.cachedGroups = null;
-		this._onDidChangeTreeData.fire();
+		this._onDidChangeTreeData.fire(undefined);
 	}
 
 	/**
@@ -229,7 +229,6 @@ export class SnapshotTreeDataProvider implements vscode.TreeDataProvider<Snapsho
 
 			// Group by date
 			const groups = groupByDate(manifests);
-			this.cachedGroups = new Map(Object.entries(groups)) as Map<DateGroup, SnapshotManifest[]>;
 
 			// Create tree items for non-empty groups
 			const items: DateGroupTreeItem[] = [];

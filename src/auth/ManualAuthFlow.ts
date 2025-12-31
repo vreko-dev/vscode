@@ -50,8 +50,9 @@ const DEFAULT_CONFIG: ManualAuthConfig = {
 	keyValidationTimeout: 5000, // 5 second timeout for validation
 };
 
-/** API key format: sb_live_... or sb_test_... */
-const API_KEY_PATTERN = /^sb_(live|test)_[a-zA-Z0-9]{32,64}$/;
+/** API key format: sk_live_... or sk_test_... (consolidated on Better Auth)
+ * Better Auth generates 64-char keys, but accept 32+ for flexibility */
+const API_KEY_PATTERN = /^sk_(live|test)_[a-zA-Z0-9]{32,}$/;
 
 /**
  * Manual API key authentication flow for corporate/air-gapped environments.
@@ -108,8 +109,8 @@ export class ManualAuthFlow {
 		// Prompt for API key
 		const apiKey = await vscode.window.showInputBox({
 			title: "Enter SnapBack API Key",
-			prompt: "Paste your API key (starts with sb_live_ or sb_test_)",
-			placeHolder: "sb_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+			prompt: "Paste your API key (starts with sk_live_ or sk_test_)",
+			placeHolder: "sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 			password: true, // Mask input for security
 			ignoreFocusOut: true, // Don't dismiss on focus loss
 			validateInput: (value) => this.validateKeyFormat(value),
@@ -123,7 +124,7 @@ export class ManualAuthFlow {
 
 		// Validate key format
 		if (!API_KEY_PATTERN.test(apiKey)) {
-			vscode.window.showErrorMessage("Invalid API key format. Keys should start with sb_live_ or sb_test_");
+			vscode.window.showErrorMessage("Invalid API key format. Keys should start with sk_live_ or sk_test_");
 			logger.warn("Manual auth failed: invalid key format");
 			return null;
 		}
