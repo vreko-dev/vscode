@@ -15,6 +15,7 @@ import * as vscode from "vscode";
 import { COMMANDS } from "../constants/commands";
 import { SNAPBACK_ICONS } from "../constants/icons";
 import type { IStorageManager, SnapshotManifest } from "../storage/types";
+import { formatAbsoluteTime, getFileTypeIcon } from "../ui/snapshot-display/formatting";
 import { createTreeItemBadgeProvider, type TreeItemBadgeProvider } from "../utils/treeItemBadgeProvider";
 import { TimeGroupingStrategy } from "./grouping/TimeGroupingStrategy";
 import type { GroupingMode, ProblemItem, SnapshotDisplayItem, TimeGroup, TreeViewConfig } from "./types";
@@ -360,7 +361,9 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	private async getSnapshotFiles(snapshotId: string): Promise<SnapBackTreeItem[]> {
 		try {
 			const manifest = await this.storageManager.getSnapshotManifest(snapshotId);
-			if (!manifest) return [];
+			if (!manifest) {
+				return [];
+			}
 
 			return Object.keys(manifest.files).map((filePath) => {
 				const fileName = path.basename(filePath);
@@ -464,51 +467,18 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 	}
 
 	/**
-	 * Get event type label for display
-	 * Event-first format: "AI Edit", "Manual", "Auto", "Pre-save"
-	 */
-	private getEventTypeLabel(trigger: SnapshotDisplayItem["trigger"]): string {
-		switch (trigger) {
-			case "ai-detected":
-				return "AI Edit";
-			case "manual":
-				return "Manual";
-			case "pre-save":
-				return "Pre-save";
-			case "auto":
-			default:
-				return "Auto";
-		}
-	}
-
-	/**
-	 * Get event icon using new event-first icons
-	 */
-	private getEventIcon(trigger: SnapshotDisplayItem["trigger"]): string {
-		switch (trigger) {
-			case "ai-detected":
-				return SNAPBACK_ICONS.EVENT_AI;
-			case "manual":
-				return SNAPBACK_ICONS.EVENT_MANUAL;
-			case "pre-save":
-				return SNAPBACK_ICONS.EVENT_PRE_SAVE;
-			case "auto":
-			default:
-				return SNAPBACK_ICONS.EVENT_AUTO;
-		}
-	}
-
-	/**
-	 * Create snapshot item with event-first label format
-	 * Format: "{icon} {type} — {filename} • {time}"
+	 * Create snapshot item with file-first label format
+	 * Format: "{icon}  {filename} (+count)"
+	 * Description shows time
 	 * Examples:
-	 * - "✨ AI Edit — Button.tsx • 19m"
-	 * - "💾 Manual — useAuth.ts • 2h"
+	 * - "🤖  api.ts (+2)" with description "2:45 PM"
+	 * - "📸  index.ts" with description "2:30 PM"
 	 */
 	private createSnapshotItem(snapshot: SnapshotDisplayItem): SnapBackTreeItem {
-		const icon = this.getEventIcon(snapshot.trigger);
-		const typeLabel = this.getEventTypeLabel(snapshot.trigger);
-		const fileName = path.basename(snapshot.primaryFile);
+		// Use shared formatting utilities for consistent display
+		const icon = this.getEventIconFromManifest(snapshot);
+		const fileDisplay = this.getFileDisplayFromSnapshot(snapshot);
+		const timeDisplay = formatAbsoluteTime(snapshot.timestamp.getTime());
 		const createdAt = snapshot.timestamp.getTime();
 
 		// Get badge state for this snapshot
@@ -517,7 +487,7 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 		// Track snapshot for auto-refresh when badge expires
 		this.badgeProvider.trackSnapshot(snapshot.id, createdAt);
 
-		// Build label with optional badge (event-first format)
+		// Build label with optional badge
 		const badgeText = badge?.type === "new" ? " NEW" : "";
 
 		// Determine collapsibility: multi-file expands, single-file opens diff
@@ -527,16 +497,16 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 			: vscode.TreeItemCollapsibleState.None;
 
 		const item = new SnapBackTreeItem(
-			`${icon} ${typeLabel}${badgeText}`,
+			`${icon}  ${fileDisplay}${badgeText}`,
 			{ type: "snapshot", id: snapshot.id },
 			collapsibleState,
 		);
 
 		// Stable ID for automatic expansion persistence by VS Code
 		item.id = `snapback:activity:snapshot:${snapshot.id}`;
-		// Description: "— {filename} • {time}"
+		// Description shows time
 		const staleIndicator = badge?.type === "stale" ? " (old)" : "";
-		item.description = `— ${fileName} • ${snapshot.description}${staleIndicator}`;
+		item.description = `${timeDisplay}${staleIndicator}`;
 		item.tooltip = this.getSnapshotTooltip(snapshot);
 
 		// Context value based on single/multi file for interaction model
@@ -552,6 +522,25 @@ export class SnapBackTreeProvider implements vscode.TreeDataProvider<SnapBackTre
 		}
 
 		return item;
+	}
+
+	/**
+	 * Get origin icon using shared formatting utilities
+	 */
+	private getEventIconFromManifest(snapshot: SnapshotDisplayItem): string {
+		// File-type icon based on primary file (e.g., ⚙️ for config, 📦 for package.json)
+		return snapshot.primaryFile ? getFileTypeIcon(snapshot.primaryFile) : "📄";
+	}
+
+	/**
+	 * Get file display using shared formatting or fallback
+	 */
+	private getFileDisplayFromSnapshot(snapshot: SnapshotDisplayItem): string {
+		const fileName = path.basename(snapshot.primaryFile);
+		if (snapshot.fileCount > 1) {
+			return `${fileName} (+${snapshot.fileCount - 1})`;
+		}
+		return fileName;
 	}
 
 	private getSnapshotTooltip(snapshot: SnapshotDisplayItem): string {

@@ -111,7 +111,7 @@ const HINT_TEMPLATES: Record<ExperienceTier, Hint[]> = {
 			id: "explorer-ai-intro",
 			title: "AI-Assisted Coding with SnapBack",
 			content:
-				"SnapBack automatically detects when you're using AI coding assistants like GitHub Copilot and can create checkpoints during AI-assisted sessions.",
+				"SnapBack automatically detects when you're using AI coding assistants like GitHub Copilot and can create snapshots during AI-assisted sessions.",
 			category: "ai-assisted",
 			priority: "medium",
 			appropriateTiers: ["explorer"],
@@ -145,9 +145,9 @@ const HINT_TEMPLATES: Record<ExperienceTier, Hint[]> = {
 		},
 		{
 			id: "intermediate-ai-checkpoints",
-			title: "AI Checkpoints",
+			title: "AI Snapshots",
 			content:
-				"Enable automatic checkpoints for AI-assisted coding sessions in the SnapBack settings. This helps you track AI contributions to your code.",
+				"Enable automatic snapshots for AI-assisted coding sessions in the SnapBack settings. This helps you track AI contributions to your code.",
 			category: "ai-assisted",
 			priority: "high",
 			appropriateTiers: ["intermediate"],

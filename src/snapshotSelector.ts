@@ -6,8 +6,10 @@
  * snapshot selection.
  */
 
+import * as path from "node:path";
 import * as vscode from "vscode";
 import type { OperationCoordinator } from "./operationCoordinator";
+import { formatRelativeTime } from "./ui/snapshot-display/formatting";
 
 /**
  * Represents a snapshot item in the selection UI
@@ -39,16 +41,23 @@ export async function showSnapshotSelection(
 				// Get list of available snapshots
 				const snapshots = await coordinator.listSnapshots();
 
-				// Format snapshots for quick pick
+				// Format snapshots for quick pick using shared formatting utilities
 				const snapshotItems: SnapshotItem[] = snapshots
 					.sort((a, b) => b.timestamp - a.timestamp) // Sort by timestamp, newest first
-					.map((snapshot) => ({
-						label: snapshot.name,
-						description: formatTimeAgo(snapshot.timestamp),
-						detail: `Snapshot ID: ${snapshot.id}`,
-						id: snapshot.id,
-						timestamp: snapshot.timestamp,
-					}));
+					.map((snapshot) => {
+						// Use anchor file for display, with (+N) if multiple files
+						const icon = "📸"; // Default icon for selector
+						const fileName = snapshot.anchorFile ? path.basename(snapshot.anchorFile) : snapshot.name;
+						const fileDisplay =
+							snapshot.fileCount > 1 ? `${fileName} (+${snapshot.fileCount - 1})` : fileName;
+						return {
+							label: `${icon}  ${fileDisplay}`,
+							description: formatRelativeTime(snapshot.timestamp),
+							detail: snapshot.fileCount > 1 ? `${snapshot.fileCount} files` : undefined,
+							id: snapshot.id,
+							timestamp: snapshot.timestamp,
+						};
+					});
 
 				// Show snapshot selection UI
 				return await vscode.window.showQuickPick(snapshotItems, {
@@ -93,30 +102,7 @@ export async function showFileSelection(files: string[]): Promise<string[] | und
 	return selectedItems.map((item) => item.label);
 }
 
-/**
- * Formats a timestamp into a human-readable "time ago" string
- * @param timestamp The timestamp to format
- * @returns Formatted time ago string
- */
-function formatTimeAgo(timestamp: number): string {
-	const now = Date.now();
-	const diffMs = now - timestamp;
-	const diffSec = Math.floor(diffMs / 1000);
-	const diffMin = Math.floor(diffSec / 60);
-	const diffHours = Math.floor(diffMin / 60);
-	const diffDays = Math.floor(diffHours / 24);
-
-	if (diffSec < 60) {
-		return `${diffSec} seconds ago`;
-	}
-	if (diffMin < 60) {
-		return `${diffMin} minutes ago`;
-	}
-	if (diffHours < 24) {
-		return `${diffHours} hours ago`;
-	}
-	return `${diffDays} days ago`;
-}
+// formatTimeAgo moved to ui/snapshot-display/formatting.ts as formatRelativeTime
 
 /**
  * Shows a confirmation dialog for snapshot restoration

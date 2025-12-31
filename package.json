@@ -455,6 +455,12 @@
         "title": "Reset Agent Rules Config",
         "category": "SnapBack",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "snapback.__debugStatusBar",
+        "title": "Debug Status Bar States",
+        "category": "SnapBack",
+        "icon": "$(debug)"
       }
     ],
     "viewsContainers": {

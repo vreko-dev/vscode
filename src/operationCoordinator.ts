@@ -948,7 +948,7 @@ export class OperationCoordinator {
 	/**
 	 * List all available snapshots from storage
 	 *
-	 * @returns Array of snapshot objects with id, name, timestamp, fileCount, and fileContents
+	 * @returns Array of snapshot objects with id, name, timestamp, fileCount, anchorFile, and fileContents
 	 */
 	async listSnapshots(): Promise<
 		Array<{
@@ -956,6 +956,7 @@ export class OperationCoordinator {
 			name: string;
 			timestamp: number;
 			fileCount: number;
+			anchorFile?: string;
 			fileContents?: Record<string, string>;
 		}>
 	> {
@@ -966,6 +967,7 @@ export class OperationCoordinator {
 				name: manifest.name || new Date(manifest.timestamp).toISOString(),
 				timestamp: manifest.timestamp,
 				fileCount: Object.keys(manifest.files).length,
+				anchorFile: manifest.anchorFile || Object.keys(manifest.files)[0],
 				fileContents: undefined, // Use getSnapshotWithContent() to fetch content
 			}));
 		} catch (error) {

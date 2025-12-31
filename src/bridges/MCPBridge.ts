@@ -355,7 +355,7 @@ export class MCPBridge {
 			// Generate observation for rapid changes
 			this.pushObservation({
 				type: "suggestion",
-				message: `Rapid changes detected on ${filePath} (${burstState.charCount} chars at ${burstState.velocity.toFixed(1)} chars/ms) - consider creating a checkpoint`,
+				message: `Rapid changes detected on ${filePath} (${burstState.charCount} chars at ${burstState.velocity.toFixed(1)} chars/ms) - consider creating a snapshot`,
 				timestamp: Date.now(),
 				context: {
 					file: filePath,
@@ -496,7 +496,7 @@ export class MCPBridge {
 				this.failureCount++;
 				console.warn(`[MCPBridge] Push failed: ${response.status}`);
 			}
-		} catch (error) {
+		} catch (_error) {
 			this.failureCount++;
 			// Keep queued for retry (silent failure is expected when MCP not running)
 		}

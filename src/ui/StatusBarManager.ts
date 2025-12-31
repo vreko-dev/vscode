@@ -105,10 +105,10 @@ export interface QueuedMessage {
 const STATUS_TEXT: Record<StatusBarState, string | ((data: unknown) => string)> = {
 	idle: "$(shield) SnapBack",
 	"idle-stats": (stats: unknown) =>
-		`$(shield) ${(stats as StatusBarStats).checkpointsToday} checkpoint${(stats as StatusBarStats).checkpointsToday !== 1 ? "s" : ""} today`,
+		`$(shield) ${(stats as StatusBarStats).checkpointsToday} snapshot${(stats as StatusBarStats).checkpointsToday !== 1 ? "s" : ""} today`,
 	"ai-session": (tool: unknown) =>
 		tool ? `$(sparkle) ${tool as string} session protected` : "$(zap) Active session",
-	checkpoint: "$(check) Checkpoint saved",
+	checkpoint: "$(check) Snapshot saved",
 	restored: (lines: unknown) => `$(history) Restored${lines ? ` ${lines as number}` : ""} lines`,
 	vitals: (vitals: unknown) => formatVitalsText(vitals as VitalsDisplayData),
 	recommendation: (urgency: unknown) => {
@@ -453,7 +453,7 @@ export class StatusBarManager implements vscode.Disposable {
 				duration: 1200,
 			},
 			{ text: "$(sync~spin) Capturing...", duration: 800 },
-			{ text: "$(check) Checkpoint saved", duration: 1500 },
+			{ text: "$(check) Snapshot saved", duration: 1500 },
 		];
 
 		// Increment stats
@@ -681,12 +681,12 @@ export class StatusBarManager implements vscode.Disposable {
 		// Stats section
 		md.appendMarkdown("---\n\n");
 		md.appendMarkdown(
-			`Today: ${this.stats.checkpointsToday} checkpoints | ${this.stats.aiSessionsToday} AI sessions\n\n`,
+			`Today: ${this.stats.checkpointsToday} snapshots | ${this.stats.aiSessionsToday} AI sessions\n\n`,
 		);
 
 		if (this.stats.lastCheckpoint) {
 			const ago = formatRelativeTime(this.stats.lastCheckpoint.timestamp);
-			md.appendMarkdown(`Last checkpoint: ${ago}\n`);
+			md.appendMarkdown(`Last snapshot: ${ago}\n`);
 			if (this.stats.lastCheckpoint.aiTool) {
 				md.appendMarkdown(`→ AI-assisted changes (${this.stats.lastCheckpoint.aiTool})\n`);
 			}

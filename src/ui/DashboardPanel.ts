@@ -22,6 +22,7 @@ import type { OperationCoordinator } from "../operationCoordinator";
 import { logger } from "../utils/logger";
 import { BRANDING } from "./branding";
 import { type ActivityData, type DashboardDataService, getDashboardDataService } from "./DashboardDataService";
+import { formatCompactNumber } from "./snapshot-display/formatting";
 
 // =============================================================================
 // TYPES
@@ -433,9 +434,9 @@ export class DashboardPanel implements vscode.Disposable {
 			<div class="stats-section">
 				<h3>TODAY</h3>
 				<div class="stats-row">
-					<span>${BRANDING.ui.snapshot} ${snapshotsToday} snapshot${snapshotsToday !== 1 ? "s" : ""} today</span>
-					<span>${BRANDING.ui.restore} ${restoresToday} restore${restoresToday !== 1 ? "s" : ""}</span>
-					<span>${BRANDING.ui.protected} ${linesProtected.toLocaleString()} lines protected</span>
+					<span>${BRANDING.ui.snapshot} ${formatCompactNumber(snapshotsToday)} snapshot${snapshotsToday !== 1 ? "s" : ""} today</span>
+					<span>${BRANDING.ui.restore} ${formatCompactNumber(restoresToday)} restore${restoresToday !== 1 ? "s" : ""}</span>
+					<span>${BRANDING.ui.protected} ${formatCompactNumber(linesProtected)} lines protected</span>
 				</div>
 			</div>
 
@@ -446,7 +447,7 @@ export class DashboardPanel implements vscode.Disposable {
 			<div class="savings-section">
 				<h3>TOKEN SAVINGS THIS WEEK</h3>
 				<div class="savings-details">
-					<p>${BRANDING.ui.restore} ${restoresThisWeek} restores - ~${tokensSaved.toLocaleString()} tokens saved</p>
+					<p>${BRANDING.ui.restore} ${formatCompactNumber(restoresThisWeek)} restores - ~${formatCompactNumber(tokensSaved)} tokens saved</p>
 					<p>${BRANDING.ui.money} Estimated: $${gpt4Cost} (GPT-4) / $${gpt35Cost} (3.5)</p>
 					<p>${BRANDING.ui.growth} You're in top ${efficiencyPercentile}% efficiency</p>
 				</div>
@@ -521,19 +522,18 @@ export class DashboardPanel implements vscode.Disposable {
 			return `${days}d ago`;
 		};
 
-		// Get event icon
-		const getEventIcon = (type: string): string => {
-			switch (type) {
-				case "ai-edit":
-					return BRANDING.ui.aiEdit;
-				case "manual-snapshot":
-					return BRANDING.ui.manualSnapshot;
-				case "auto-snapshot":
-					return BRANDING.ui.autoSnapshot;
+		// Get event icon - prefer icon from event data, fallback to type-based
+		const getEventIcon = (event: { type: string; icon?: string }): string => {
+			// Use the icon from the event if available (from formatting utilities)
+			if (event.icon) {
+				return event.icon;
+			}
+			// Fallback for events without icon (restore, config-change)
+			switch (event.type) {
 				case "restore":
 					return BRANDING.ui.restore;
 				default:
-					return BRANDING.ui.snapshot ?? "📸";
+					return "📸";
 			}
 		};
 
@@ -547,9 +547,9 @@ export class DashboardPanel implements vscode.Disposable {
 				.map(
 					(event) => `
 				<div class="timeline-item">
-					<span class="event-icon">${getEventIcon(event.type)}</span>
-					<span class="event-text">${event.aiTool ? `${event.type === "ai-edit" ? "AI Edit" : event.type} (${event.aiTool})` : event.type} - ${event.file}</span>
-					<span class="event-time">${formatTimeAgo(event.timestamp)}</span>
+					<span class="event-icon">${getEventIcon(event)}</span>
+					<span class="event-text">${event.file}</span>
+					<span class="event-time">${event.relativeTime || formatTimeAgo(event.timestamp)}</span>
 				</div>
 			`,
 				)
@@ -571,7 +571,17 @@ export class DashboardPanel implements vscode.Disposable {
 				.join("") ||
 			`
 			<tr>
-				<td colspan="3" style="text-align: center; color: var(--text-secondary);">No AI tools detected yet</td>
+				<td colspan="3" class="ai-watching-cell">
+					<div class="ai-watching">
+						<span class="watching-text">Watching for</span>
+						<span class="ai-tools-cycle">
+							<span class="ai-tool">Cursor</span>
+							<span class="ai-tool">Copilot</span>
+							<span class="ai-tool">Windsurf</span>
+							<span class="ai-tool">Claude</span>
+						</span>
+					</div>
+				</td>
 			</tr>
 		`;
 
@@ -968,6 +978,53 @@ export class DashboardPanel implements vscode.Disposable {
 			text-align: center;
 			padding: 48px;
 			color: var(--text-secondary);
+		}
+
+		/* AI Watching Animation */
+		.ai-watching-cell {
+			text-align: center;
+			padding: 16px !important;
+		}
+
+		.ai-watching {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			color: var(--text-secondary);
+			font-size: 13px;
+		}
+
+		.watching-text {
+			opacity: 0.7;
+		}
+
+		.ai-tools-cycle {
+			position: relative;
+			display: inline-block;
+			width: 70px;
+			height: 1.2em;
+			overflow: hidden;
+		}
+
+		.ai-tool {
+			position: absolute;
+			left: 0;
+			width: 100%;
+			opacity: 0;
+			animation: cycleTool 8s infinite;
+			color: var(--accent);
+			font-weight: 500;
+		}
+
+		.ai-tool:nth-child(1) { animation-delay: 0s; }
+		.ai-tool:nth-child(2) { animation-delay: 2s; }
+		.ai-tool:nth-child(3) { animation-delay: 4s; }
+		.ai-tool:nth-child(4) { animation-delay: 6s; }
+
+		@keyframes cycleTool {
+			0%, 20% { opacity: 0; transform: translateY(8px); }
+			5%, 15% { opacity: 1; transform: translateY(0); }
+			25%, 100% { opacity: 0; transform: translateY(-8px); }
 		}
 		`;
 	}

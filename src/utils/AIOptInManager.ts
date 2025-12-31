@@ -75,9 +75,9 @@ export class AIOptInManager {
 
 		const items: (vscode.QuickPickItem & { value: boolean })[] = [
 			{
-				label: "$(check) Enable automatic checkpoints",
+				label: "$(check) Enable automatic snapshots",
 				description: "Create snapshots automatically during AI-assisted coding sessions",
-				detail: "SnapBack will create checkpoints when it detects rapid, large insertions typical of AI assistants",
+				detail: "SnapBack will create snapshots when it detects rapid, large insertions typical of AI assistants",
 				value: true,
 			},
 			{
@@ -90,7 +90,7 @@ export class AIOptInManager {
 
 		const selection = await vscode.window.showQuickPick(items, {
 			title: "AI-Assisted Coding Detected",
-			placeHolder: "Would you like to enable automatic checkpoints for AI-assisted sessions?",
+			placeHolder: "Would you like to enable automatic snapshots for AI-assisted sessions?",
 		});
 
 		if (selection) {

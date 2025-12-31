@@ -17,7 +17,7 @@ process.env.MCP_QUIET = "1";
 import { SnapBackEvent, SnapBackEventBus } from "@snapback/contracts";
 import * as vscode from "vscode";
 import { initializePhase1Services } from "./activation/phase1-services";
-import { initializePhase2Storage } from "./activation/phase2-storage";
+import { initializeContextFileManager, initializePhase2Storage } from "./activation/phase2-storage";
 import { initializePhase3Managers } from "./activation/phase3-managers";
 import { initializePhase4Providers } from "./activation/phase4-providers";
 import { initializePhase5Registration } from "./activation/phase5-registration";
@@ -298,6 +298,59 @@ export async function activate(context: vscode.ExtensionContext) {
 		}),
 	);
 
+	// 🛠️ DEBUG HOOK: Test status bar states manually
+	// Usage: Run command "SnapBack: Debug Status Bar" from Command Palette
+	context.subscriptions.push(
+		vscode.commands.registerCommand("snapback.__debugStatusBar", async () => {
+			if (!statusBarController) {
+				vscode.window.showWarningMessage("StatusBarController not initialized yet");
+				return;
+			}
+			const state = await vscode.window.showQuickPick(
+				[
+					{ label: "$(shield) Protected", value: "protected" },
+					{ label: "$(record) Recording", value: "recording" },
+					{ label: "$(pulse) Activity (5 snaps)", value: "activity" },
+					{ label: "$(alert) Attention/Review", value: "attention" },
+					{ label: "$(circle-slash) Disabled", value: "disabled" },
+					{ label: "$(debug-restart) Reset All", value: "reset" },
+				],
+				{ placeHolder: "Select status bar state to test" },
+			);
+			if (!state) {
+				return;
+			}
+
+			// Reset all states first
+			statusBarController.setExtensionEnabled(true);
+			statusBarController.setNeedsAttention(false);
+			statusBarController.setRecording(false);
+			statusBarController.setSnapshotCount(0);
+
+			switch (state.value) {
+				case "protected":
+					// Already reset to protected
+					break;
+				case "recording":
+					statusBarController.setRecording(true);
+					break;
+				case "activity":
+					statusBarController.setSnapshotCount(5);
+					break;
+				case "attention":
+					statusBarController.setNeedsAttention(true);
+					break;
+				case "disabled":
+					statusBarController.setExtensionEnabled(false);
+					break;
+				case "reset":
+					// Already reset
+					break;
+			}
+			vscode.window.showInformationMessage(`Status bar set to: ${state.label}`);
+		}),
+	);
+
 	// 🆕 Initialize feature flag service
 	featureFlagService = new FeatureFlagService();
 
@@ -474,6 +527,10 @@ export async function activate(context: vscode.ExtensionContext) {
 		const phase2Result = await initializePhase2Storage(workspaceRoot, context, eventBus); // GREEN: Pass eventBus
 		phaseTimings["Phase 2 (Storage)"] = Date.now() - phase2Start;
 		storage = phase2Result.storage;
+
+		// 🎩 Initialize Context File Manager (non-blocking)
+		// Creates .snapback/ctx/context.json for AI assistant awareness
+		initializeContextFileManager(context, workspaceRoot, phase2Result.storage);
 
 		// 🆕 Initialize WorkspaceManager now that context is available
 		// This provides workspace-aware operations for commands and services
@@ -1008,20 +1065,6 @@ export async function activate(context: vscode.ExtensionContext) {
 									unsnapshotedChanges: snapshot.pressure.unsnapshotedChanges,
 								});
 							}
-
-							// 🆕 Wire StatusBarController attention state
-							// Shows "Review" when vitals become critical (action recommended)
-							if (statusBarController) {
-								if (snapshot.trajectory === "critical") {
-									statusBarController.setNeedsAttention(true);
-								} else if (
-									lastTrajectory === "critical" &&
-									(snapshot.trajectory === "stable" || snapshot.trajectory === "recovering")
-								) {
-									// Clear attention when recovering from critical
-									statusBarController.setNeedsAttention(false);
-								}
-							}
 						}
 						lastTrajectory = snapshot.trajectory;
 					}
@@ -1180,12 +1223,10 @@ export async function activate(context: vscode.ExtensionContext) {
 				// Refresh all tree views when snapshot is created
 				refreshViews();
 
-				// 🆕 Update StatusBarController snapshot count and clear attention
+				// 🆕 Update StatusBarController snapshot count
 				sessionSnapshotCount++;
 				if (statusBarController) {
 					statusBarController.setSnapshotCount(sessionSnapshotCount);
-					// Clear attention state when user takes action (creates snapshot)
-					statusBarController.setNeedsAttention(false);
 				}
 
 				// Show notification

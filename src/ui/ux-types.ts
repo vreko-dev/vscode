@@ -322,7 +322,7 @@ export const ACTIVITY_SEQUENCES: Record<ActivitySequenceType, ActivityStep[]> = 
 	"ai-detected": [
 		{ text: "$(sparkle) AI detected", duration: 1200 },
 		{ text: "$(sync~spin) Capturing...", duration: 800 },
-		{ text: "$(check) Checkpoint saved", duration: 1500 },
+		{ text: "$(check) Snapshot saved", duration: 1500 },
 	],
 	"vitals-degrading": [
 		{ text: "$(warning) Health declining", duration: 1200, backgroundColor: "statusBarItem.warningBackground" },
@@ -332,11 +332,11 @@ export const ACTIVITY_SEQUENCES: Record<ActivitySequenceType, ActivityStep[]> = 
 	"burst-detected": [
 		{ text: "$(zap) Rapid changes", duration: 1000 },
 		{ text: "$(sync~spin) Capturing...", duration: 800 },
-		{ text: "$(check) Checkpoint saved", duration: 1500 },
+		{ text: "$(check) Snapshot saved", duration: 1500 },
 	],
 	"checkpoint-created": [
 		{ text: "$(sync~spin) Saving...", duration: 500 },
-		{ text: "$(check) Checkpoint saved", duration: 2000 },
+		{ text: "$(check) Snapshot saved", duration: 2000 },
 	],
 	"restore-complete": [
 		{ text: "$(sync~spin) Restoring...", duration: 800 },

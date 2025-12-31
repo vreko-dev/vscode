@@ -264,7 +264,7 @@ export class VitalsUIIntegration implements vscode.Disposable {
 				const reason =
 					healthLevel === "critical"
 						? "Session health critical - auto-protecting your work"
-						: "Session health degrading - creating safety checkpoint";
+						: "Session health degrading - creating safety snapshot";
 				void this.triggerAutoSnapshot(reason);
 				return; // Don't show recommendation, we're handling it
 			}

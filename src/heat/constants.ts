@@ -56,7 +56,7 @@ export const HEAT_DECORATION_CONFIG: Record<Exclude<HeatLevel, "none">, HeatDeco
 		badge: "\uD83D\uDD25", // 🔥
 		textBadge: "!!",
 		color: new vscode.ThemeColor("charts.red"),
-		tooltip: "Critical activity - consider creating a checkpoint",
+		tooltip: "Critical activity - consider creating a snapshot",
 		propagate: true, // Propagate critical to parent folders
 	},
 };

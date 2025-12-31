@@ -6,6 +6,7 @@
  * Implements a GitLens-inspired UX for professional-grade snapshot management.
  */
 
+import * as path from "node:path";
 import * as vscode from "vscode";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
@@ -109,16 +110,21 @@ export class SnapshotRestoreUI {
 				}
 
 				// Create rich QuickPick items (metadata only, no content)
+				// Use anchor file for display with (+N) for multiple files
 				const items = snapshots
 					.sort((a, b) => b.timestamp - a.timestamp)
-					.map((cp) => ({
-						label: `$(clock) ${cp.name}`,
-						description: this.formatTimeAgo(cp.timestamp),
-						detail: `Snapshot ID: ${cp.id.substring(0, 8)}... • ${cp.fileCount} files`,
-						id: cp.id,
-						timestamp: cp.timestamp,
-						name: cp.name,
-					}));
+					.map((cp) => {
+						const fileName = cp.anchorFile ? path.basename(cp.anchorFile) : cp.name;
+						const fileDisplay = cp.fileCount > 1 ? `${fileName} (+${cp.fileCount - 1})` : fileName;
+						return {
+							label: `$(clock) ${fileDisplay}`,
+							description: this.formatTimeAgo(cp.timestamp),
+							detail: `${cp.fileCount} files`,
+							id: cp.id,
+							timestamp: cp.timestamp,
+							name: fileDisplay, // Use file display as name for downstream
+						};
+					});
 
 				const selected = await vscode.window.showQuickPick(items, {
 					placeHolder: "Select snapshot to restore",

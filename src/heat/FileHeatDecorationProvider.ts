@@ -95,7 +95,7 @@ export class FileHeatDecorationProvider implements FileDecorationProvider, Dispo
 		lines.push("");
 		lines.push(`Heat level: ${assessment.level.toUpperCase()}`);
 		lines.push("");
-		lines.push("\uD83D\uDCA1 Consider creating a checkpoint");
+		lines.push("\uD83D\uDCA1 Consider creating a snapshot");
 
 		return lines.join("\n");
 	}

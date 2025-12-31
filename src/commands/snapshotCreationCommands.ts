@@ -32,10 +32,11 @@ export function registerSnapshotCreationCommands(
 	const { operationCoordinator, protectedFileRegistry, refreshViews, snapshotManager } = commandContext;
 
 	// Command: Create Snapshot
+	// UX: Tell what you did, not what you're doing (no premature "Creating..." message)
 	disposables.push(
 		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.CREATE_LEGACY, async () => {
 			try {
-				vscode.window.showInformationMessage("Creating snapshot...");
+				// Silent operation - only notify on completion
 				const snapshotId = await operationCoordinator.coordinateSnapshotCreation();
 
 				// Only proceed if snapshot was created successfully
@@ -44,7 +45,8 @@ export function registerSnapshotCreationCommands(
 					const snapshot = await snapshotManager.get(snapshotId);
 					const displayName = snapshot?.name || snapshotId;
 
-					vscode.window.showInformationMessage(`Snapshot "${displayName}" created successfully`);
+					// Aligned with MCP branding style (🧢 prefix)
+					vscode.window.showInformationMessage(`🧢 SnapBack: Snapshot "${displayName}" created.`);
 
 					const protectedEntries = await protectedFileRegistry.list();
 					await protectedFileRegistry.markSnapshot(
@@ -58,18 +60,17 @@ export function registerSnapshotCreationCommands(
 					// Notify Safety Dashboard if available
 					vscode.commands.executeCommand("snapback.refreshSafetyDashboard");
 				} else {
-					vscode.window.showErrorMessage("Failed to create snapshot");
+					vscode.window.showErrorMessage("🧢 SnapBack: Failed to create snapshot.");
 					return;
 				}
 			} catch (error) {
 				// Handle 0-delta case gracefully - not an error, just no changes
 				if (error instanceof NoChangeError) {
-					vscode.window.showInformationMessage(
-						"No changes to snapshot - files are identical to the previous snapshot",
-					);
+					// Aligned with MCP branding style
+					vscode.window.showInformationMessage("🧢 SnapBack: No changes detected—already protected.");
 					return;
 				}
-				vscode.window.showErrorMessage(`Failed to create snapshot: ${error}`);
+				vscode.window.showErrorMessage(`🧢 SnapBack: Failed to create snapshot: ${error}`);
 			}
 		}),
 	);

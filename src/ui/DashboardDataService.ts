@@ -14,8 +14,9 @@ import * as vscode from "vscode";
 import { getHeatIntegration } from "../heat";
 import type { HeatTracker } from "../heat/HeatTracker";
 import type { OperationCoordinator } from "../operationCoordinator";
-import { MCPStorageReader, SnapshotBridge, type UnifiedSnapshot } from "../storage/bridge";
+import { MCPStorageReader, SnapshotBridge, type UnifiedSnapshot, type UnifiedSnapshotFile } from "../storage/bridge";
 import { logger } from "../utils/logger";
+import { formatAnchorFile, formatRelativeTime, getFileTypeIcon } from "./snapshot-display/formatting";
 
 // =============================================================================
 // TYPES
@@ -71,6 +72,10 @@ export interface ActivityEvent {
 	timestamp: number;
 	aiTool?: string;
 	details?: string;
+	/** Emoji icon for display (🤖, ⚡, 📸, ⏪) */
+	icon?: string;
+	/** Pre-formatted relative time (e.g., "5m ago") */
+	relativeTime?: string;
 }
 
 /**
@@ -226,15 +231,21 @@ export class DashboardDataService implements vscode.Disposable {
 					// Get raw manifests from coordinator's storage
 					const manifests = await this.coordinator.listSnapshots();
 					return manifests.map((m) => {
-						// Convert to UnifiedSnapshot format
-						// Use fileCount from manifest to populate files array (for stats calculation)
-						const files = m.fileCount > 0 ? Array(m.fileCount).fill("") : [];
+						// Convert to UnifiedSnapshot format with proper file paths
+						const files: UnifiedSnapshotFile[] = [];
+						if (m.anchorFile) {
+							files.push({ path: m.anchorFile, contentId: "", size: 0 });
+							// Add placeholder entries for remaining files (for count display)
+							for (let i = 1; i < m.fileCount; i++) {
+								files.push({ path: `file-${i}`, contentId: "", size: 0 });
+							}
+						}
 						return {
 							id: m.id,
 							timestamp: m.timestamp,
 							name: m.name,
 							source: "extension" as const,
-							files, // Array with length = fileCount for stats calculation
+							files,
 							totalSize: 0,
 							trigger: "auto" as const,
 						};
@@ -259,14 +270,22 @@ export class DashboardDataService implements vscode.Disposable {
 			// Fall back to coordinator-only if no workspace
 			const snapshots = await this.coordinator.listSnapshots();
 			return snapshots.map((m) => {
-				// Use fileCount from manifest to populate files array (for stats calculation)
-				const files = m.fileCount > 0 ? Array(m.fileCount).fill("") : [];
+				// Create proper UnifiedSnapshotFile objects with path info
+				// Use anchorFile as the first file path (from coordinator.listSnapshots)
+				const files: UnifiedSnapshotFile[] = [];
+				if (m.anchorFile) {
+					files.push({ path: m.anchorFile, contentId: "", size: 0 });
+					// Add placeholder entries for remaining files (for count display)
+					for (let i = 1; i < m.fileCount; i++) {
+						files.push({ path: `file-${i}`, contentId: "", size: 0 });
+					}
+				}
 				return {
 					id: m.id,
 					timestamp: m.timestamp,
 					name: m.name,
 					source: "extension" as const,
-					files, // Array with length = fileCount for stats calculation
+					files,
 					totalSize: 0,
 				};
 			});
@@ -538,21 +557,30 @@ export class DashboardDataService implements vscode.Disposable {
 				.slice(0, 50); // Limit to 50 recent snapshots
 
 			for (const snapshot of recentSnapshots) {
-				// Determine event type based on trigger and name
+				// UnifiedSnapshot.files is UnifiedSnapshotFile[] with { path, contentId, size }
+				const filePaths = snapshot.files.map((f) => f.path);
+				const anchorFile = filePaths[0] || undefined;
+
+				// Get file-type icon based on anchor file (e.g., ⚙️ for config, 📦 for package.json)
+				const icon = anchorFile ? getFileTypeIcon(anchorFile) : "📄";
+
+				// Determine event type based on trigger/metadata
 				let type: ActivityEvent["type"] = "auto-snapshot";
-				if (snapshot.trigger === "ai-detection" || snapshot.name?.includes("AI")) {
+				if (snapshot.trigger === "ai-detection" || snapshot.metadata?.aiTool) {
 					type = "ai-edit";
-				} else if (snapshot.trigger === "manual" || snapshot.name?.includes("Manual")) {
+				} else if (snapshot.trigger === "manual") {
 					type = "manual-snapshot";
 				}
 
-				// Display file name or timestamp instead of redundant text
-				let displayText: string;
-				if (type === "manual-snapshot" && snapshot.name?.toLowerCase().includes("manual")) {
-					displayText = new Date(snapshot.timestamp).toLocaleTimeString();
-				} else {
-					displayText = snapshot.name || "Unknown";
-				}
+				// Get formatted file display (e.g., "api.ts (+2)")
+				const manifestLike = {
+					anchorFile,
+					files: Object.fromEntries(filePaths.map((p) => [p, { hash: "", size: 0 }])),
+				};
+				const fileDisplay = formatAnchorFile(manifestLike as any);
+
+				// Get relative time
+				const relativeTime = formatRelativeTime(snapshot.timestamp);
 
 				// Add source indicator for MCP snapshots
 				const sourceIndicator = snapshot.source === "mcp" ? " (MCP)" : "";
@@ -560,10 +588,12 @@ export class DashboardDataService implements vscode.Disposable {
 				events.push({
 					id: snapshot.id,
 					type,
-					file: displayText + sourceIndicator,
+					file: fileDisplay + sourceIndicator,
 					timestamp: snapshot.timestamp,
 					details: `${snapshot.files.length} files`,
 					aiTool: snapshot.metadata?.aiTool,
+					icon,
+					relativeTime,
 				});
 			}
 
