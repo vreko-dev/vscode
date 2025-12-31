@@ -6,6 +6,7 @@ import * as vscode from "vscode";
 import { StorageBridge } from "../bridges/StorageBridge";
 import { migrateConfigIfNeeded } from "../config/migrate";
 import { SNAPBACK_ICONS } from "../constants/index";
+import { ContextFileManager, type ContextFileManagerDeps } from "../context";
 import { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator";
 import { AutoProtectConfig } from "../protection/autoProtectConfig";
 import { ConfigFileManager } from "../protection/ConfigFileManager";
@@ -395,4 +396,74 @@ Check the Output panel for details.`,
 			snapbackrcLoader: fallbackSnapbackrcLoader,
 		};
 	}
+}
+
+/**
+ * Initialize Context File Manager (non-blocking)
+ *
+ * Creates and maintains .snapback/ctx/context.json - the intelligence layer
+ * that informs AI assistants about project state, constraints, and SnapBack activity.
+ *
+ * 🧢 SnapBack
+ */
+export function initializeContextFileManager(
+	context: ExtensionContext,
+	workspaceRoot: string,
+	storage: StorageManager | StorageBridge,
+	eventBus?: { onSnapshotCreated(handler: () => void): vscode.Disposable },
+): void {
+	// Create adapter for snapshot service
+	const snapshotServiceAdapter: ContextFileManagerDeps["snapshotService"] = {
+		list: async () => {
+			try {
+				const snapshots = await storage.listSnapshots();
+				return snapshots.map((s) => ({
+					id: s.id,
+					timestamp: s.timestamp,
+				}));
+			} catch {
+				return [];
+			}
+		},
+		onSnapshotCreated: (handler: () => void) => {
+			// Use eventBus if available, otherwise create a no-op disposable
+			if (eventBus?.onSnapshotCreated) {
+				return eventBus.onSnapshotCreated(handler);
+			}
+			// Fallback: no-op disposable
+			return { dispose: () => {} };
+		},
+	};
+
+	// Create minimal vitals service adapter (Phase 2 enhancement)
+	const vitalsServiceAdapter: ContextFileManagerDeps["vitalsService"] = {
+		getVitals: async () => {
+			// Returns null - will be enhanced in Phase 2 to wire to actual vitals
+			return null;
+		},
+	};
+
+	// Create minimal session tracker adapter (Phase 2 enhancement)
+	const sessionTrackerAdapter: ContextFileManagerDeps["sessionTracker"] = {
+		getCurrentSession: () => {
+			// Returns null - will be enhanced in Phase 2 to wire to actual session tracking
+			return null;
+		},
+	};
+
+	const contextManager = new ContextFileManager(workspaceRoot, {
+		snapshotService: snapshotServiceAdapter,
+		vitalsService: vitalsServiceAdapter,
+		sessionTracker: sessionTrackerAdapter,
+	});
+
+	// Initialize asynchronously (non-blocking)
+	contextManager.initialize().catch((err) => {
+		logger.warn("Failed to initialize Context File Manager", err as Error);
+	});
+
+	// Register for cleanup
+	context.subscriptions.push(contextManager);
+
+	logger.info("Context File Manager initialized in background");
 }
