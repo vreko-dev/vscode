@@ -19,6 +19,7 @@ import {
 } from "@snapback/mcp-config";
 import * as vscode from "vscode";
 
+import { getOrCreateWorkspaceId } from "../auth/workspace-id";
 import { TelemetryProxy } from "../services/telemetry-proxy";
 import { logger } from "../utils/logger";
 
@@ -128,7 +129,9 @@ async function configureClients(clients: AIClientConfig[], context: vscode.Exten
 
 	// Get API key if user is authenticated
 	const apiKey = await getStoredApiKey(context);
-	const mcpConfig = getSnapbackMCPConfig({ apiKey });
+	// Get workspace ID for MCP tier resolution (always available)
+	const workspaceId = await getOrCreateWorkspaceId(context.secrets);
+	const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId });
 
 	await vscode.window.withProgress(
 		{
@@ -222,7 +225,8 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 			}
 
 			const apiKey = await getStoredApiKey(context);
-			const mcpConfig = getSnapbackMCPConfig({ apiKey });
+			const workspaceId = await getOrCreateWorkspaceId(context.secrets);
+			const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId });
 
 			for (const item of selected) {
 				const result = writeClientConfig(item.client, mcpConfig);
