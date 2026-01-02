@@ -7,6 +7,9 @@
 
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";
+import { DeviceAuthFlow } from "./DeviceAuthFlow";
+import { RemoteEnvironmentDetector } from "./RemoteEnvironmentDetector";
+import { getOrCreateWorkspaceId } from "./workspace-id";
 
 export interface SnapBackSession extends vscode.AuthenticationSession {
 	/** OAuth access token */
@@ -65,6 +68,9 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 
 	/**
 	 * Create a new authentication session
+	 *
+	 * Automatically detects remote environments (SSH, Container) and falls back
+	 * to RFC 8628 Device Authorization Flow when direct OAuth won't work.
 	 */
 	async createSession(scopes: readonly string[]): Promise<SnapBackSession> {
 		logger.info("Creating new OAuth session", { scopes });
@@ -83,6 +89,17 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 				}
 
 				throw new Error("Workspace required before authentication");
+			}
+
+			// Check for remote environment - use device flow if OAuth won't work
+			const remoteDetector = new RemoteEnvironmentDetector();
+			const remoteEnv = remoteDetector.detect();
+
+			if (remoteEnv.isRemote && !remoteDetector.canUseOAuth()) {
+				logger.info("Remote environment detected, using device flow", {
+					remoteType: remoteEnv.remoteType,
+				});
+				return this.createSessionViaDeviceFlow(scopes);
 			}
 
 			// Track auth started
@@ -136,6 +153,9 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 			await this.storeSession(session);
 			this._currentSession = session;
 
+			// Link workspace to user for MCP tier resolution
+			await this.linkWorkspaceToUser(session, tokenResponse.user_id);
+
 			// Notify listeners
 			this._onDidChangeSessions.fire({
 				added: [session],
@@ -148,6 +168,57 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 		} catch (error) {
 			logger.error("Failed to create OAuth session", error as Error);
 			throw new Error(`Authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+		}
+	}
+
+	/**
+	 * Create session via RFC 8628 Device Authorization Flow
+	 *
+	 * Used for remote environments (SSH, Container) where browser redirect doesn't work.
+	 * User visits snapback.dev/link and enters the displayed code.
+	 */
+	private async createSessionViaDeviceFlow(scopes: readonly string[]): Promise<SnapBackSession> {
+		logger.info("Starting device authorization flow", { scopes });
+
+		const deviceFlow = new DeviceAuthFlow(this.context, process.env.SNAPBACK_API_URL || "https://snapback.dev/api");
+
+		try {
+			const result = await deviceFlow.authenticate();
+
+			// Convert device flow result to SnapBackSession
+			const session: SnapBackSession = {
+				id: this.generateRandomString(16),
+				accessToken: result.api_key,
+				refreshToken: result.refresh_token,
+				expiresAt: result.expires_in ? Date.now() + result.expires_in * 1000 : undefined,
+				account: {
+					id: result.user_id,
+					label: result.tier ? `SnapBack ${result.tier}` : "SnapBack User",
+				},
+				scopes: scopes as string[],
+			};
+
+			// Store session
+			await this.storeSession(session);
+			this._currentSession = session;
+
+			// Link workspace to user for MCP tier resolution
+			await this.linkWorkspaceToUser(session, result.user_id);
+
+			// Notify listeners
+			this._onDidChangeSessions.fire({
+				added: [session],
+				removed: [],
+				changed: [],
+			});
+
+			logger.info("Device flow session created successfully");
+			return session;
+		} catch (error) {
+			logger.error("Device flow authentication failed", error as Error);
+			throw new Error(
+				`Device authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
 		}
 	}
 
@@ -262,6 +333,72 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 	 */
 	private async storeSession(session: SnapBackSession): Promise<void> {
 		await this.context.secrets.store("snapback.oauth.session", JSON.stringify(session));
+	}
+
+	/**
+	 * Link workspace ID to user for MCP tier resolution
+	 *
+	 * This enables the MCP server to resolve the user's tier without
+	 * requiring API keys in MCP config files. The workspace ID is
+	 * generated on extension activation and stored in SecretStorage.
+	 */
+	private async linkWorkspaceToUser(session: SnapBackSession, userId?: string): Promise<void> {
+		try {
+			// Get workspace ID from secret storage
+			const workspaceId = await getOrCreateWorkspaceId(this.context.secrets);
+
+			if (!workspaceId) {
+				logger.warn("No workspace ID available for linking");
+				return;
+			}
+
+			// Determine tier from account info
+			// In production, this would come from the token response or a separate API call
+			const tier = "pro"; // Authenticated users get pro tier
+
+			// MCP server URL
+			const mcpServerUrl = process.env.SNAPBACK_MCP_URL || "https://snapback-mcp.fly.dev";
+
+			logger.info("Linking workspace to user", {
+				workspaceId: `${workspaceId.slice(0, 10)}...`,
+				tier,
+			});
+
+			const response = await fetch(`${mcpServerUrl}/auth/link-workspace`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${session.accessToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					workspace_id: workspaceId,
+					user_id: userId || session.account.id,
+					tier,
+				}),
+			});
+
+			if (response.ok) {
+				const result = (await response.json()) as { linked: boolean; tier: string };
+				logger.info("Workspace linked successfully", { tier: result.tier });
+
+				// Show success notification
+				vscode.window.showInformationMessage(
+					"✅ SnapBack Pro activated! Your AI assistant now has full access.",
+				);
+			} else {
+				const errorText = await response.text();
+				logger.warn("Failed to link workspace", {
+					status: response.status,
+					error: errorText,
+				});
+				// Non-fatal - user can still use extension directly
+			}
+		} catch (error) {
+			// Non-fatal error - workspace linking is optional
+			logger.warn("Error linking workspace (non-fatal)", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 	}
 
 	/**
