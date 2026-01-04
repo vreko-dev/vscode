@@ -8,18 +8,18 @@
  * @see https://github.com/your-org/snapback/blob/main/apps/vscode/unified_ux_spec.md
  */
 
-import { describe, test } from 'mocha';
+import { describe, test } from "mocha";
 
-describe('Config Migration', () => {
-  test('detects version mismatch', async () => {
-    // J1-E12
-  });
+describe("Config Migration", () => {
+	test("detects version mismatch", async () => {
+		// J1-E12
+	});
 
-  test('performs seamless migration', async () => {
-    // J8-E03
-  });
+	test("performs seamless migration", async () => {
+		// J8-E03
+	});
 
-  test('recovers from corrupt config', async () => {
-    // J8-E08
-  });
+	test("recovers from corrupt config", async () => {
+		// J8-E08
+	});
 });

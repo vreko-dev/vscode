@@ -8,14 +8,14 @@
  * @see https://github.com/your-org/snapback/blob/main/apps/vscode/unified_ux_spec.md
  */
 
-import { describe, test } from 'mocha';
+import { describe, test } from "mocha";
 
-describe('Storage Quota', () => {
-  test('calculates usage percentage correctly', async () => {
-    // Logic check
-  });
+describe("Storage Quota", () => {
+	test("calculates usage percentage correctly", async () => {
+		// Logic check
+	});
 
-  test('triggers warning monitor', async () => {
-    // Threshold check
-  });
+	test("triggers warning monitor", async () => {
+		// Threshold check
+	});
 });

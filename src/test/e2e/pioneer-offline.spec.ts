@@ -10,14 +10,14 @@
  * @see https://github.com/your-org/snapback/blob/main/apps/vscode/unified_ux_spec.md
  */
 
-import { describe, test } from 'mocha';
+import { describe, test } from "mocha";
 
-describe('Pioneer: Offline Mode', () => {
-  test('queues points when network is down', async () => {
-    // J5-E01
-  });
+describe("Pioneer: Offline Mode", () => {
+	test("queues points when network is down", async () => {
+		// J5-E01
+	});
 
-  test('syncs queued points on reconnection', async () => {
-    // J5-E01
-  });
+	test("syncs queued points on reconnection", async () => {
+		// J5-E01
+	});
 });

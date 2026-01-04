@@ -12,24 +12,24 @@
  * @see https://github.com/your-org/snapback/blob/main/apps/vscode/unified_ux_spec.md
  */
 
-import { describe, test } from 'mocha';
+import { describe, test } from "mocha";
 
-describe('Edge Case: Storage Limits', () => {
-  test('shows warning at 80% usage', async () => {
-    // J2-E03
-  });
+describe("Edge Case: Storage Limits", () => {
+	test("shows warning at 80% usage", async () => {
+		// J2-E03
+	});
 
-  test('prevents snapshot at 100% usage', async () => {
-    // J2-E03
-  });
+	test("prevents snapshot at 100% usage", async () => {
+		// J2-E03
+	});
 });
 
-describe('Edge Case: File Conflicts', () => {
-  test('detects file rename since snapshot', async () => {
-    // J3-E03
-  });
+describe("Edge Case: File Conflicts", () => {
+	test("detects file rename since snapshot", async () => {
+		// J3-E03
+	});
 
-  test('handles locked file during restore', async () => {
-    // J3-E05
-  });
+	test("handles locked file during restore", async () => {
+		// J3-E05
+	});
 });
