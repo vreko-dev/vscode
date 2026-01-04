@@ -42,10 +42,7 @@ export class RecoveryUXNotification {
 	 * @param event The protection event that triggered the notification
 	 */
 	async showProtectionAlert(event: ProtectionEvent): Promise<void> {
-		// 🔍 DIAGNOSTIC: Entry point
-		console.log("[RecoveryUX] =====================================");
-		console.log("[RecoveryUX] showProtectionAlert() CALLED");
-		console.log("[RecoveryUX] Event:", JSON.stringify(event));
+		logger.debug("showProtectionAlert called", { event });
 
 		if (!event) {
 			logger.warn("RecoveryUXNotification.showProtectionAlert called with null event");
@@ -60,32 +57,23 @@ export class RecoveryUXNotification {
 			// The viral message
 			const message = `${aiLabel} tried to ${action} ${fileName} — SnapBack protected it`;
 
-			// 🔍 DIAGNOSTIC: Before showing notification
-			console.log(`[RecoveryUX] Showing notification with message: ${message}`);
-			console.log("[RecoveryUX] Buttons: View Diff, Restore, Share");
-
 			logger.info("Showing recovery UX notification", {
 				message,
 				snapshotId: event.snapshotId,
 			});
 
 			// Show notification with action buttons + timeout wrapper (Bug #3 fix)
-			console.log("[RecoveryUX] Waiting for user response (30s timeout)...");
-
 			const selection = await Promise.race([
 				vscode.window.showInformationMessage(message, "View Diff", "Restore", "Share"),
 				new Promise<undefined>((resolve) =>
 					setTimeout(() => {
-						console.log(
-							"[RecoveryUX] ⚠️ Notification timed out after 30s - possible DND mode or modal conflict",
-						);
+						logger.debug("Notification timed out after 30s - possible DND mode or modal conflict");
 						resolve(undefined);
 					}, 30000),
 				),
 			]);
 
-			// 🔍 DIAGNOSTIC: After user clicks button
-			console.log(`[RecoveryUX] User clicked: ${selection || "dismissed/timeout"}`);
+			logger.debug("User responded to notification", { selection: selection || "dismissed/timeout" });
 
 			// Handle user action
 			switch (selection) {

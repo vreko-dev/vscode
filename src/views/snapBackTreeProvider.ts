@@ -10,7 +10,7 @@
  */
 
 import * as path from "node:path";
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/commands";
 import { SNAPBACK_ICONS } from "../constants/icons";

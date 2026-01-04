@@ -18,6 +18,7 @@
 import * as vscode from "vscode";
 import { type CreatePOSTOptions, type CreatePREOptions, NoChangeError } from "../storage/SnapshotStore";
 import type { SnapshotManifestV2 } from "../storage/types";
+import { logger } from "../utils/logger";
 
 /** State for an active PRE checkpoint */
 export interface ActivePREState {
@@ -185,7 +186,7 @@ export class PRWManager {
 			// Handle 0-delta case - content unchanged since parent snapshot
 			// This is expected behavior, not an error
 			if (error instanceof NoChangeError) {
-				console.debug("[PRWManager] No changes since last snapshot, skipping POST", {
+				logger.debug("No changes since last snapshot, skipping POST", {
 					filePath,
 					preId: activePRE.preId,
 					parentId: error.parentId,
@@ -199,15 +200,14 @@ export class PRWManager {
 				((error as Error & { code?: string }).code === "FileNotFound" || error.message.includes("ENOENT"));
 
 			if (isFileNotFound) {
-				console.debug("[PRWManager] File deleted before burst end, orphaning PRE", {
+				logger.debug("File deleted before burst end, orphaning PRE", {
 					filePath,
 					preId: activePRE.preId,
 				});
 			} else {
-				console.error("[PRWManager] POST creation failed, orphaning PRE", {
+				logger.error("POST creation failed, orphaning PRE", error instanceof Error ? error : undefined, {
 					filePath,
 					preId: activePRE.preId,
-					error,
 				});
 			}
 			throw error;
@@ -254,7 +254,7 @@ export class PRWManager {
 	dispose(): void {
 		if (this.activePREs.size > 0) {
 			const orphanFiles = Array.from(this.activePREs.keys());
-			console.warn(`[PRWManager] Disposing with ${this.activePREs.size} orphan PRE(s)`, orphanFiles);
+			logger.warn(`Disposing PRWManager with ${this.activePREs.size} orphan PRE(s)`, { orphanFiles });
 		}
 		this.activePREs.clear();
 	}

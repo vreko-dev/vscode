@@ -1,6 +1,7 @@
 // apps/vscode/src/storage/SessionStore.ts
 
 import * as vscode from "vscode";
+import { logger } from "../utils/logger";
 import type { SessionFileEntry, SessionFilters, SessionManifest } from "./types";
 import { ensureDirectory, fileExists, readJsonFile, writeJsonFile } from "./utils/atomicWrite";
 import { generateSessionId, parseTimestampFromId } from "./utils/fileId";
@@ -33,18 +34,15 @@ export class SessionStore {
 	 * Start a new session (returns session ID)
 	 */
 	startSession(): string {
-		console.log("[SessionStore] startSession() called", {
-			currentActiveSessionId: this.activeSessionId,
-		});
+		logger.debug("startSession called", { currentActiveSessionId: this.activeSessionId });
 		if (this.activeSessionId) {
-			// Return existing active session
-			console.log("[SessionStore] Returning existing active session:", this.activeSessionId);
+			logger.debug("Returning existing active session", { sessionId: this.activeSessionId });
 			return this.activeSessionId;
 		}
 
 		this.activeSessionId = generateSessionId();
 		this.activeSessionStartedAt = Date.now();
-		console.log("[SessionStore] New session started:", this.activeSessionId);
+		logger.debug("New session started", { sessionId: this.activeSessionId });
 		return this.activeSessionId;
 	}
 
@@ -80,14 +78,14 @@ export class SessionStore {
 			summary?: string;
 		},
 	): Promise<SessionManifest | null> {
-		console.log("[SessionStore] finalizeSession() called", {
+		logger.debug("finalizeSession called", {
 			activeSessionId: this.activeSessionId,
 			reason,
 			filesCount: files.length,
 		});
 
 		if (!this.activeSessionId || !this.activeSessionStartedAt) {
-			console.log("[SessionStore] No active session to finalize");
+			logger.debug("No active session to finalize");
 			return null;
 		}
 
@@ -103,14 +101,14 @@ export class SessionStore {
 
 		// Write manifest
 		const manifestUri = vscode.Uri.joinPath(this.sessionsUri, `${this.activeSessionId}.json`);
-		console.log("[SessionStore] Writing manifest to:", manifestUri.fsPath);
+		logger.debug("Writing manifest", { path: manifestUri.fsPath });
 		await writeJsonFile(manifestUri, manifest);
 
 		// Clear active session
 		this.activeSessionId = null;
 		this.activeSessionStartedAt = null;
 
-		console.log("[SessionStore] Session finalized successfully:", manifest.id);
+		logger.debug("Session finalized successfully", { sessionId: manifest.id });
 		return manifest;
 	}
 
@@ -134,14 +132,16 @@ export class SessionStore {
 	 * List sessions with optional filtering
 	 */
 	async list(filters?: SessionFilters): Promise<SessionManifest[]> {
-		console.log("[SessionStore] list() called", { filters });
+		logger.debug("list called", { filters });
 		let entries: [string, vscode.FileType][];
 
 		try {
 			entries = await vscode.workspace.fs.readDirectory(this.sessionsUri);
-			console.log("[SessionStore] Found entries:", entries.length);
+			logger.debug("Found session entries", { count: entries.length });
 		} catch (error) {
-			console.log("[SessionStore] Failed to read sessions directory:", error);
+			logger.debug("Failed to read sessions directory", {
+				error: error instanceof Error ? error.message : String(error),
+			});
 			return [];
 		}
 

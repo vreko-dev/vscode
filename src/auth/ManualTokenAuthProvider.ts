@@ -125,9 +125,7 @@ export class ManualTokenAuthProvider {
 
 			if (!response.ok) {
 				const error =
-					response.status === 401
-						? "Invalid or expired token"
-						: `Validation failed: ${response.statusText}`;
+					response.status === 401 ? "Invalid or expired token" : `Validation failed: ${response.statusText}`;
 
 				logger.warn("Token validation failed", { status: response.status });
 				return { success: false, error };

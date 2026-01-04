@@ -6,7 +6,7 @@
  * Includes manual API key auth for corporate proxy environments (P1-5)
  */
 
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import { createManualAuthFlow } from "../auth/ManualAuthFlow";
 import { COMMANDS } from "../constants/index";

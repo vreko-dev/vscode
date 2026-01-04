@@ -59,14 +59,14 @@ export async function initializePhase2Storage(
 			useV2Engine,
 		});
 
-		console.log("[PERF] StorageBridge created", {
+		logger.debug("StorageBridge created", {
 			ms: Date.now() - storageStart,
 			useV2: useV2Engine,
 		});
 
 		const initStart = Date.now();
 		await storage.initialize();
-		console.log("[PERF] Storage initialized", { ms: Date.now() - initStart });
+		logger.debug("Storage initialized", { ms: Date.now() - initStart });
 
 		// Migrate existing plaintext snapshots to encrypted format
 		// DEFERRED: Run this after activation completes
@@ -103,7 +103,7 @@ export async function initializePhase2Storage(
 		// Initialize protected file registry
 		const regStart = Date.now();
 		const protectedFileRegistry = new ProtectedFileRegistry(context.workspaceState, eventBus); // GREEN: Pass eventBus
-		console.log("[PERF] ProtectedFileRegistry created", {
+		logger.debug("ProtectedFileRegistry created", {
 			ms: Date.now() - regStart,
 		});
 
@@ -121,7 +121,7 @@ export async function initializePhase2Storage(
 		};
 		const sdkProtectionManager = new SDKProtectionManager(defaultProtectionConfig);
 		protectedFileRegistry.initializeSDKProtectionManager(sdkProtectionManager);
-		console.log("[PERF] SDK ProtectionManager initialized", {
+		logger.debug("SDK ProtectionManager initialized", {
 			ms: Date.now() - sdkStart,
 		});
 
@@ -140,18 +140,15 @@ export async function initializePhase2Storage(
 
 		const cfgStart = Date.now();
 		const configManager = new ConfigFileManager(workspaceRoot);
-		console.log("[PERF] ConfigFileManager created", {
+		logger.debug("ConfigFileManager created", {
 			ms: Date.now() - cfgStart,
 		});
 
 		const decStart = Date.now();
 		const snapbackrcDecorator = new SnapBackRCDecorator();
-		console.log("[PERF] SnapBackRCDecorator created", {
+		logger.debug("SnapBackRCDecorator created", {
 			ms: Date.now() - decStart,
 		});
-
-		// DEBUG: Verify we're running the correct bundle (2025-12-12 build)
-		console.log("[DEBUG_BUILD] Phase2 marker - build 2025-12-12-v2");
 
 		// ⚡ Initialize AutoProtectConfig with minimal work
 		// Heavy initialization (file watching) deferred to background
@@ -162,7 +159,7 @@ export async function initializePhase2Storage(
 			context,
 			snapbackrcDecorator,
 		);
-		console.log("[PERF] AutoProtectConfig created", {
+		logger.debug("AutoProtectConfig created", {
 			ms: Date.now() - autoStart,
 		});
 		// Run async initialization without awaiting
@@ -170,7 +167,7 @@ export async function initializePhase2Storage(
 		autoProtectConfig.initialize().catch((err) => {
 			logger.error("[WARN] AutoProtectConfig initialization failed", err as Error);
 		});
-		console.log("[PERF] AutoProtectConfig.initialize() started", {
+		logger.debug("AutoProtectConfig.initialize() started", {
 			ms: Date.now() - autoInitStart,
 		});
 
@@ -179,12 +176,12 @@ export async function initializePhase2Storage(
 		const configStoreStart = Date.now();
 		let configStoreCleanup: (() => void) | null = null;
 		(async () => {
-			console.log("[CONFIG_MIGRATION] Async block started");
+			logger.debug("Async block started");
 			try {
-				console.log("[CONFIG_MIGRATION] About to call migrateConfigIfNeeded");
+				logger.debug("About to call migrateConfigIfNeeded");
 				// 🆕 Run config migration v1 → v2 before initializing ConfigStore
 				const migrationResult = await migrateConfigIfNeeded(context, workspaceRoot);
-				console.log("[CONFIG_MIGRATION] Result:", migrationResult);
+				logger.debug("Result:", migrationResult);
 				if (migrationResult.migrated) {
 					logger.info("Config migration completed", {
 						protectionsMigrated: migrationResult.protectionsMigrated,
@@ -198,11 +195,11 @@ export async function initializePhase2Storage(
 				configStoreCleanup = disposeConfigStore;
 				logger.info("ConfigStore initialized in background");
 			} catch (err) {
-				console.error("[CONFIG_MIGRATION] Error in async block:", err);
+				logger.error("Config migration error in async block", err as Error);
 				logger.warn("Failed to initialize ConfigStore in background", err as Error);
 			}
 		})();
-		console.log("[PERF] ConfigStore initialization started", {
+		logger.debug("ConfigStore initialization started", {
 			ms: Date.now() - configStoreStart,
 		});
 		// Register ConfigStore cleanup
@@ -218,18 +215,18 @@ export async function initializePhase2Storage(
 		});
 
 		logger.info("Storage and configuration components initialized (async ops deferred)");
-		console.log("[PERF] Phase 2 completed", { ms: Date.now() - phase2Start });
+		logger.debug("Phase 2 completed", { ms: Date.now() - phase2Start });
 		PhaseLogger.logPhase("2: Storage & Configuration");
 
 		// Start bundled MCP server in background (non-blocking):
-		console.log("[PERF] Before MCP initialization...");
+		logger.debug("Before MCP initialization...");
 		const t = Date.now();
 		const mcpManager = new MCPLifecycleManager({
 			extensionPath: context.extensionPath,
 			dbPath: path.join(workspaceRoot, ".snapback", "snapback.db"),
 			timeout: 3000,
 		});
-		console.log("[PERF] MCPLifecycleManager created", { ms: Date.now() - t });
+		logger.debug("MCPLifecycleManager created", { ms: Date.now() - t });
 
 		// Start MCP asynchronously (don't block extension activation):
 		const startT = Date.now();
@@ -237,7 +234,7 @@ export async function initializePhase2Storage(
 			logger.error("MCP server failed to start", err);
 			// Extension continues with reduced functionality
 		});
-		console.log("[PERF] MCPLifecycleManager.start() called", {
+		logger.debug("MCPLifecycleManager.start() called", {
 			ms: Date.now() - startT,
 		});
 
@@ -251,7 +248,7 @@ export async function initializePhase2Storage(
 		snapbackrcLoader.loadConfig().catch((err) => {
 			logger.warn("Failed to load .snapbackrc in background", err as Error);
 		});
-		console.log("[PERF] SnapBackRCLoader created", {
+		logger.debug("SnapBackRCLoader created", {
 			ms: Date.now() - loaderStart,
 		});
 

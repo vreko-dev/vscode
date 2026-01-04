@@ -20,14 +20,12 @@ export {
 	ActivitySection,
 	createActivityEventItem,
 	createActivityGroupItem,
-	createMockEvents,
 	groupEventsByDate,
 } from "./ActivitySection";
 
 // History section (renamed from Sessions in UI)
 export {
 	createHistoryGroupItem,
-	createMockSessions,
 	createSessionFileItem,
 	createSessionItem,
 	HistorySection,
@@ -37,7 +35,6 @@ export {
 export {
 	createAllFilesItem,
 	createLevelGroupItem,
-	createMockProtectedFiles,
 	createProtectedFileItem,
 	groupFilesByLevel,
 	ProtectedSection,

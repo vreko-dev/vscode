@@ -240,10 +240,8 @@ export class ProtectionLevelHandler {
 	): Promise<ProtectionHandlingResult> {
 		const protectionLevel = this.registry.getProtectionLevel(filePath) || "watch";
 
-		// 🔍 DIAGNOSTIC: Entry point
-		console.log("[ProtectionLevel] handleProtectionLevel() called");
-		console.log(`[ProtectionLevel] File: ${filePath}`);
-		console.log(`[ProtectionLevel] Level: ${protectionLevel}`);
+		// Entry point logging
+		logger.debug("handleProtectionLevel called", { filePath, protectionLevel });
 
 		logger.debug("Handling protection level", {
 			filePath,
@@ -257,10 +255,9 @@ export class ProtectionLevelHandler {
 		const inCooldown = this.cooldownService.isInCooldown(filePath);
 		const hasTemporaryAllowance = this.registry.hasTemporaryAllowance(filePath);
 
-		// 🔍 DIAGNOSTIC: Cooldown check
-		console.log(`[ProtectionLevel] In cooldown: ${inCooldown}`);
+		// Cooldown check logging
 		if (inCooldown) {
-			console.log("[ProtectionLevel] SKIPPING - cooldown active");
+			logger.debug("Skipping - cooldown active", { filePath, inCooldown });
 		}
 
 		// Build evaluation context for SDK
@@ -439,8 +436,7 @@ export class ProtectionLevelHandler {
 			filename,
 		});
 
-		// 🔍 DIAGNOSTIC: Before showing modal
-		console.log("[ProtectionLevel] Showing modal: BLOCK confirmation dialog");
+		logger.debug("Showing BLOCK confirmation dialog");
 
 		// Show confirmation dialog (modal has its own dismiss/cancel)
 		const result = await vscode.window.showWarningMessage(
@@ -453,8 +449,7 @@ A snapshot will be created before saving.`,
 			"Create Snapshot & Save",
 		);
 
-		// 🔍 DIAGNOSTIC: After user responds
-		console.log(`[ProtectionLevel] User response: ${result || "dismissed"}`);
+		logger.debug("User response to BLOCK dialog", { result: result || "dismissed" });
 
 		if (result !== "Create Snapshot & Save") {
 			logger.info("User cancelled BLOCK mode save", { filePath });
@@ -645,9 +640,7 @@ A snapshot will be created before saving.`,
 	 * @param snapshotId - ID of the created snapshot
 	 */
 	private async showRecoveryNotification(filePath: string, snapshotId: string): Promise<void> {
-		// 🔍 DIAGNOSTIC: Entry point to verify this method is actually called
-		console.log("[ProtectionLevel] showRecoveryNotification() ENTERED");
-		console.log(`[ProtectionLevel] filePath: ${filePath}, snapshotId: ${snapshotId}`);
+		logger.debug("showRecoveryNotification called", { filePath, snapshotId });
 
 		try {
 			const notification = new RecoveryUXNotification();
@@ -986,9 +979,7 @@ A snapshot will be created before saving.`,
 		// Track timing for telemetry
 		const snapshotStartTime = Date.now();
 
-		// 🔍 DIAGNOSTIC: Before snapshot creation
-		console.log(`[ProtectionLevel] Creating snapshot for: ${filePath}`);
-		console.log("[ProtectionLevel] Snapshot ID will be: pending");
+		logger.debug("Creating snapshot", { filePath });
 
 		logger.info("Creating snapshot for file", {
 			filePath,
@@ -1061,12 +1052,11 @@ A snapshot will be created before saving.`,
 			snapshotName, // Intelligent snapshot name
 		);
 
-		// 🔍 DIAGNOSTIC: After snapshot creation
+		// Log snapshot creation result
 		if (snapshotId) {
-			console.log(`[ProtectionLevel] Snapshot created: ${snapshotId}`);
-			console.log("[ProtectionLevel] Calling showRecoveryNotification()");
+			logger.debug("Snapshot created successfully", { snapshotId });
 		} else {
-			console.log("[ProtectionLevel] Snapshot creation FAILED - no ID returned");
+			logger.warn("Snapshot creation returned no ID");
 		}
 
 		if (snapshotId) {

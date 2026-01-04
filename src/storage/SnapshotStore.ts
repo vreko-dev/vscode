@@ -1,6 +1,7 @@
 // apps/vscode/src/storage/SnapshotStore.ts
 
 import * as vscode from "vscode";
+import { logger } from "../utils/logger";
 import type { BlobStore } from "./BlobStore";
 import {
 	addToIndex,
@@ -148,7 +149,7 @@ export class SnapshotStore {
 
 		// If state or index is missing/corrupted, rebuild from manifests
 		if (!loadedState || !loadedIndex) {
-			console.debug("[SnapshotStore] State or index missing, rebuilding from disk...");
+			logger.debug("State or index missing, rebuilding from disk");
 			await this.rebuildStateFromDisk();
 		} else {
 			this.state = loadedState;
@@ -260,7 +261,7 @@ export class SnapshotStore {
 			if (comparisonParentId) {
 				const hasChanges = await this.hasChangesFromParent(comparisonParentId, fileRefs);
 				if (!hasChanges) {
-					console.debug("[SnapshotStore] Skipping 0-delta snapshot", {
+					logger.debug("Skipping 0-delta snapshot", {
 						parentId: comparisonParentId,
 						fileCount: Object.keys(fileRefs).length,
 					});
@@ -460,7 +461,7 @@ export class SnapshotStore {
 		for (const manifest of manifests) {
 			if ((manifest.type === "PRE" || manifest.type === "PRE_ROLLBACK") && manifest.isOrphan) {
 				orphanIds.push(manifest.id);
-				console.debug("[SnapBack Manifest] Orphan PRE detected", {
+				logger.debug("Orphan PRE detected", {
 					id: manifest.id,
 					type: manifest.type,
 					timestamp: manifest.timestamp,
@@ -469,7 +470,7 @@ export class SnapshotStore {
 		}
 
 		if (orphanIds.length > 0) {
-			console.debug(`[SnapBack Manifest] Found ${orphanIds.length} orphan PRE checkpoint(s)`);
+			logger.debug("Found orphan PRE checkpoints", { count: orphanIds.length });
 		}
 
 		return { orphanCount: orphanIds.length, orphanIds };
@@ -503,14 +504,12 @@ export class SnapshotStore {
 			const deleted = await this.delete(id);
 			if (deleted) {
 				cleaned++;
-				console.debug("[SnapBack Manifest] Cleaned orphan PRE", { id });
+				logger.debug("Cleaned orphan PRE", { id });
 			}
 		}
 
 		if (cleaned > 0) {
-			console.log(
-				`[SnapBack Manifest] Cleaned ${cleaned} orphan PRE checkpoint(s) older than ${maxAgeMs / 60000} minutes`,
-			);
+			logger.info("Cleaned orphan PRE checkpoints", { count: cleaned, maxAgeMinutes: maxAgeMs / 60000 });
 		}
 
 		return cleaned;
@@ -560,7 +559,7 @@ export class SnapshotStore {
 			if (content !== null) {
 				contents[filePath] = content;
 			} else {
-				console.warn(`[SnapshotStore] Missing blob ${ref.blob} for ${filePath} in snapshot ${id}`);
+				logger.warn("Missing blob in snapshot", { blob: ref.blob, filePath, snapshotId: id });
 			}
 		}
 
@@ -650,16 +649,13 @@ export class SnapshotStore {
 
 			// Move to parent
 			if (!current.parentId) {
-				console.warn("[SnapshotStore] Chain broken: no parentId", {
-					id: current.id,
-					depth,
-				});
+				logger.warn("Chain broken: no parentId", { id: current.id, depth });
 				return null;
 			}
 
 			const parent = await this.getManifestV2(current.parentId);
 			if (!parent) {
-				console.warn("[SnapshotStore] Chain broken: parent not found", {
+				logger.warn("Chain broken: parent not found", {
 					id: current.id,
 					parentId: current.parentId,
 					depth,
@@ -672,10 +668,7 @@ export class SnapshotStore {
 		}
 
 		if (depth >= MAX_CHAIN_DEPTH) {
-			console.error("[SnapshotStore] Chain too deep, possible corruption", {
-				startId: manifest.id,
-				depth,
-			});
+			logger.error("Chain too deep, possible corruption", undefined, { startId: manifest.id, depth });
 			throw new SnapshotChainError(
 				`Parent chain exceeded max depth (${MAX_CHAIN_DEPTH})`,
 				manifest.id,
@@ -698,16 +691,12 @@ export class SnapshotStore {
 				if (content !== null) {
 					contents[filePath] = content;
 				} else {
-					console.warn("[SnapshotStore] Blob not found", {
-						filePath,
-						blobHash: ref.blobHash,
-					});
+					logger.warn("Blob not found", { filePath, blobHash: ref.blobHash });
 				}
 			} catch (error) {
-				console.error("[SnapshotStore] Failed to load blob", {
+				logger.error("Failed to load blob", error instanceof Error ? error : undefined, {
 					filePath,
 					blobHash: ref.blobHash,
-					error,
 				});
 			}
 		}
@@ -735,7 +724,7 @@ export class SnapshotStore {
 			} catch (error) {
 				if (error instanceof SnapshotChainError) {
 					orphans.push(manifest.id);
-					console.debug("[SnapshotStore] Found orphan", { id: manifest.id });
+					logger.debug("Found orphan", { id: manifest.id });
 				}
 			}
 		}
@@ -755,11 +744,11 @@ export class SnapshotStore {
 				await this.delete(id);
 				cleaned++;
 			} catch (error) {
-				console.error("[SnapshotStore] Failed to delete orphan", { id, error });
+				logger.error("Failed to delete orphan", error instanceof Error ? error : undefined, { id });
 			}
 		}
 
-		console.log("[SnapshotStore] Cleaned up orphans", { count: cleaned });
+		logger.info("Cleaned up orphans", { count: cleaned });
 		return cleaned;
 	}
 
@@ -924,7 +913,7 @@ export class SnapshotStore {
 	 * This enables crash recovery - even if state files are lost, manifests remain.
 	 */
 	private async rebuildStateFromDisk(): Promise<void> {
-		console.debug("[SnapshotStore] Starting state rebuild from disk...");
+		logger.debug("Starting state rebuild from disk");
 
 		const manifests: { manifest: SnapshotManifest | SnapshotManifestV2; timestamp: number }[] = [];
 
@@ -944,7 +933,7 @@ export class SnapshotStore {
 			}
 		} catch {
 			// No snapshots directory yet - start fresh
-			console.debug("[SnapshotStore] No snapshots directory found, starting fresh");
+			logger.debug("No snapshots directory found, starting fresh");
 		}
 
 		// Sort by timestamp to ensure consistent seq assignment
@@ -983,8 +972,6 @@ export class SnapshotStore {
 		// Persist rebuilt state
 		await this.saveState();
 
-		console.debug(
-			`[SnapshotStore] State rebuilt: ${manifests.length} manifests, lastSeq=${maxSeq}, headId=${headId}`,
-		);
+		logger.debug("State rebuilt", { manifestCount: manifests.length, lastSeq: maxSeq, headId });
 	}
 }

@@ -371,11 +371,11 @@ export class AutoDecisionIntegration {
 				this.fileBuffer.map((event) => this.extractFileInfo(event.filePath, event.content || "")),
 			);
 
-			// 🔍 DIAGNOSTIC: Process batch
 			const workspaceRoot = this.workspaceContextManager.getWorkspaceRoot();
-			console.log("[AutoDecision] processBatch() called");
-			console.log(`[AutoDecision] Files in batch: ${fileInfos.length}`);
-			console.log(`[AutoDecision] Workspace root: ${workspaceRoot}`);
+			logger.debug("processBatch called", {
+				filesCount: fileInfos.length,
+				workspaceRoot,
+			});
 
 			// Step 2: Build SaveContext
 			const saveContext = await this.buildSaveContext(fileInfos);

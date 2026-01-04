@@ -39,6 +39,7 @@ export interface Phase3Result {
 import { MCPToolsService } from "../services/MCPToolsService";
 import { MilestoneService } from "../services/MilestoneService";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
+import { logger } from "../utils/logger";
 
 export async function initializePhase3Managers(
 	_context: vscode.ExtensionContext,
@@ -50,37 +51,37 @@ export async function initializePhase3Managers(
 	eventBus?: import("@snapback/contracts").SnapBackEventBus,
 ): Promise<Phase3Result> {
 	const phase3Start = Date.now();
-	console.log("[PERF] Phase 3 starting...");
+	logger.debug("Phase 3 starting...");
 	try {
 		// Initialize notification manager
 		let t = Date.now();
 		const notificationManager = new NotificationManager();
-		console.log("[PERF] NotificationManager", { ms: Date.now() - t });
+		logger.debug("NotificationManager", { ms: Date.now() - t });
 
 		// Initialize workspace memory manager
 		t = Date.now();
 		const workspaceMemoryManager = new WorkspaceMemoryManager(storage);
-		console.log("[PERF] WorkspaceMemoryManager", { ms: Date.now() - t });
+		logger.debug("WorkspaceMemoryManager", { ms: Date.now() - t });
 
 		// Initialize conflict resolver
 		t = Date.now();
 		const conflictResolver = new ConflictResolver();
-		console.log("[PERF] ConflictResolver", { ms: Date.now() - t });
+		logger.debug("ConflictResolver", { ms: Date.now() - t });
 
 		// Initialize smart context detector
 		t = Date.now();
 		const smartContextDetector = new SmartContextDetector(workspaceMemoryManager);
-		console.log("[PERF] SmartContextDetector", { ms: Date.now() - t });
+		logger.debug("SmartContextDetector", { ms: Date.now() - t });
 
 		// Initialize Milestone Service
 		t = Date.now();
 		const milestoneService = new MilestoneService(_context, telemetryProxy, notificationManager);
-		console.log("[PERF] MilestoneService", { ms: Date.now() - t });
+		logger.debug("MilestoneService", { ms: Date.now() - t });
 
 		// Initialize SessionCoordinator (needed by OperationCoordinator for snapshot file tracking)
 		t = Date.now();
 		const sessionCoordinator = new SessionCoordinator(storage);
-		console.log("[PERF] SessionCoordinator", { ms: Date.now() - t });
+		logger.debug("SessionCoordinator", { ms: Date.now() - t });
 
 		// Initialize operation coordinator
 		t = Date.now();
@@ -94,12 +95,12 @@ export async function initializePhase3Managers(
 			sessionCoordinator, // BUG FIX: Wire in SessionCoordinator for snapshot file tracking
 			eventBus, // Wire in event bus
 		);
-		console.log("[PERF] OperationCoordinator", { ms: Date.now() - t });
+		logger.debug("OperationCoordinator", { ms: Date.now() - t });
 
 		// Initialize confirmation service
 		t = Date.now();
 		const confirmationService = new VSCodeConfirmationService();
-		console.log("[PERF] VSCodeConfirmationService", { ms: Date.now() - t });
+		logger.debug("VSCodeConfirmationService", { ms: Date.now() - t });
 
 		// Initialize event emitter for snapshot manager
 		t = Date.now();
@@ -111,7 +112,7 @@ export async function initializePhase3Managers(
 				vsEventEmitter.fire({ type, data });
 			},
 		};
-		console.log("[PERF] EventEmitter setup", { ms: Date.now() - t });
+		logger.debug("EventEmitter setup", { ms: Date.now() - t });
 
 		// Initialize SnapshotManager with SessionCoordinator
 		t = Date.now();
@@ -122,24 +123,24 @@ export async function initializePhase3Managers(
 			eventEmitter,
 			sessionCoordinator,
 		);
-		console.log("[PERF] SnapshotManager", { ms: Date.now() - t });
+		logger.debug("SnapshotManager", { ms: Date.now() - t });
 
 		// Initialize SnapshotSummaryProvider
 		t = Date.now();
 		const snapshotSummaryProvider = new StorageSnapshotSummaryProvider(storage);
-		console.log("[PERF] StorageSnapshotSummaryProvider", {
+		logger.debug("StorageSnapshotSummaryProvider", {
 			ms: Date.now() - t,
 		});
 
 		// Initialize SnapshotNavigatorProvider
 		t = Date.now();
 		const snapshotNavigatorProvider = new SnapshotNavigatorProvider(storage);
-		console.log("[PERF] SnapshotNavigatorProvider", { ms: Date.now() - t });
+		logger.debug("SnapshotNavigatorProvider", { ms: Date.now() - t });
 
 		// Initialize WorkflowIntegration
 		t = Date.now();
 		const workflowIntegration = new WorkflowIntegration(smartContextDetector, notificationManager);
-		console.log("[PERF] WorkflowIntegration", { ms: Date.now() - t });
+		logger.debug("WorkflowIntegration", { ms: Date.now() - t });
 
 		// 🟢 TDD GREEN: Initialize ProtectionService for repo audit
 		// Only create if protectedFileRegistry is available
@@ -162,7 +163,7 @@ export async function initializePhase3Managers(
 					return Promise.resolve();
 				},
 			);
-			console.log("[PERF] ProtectionManager + ProtectionService", {
+			logger.debug("ProtectionManager + ProtectionService", {
 				ms: Date.now() - t,
 			});
 
@@ -170,7 +171,7 @@ export async function initializePhase3Managers(
 			// This prevents blocking the 500ms activation budget
 			setImmediate(() => {
 				protectionService.auditRepo().catch((err) => {
-					console.error("Deferred repo audit failed:", err);
+					logger.error("Deferred repo audit failed:", err);
 				});
 			});
 		} else {
@@ -181,7 +182,7 @@ export async function initializePhase3Managers(
 			protectionService = new ProtectionService(noopRegistry, noopManager, new NoopAIRiskService(), () =>
 				Promise.resolve(),
 			);
-			console.log("[PERF] ProtectionService (fallback)", {
+			logger.debug("ProtectionService (fallback)", {
 				ms: Date.now() - t,
 			});
 		}
@@ -196,12 +197,12 @@ export async function initializePhase3Managers(
 				protectedFileRegistry,
 				storage,
 			});
-			console.log("[PERF] MCPToolsService", { ms: Date.now() - t });
+			logger.debug("MCPToolsService", { ms: Date.now() - t });
 		} else {
-			console.log("[PERF] MCPToolsService skipped (no registry)");
+			logger.debug("MCPToolsService skipped (no registry)");
 		}
 
-		console.log("[PERF] Phase 3 completed", { ms: Date.now() - phase3Start });
+		logger.debug("Phase 3 completed", { ms: Date.now() - phase3Start });
 		PhaseLogger.logPhase("3: Business Logic Managers");
 
 		return {

@@ -15,7 +15,9 @@
  */
 
 import * as vscode from "vscode";
+
 import { TelemetryService } from "../analytics/telemetry";
+import { logger } from "../utils/logger";
 
 /**
  * AI signal from detection system
@@ -112,7 +114,7 @@ export class AIDetectionToast {
 		try {
 			// Guard: Check if TelemetryService is initialized
 			if (!TelemetryService.isInitialized()) {
-				console.warn("[AIDetectionToast] TelemetryService not initialized, skipping feedback tracking");
+				logger.warn("AIDetectionToast: TelemetryService not initialized, skipping feedback tracking");
 				return;
 			}
 
@@ -122,7 +124,7 @@ export class AIDetectionToast {
 				user_selection: selection,
 			});
 		} catch (error) {
-			console.error("[AIDetectionToast] Failed to track feedback:", error);
+			logger.error("AIDetectionToast: Failed to track feedback", error instanceof Error ? error : undefined);
 		}
 	}
 }

@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { logger } from "../utils/logger";
 
 /**
  * Centralized registry of all View IDs used in the extension.
@@ -68,7 +69,7 @@ export function registerEmptyViews(context: vscode.ExtensionContext): void {
 			context.subscriptions.push(vscode.window.registerTreeDataProvider(viewId, loadingProvider));
 		} catch (error) {
 			// Ignore "already registered" errors if hot reloading
-			console.warn(`Failed to register loading view for ${viewId}:`, error);
+			logger.warn(`Failed to register loading view for ${viewId}`, { error });
 		}
 	});
 }
@@ -86,7 +87,7 @@ export function showErrorInViews(_context: vscode.ExtensionContext, error: Error
 			// the previous registration (which is allowed for TreeDataProviders)
 			vscode.window.registerTreeDataProvider(viewId, errorProvider);
 		} catch (e) {
-			console.error(`Failed to show error in view ${viewId}:`, e);
+			logger.error(`Failed to show error in view ${viewId}`, e instanceof Error ? e : undefined);
 		}
 	});
 }

@@ -18,6 +18,8 @@
 
 import type { SnapBackEventBus } from "@snapback/contracts";
 import { Storage as V2Storage } from "@snapback/engine";
+
+import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import type { StorageManager as V1Storage } from "../storage/StorageManager";
 import type {
@@ -89,11 +91,11 @@ export class StorageBridge implements IStorageManager {
 	async initialize(): Promise<void> {
 		if (this.config.useV2Engine) {
 			// V2 storage initializes in constructor, no async init needed
-			console.log("[StorageBridge] Initialized V2 engine storage");
+			logger.debug("StorageBridge initialized V2 engine storage");
 		} else {
 			// Initialize V1 storage
 			await this.config.v1Storage.initialize();
-			console.log("[StorageBridge] Initialized V1 storage");
+			logger.debug("StorageBridge initialized V1 storage");
 		}
 	}
 

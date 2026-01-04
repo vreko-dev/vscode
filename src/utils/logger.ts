@@ -173,14 +173,15 @@ export class Logger {
 	}
 
 	/**
-	 * Log error message with optional Error object and context.
+	 * Log error message with optional Error object or context.
 	 *
 	 * Use when operations fail completely. Automatically extracts and formats
 	 * error details (name, message, stack trace) for structured logging.
 	 *
 	 * @param message - Primary error message describing what failed
-	 * @param error - Optional Error object for structured error details
-	 *   Stack trace and error properties are automatically extracted
+	 * @param errorOrContext - Optional Error object or context object
+	 *   If Error: stack trace and error properties are extracted
+	 *   If object: treated as context data (compatible with infrastructure logger)
 	 * @param args - Optional structured data to include in log
 	 *   Useful for context about the operation that failed
 	 *
@@ -190,28 +191,28 @@ export class Logger {
 	 *
 	 * @example
 	 * ```typescript
-	 * try {
-	 *   await snapshot.restore();
-	 * } catch (error) {
-	 *   logger.error(
-	 *     "Failed to restore snapshot",
-	 *     error instanceof Error ? error : undefined,
-	 *     { snapshotId: "snap-123", filePath: "/path/to/file" }
-	 *   );
-	 * }
+	 * // With Error object
+	 * logger.error("Failed to restore snapshot", error as Error);
+	 *
+	 * // With context object (infrastructure logger compatible)
+	 * logger.error("Failed to initialize", { error: error.message });
 	 * ```
 	 *
 	 * @see {@link LogLevel.ERROR} for visibility control
 	 */
-	error(message: string, error?: Error, ...args: unknown[]): void {
+	error(message: string, errorOrContext?: Error | Record<string, unknown>, ...args: unknown[]): void {
 		if (this.logLevel <= LogLevel.ERROR) {
-			const errorData = error
-				? {
-						name: error.name,
-						message: error.message,
-						stack: error.stack,
-					}
-				: undefined;
+			let errorData: unknown;
+			if (errorOrContext instanceof Error) {
+				errorData = {
+					name: errorOrContext.name,
+					message: errorOrContext.message,
+					stack: errorOrContext.stack,
+				};
+			} else if (errorOrContext) {
+				// Handle context object (infrastructure logger compatibility)
+				errorData = errorOrContext;
+			}
 
 			this.log("ERROR", message, errorData, ...args);
 		}
@@ -336,10 +337,11 @@ export class Logger {
  */
 export const logger = {
 	getInstance: Logger.getInstance.bind(Logger),
-	debug: (...args: Parameters<Logger["debug"]>) => Logger.getInstance().debug(...args),
-	info: (...args: Parameters<Logger["info"]>) => Logger.getInstance().info(...args),
-	warn: (...args: Parameters<Logger["warn"]>) => Logger.getInstance().warn(...args),
-	error: (...args: Parameters<Logger["error"]>) => Logger.getInstance().error(...args),
+	debug: (message: string, ...args: unknown[]) => Logger.getInstance().debug(message, ...args),
+	info: (message: string, ...args: unknown[]) => Logger.getInstance().info(message, ...args),
+	warn: (message: string, ...args: unknown[]) => Logger.getInstance().warn(message, ...args),
+	error: (message: string, errorOrContext?: Error | Record<string, unknown>, ...args: unknown[]) =>
+		Logger.getInstance().error(message, errorOrContext, ...args),
 	show: () => Logger.getInstance().show(),
 	dispose: () => Logger.getInstance().dispose(),
 };

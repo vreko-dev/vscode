@@ -6,6 +6,7 @@ import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
 import { VIEW_IDS } from "../views/ViewRegistry";
 import type { Phase4Result } from "./phase4-providers";
 import { PhaseLogger } from "./phaseLogger";
+import { logger } from "../utils/logger";
 
 export type Phase5Result = Record<string, never>;
 
@@ -51,11 +52,11 @@ export async function initializePhase5Registration(
 
 		// Register file decoration providers
 		vscode.window.registerFileDecorationProvider(phase4Result.protectionDecorationProvider);
-		console.log("[Phase5] Protection decoration provider registered");
+		logger.debug("Protection decoration provider registered");
 
 		// 🆕 Register file health decoration provider
 		vscode.window.registerFileDecorationProvider(phase4Result.fileHealthDecorationProvider);
-		console.log("[Phase5] File health decoration provider registered (heat-based decorations)");
+		logger.debug("File health decoration provider registered (heat-based decorations)");
 
 		// Register document content provider
 		vscode.workspace.registerTextDocumentContentProvider(
@@ -77,7 +78,7 @@ export async function initializePhase5Registration(
 		context.subscriptions.push(
 			vscode.window.onDidChangeWindowState((e) => {
 				if (!e.focused) {
-					console.log("[Phase5] Window blur detected, triggering session finalization");
+					logger.debug("Window blur detected, triggering session finalization");
 					sessionCoordinator.handleWindowBlur();
 				}
 			}),

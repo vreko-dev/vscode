@@ -1,4 +1,4 @@
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import type { ExtensionContext } from "vscode";
 
 /**

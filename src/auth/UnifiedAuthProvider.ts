@@ -39,11 +39,9 @@ export class UnifiedAuthProvider implements vscode.AuthenticationProvider {
 		this._isTestMode = initialTestMode;
 
 		if (initialTestMode) {
-			console.log("🏗️ UnifiedProxy: Constructed in MOCK mode");
 			logger.info("UnifiedAuthProvider initialized with MOCK provider");
 			this._delegate = new MockAuthProvider();
 		} else {
-			console.log("🏗️ UnifiedProxy: Constructed in REAL mode");
 			logger.info("UnifiedAuthProvider initialized with REAL provider");
 			this._delegate = new SnapBackOAuthProvider(context);
 		}
@@ -80,29 +78,26 @@ export class UnifiedAuthProvider implements vscode.AuthenticationProvider {
 	 * @param isTest - Whether to use Mock (true) or Real (false) auth
 	 */
 	public setTestMode(isTest: boolean): void {
-		console.log(`🔀 setTestMode called: isTest=${isTest}, current=${this._isTestMode}`);
+		logger.debug("setTestMode called", { isTest, current: this._isTestMode });
 
 		if (isTest === this._isTestMode) {
-			// No change, skip
-			console.log("🔀 setTestMode: No change, skipping");
+			logger.debug("setTestMode: No change, skipping");
 			return;
 		}
 
 		this._isTestMode = isTest;
 
 		if (isTest) {
-			console.log("🔀 Creating new MockAuthProvider...");
-			logger.info("🔀 UnifiedAuthProvider: Switching to MOCK Strategy");
+			logger.info("UnifiedAuthProvider: Switching to MOCK Strategy");
 			this._delegate = new MockAuthProvider();
 		} else {
-			console.log("🔀 Creating new SnapBackOAuthProvider...");
-			logger.info("🔀 UnifiedAuthProvider: Switching to REAL Strategy");
+			logger.info("UnifiedAuthProvider: Switching to REAL Strategy");
 			this._delegate = new SnapBackOAuthProvider(this.context);
 		}
 
 		// Re-bind the event listeners to the new delegate
 		this.bindDelegateEvents();
-		console.log("🔀 setTestMode completed, delegate is now:", isTest ? "MOCK" : "REAL");
+		logger.debug("setTestMode completed", { delegate: isTest ? "MOCK" : "REAL" });
 
 		// Force VS Code to refresh its session list
 		// Firing empty event wakes up the UI

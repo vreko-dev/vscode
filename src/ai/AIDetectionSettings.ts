@@ -8,7 +8,9 @@
  */
 
 import * as vscode from "vscode";
+
 import { getSnapBackConfig } from "../utils/config-helpers";
+import { logger } from "../utils/logger";
 
 // biome-ignore lint/complexity/noStaticOnlyClass: This is a utility class pattern for grouping related static methods
 export class AIDetectionSettings {
@@ -60,13 +62,13 @@ export class AIDetectionSettings {
 		const threshold = AIDetectionSettings.confidenceThreshold();
 
 		if (threshold < 0 || threshold > 10) {
-			console.warn(
-				`[AIDetectionSettings] confidenceThreshold out of range: ${threshold} (expected 0-10, using default 6.0)`,
+			logger.warn(
+				`AIDetectionSettings: confidenceThreshold out of range: ${threshold} (expected 0-10, using default 6.0)`,
 			);
 		}
 
-		console.debug(
-			`[AIDetectionSettings] Initialized with: enabled=${enabled}, showBadge=${badge}, threshold=${threshold}`,
+		logger.debug(
+			`AIDetectionSettings: Initialized with: enabled=${enabled}, showBadge=${badge}, threshold=${threshold}`,
 		);
 	}
 }

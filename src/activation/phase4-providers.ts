@@ -22,6 +22,7 @@ import { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
 import { WelcomeView } from "../welcomeView";
 import type { Phase3Result } from "./phase3-managers";
+import { logger } from "../utils/logger";
 import { PhaseLogger } from "./phaseLogger";
 
 export interface Phase4Result {
@@ -53,12 +54,12 @@ export async function initializePhase4Providers(
 	telemetryProxy?: any,
 ): Promise<Phase4Result> {
 	const phase4Start = Date.now();
-	console.log("[PERF] Phase 4 starting...");
+	logger.debug("Phase 4 starting...");
 	try {
 		// Initialize document provider
 		let t = Date.now();
 		const snapshotDocumentProvider = new SnapshotDocumentProvider();
-		console.log("[PERF] SnapshotDocumentProvider", { ms: Date.now() - t });
+		logger.debug("SnapshotDocumentProvider", { ms: Date.now() - t });
 
 		// Initialize tree providers
 		if (!protectedFileRegistry) {
@@ -67,21 +68,21 @@ export async function initializePhase4Providers(
 
 		t = Date.now();
 		const protectedFilesTreeProvider = new ProtectedFilesTreeProvider(protectedFileRegistry);
-		console.log("[PERF] ProtectedFilesTreeProvider", { ms: Date.now() - t });
+		logger.debug("ProtectedFilesTreeProvider", { ms: Date.now() - t });
 
 		// Initialize decoration providers
 		t = Date.now();
 		const protectionDecorationProvider = new ProtectionDecorationProvider(protectedFileRegistry, workspaceRoot);
-		console.log("[PERF] ProtectionDecorationProvider", { ms: Date.now() - t });
+		logger.debug("ProtectionDecorationProvider", { ms: Date.now() - t });
 
 		// 🆕 Initialize file health decoration provider
 		t = Date.now();
 		const fileHealthDecorationProvider = new FileHealthDecorationProvider();
-		console.log("[PERF] FileHealthDecorationProvider", { ms: Date.now() - t });
+		logger.debug("FileHealthDecorationProvider", { ms: Date.now() - t });
 
 		t = Date.now();
 		const snapshotDecorations = new SnapshotDecorations(storage);
-		console.log("[PERF] SnapshotDecorations", { ms: Date.now() - t });
+		logger.debug("SnapshotDecorations", { ms: Date.now() - t });
 
 		// Initialize welcome view with diagnostic tracking
 		t = Date.now();
@@ -89,31 +90,31 @@ export async function initializePhase4Providers(
 			? new DiagnosticEventTracker(telemetryProxy)
 			: new DiagnosticEventTracker({ trackEvent: () => {} } as any);
 		const welcomeView = new WelcomeView(context.extensionUri, context.globalState, diagnosticTracker);
-		console.log("[PERF] WelcomeView with DiagnosticEventTracker", {
+		logger.debug("WelcomeView with DiagnosticEventTracker", {
 			ms: Date.now() - t,
 		});
 
 		// Initialize snapshot navigator provider
 		t = Date.now();
 		const snapshotNavigatorProvider = new SnapshotNavigatorProvider(storage);
-		console.log("[PERF] SnapshotNavigatorProvider", { ms: Date.now() - t });
+		logger.debug("SnapshotNavigatorProvider", { ms: Date.now() - t });
 
 		// Initialize detection code action provider
 		t = Date.now();
 		const detectionCodeActionProvider = new DetectionCodeActionProvider();
-		console.log("[PERF] DetectionCodeActionProvider", { ms: Date.now() - t });
+		logger.debug("DetectionCodeActionProvider", { ms: Date.now() - t });
 
 		// Initialize protection CodeLens provider
 		t = Date.now();
 		const protectionCodeLensProvider = new ProtectionCodeLensProvider(protectedFileRegistry);
-		console.log("[PERF] ProtectionCodeLensProvider", { ms: Date.now() - t });
+		logger.debug("ProtectionCodeLensProvider", { ms: Date.now() - t });
 
 		// 🆕 Initialize sessions tree provider with storage manager
 		// Use SessionCoordinator from phase3 (already wired to SnapshotManager)
 		t = Date.now();
 		const storageManager = new ServiceStorageManager(workspaceRoot);
 		const sessionsTreeProvider = new SessionsTreeProvider(phase3Result.sessionCoordinator, storageManager);
-		console.log("[PERF] SessionsTreeProvider", { ms: Date.now() - t });
+		logger.debug("SessionsTreeProvider", { ms: Date.now() - t });
 
 		// 🟢 Phase 2: Initialize SnapBack TreeView (replaces SafetyDashboard)
 		t = Date.now();
@@ -122,25 +123,25 @@ export async function initializePhase4Providers(
 			storage,
 			protectedFileRegistry,
 		);
-		console.log("[PERF] SnapBackTreeProvider", { ms: Date.now() - t });
+		logger.debug("SnapBackTreeProvider", { ms: Date.now() - t });
 
 		t = Date.now();
 		// Initialize WorkspaceSafetyService (still used by other components)
 		const workspaceSafetyService = new WorkspaceSafetyService(phase3Result.snapshotSummaryProvider);
 		workspaceSafetyService.startAutoRefresh(); // Auto-refresh every 60s
-		console.log("[PERF] WorkspaceSafetyService", { ms: Date.now() - t });
+		logger.debug("WorkspaceSafetyService", { ms: Date.now() - t });
 
 		// Initialize StatusBarManager for vitals display (legacy)
 		t = Date.now();
 		const statusBarManager = createStatusBarManager();
 		context.subscriptions.push(statusBarManager);
-		console.log("[PERF] StatusBarManager", { ms: Date.now() - t });
+		logger.debug("StatusBarManager", { ms: Date.now() - t });
 
 		// Initialize StatusBarController (new consolidated status bar)
 		t = Date.now();
 		const statusBarController = new StatusBarController();
 		context.subscriptions.push(statusBarController);
-		console.log("[PERF] StatusBarController", { ms: Date.now() - t });
+		logger.debug("StatusBarController", { ms: Date.now() - t });
 
 		// Initialize VitalsUIIntegration - connects data service to UI components
 		t = Date.now();
@@ -153,7 +154,7 @@ export async function initializePhase4Providers(
 		);
 		registerVitalsCommands(context, vitalsUIIntegration);
 		context.subscriptions.push(vitalsUIIntegration);
-		console.log("[PERF] VitalsUIIntegration", { ms: Date.now() - t });
+		logger.debug("VitalsUIIntegration", { ms: Date.now() - t });
 
 		// Register new Dashboard commands (3-tab dashboard)
 		t = Date.now();
@@ -161,9 +162,9 @@ export async function initializePhase4Providers(
 		for (const d of dashboardDisposables) {
 			context.subscriptions.push(d);
 		}
-		console.log("[PERF] DashboardCommands", { ms: Date.now() - t });
+		logger.debug("DashboardCommands", { ms: Date.now() - t });
 
-		console.log("[PERF] Phase 4 completed", { ms: Date.now() - phase4Start });
+		logger.debug("Phase 4 completed", { ms: Date.now() - phase4Start });
 		PhaseLogger.logPhase("4: UI Providers");
 
 		return {

@@ -32,8 +32,7 @@ export class MockAuthProvider implements vscode.AuthenticationProvider {
 		scopes: readonly string[],
 		_options?: vscode.AuthenticationProviderSessionOptions,
 	): Promise<SnapBackSession> {
-		console.log("🎭 MockAuthProvider.createSession called!", { scopes });
-		logger.info("[MockAuth] Creating mock session", { scopes });
+		logger.info("MockAuth: Creating mock session", { scopes });
 
 		// Create a fake session immediately
 		const session: SnapBackSession = {

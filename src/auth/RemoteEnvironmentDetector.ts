@@ -64,10 +64,7 @@ export class RemoteEnvironmentDetector {
 				"Clipboard may not sync between local and remote",
 				"File watcher may have latency",
 			);
-			workarounds.push(
-				"Use manual token authentication",
-				"Configure SSH with ForwardAgent for smoother auth",
-			);
+			workarounds.push("Use manual token authentication", "Configure SSH with ForwardAgent for smoother auth");
 		} else if (remoteName?.includes("container") || remoteName?.includes("docker")) {
 			remoteType = "container";
 			limitations.push(

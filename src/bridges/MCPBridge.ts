@@ -15,6 +15,7 @@
  */
 
 import * as vscode from "vscode";
+import { logger } from "../utils/logger";
 import type { SignalBridge } from "./SignalBridge";
 
 // =============================================================================
@@ -206,7 +207,7 @@ export class MCPBridge {
 		// Start periodic flush
 		this.startFlushTimer();
 
-		console.log("[MCPBridge] Activated");
+		logger.debug("MCPBridge activated");
 	}
 
 	/**
@@ -226,7 +227,7 @@ export class MCPBridge {
 		// Final flush
 		this.flushToMCP().catch(() => {});
 
-		console.log("[MCPBridge] Disposed");
+		logger.debug("MCPBridge disposed");
 	}
 
 	// =========================================================================
@@ -459,7 +460,7 @@ export class MCPBridge {
 
 		this.flushTimer = setInterval(() => {
 			this.flushToMCP().catch((err) => {
-				console.warn("[MCPBridge] Periodic flush failed:", err);
+				logger.warn("MCPBridge periodic flush failed", { error: err });
 			});
 		}, this.flushInterval);
 	}
@@ -494,7 +495,7 @@ export class MCPBridge {
 				this.lastPushTime = Date.now();
 			} else {
 				this.failureCount++;
-				console.warn(`[MCPBridge] Push failed: ${response.status}`);
+				logger.warn("MCPBridge push failed", { status: response.status });
 			}
 		} catch (_error) {
 			this.failureCount++;

@@ -8,7 +8,7 @@
  * @implements Token Management, OAuth Flow, Token Refresh
  */
 
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import type { CredentialsManager, ExtensionCredentials } from "./credentials";
 
 /**

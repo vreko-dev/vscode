@@ -14,7 +14,7 @@
  * @module commands/snapshotCommands
  */
 
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import { extractSnapshotId } from "../utils/treeItemUtils";
@@ -515,7 +515,7 @@ export function registerSnapshotCommands(
 			const filesToRestore = snapshot.fileStates || [];
 			if (filesToRestore.length === 0) {
 				// Fallback to legacy structure if needed or log warning
-				console.warn(`Snapshot ${snapshotId} has no fileStates`);
+				logger.warn(`Snapshot ${snapshotId} has no fileStates`);
 			}
 
 			for (const file of filesToRestore) {

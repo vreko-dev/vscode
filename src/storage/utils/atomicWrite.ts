@@ -1,6 +1,8 @@
 // apps/vscode/src/storage/utils/atomicWrite.ts
 
 import * as vscode from "vscode";
+
+import { logger } from "../../utils/logger";
 import { randomId } from "./fileId";
 
 /**
@@ -115,8 +117,8 @@ export async function readJsonFileWithRecovery<T>(uri: vscode.Uri): Promise<Json
 				// Create backup before returning null
 				const backupPath = await createCorruptedBackup(uri, data);
 
-				console.warn(
-					`[Storage] Corrupted JSON file: ${uri.fsPath}${backupPath ? ` (backed up to ${backupPath})` : ""}`,
+				logger.warn(
+					`Storage: Corrupted JSON file: ${uri.fsPath}${backupPath ? ` (backed up to ${backupPath})` : ""}`,
 				);
 
 				return {

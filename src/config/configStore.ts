@@ -14,7 +14,7 @@ import {
 	getConfigStore,
 	type PathValue,
 } from "@snapback/config";
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 
 /**
  * Global ConfigStore instance

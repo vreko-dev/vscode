@@ -20,6 +20,7 @@
  */
 
 import * as vscode from "vscode";
+import { logger } from "../utils/logger";
 import type { CliLockData, CliLockFile } from "./CliLockFile";
 
 /** Events emitted by CliLinkManager */
@@ -125,7 +126,7 @@ export class CliLinkManager implements vscode.Disposable {
 			}
 		} catch (error) {
 			// Ignore polling errors
-			console.debug("[CliLinkManager] Polling error:", error);
+			logger.debug("CliLinkManager polling error", { error });
 		}
 	}
 
@@ -140,7 +141,7 @@ export class CliLinkManager implements vscode.Disposable {
 		try {
 			// 1. Verify heartbeat freshness (extra safety check)
 			if (await this.lockFile.isStale(data)) {
-				console.debug("[CliLinkManager] CLI lock is stale, not linking");
+				logger.debug("CLI lock is stale, not linking");
 				return;
 			}
 
@@ -166,9 +167,9 @@ export class CliLinkManager implements vscode.Disposable {
 			// 8. Track telemetry
 			// telemetry.track('cli_detected', { cli_version: data.version, link_success: true });
 
-			console.log(`[CliLinkManager] Linked to CLI v${data.version} on port ${data.mcpPort}`);
+			logger.info("Linked to CLI", { version: data.version, port: data.mcpPort });
 		} catch (error) {
-			console.error("[CliLinkManager] Link failed:", error);
+			logger.error("CLI link failed", error instanceof Error ? error : undefined, { error });
 			// telemetry.track('cli_link_failed', { error_code: 'link_error' });
 		}
 	}
@@ -217,7 +218,7 @@ export class CliLinkManager implements vscode.Disposable {
 					}
 				}
 			} catch (error) {
-				console.debug("[CliLinkManager] Heartbeat check error:", error);
+				logger.debug("CliLinkManager heartbeat check error", { error });
 			}
 		}, this.config.heartbeatCheckIntervalMs);
 	}
@@ -271,7 +272,7 @@ export class CliLinkManager implements vscode.Disposable {
 		// 7. Restart polling to detect CLI restart
 		this.startPolling();
 
-		console.log(`[CliLinkManager] Unlinked from CLI: ${reason}`);
+		logger.info("Unlinked from CLI", { reason });
 	}
 
 	/**

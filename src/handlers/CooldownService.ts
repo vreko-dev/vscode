@@ -47,25 +47,16 @@ export class CooldownService {
 	 */
 	isInCooldown(filePath: string): boolean {
 		if (!this.cooldownIndicator) {
-			const result = false;
-			// 🔍 DIAGNOSTIC: Cooldown check
-			console.log(`[Cooldown] isInCooldown(${filePath}): ${result}`);
-			console.log("[Cooldown] Cooldown indicator not set");
-			return result;
+			logger.debug("isInCooldown: Cooldown indicator not set", { filePath, result: false });
+			return false;
 		}
 		const result = this.cooldownIndicator.isInCooldown(filePath);
 
-		// Enhanced expiration time logging (Bug #4 diagnosis)
-		let expiresAt = "none";
-		if (result) {
-			// Note: CooldownIndicator may not expose getExpiration(), so we log what we can
-			expiresAt = "active (check registry for exact time)";
-		}
-
-		// 🔍 DIAGNOSTIC: Cooldown check with enhanced timing
-		console.log(`[Cooldown] isInCooldown(${filePath}): ${result}`);
-		console.log(`[Cooldown] Cooldown status: ${expiresAt}`);
-		console.log(`[Cooldown] Current time: ${Date.now()}`);
+		logger.debug("isInCooldown check", {
+			filePath,
+			result,
+			status: result ? "active" : "none",
+		});
 
 		return result;
 	}
@@ -136,9 +127,7 @@ export class CooldownService {
 
 		const expiresAt = Date.now() + cooldownPeriod;
 
-		// 🔍 DIAGNOSTIC: Set cooldown
-		console.log(`[Cooldown] setCooldown(${filePath}, ${protectionLevel})`);
-		console.log(`[Cooldown] Cooldown set until: ${expiresAt} (${cooldownPeriod}ms from now)`);
+		logger.debug("setCooldown", { filePath, protectionLevel, expiresAt, cooldownPeriod });
 
 		// Set cooldown in cooldown indicator (UI)
 		if (this.cooldownIndicator) {

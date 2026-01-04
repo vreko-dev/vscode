@@ -197,7 +197,7 @@ export async function activateLanguageServer(context: vscode.ExtensionContext): 
 	client = new LanguageClient("snapbackLanguageServer", "SnapBack Language Server", serverOptions, clientOptions);
 
 	await client.start();
-	console.log("SnapBack Language Server started");
+	logger.info("SnapBack Language Server started");
 }
 
 /**
@@ -210,7 +210,7 @@ export async function deactivateLanguageServer(): Promise<void> {
 
 	await client.stop();
 	client = undefined;
-	console.log("SnapBack Language Server stopped");
+	logger.info("SnapBack Language Server stopped");
 }
 
 /**

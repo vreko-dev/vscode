@@ -3,7 +3,7 @@
  * Unified tree view for workspace safety status
  */
 
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";

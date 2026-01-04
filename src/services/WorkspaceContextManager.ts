@@ -30,7 +30,7 @@
  * Reference: AUTODECISION_ANTIPATTERNS_DEEP_DIVE.md - Section 1 & 2
  */
 
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 
 /**

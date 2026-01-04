@@ -5,6 +5,8 @@
  * AutoDecisionEngine-driven architecture
  */
 
+import { logger } from "../utils/logger";
+
 export interface DeprecationNotice {
 	id: string;
 	title: string;
@@ -93,7 +95,7 @@ export function emitDeprecationWarning(patternId: string, context?: string): voi
 		.filter(Boolean)
 		.join("\n");
 
-	console.warn(message);
+	logger.warn(message);
 }
 
 /**

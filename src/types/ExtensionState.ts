@@ -5,7 +5,7 @@
  * Purpose: Enable partial activation when features fail to initialize
  */
 
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import type { Result } from "./result";
 import { Err, Ok } from "./result";
 

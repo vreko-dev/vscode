@@ -28,6 +28,7 @@ import type { SnapBackEvents } from "@snapback/engine/runtime";
 import * as vscode from "vscode";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
 import { hashContent } from "../storage/utils/hash";
+import { logger } from "../utils/logger";
 
 /**
  * Event bus interface compatible with both node EventEmitter and EventEmitter2
@@ -259,7 +260,7 @@ export class EventBridge {
 			try {
 				handler(payload);
 			} catch (error) {
-				console.error(`EventBridge: Error handling ${event}`, error);
+				logger.error(`EventBridge: Error handling ${event}`, error instanceof Error ? error : undefined);
 			}
 		};
 
@@ -397,7 +398,7 @@ export class EventBridge {
 
 				default:
 					// Unknown field - log warning and skip
-					console.warn(`EventBridge: Unknown property "${key}" in event, skipping for privacy`);
+					logger.warn(`EventBridge: Unknown property "${key}" in event, skipping for privacy`);
 					break;
 			}
 		}

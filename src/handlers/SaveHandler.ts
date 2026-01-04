@@ -251,15 +251,8 @@ export class SaveHandler {
 		const disposable = vscode.workspace.onWillSaveTextDocument((event) => {
 			const filePath = event.document.uri.fsPath;
 
-			// 🔍 DIAGNOSTIC: Save triggered
-			console.log("[SaveHandler] =====================================");
-			console.log(`[SaveHandler] Save triggered for: ${filePath}`);
-			console.log(`[SaveHandler] Timestamp: ${Date.now()}`);
-			console.log(`[SaveHandler] Is protected: ${this.registry.isProtected(filePath)}`);
-
 			// Check if protected (synchronous check)
 			if (!this.registry.isProtected(filePath)) {
-				console.log("[SaveHandler] File not protected, skipping");
 				return; // Exit early, don't call waitUntil
 			}
 
@@ -524,10 +517,6 @@ export class SaveHandler {
 		const protectionLevel = this.registry.getProtectionLevel(filePath) || "watch";
 		const protectionStartTime = Date.now();
 
-		// 🔍 DIAGNOSTIC: Before calling ProtectionLevelHandler
-		console.log("[SaveHandler] Calling ProtectionLevelHandler.handleProtectionLevel()");
-		console.log(`[SaveHandler] Protection level: ${protectionLevel}`);
-
 		logger.debug("Starting protection level handling", {
 			correlationId,
 			filePath,
@@ -551,8 +540,6 @@ export class SaveHandler {
 			aiDetectionInfo,
 		);
 
-		// 🔍 DIAGNOSTIC: After ProtectionLevelHandler returns
-		console.log("[SaveHandler] ProtectionLevelHandler returned:", JSON.stringify(protectionResult));
 		logger.debug("Protection level handling completed", {
 			correlationId,
 			filePath,

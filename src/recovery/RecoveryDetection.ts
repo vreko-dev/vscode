@@ -1,4 +1,4 @@
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 
 /**
  * RecoveryDetection identifies when the system is in an unrecoverable state.

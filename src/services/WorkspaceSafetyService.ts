@@ -6,7 +6,7 @@
 import { exec } from "node:child_process";
 import * as path from "node:path";
 import { promisify } from "node:util";
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import type { StorageSnapshotSummaryProvider } from "./snapshotSummaryProvider";
 

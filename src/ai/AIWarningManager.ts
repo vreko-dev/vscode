@@ -12,7 +12,7 @@
  * 5. Telemetry tracks choice for accuracy monitoring
  */
 
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import type { BurstDetectionResult } from "@snapback/sdk";
 import * as vscode from "vscode";
 import { SNAPBACK_ICONS } from "../constants/index";

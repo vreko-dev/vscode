@@ -1,4 +1,4 @@
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 
 interface Snapshot {
 	id: string;

@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { TelemetryService } from "../analytics/telemetry";
 import { PointsTracker } from "../pioneer/PointsTracker";
 import type { StatusBarManager } from "../ui/StatusBarManager";
+import { logger } from "../utils/logger";
 
 interface DetectionContext {
 	id: string;
@@ -167,7 +168,7 @@ export class FeedbackManager {
 			// Guard: Check if TelemetryService is initialized before calling getInstance()
 			// This prevents "TelemetryService not initialized" error
 			if (!TelemetryService.isInitialized()) {
-				console.warn("[FeedbackManager] TelemetryService not initialized, skipping feedback tracking");
+				logger.warn("TelemetryService not initialized, skipping feedback tracking");
 				vscode.window.showInformationMessage("Thanks for your feedback!");
 				this.dismiss(false);
 				return;
@@ -186,7 +187,7 @@ export class FeedbackManager {
 
 			vscode.window.showInformationMessage("Thanks! +50 pts awarded.");
 		} catch (error) {
-			console.error("[FeedbackManager] Feedback tracking failed:", error);
+			logger.error("Feedback tracking failed", error instanceof Error ? error : undefined);
 			vscode.window.showInformationMessage("Thanks for your feedback!");
 		}
 
@@ -253,7 +254,7 @@ export class FeedbackManager {
 			// Guard: Check if TelemetryService is initialized before calling getInstance()
 			// This prevents "TelemetryService not initialized" error when setTimeout fires early
 			if (!TelemetryService.isInitialized()) {
-				console.warn("[FeedbackManager] TelemetryService not initialized, skipping implicit acceptance log");
+				logger.warn("TelemetryService not initialized, skipping implicit acceptance log");
 				return;
 			}
 
@@ -267,7 +268,7 @@ export class FeedbackManager {
 			this.addToHandledCache(this.currentDetection.id);
 		} catch (e) {
 			// Catch any remaining errors (network issues, etc.)
-			console.error("[FeedbackManager] Failed to log implicit acceptance:", e);
+			logger.error("Failed to log implicit acceptance", e instanceof Error ? e : undefined);
 		}
 	}
 

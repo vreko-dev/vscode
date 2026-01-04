@@ -65,10 +65,7 @@ class VscodeStorageAdapter implements ISessionStorage {
 		const reason = (manifest as any).reason || "manual";
 		const triggers = (manifest as any).triggers || [reason];
 
-		console.log("[VscodeStorageAdapter] storeSessionManifest() called", {
-			manifestId: manifest.id,
-			filesCount: files.length,
-		});
+		logger.debug("storeSessionManifest called", { manifestId: manifest.id, filesCount: files.length });
 
 		// Ensure SessionStore has an active session before finalizing
 		// Note: SDK SessionCoordinator uses its own session IDs (session-XXX)
@@ -76,17 +73,13 @@ class VscodeStorageAdapter implements ISessionStorage {
 		// in SessionStore when SDK is ready to finalize its session.
 		const activeSessionId = this.storage.getActiveSessionId?.();
 		if (!activeSessionId) {
-			console.log("[VscodeStorageAdapter] No active SessionStore session, starting one");
+			logger.debug("No active SessionStore session, starting one");
 			await this.storage.createSession(manifest.startedAt);
 		}
 
-		console.log("[VscodeStorageAdapter] Calling storage.finalizeSession()", {
-			manifestId: manifest.id,
-			reason,
-			filesCount: files.length,
-		});
+		logger.debug("Calling storage.finalizeSession", { manifestId: manifest.id, reason, filesCount: files.length });
 		await this.storage.finalizeSession(manifest.id, manifest.endedAt, reason, files);
-		console.log("[VscodeStorageAdapter] storage.finalizeSession() completed");
+		logger.debug("storage.finalizeSession completed");
 
 		// Track session_finalized event (P0 - Demo Critical)
 		// Fire-and-forget to avoid blocking session finalization
@@ -187,17 +180,13 @@ export class SessionCoordinator {
 	 * @param stats - Optional change statistics
 	 */
 	addCandidate(uri: string, snapshotId: string, stats?: { added: number; deleted: number }): void {
-		console.log("[SessionCoordinator] addCandidate() called", {
-			uri,
-			snapshotId,
-			stats,
-		});
+		logger.debug("addCandidate called", { uri, snapshotId, stats });
 		const perfMonitor = getSessionPerfMonitor();
 		const operationId = perfMonitor?.startOperation("sessionCoordinator.addCandidate");
 
 		try {
 			this.sdkCoordinator.addCandidate(uri, snapshotId, stats);
-			console.log("[SessionCoordinator] addCandidate() completed successfully");
+			logger.debug("addCandidate completed");
 		} finally {
 			if (operationId && perfMonitor) {
 				perfMonitor.endOperation(operationId);
@@ -212,15 +201,13 @@ export class SessionCoordinator {
 	 * @returns Session ID if finalized, null if skipped
 	 */
 	async finalizeSession(reason: SessionFinalizeReason): Promise<SessionId | null> {
-		console.log("[SessionCoordinator] finalizeSession() called", { reason });
+		logger.debug("finalizeSession called", { reason });
 		const perfMonitor = getSessionPerfMonitor();
 		const operationId = perfMonitor?.startOperation("sessionCoordinator.finalizeSession");
 
 		try {
 			const result = await this.sdkCoordinator.finalizeSession(reason);
-			console.log("[SessionCoordinator] finalizeSession() completed", {
-				result,
-			});
+			logger.debug("finalizeSession completed", { result });
 			return result;
 		} finally {
 			if (operationId && perfMonitor) {
@@ -233,7 +220,7 @@ export class SessionCoordinator {
 	 * Handle window blur event - finalize session due to window focus change
 	 */
 	handleWindowBlur(): void {
-		console.log("[SessionCoordinator] handleWindowBlur() called");
+		logger.debug("handleWindowBlur called");
 		this.sdkCoordinator.handleWindowBlur();
 	}
 

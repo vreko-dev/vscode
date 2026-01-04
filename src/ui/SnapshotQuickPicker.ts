@@ -12,7 +12,7 @@
  * @packageDocumentation
  */
 
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import { MCPStorageReader } from "../storage/bridge/MCPStorageReader";
 import { type ExtensionStorageAdapter, SnapshotBridge } from "../storage/bridge/SnapshotBridge";

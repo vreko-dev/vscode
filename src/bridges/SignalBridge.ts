@@ -12,6 +12,8 @@
 import { AIDetector, BurstDetector, type BurstEvent } from "@snapback/engine/signals";
 import * as vscode from "vscode";
 
+import { logger } from "../utils/logger";
+
 /**
  * Burst state indicating if rapid changes detected
  */
@@ -84,7 +86,7 @@ export class SignalBridge {
 			enablePatternMatching: true,
 		});
 
-		console.log("[SignalBridge] Initialized V2 engine detectors");
+		logger.debug("SignalBridge initialized V2 engine detectors");
 	}
 
 	// ============================================

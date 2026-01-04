@@ -17,6 +17,7 @@ import type {
 	SnapshotNamingInfo as SnapshotInfo,
 	SnapshotIconMetadata as SnapshotMetadata,
 } from "../types/snapshotInfo";
+import { logger } from "../utils/logger";
 import { sdkLogger } from "../utils/sdkLoggerAdapter";
 import { EncryptionService } from "./EncryptionService";
 import type { SessionCoordinator } from "./SessionCoordinator";
@@ -281,7 +282,10 @@ export class SnapshotManager {
 					}
 				} catch (sessionError) {
 					// Log but don't fail snapshot creation
-					console.error("[SnapshotManager] Failed to add session candidate:", sessionError);
+					logger.error(
+						"SnapshotManager: Failed to add session candidate",
+						sessionError instanceof Error ? sessionError : undefined,
+					);
 				}
 			}
 

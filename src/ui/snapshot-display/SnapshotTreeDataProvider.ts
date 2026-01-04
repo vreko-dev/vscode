@@ -23,7 +23,7 @@
  * @packageDocumentation
  */
 
-import { logger } from "@snapback/infrastructure";
+import { logger } from "../../utils/logger";
 import * as vscode from "vscode";
 import type { IStorageManager, SnapshotManifest } from "../../storage/types";
 import {
