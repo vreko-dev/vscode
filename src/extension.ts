@@ -1409,7 +1409,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		// These call protectedFileRegistry.list() which can be slow
 		setTimeout(async () => {
 			try {
-				console.log("[PERF] Updating context in background...");
+				logger.debug("PERF: Updating context in background...");
 				const ctxStart = Date.now();
 				await updateHasProtectedFilesContext();
 				logger.info("Protected files context updated");
@@ -1420,9 +1420,7 @@ export async function activate(context: vscode.ExtensionContext) {
 					await updateFileProtectionContext(activeUri);
 					logger.info("File protection context updated for active editor");
 				}
-				console.log("[PERF] Context updates completed", {
-					ms: Date.now() - ctxStart,
-				});
+				logger.debug("PERF: Context updates completed", { ms: Date.now() - ctxStart });
 			} catch (err) {
 				logger.error("Failed to update context in background", err as Error);
 			}
