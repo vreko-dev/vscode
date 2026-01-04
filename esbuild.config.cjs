@@ -34,7 +34,22 @@ async function main() {
 			"chokidar", // ~400KB - only used in agent watcher
 			// Externalize heavy packages to language server
 			"@snapback/intelligence", // Moved to language server
+			// Heavy workspace packages - dynamically imported for bundle size reduction
+			"@snapback/core", // ~4MB - MCP federation (lazy-loaded via dynamic import)
+			"@snapback/core/*", // All subpaths
 			// "@snapback/engine",        // Must be bundled - ESM-only package, Node CJS can't resolve it
+			// Heavy third-party packages - not needed for extension runtime
+			"@aws-sdk/*", // AWS S3 client from SDK - not needed for local extension
+			"pino", // Logging from infrastructure - using local logger
+			"pino-pretty",
+			"posthog-node", // Using local telemetry client
+			"@typescript-eslint/*", // From SDK/contracts if pulled in
+			"@snapback/infrastructure", // No longer needed - using local logger/telemetry
+			"@snapback/infrastructure/*", // All subpaths
+			"drizzle-orm", // Database ORM from platform - not needed locally
+			"drizzle-orm/*",
+			"@vue/compiler-sfc", // Template engine not needed
+			"esprima", // AST parser - not needed in extension (engine uses it)
 			// Optional template engines from @vue/compiler-sfc's consolidate.js
 			"velocityjs",
 			"dustjs-linkedin",
@@ -112,9 +127,7 @@ async function main() {
 
 		// Environment
 		define: {
-			"process.env.NODE_ENV": production
-				? '"production"'
-				: '"development"',
+			"process.env.NODE_ENV": production ? '"production"' : '"development"',
 			"process.env.VSCODE_EXTENSION": '"true"',
 		},
 
@@ -134,18 +147,10 @@ async function main() {
 									title: "SnapBack VSCode Bundle Analysis",
 									template: "treemap",
 								});
-								fs.writeFileSync(
-									"dist/bundle-analysis.html",
-									html
-								);
-								console.log(
-									"📊 Bundle analysis: dist/bundle-analysis.html"
-								);
+								fs.writeFileSync("dist/bundle-analysis.html", html);
+								console.log("📊 Bundle analysis: dist/bundle-analysis.html");
 							} catch (err) {
-								console.warn(
-									"⚠️  Failed to generate bundle analysis",
-									err
-								);
+								console.warn("⚠️  Failed to generate bundle analysis", err);
 							}
 						}
 					});
@@ -176,34 +181,25 @@ async function main() {
 					});
 
 					// Provide stub for worker thread dependencies
-					build.onLoad(
-						{ filter: /.*/, namespace: "worker-stub" },
-						() => {
-							return {
-								contents: "module.exports = {}",
-								loader: "js",
-							};
-						}
-					);
+					build.onLoad({ filter: /.*/, namespace: "worker-stub" }, () => {
+						return {
+							contents: "module.exports = {}",
+							loader: "js",
+						};
+					});
 
 					// Handle import.meta.url polyfill for @snapback/engine package
 					// The engine package uses import.meta.url which becomes undefined in CommonJS bundles
-					build.onLoad(
-						{ filter: /packages\/engine\/dist\/index\.js$/ },
-						async (args) => {
-							const contents = await fs.promises.readFile(
-								args.path,
-								"utf8"
-							);
-							// Replace fileURLToPath(import.meta.url) with safe fallback
-							// This prevents "Received undefined" errors during extension loading
-							const transformed = contents.replace(
-								/var __filename = fileURLToPath\(import\.meta\.url\);/g,
-								"var __filename = __filename || '';"
-							);
-							return { contents: transformed, loader: "js" };
-						}
-					);
+					build.onLoad({ filter: /packages\/engine\/dist\/index\.js$/ }, async (args) => {
+						const contents = await fs.promises.readFile(args.path, "utf8");
+						// Replace fileURLToPath(import.meta.url) with safe fallback
+						// This prevents "Received undefined" errors during extension loading
+						const transformed = contents.replace(
+							/var __filename = fileURLToPath\(import\.meta\.url\);/g,
+							"var __filename = __filename || '';",
+						);
+						return { contents: transformed, loader: "js" };
+					});
 				},
 			},
 		],
@@ -287,9 +283,7 @@ async function main() {
 
 		// Environment
 		define: {
-			"process.env.NODE_ENV": production
-				? '"production"'
-				: '"development"',
+			"process.env.NODE_ENV": production ? '"production"' : '"development"',
 		},
 	});
 
@@ -308,16 +302,10 @@ async function main() {
 		const serverStats = fs.statSync("./dist/server/index.js");
 		console.log("✅ Bundled successfully");
 		console.log("📦 Extension: dist/extension.js");
-		console.log(
-			`📊 Extension size: ${Math.round(extensionStats.size / 1024)}KB`
-		);
+		console.log(`📊 Extension size: ${Math.round(extensionStats.size / 1024)}KB`);
 		console.log("📦 Server: dist/server/index.js");
 		console.log(`📊 Server size: ${Math.round(serverStats.size / 1024)}KB`);
-		console.log(
-			`📊 Total: ${Math.round(
-				(extensionStats.size + serverStats.size) / 1024
-			)}KB`
-		);
+		console.log(`📊 Total: ${Math.round((extensionStats.size + serverStats.size) / 1024)}KB`);
 	}
 }
 
