@@ -718,7 +718,7 @@ export class StatusBarManager implements vscode.Disposable {
 	/**
 	 * Update stats from external source
 	 *
-	 * TODO: Wire up to SnapshotStore/SessionStore events
+	 * Called by phase4-providers when SnapshotStore/SessionStore events fire.
 	 */
 	updateStats(stats: Partial<StatusBarStats>): void {
 		this.stats = { ...this.stats, ...stats };

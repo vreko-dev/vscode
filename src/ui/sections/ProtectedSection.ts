@@ -177,7 +177,7 @@ export function sortFilesBySeverity(files: ProtectedFileInfo[]): ProtectedFileIn
  * - Subscribe to ProtectionConfigManager for changes
  * - Subscribe to ConfigFileManager for .snapbackrc changes
  *
- * TODO: Wire up to existing protection system
+ * @see phase4-providers.ts for protection system wiring
  */
 export class ProtectedSection {
 	private files: ProtectedFileInfo[] = [];

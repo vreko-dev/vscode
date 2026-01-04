@@ -86,13 +86,8 @@ export function createSessionFileItem(file: SessionFileInfo): vscode.TreeItem {
 
 	item.contextValue = "session-file" satisfies TreeItemContextValue;
 
-	// Command to open diff view
-	// TODO: Wire up to diff command
-	// item.command = {
-	//   command: 'snapback.showFileDiff',
-	//   title: 'Show Changes',
-	//   arguments: [file.snapshotId, file.path],
-	// };
+	// FUTURE: Add diff command when snapback.showFileDiff is implemented
+	// item.command = { command: 'snapback.showFileDiff', arguments: [file.snapshotId, file.path] };
 
 	item.tooltip = `Full path: ${file.path}`;
 
@@ -184,7 +179,7 @@ function createSessionTooltip(session: SessionInfo): vscode.MarkdownString {
  * - Subscribe to SessionStore for session changes
  * - Load sessions from storage on activation
  *
- * TODO: Wire up to SessionStore
+ * @see phase4-providers.ts for wiring to SessionStore events
  */
 export class HistorySection {
 	private sessions: SessionInfo[] = [];

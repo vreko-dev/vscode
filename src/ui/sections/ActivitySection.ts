@@ -258,7 +258,7 @@ function startOfDay(date: Date): Date {
  * - Subscribe to SessionCoordinator for AI detection
  * - Subscribe to RestoreService for restore events
  *
- * TODO: Wire up to actual data sources
+ * @see phase4-providers.ts for event subscription wiring
  */
 export class ActivitySection {
 	private events: ActivityEvent[] = [];
