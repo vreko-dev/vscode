@@ -2,6 +2,7 @@
 
 import { SnapBackEvent, type SnapBackEventBus } from "@snapback/contracts";
 import * as vscode from "vscode";
+import { logger } from "../utils/logger";
 import { AuditLog } from "./AuditLog";
 import { BlobStore } from "./BlobStore";
 import { ConfigStore } from "./ConfigStore";
@@ -130,12 +131,12 @@ export class StorageManager implements IStorageManager {
 		// ⚡ DEFERRED: Initialize metadata file asynchronously
 		// This is not critical for activation - defer to background
 		this.initializeMetadata().catch((err) => {
-			console.error("[SnapBack Storage] Metadata initialization failed:", err);
+			logger.error("Metadata initialization failed", err instanceof Error ? err : undefined);
 		});
 
 		this.initialized = true;
 
-		console.log(`[SnapBack Storage] Initialized (lazy mode) at ${this.storageUri.fsPath}`);
+		logger.info("Storage initialized (lazy mode)", { path: this.storageUri.fsPath });
 	}
 
 	/**
@@ -158,7 +159,9 @@ export class StorageManager implements IStorageManager {
 
 			// Detect orphan PREs for observability (non-blocking)
 			this.snapshotStore.detectOrphanPREs().catch((err) => {
-				console.debug("[SnapBack Storage] Orphan PRE detection failed:", err);
+				logger.debug("Orphan PRE detection failed", {
+					error: err instanceof Error ? err.message : String(err),
+				});
 			});
 
 			this._componentsInitialized = true;
@@ -209,10 +212,10 @@ export class StorageManager implements IStorageManager {
 		this.initialized = false;
 
 		if (errors.length > 0) {
-			console.warn("[SnapBack Storage] Dispose errors:", errors);
+			logger.warn("Dispose encountered errors", { errorCount: errors.length });
 		}
 
-		console.log("[SnapBack Storage] Disposed");
+		logger.debug("Storage disposed");
 	}
 
 	private async initializeMetadata(): Promise<void> {
@@ -232,7 +235,7 @@ export class StorageManager implements IStorageManager {
 			await writeJsonFile(this.metadataUri, metadata);
 		} else if (existing.version < STORAGE_VERSION) {
 			// Handle migrations in the future
-			console.log(`[SnapBack Storage] Upgrading from v${existing.version} to v${STORAGE_VERSION}`);
+			logger.info("Upgrading storage version", { from: existing.version, to: STORAGE_VERSION });
 			existing.version = STORAGE_VERSION;
 			await writeJsonFile(this.metadataUri, existing);
 		}
@@ -375,7 +378,9 @@ export class StorageManager implements IStorageManager {
 		});
 
 		// Update metadata stats (fire and forget)
-		this.updateStats().catch(console.error);
+		this.updateStats().catch((err) =>
+			logger.error("Failed to update stats", err instanceof Error ? err : undefined),
+		);
 
 		// Publish event
 		this.publishEvent(SnapBackEvent.SNAPSHOT_CREATED, {
@@ -411,7 +416,7 @@ export class StorageManager implements IStorageManager {
 		// Lazy-initialize components on first use
 		await this.ensureComponentsInitialized();
 		await this.snapshotStore.delete(id);
-		this.updateStats().catch(console.error);
+		this.updateStats().catch((err) => logger.error("Failed to update stats after delete", err));
 
 		// REFACTOR: Use extracted publishEvent helper
 		this.publishEvent(SnapBackEvent.SNAPSHOT_DELETED, {
@@ -507,7 +512,7 @@ export class StorageManager implements IStorageManager {
 			throw new Error("No active session to finalize");
 		}
 
-		this.updateStats().catch(console.error);
+		this.updateStats().catch((err) => logger.error("Failed to update stats after finalize", err));
 		return manifest;
 	}
 

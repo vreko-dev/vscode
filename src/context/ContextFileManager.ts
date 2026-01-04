@@ -12,6 +12,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import type { Disposable } from "vscode";
+import { logger } from "../utils/logger";
 import { CONTEXT_SCHEMA } from "./schema";
 import type {
 	ArchitectureConfig,
@@ -109,7 +110,7 @@ export class ContextFileManager implements Disposable {
 		// 5. Start periodic refresh
 		this.updateTimer = setInterval(() => {
 			this.updateLiveState().catch((err) => {
-				console.debug("SnapBack: Failed to update context:", err);
+				logger.debug("Failed to update context", { error: err instanceof Error ? err.message : String(err) });
 			});
 		}, UPDATE_INTERVAL_MS);
 	}
@@ -508,7 +509,7 @@ export class ContextFileManager implements Disposable {
 
 			await this.writeContext(updated);
 		} catch (error) {
-			console.debug("SnapBack: Failed to update live state:", error);
+			logger.debug("Failed to update live state", { error: error instanceof Error ? error.message : String(error) });
 		} finally {
 			this.isUpdating = false;
 		}

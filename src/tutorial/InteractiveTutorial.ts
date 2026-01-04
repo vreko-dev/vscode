@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { PioneerGatekeeper } from "../pioneer/PioneerGatekeeper";
 import type { StorageManager } from "../storage/StorageManager";
+import { logger } from "../utils/logger";
 
 /**
  * InteractiveTutorial - First-time onboarding flow
@@ -113,7 +114,7 @@ const TUTORIAL_CONTENT = `// Welcome to SnapBack! 🎯
 
 function exampleFunction() {
   // Your edit here...
-  console.log("Hello, SnapBack!");
+  logger.info("Hello, SnapBack!");
 }
 
 // STEP 3: Save This File
@@ -186,7 +187,9 @@ export class InteractiveTutorial implements vscode.Disposable {
 				await this.protectionManager.setProtection(doc.uri, "warn");
 			} catch (error) {
 				// Silently fail - tutorial can continue without protection
-				console.warn("Failed to set protection level:", error);
+				logger.warn("Failed to set protection level", {
+					error: error instanceof Error ? error.message : String(error),
+				});
 			}
 		}
 
@@ -199,7 +202,9 @@ export class InteractiveTutorial implements vscode.Disposable {
 			try {
 				this.telemetry.track("tutorial_started");
 			} catch (error) {
-				console.warn("Failed to track telemetry:", error);
+				logger.warn("Failed to track telemetry", {
+					error: error instanceof Error ? error.message : String(error),
+				});
 			}
 		}
 
@@ -280,7 +285,9 @@ export class InteractiveTutorial implements vscode.Disposable {
 			try {
 				this.telemetry.track("tutorial_step_completed", { step: 1 });
 			} catch (error) {
-				console.warn("Failed to track telemetry:", error);
+				logger.warn("Failed to track telemetry", {
+					error: error instanceof Error ? error.message : String(error),
+				});
 			}
 		}
 	}
@@ -302,7 +309,9 @@ export class InteractiveTutorial implements vscode.Disposable {
 			try {
 				this.telemetry.track("tutorial_step_completed", { step: 2 });
 			} catch (error) {
-				console.warn("Failed to track telemetry:", error);
+				logger.warn("Failed to track telemetry", {
+					error: error instanceof Error ? error.message : String(error),
+				});
 			}
 		}
 	}
@@ -324,7 +333,9 @@ export class InteractiveTutorial implements vscode.Disposable {
 			try {
 				this.telemetry.track("tutorial_step_completed", { step: 3 });
 			} catch (error) {
-				console.warn("Failed to track telemetry:", error);
+				logger.warn("Failed to track telemetry", {
+					error: error instanceof Error ? error.message : String(error),
+				});
 			}
 		}
 
@@ -380,7 +391,9 @@ export class InteractiveTutorial implements vscode.Disposable {
 			try {
 				this.telemetry.track("tutorial_pioneer_cta_shown");
 			} catch (error) {
-				console.warn("Failed to track telemetry:", error);
+				logger.warn("Failed to track telemetry", {
+					error: error instanceof Error ? error.message : String(error),
+				});
 			}
 		}
 
@@ -419,7 +432,9 @@ export class InteractiveTutorial implements vscode.Disposable {
 			try {
 				this.telemetry.track("tutorial_completed", { became_pioneer: _becamePioneer });
 			} catch (error) {
-				console.warn("Failed to track tutorial_completed:", error);
+				logger.warn("Failed to track tutorial_completed", {
+					error: error instanceof Error ? error.message : String(error),
+				});
 			}
 		}
 
@@ -465,7 +480,9 @@ export class InteractiveTutorial implements vscode.Disposable {
 					step_name: TutorialStep[this.currentStep],
 				});
 			} catch (error) {
-				console.warn("Failed to track tutorial_abandoned:", error);
+				logger.warn("Failed to track tutorial_abandoned", {
+					error: error instanceof Error ? error.message : String(error),
+				});
 			}
 		}
 
