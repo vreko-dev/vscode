@@ -9,6 +9,7 @@
  * - snapback.mcp.analyzeImpact: Analyze change impact
  * - snapback.mcp.startTask: Start a new development task
  * - snapback.mcp.endTask: End current development task
+ * - snapback.mcp.diagnose: Diagnose MCP connection issues
  * - snapback.toggleAIMonitoring: Toggle AI monitoring
  * - snapback.showAIMonitoringStatus: Show AI monitoring status
  *
@@ -17,8 +18,12 @@
 
 import type { ServiceFederation } from "@snapback/core";
 import * as vscode from "vscode";
-import type { MCPToolsService } from "../services/MCPToolsService";
+import { getMCPBridge } from "../bridges/MCPBridge";
 import type { OperationCoordinator } from "../operationCoordinator";
+import type { MCPLifecycleManager } from "../services/MCPLifecycleManager";
+import { getMCPTelemetry } from "../services/MCPTelemetry";
+import type { MCPToolsService } from "../services/MCPToolsService";
+import { logger } from "../utils/logger";
 import type { WorkflowIntegration } from "../workflowIntegration";
 
 /**
@@ -29,6 +34,7 @@ import type { WorkflowIntegration } from "../workflowIntegration";
  * @param operationCoordinator - Operation coordinator instance
  * @param workflowIntegration - Workflow integration instance
  * @param mcpToolsService - MCP Tools service instance (optional)
+ * @param mcpManager - MCP Lifecycle manager for connection diagnostics (optional)
  * @returns Array of disposables for command registrations
  */
 export function registerMcpCommands(
@@ -37,6 +43,7 @@ export function registerMcpCommands(
 	_operationCoordinator: OperationCoordinator,
 	_workflowIntegration: WorkflowIntegration,
 	mcpToolsService?: MCPToolsService | null,
+	mcpManager?: MCPLifecycleManager | null,
 ): vscode.Disposable[] {
 	const disposables: vscode.Disposable[] = [];
 
@@ -247,6 +254,184 @@ export function registerMcpCommands(
 	// );
 
 	// Command: Test MCP Federation
+
+	// =========================================================================
+	// MCP Diagnostics Command
+	// =========================================================================
+
+	// Command: Diagnose MCP Connection
+	disposables.push(
+		vscode.commands.registerCommand("snapback.mcp.diagnose", async () => {
+			const diagnostics: string[] = [];
+			diagnostics.push("=== SnapBack MCP Diagnostics ===\n");
+
+			// 1. Check MCP config
+			const config = vscode.workspace.getConfiguration("snapback");
+			const mcpEnabled = config.get<boolean>("mcp.enabled", true);
+			const serverUrl = config.get<string>("mcp.serverUrl", "");
+
+			if (!mcpEnabled) {
+				diagnostics.push("❌ MCP is disabled in settings");
+				diagnostics.push("   → Enable with: snapback.mcp.enabled = true\n");
+			} else {
+				diagnostics.push("✅ MCP is enabled in settings\n");
+			}
+
+			// 2. Check MCPLifecycleManager state
+			if (mcpManager) {
+				const connectionState = mcpManager.getConnectionState();
+				const isReady = mcpManager.isServerReady();
+				const serverVersion = mcpManager.getServerVersion();
+
+				if (isReady) {
+					diagnostics.push(`✅ MCP Lifecycle: ${connectionState} (server ready)`);
+					if (serverVersion) {
+						diagnostics.push(`   Server version: v${serverVersion}`);
+					}
+				} else {
+					diagnostics.push(`⚠️ MCP Lifecycle: ${connectionState} (server not ready)`);
+				}
+			} else {
+				diagnostics.push("⚠️ MCP Lifecycle Manager not available");
+			}
+
+			// 3. Check remote MCP server connectivity (if configured)
+			if (serverUrl && serverUrl.trim() !== "") {
+				diagnostics.push(`\n📡 Remote Server: ${serverUrl}`);
+				try {
+					const controller = new AbortController();
+					const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+					const response = await fetch(`${serverUrl}/health`, {
+						method: "GET",
+						signal: controller.signal,
+					});
+					clearTimeout(timeoutId);
+
+					if (response.ok) {
+						diagnostics.push("✅ Remote MCP server reachable");
+					} else {
+						diagnostics.push(`⚠️ Remote server responded with: ${response.status}`);
+					}
+				} catch (error) {
+					if (error instanceof Error && error.name === "AbortError") {
+						diagnostics.push("❌ Remote server timeout (5s)");
+					} else {
+						diagnostics.push(
+							`❌ Cannot reach remote server: ${error instanceof Error ? error.message : String(error)}`,
+						);
+					}
+				}
+			} else {
+				diagnostics.push("\n⚠️ No remote MCP server configured");
+				diagnostics.push("   → Configure with: snapback.mcp.serverUrl");
+			}
+
+			// 4. Check local bridge endpoint
+			diagnostics.push("\n📡 Local Bridge:");
+			try {
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+				const response = await fetch("http://127.0.0.1:3100/bridge/health", {
+					method: "GET",
+					signal: controller.signal,
+				});
+				clearTimeout(timeoutId);
+
+				if (response.ok) {
+					diagnostics.push("✅ Bridge receiver healthy at 127.0.0.1:3100");
+				} else {
+					diagnostics.push(`⚠️ Bridge responded with: ${response.status}`);
+				}
+			} catch {
+				diagnostics.push("⚠️ Bridge receiver not available (CLI may not be running)");
+			}
+
+			// 5. Check MCPBridge queue depth and circuit breaker (G8, G9)
+			diagnostics.push("\n📊 Queue & Circuit Breaker Status:");
+			try {
+				const bridge = getMCPBridge();
+				const status = bridge.getStatus();
+				const circuitState = bridge.getCircuitState();
+
+				diagnostics.push(`   Pending observations: ${status.pendingObservations}`);
+				diagnostics.push(`   Pending changes: ${status.pendingChanges}`);
+				diagnostics.push(`   Total pushes: ${status.pushCount}`);
+				diagnostics.push(`   Failures: ${status.failureCount}`);
+
+				// Circuit breaker status
+				const circuitIcon =
+					circuitState.state === "closed" ? "✅" : circuitState.state === "open" ? "🔴" : "🟡";
+				diagnostics.push(`   Circuit breaker: ${circuitIcon} ${circuitState.state}`);
+				if (circuitState.consecutiveFailures > 0) {
+					diagnostics.push(`   Consecutive failures: ${circuitState.consecutiveFailures}`);
+				}
+				if (circuitState.nextRetryIn) {
+					diagnostics.push(`   Next retry in: ${Math.round(circuitState.nextRetryIn / 1000)}s`);
+				}
+
+				if (status.lastPushTime) {
+					const ago = Math.round((Date.now() - status.lastPushTime) / 1000);
+					diagnostics.push(`   Last push: ${ago}s ago`);
+				} else {
+					diagnostics.push("   Last push: never");
+				}
+				if (status.pendingObservations > 0 || status.pendingChanges > 0) {
+					diagnostics.push("   ⚠️ Work is queued - will sync when connection restored");
+				} else {
+					diagnostics.push("   ✅ Queue is empty");
+				}
+			} catch {
+				diagnostics.push("   ⚠️ MCPBridge not initialized");
+			}
+
+			// 6. Summary and recommendations
+			diagnostics.push("\n=== Recommendations ===");
+
+			if (!mcpEnabled) {
+				diagnostics.push("• Enable MCP in settings to use AI assistant features");
+			}
+
+			if (!mcpManager?.isServerReady()) {
+				diagnostics.push("• Check network connectivity to MCP server");
+				diagnostics.push("• Verify server URL in settings is correct");
+				diagnostics.push("• Try restarting VS Code if issues persist");
+			}
+
+			// Show in output channel
+			const panel = vscode.window.createOutputChannel("SnapBack MCP Diagnostics");
+			panel.clear();
+			for (const line of diagnostics) {
+				panel.appendLine(line);
+			}
+			panel.show();
+
+			// Track telemetry for diagnose execution (G10: MCP metrics)
+			try {
+				const bridge = getMCPBridge();
+				const status = bridge.getStatus();
+				const circuitState = bridge.getCircuitState();
+
+				getMCPTelemetry().trackDiagnoseExecuted({
+					mcpEnabled,
+					serverReady: mcpManager?.isServerReady() ?? false,
+					circuitState: circuitState.state,
+					queueDepth: status.pendingObservations + status.pendingChanges,
+				});
+			} catch {
+				// Bridge not initialized, still track what we can
+				getMCPTelemetry().trackDiagnoseExecuted({
+					mcpEnabled,
+					serverReady: mcpManager?.isServerReady() ?? false,
+					circuitState: "closed",
+					queueDepth: 0,
+				});
+			}
+
+			logger.info("MCP diagnostics completed", { diagnosticsCount: diagnostics.length });
+		}),
+	);
 
 	// Command: Toggle AI Monitoring
 	disposables.push(

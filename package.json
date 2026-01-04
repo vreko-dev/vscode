@@ -397,6 +397,12 @@
         "icon": "$(info)"
       },
       {
+        "command": "snapback.mcp.diagnose",
+        "title": "Diagnose MCP Connection",
+        "category": "SnapBack MCP",
+        "icon": "$(search)"
+      },
+      {
         "command": "snapback.mcp.reset",
         "title": "Reset MCP Configuration State",
         "category": "SnapBack MCP",

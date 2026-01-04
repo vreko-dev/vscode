@@ -7,22 +7,25 @@ import { SnapshotDecorations } from "../decorations/snapshotDecorations";
 import { DetectionCodeActionProvider } from "../providers/DetectionCodeActionProvider";
 import { ProtectionCodeLensProvider } from "../providers/ProtectionCodeLensProvider";
 import { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
+import type { MCPLifecycleManager } from "../services/MCPLifecycleManager";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { StorageManager as ServiceStorageManager } from "../services/StorageManager";
+import type { TelemetryProxy } from "../services/telemetry-proxy";
 import { WorkspaceSafetyService } from "../services/WorkspaceSafetyService";
 import type { IStorageManager } from "../storage/types";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
+import { MCPStatusItem } from "../ui/MCPStatusItem";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
 import { StatusBarController } from "../ui/StatusBarController";
 import { createStatusBarManager, type StatusBarManager } from "../ui/StatusBarManager";
 import { createVitalsUIIntegration, registerVitalsCommands, type VitalsUIIntegration } from "../ui/VitalsUIIntegration";
+import { logger } from "../utils/logger";
 import { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
 import { SessionsTreeProvider } from "../views/SessionsTreeProvider";
 import { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
 import { WelcomeView } from "../welcomeView";
 import type { Phase3Result } from "./phase3-managers";
-import { logger } from "../utils/logger";
 import { PhaseLogger } from "./phaseLogger";
 
 export interface Phase4Result {
@@ -33,6 +36,7 @@ export interface Phase4Result {
 	protectionCodeLensProvider: ProtectionCodeLensProvider;
 	statusBarManager: StatusBarManager; // Legacy vitals-aware status bar
 	statusBarController: StatusBarController; // New consolidated status bar
+	mcpStatusItem?: MCPStatusItem; // MCP connection status indicator
 	welcomeView: WelcomeView;
 	snapshotDecorations: SnapshotDecorations;
 	snapshotNavigatorProvider: SnapshotNavigatorProvider;
@@ -51,7 +55,8 @@ export async function initializePhase4Providers(
 	workspaceRoot: string,
 	_apiClient?: AuthedApiClient,
 	_credentialsManager?: CredentialsManager,
-	telemetryProxy?: any,
+	telemetryProxy?: TelemetryProxy,
+	mcpManager?: MCPLifecycleManager,
 ): Promise<Phase4Result> {
 	const phase4Start = Date.now();
 	logger.debug("Phase 4 starting...");
@@ -88,7 +93,7 @@ export async function initializePhase4Providers(
 		t = Date.now();
 		const diagnosticTracker = telemetryProxy
 			? new DiagnosticEventTracker(telemetryProxy)
-			: new DiagnosticEventTracker({ trackEvent: () => {} } as any);
+			: new DiagnosticEventTracker({ trackEvent: () => {} } as unknown as TelemetryProxy);
 		const welcomeView = new WelcomeView(context.extensionUri, context.globalState, diagnosticTracker);
 		logger.debug("WelcomeView with DiagnosticEventTracker", {
 			ms: Date.now() - t,
@@ -143,6 +148,18 @@ export async function initializePhase4Providers(
 		context.subscriptions.push(statusBarController);
 		logger.debug("StatusBarController", { ms: Date.now() - t });
 
+		// Initialize MCPStatusItem for MCP connection visibility
+		let mcpStatusItem: MCPStatusItem | undefined;
+		if (mcpManager) {
+			t = Date.now();
+			mcpStatusItem = new MCPStatusItem({
+				statusBarManager,
+				mcpManager,
+			});
+			context.subscriptions.push(mcpStatusItem);
+			logger.debug("MCPStatusItem", { ms: Date.now() - t });
+		}
+
 		// Initialize VitalsUIIntegration - connects data service to UI components
 		t = Date.now();
 		const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? workspaceRoot;
@@ -175,6 +192,7 @@ export async function initializePhase4Providers(
 			protectionCodeLensProvider,
 			statusBarManager,
 			statusBarController,
+			mcpStatusItem,
 			welcomeView,
 			snapshotDecorations,
 			snapshotNavigatorProvider,

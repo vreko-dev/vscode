@@ -15,6 +15,7 @@
  */
 
 import * as vscode from "vscode";
+import { getMCPTelemetry } from "../services/MCPTelemetry";
 import { logger } from "../utils/logger";
 import type { SignalBridge } from "./SignalBridge";
 
@@ -167,6 +168,11 @@ function getRiskReason(filePath: string): string {
  * bridge.dispose();
  * ```
  */
+/**
+ * Circuit breaker state for rate limiting and failure protection
+ */
+type CircuitState = "closed" | "open" | "half-open";
+
 export class MCPBridge {
 	private readonly mcpEndpoint: string;
 	private readonly flushInterval: number;
@@ -186,6 +192,13 @@ export class MCPBridge {
 	private pushCount = 0;
 	private failureCount = 0;
 	private lastPushTime: number | null = null;
+
+	// Circuit breaker state (G8: rate limit handling)
+	private circuitState: CircuitState = "closed";
+	private consecutiveFailures = 0;
+	private lastFailureTime: number | null = null;
+	private readonly circuitFailureThreshold = 5; // Open after 5 consecutive failures
+	private readonly circuitResetTimeout = 30000; // Try again after 30s
 
 	constructor(config: MCPBridgeConfig = {}) {
 		this.mcpEndpoint = config.mcpEndpoint ?? "http://127.0.0.1:3100";
@@ -467,10 +480,18 @@ export class MCPBridge {
 
 	/**
 	 * Flush queued observations and changes to MCP server
+	 *
+	 * Uses circuit breaker pattern to prevent cascading failures (G8).
 	 */
 	async flushToMCP(): Promise<void> {
 		// Skip if nothing to flush
 		if (this.observationQueue.length === 0 && this.changeQueue.length === 0) {
+			return;
+		}
+
+		// Check circuit breaker state
+		if (!this.canAttemptPush()) {
+			logger.debug("MCPBridge circuit breaker open, skipping push");
 			return;
 		}
 
@@ -488,19 +509,151 @@ export class MCPBridge {
 			});
 
 			if (response.ok) {
+				// Success - reset circuit breaker
+				this.onPushSuccess();
+
 				// Clear queues on success
 				this.observationQueue = [];
 				this.changeQueue = [];
 				this.pushCount++;
 				this.lastPushTime = Date.now();
 			} else {
+				// HTTP error - count as failure
+				this.onPushFailure();
 				this.failureCount++;
-				logger.warn("MCPBridge push failed", { status: response.status });
+				logger.warn("MCPBridge push failed", { status: response.status, circuitState: this.circuitState });
 			}
 		} catch (_error) {
+			// Network error - count as failure
+			this.onPushFailure();
 			this.failureCount++;
 			// Keep queued for retry (silent failure is expected when MCP not running)
 		}
+	}
+
+	/**
+	 * Check if circuit breaker allows a push attempt
+	 */
+	private canAttemptPush(): boolean {
+		switch (this.circuitState) {
+			case "closed":
+				return true;
+
+			case "open":
+				// Check if reset timeout has passed
+				if (this.lastFailureTime && Date.now() - this.lastFailureTime >= this.circuitResetTimeout) {
+					// Transition to half-open, allow one attempt
+					this.circuitState = "half-open";
+					logger.info("MCPBridge circuit breaker transitioning to half-open");
+
+					// Track telemetry for circuit state change (G10: MCP metrics)
+					getMCPTelemetry().trackCircuitBreakerChange("half-open", {
+						previousState: "open",
+						consecutiveFailures: this.consecutiveFailures,
+						threshold: this.circuitFailureThreshold,
+					});
+					return true;
+				}
+				return false;
+
+			case "half-open":
+				// Allow single attempt in half-open state
+				return true;
+
+			default:
+				return true;
+		}
+	}
+
+	/**
+	 * Handle successful push - close circuit
+	 */
+	private onPushSuccess(): void {
+		const previousState = this.circuitState;
+		if (previousState !== "closed") {
+			logger.info("MCPBridge circuit breaker closing after successful push");
+
+			// Track telemetry for circuit state change (G10: MCP metrics)
+			getMCPTelemetry().trackCircuitBreakerChange("closed", {
+				previousState,
+				consecutiveFailures: this.consecutiveFailures,
+				threshold: this.circuitFailureThreshold,
+			});
+		}
+		this.circuitState = "closed";
+		this.consecutiveFailures = 0;
+
+		// Track push metrics (batched, not every push)
+		getMCPTelemetry().trackBridgePushMetrics({
+			pushCount: this.pushCount,
+			failureCount: this.failureCount,
+			queueDepth: this.observationQueue.length + this.changeQueue.length,
+			circuitState: this.circuitState,
+		});
+	}
+
+	/**
+	 * Handle push failure - potentially open circuit
+	 */
+	private onPushFailure(): void {
+		const previousState = this.circuitState;
+		this.consecutiveFailures++;
+		this.lastFailureTime = Date.now();
+
+		if (this.circuitState === "half-open") {
+			// Failed during half-open test - reopen circuit
+			this.circuitState = "open";
+			logger.warn("MCPBridge circuit breaker reopening after half-open failure");
+
+			// Track telemetry for circuit state change (G10: MCP metrics)
+			getMCPTelemetry().trackCircuitBreakerChange("open", {
+				previousState,
+				consecutiveFailures: this.consecutiveFailures,
+				threshold: this.circuitFailureThreshold,
+			});
+		} else if (this.consecutiveFailures >= this.circuitFailureThreshold && previousState === "closed") {
+			// Too many failures - open circuit
+			this.circuitState = "open";
+			logger.warn("MCPBridge circuit breaker opened", {
+				consecutiveFailures: this.consecutiveFailures,
+				threshold: this.circuitFailureThreshold,
+			});
+
+			// Track telemetry for circuit state change (G10: MCP metrics)
+			getMCPTelemetry().trackCircuitBreakerChange("open", {
+				previousState,
+				consecutiveFailures: this.consecutiveFailures,
+				threshold: this.circuitFailureThreshold,
+			});
+		}
+
+		// Track push metrics on failures
+		getMCPTelemetry().trackBridgePushMetrics({
+			pushCount: this.pushCount,
+			failureCount: this.failureCount,
+			queueDepth: this.observationQueue.length + this.changeQueue.length,
+			circuitState: this.circuitState,
+		});
+	}
+
+	/**
+	 * Get circuit breaker state for diagnostics
+	 */
+	getCircuitState(): { state: CircuitState; consecutiveFailures: number; nextRetryIn?: number } {
+		const result: { state: CircuitState; consecutiveFailures: number; nextRetryIn?: number } = {
+			state: this.circuitState,
+			consecutiveFailures: this.consecutiveFailures,
+		};
+
+		if (this.circuitState === "open" && this.lastFailureTime) {
+			const elapsed = Date.now() - this.lastFailureTime;
+			const remaining = this.circuitResetTimeout - elapsed;
+			if (remaining > 0) {
+				result.nextRetryIn = remaining;
+			}
+		}
+
+		return result;
 	}
 
 	// =========================================================================

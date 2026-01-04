@@ -588,10 +588,10 @@ export async function activate(context: vscode.ExtensionContext) {
 					}
 				}
 
-				if (burstState.detected && burstState.velocity) {
+				if (burstState.detected && burstState.velocity && burstState.filePath) {
 					// On burst detected → create PRE checkpoint
 					const riskScore = Math.min(100, Math.round(burstState.velocity * 10));
-					void prwManager?.handleSave(burstState.filePath!, riskScore);
+					void prwManager?.handleSave(burstState.filePath, riskScore);
 					logger.debug("SignalBridge triggered PRE checkpoint", {
 						filePath: burstState.filePath,
 						riskScore,
@@ -881,6 +881,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			workspaceRoot,
 			apiClient,
 			credentialsManager,
+			undefined, // telemetryProxy
+			phase2Result.mcpManager,
 		);
 		phaseTimings["Phase 4 (Providers)"] = Date.now() - phase4Start;
 

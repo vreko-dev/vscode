@@ -95,6 +95,8 @@ export function registerAllCommands(
 				} as InstanceType<typeof ServiceFederation>,
 				commandContext.operationCoordinator,
 				commandContext.workflowIntegration,
+				undefined, // mcpToolsService - not yet wired
+				mcpManager, // Pass MCPLifecycleManager for diagnostics
 			)
 		: [];
 
