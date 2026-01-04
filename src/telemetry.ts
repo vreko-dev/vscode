@@ -15,8 +15,9 @@ import type {
 	LegacyWalkthroughStepCompletedEvent,
 } from "@snapback/contracts";
 import { LEGACY_TELEMETRY_EVENTS, SnapBackEventBus } from "@snapback/contracts";
-import { TelemetryClient } from "@snapback/infrastructure/tracing";
+import { TelemetryClient } from "./telemetry/local-telemetry-client";
 import * as vscode from "vscode";
+import { logger } from "./utils/logger";
 import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService
 import { TelemetryProxy } from "./services/telemetry-proxy";
 
@@ -69,9 +70,9 @@ export class VSCodeTelemetry {
 			this.eventBus = new SnapBackEventBus();
 			try {
 				await this.eventBus.initialize();
-				console.log("EventEmitter2 event bus initialized for telemetry");
+				logger.debug("EventEmitter2 event bus initialized for telemetry");
 			} catch (err) {
-				console.warn("Failed to initialize EventEmitter2 event bus for telemetry:", err);
+				logger.warn("Failed to initialize EventEmitter2 event bus for telemetry", { error: err });
 			}
 
 			// Only initialize if we have a PostHog key
@@ -90,10 +91,10 @@ export class VSCodeTelemetry {
 				};
 				this.trackEvent(activationEvent);
 			} else {
-				console.log("PostHog key not found, telemetry disabled");
+				logger.debug("PostHog key not found, telemetry disabled");
 			}
 		} catch (error) {
-			console.warn("Failed to initialize telemetry:", error);
+			logger.warn("Failed to initialize telemetry", { error });
 		}
 	}
 
@@ -129,7 +130,7 @@ export class VSCodeTelemetry {
 					"telemetry.detailed_events",
 				);
 			} catch (error) {
-				console.warn("Failed to check feature flag for detailed telemetry, defaulting to enabled", error);
+				logger.warn("Failed to check feature flag for detailed telemetry, defaulting to enabled", { error });
 			}
 		}
 

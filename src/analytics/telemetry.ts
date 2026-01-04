@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
+
 import { TelemetryProxy } from "../services/telemetry-proxy";
 import { hashContent } from "../storage/utils/hash";
+import { logger } from "../utils/logger";
 
 /**
  * Service for checking and tracking application insights with strict privacy controls.
@@ -71,7 +73,7 @@ export class TelemetryService {
 		try {
 			await this.proxy.trackEvent(event, safeProperties);
 		} catch (e) {
-			console.error("[Telemetry] Failed to track event", e);
+			logger.error("Telemetry: Failed to track event", e instanceof Error ? e : undefined);
 		}
 	}
 }
