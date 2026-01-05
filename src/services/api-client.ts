@@ -1,3 +1,15 @@
+import type {
+	AiDetectionInput,
+	AiDetectionOutput,
+	BurstDetectionInput,
+	BurstDetectionOutput,
+	ComplexityAnalysisInput,
+	ComplexityAnalysisOutput,
+	ComprehensiveSignalInput,
+	ComprehensiveSignalOutput,
+	ThreatDetectionInput,
+	ThreatDetectionOutput,
+} from "@snapback/contracts";
 import { API_DEFAULTS } from "../config/hardcodedDefaults";
 import type { NetworkAdapter } from "../network/NetworkAdapter";
 import { QueuedNetworkAdapter } from "../network/QueuedNetworkAdapter";
@@ -223,6 +235,181 @@ export class ApiClient {
 		} catch (error) {
 			logger.error("API health check failed", error as Error);
 			return false;
+		}
+	}
+
+	// =============================================================================
+	// Signal Analysis Methods (Pro/advancedSignals)
+	// =============================================================================
+
+	/**
+	 * Detect AI tool presence via server-side analysis
+	 *
+	 * Requires Pro plan or advancedSignals permission.
+	 * Falls back to local SignalBridge if not authorized.
+	 */
+	public async detectAiServer(input: AiDetectionInput): Promise<AiDetectionOutput | null> {
+		await this.ensureApiKeyLoaded();
+
+		if (!this.apiKey) {
+			logger.debug("No API key - skipping server-side AI detection");
+			return null;
+		}
+
+		try {
+			const response = await this.networkAdapter.post(`${this.baseUrl}/api/signals/ai`, input, {
+				"X-API-Key": this.apiKey,
+			});
+
+			if (!response.ok) {
+				if (response.status === 403) {
+					logger.debug("AI detection requires Pro plan or advancedSignals permission");
+					return null;
+				}
+				throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+			}
+
+			return response.data as AiDetectionOutput;
+		} catch (error) {
+			logger.error("Server AI detection failed", error as Error);
+			return null;
+		}
+	}
+
+	/**
+	 * Detect security threats via server-side analysis
+	 *
+	 * Requires Pro plan or advancedSignals permission.
+	 * Falls back to local SignalBridge if not authorized.
+	 */
+	public async detectThreatsServer(input: ThreatDetectionInput): Promise<ThreatDetectionOutput | null> {
+		await this.ensureApiKeyLoaded();
+
+		if (!this.apiKey) {
+			logger.debug("No API key - skipping server-side threat detection");
+			return null;
+		}
+
+		try {
+			const response = await this.networkAdapter.post(`${this.baseUrl}/api/signals/threats`, input, {
+				"X-API-Key": this.apiKey,
+			});
+
+			if (!response.ok) {
+				if (response.status === 403) {
+					logger.debug("Threat detection requires Pro plan or advancedSignals permission");
+					return null;
+				}
+				throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+			}
+
+			return response.data as ThreatDetectionOutput;
+		} catch (error) {
+			logger.error("Server threat detection failed", error as Error);
+			return null;
+		}
+	}
+
+	/**
+	 * Analyze edit burst patterns via server-side analysis
+	 *
+	 * Requires Pro plan or advancedSignals permission.
+	 * Falls back to local SignalBridge if not authorized.
+	 */
+	public async analyzeBurstServer(input: BurstDetectionInput): Promise<BurstDetectionOutput | null> {
+		await this.ensureApiKeyLoaded();
+
+		if (!this.apiKey) {
+			logger.debug("No API key - skipping server-side burst analysis");
+			return null;
+		}
+
+		try {
+			const response = await this.networkAdapter.post(`${this.baseUrl}/api/signals/burst`, input, {
+				"X-API-Key": this.apiKey,
+			});
+
+			if (!response.ok) {
+				if (response.status === 403) {
+					logger.debug("Burst analysis requires Pro plan or advancedSignals permission");
+					return null;
+				}
+				throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+			}
+
+			return response.data as BurstDetectionOutput;
+		} catch (error) {
+			logger.error("Server burst analysis failed", error as Error);
+			return null;
+		}
+	}
+
+	/**
+	 * Analyze code complexity via server-side analysis
+	 *
+	 * Requires Pro plan or advancedSignals permission.
+	 * Falls back to local SignalBridge if not authorized.
+	 */
+	public async analyzeComplexityServer(input: ComplexityAnalysisInput): Promise<ComplexityAnalysisOutput | null> {
+		await this.ensureApiKeyLoaded();
+
+		if (!this.apiKey) {
+			logger.debug("No API key - skipping server-side complexity analysis");
+			return null;
+		}
+
+		try {
+			const response = await this.networkAdapter.post(`${this.baseUrl}/api/signals/complexity`, input, {
+				"X-API-Key": this.apiKey,
+			});
+
+			if (!response.ok) {
+				if (response.status === 403) {
+					logger.debug("Complexity analysis requires Pro plan or advancedSignals permission");
+					return null;
+				}
+				throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+			}
+
+			return response.data as ComplexityAnalysisOutput;
+		} catch (error) {
+			logger.error("Server complexity analysis failed", error as Error);
+			return null;
+		}
+	}
+
+	/**
+	 * Run comprehensive signal analysis via server
+	 *
+	 * Executes all signals in parallel and computes overall risk score.
+	 * Requires Pro plan or advancedSignals permission.
+	 * Falls back to local SignalBridge if not authorized.
+	 */
+	public async analyzeComprehensive(input: ComprehensiveSignalInput): Promise<ComprehensiveSignalOutput | null> {
+		await this.ensureApiKeyLoaded();
+
+		if (!this.apiKey) {
+			logger.debug("No API key - skipping server-side comprehensive analysis");
+			return null;
+		}
+
+		try {
+			const response = await this.networkAdapter.post(`${this.baseUrl}/api/signals/comprehensive`, input, {
+				"X-API-Key": this.apiKey,
+			});
+
+			if (!response.ok) {
+				if (response.status === 403) {
+					logger.debug("Comprehensive analysis requires Pro plan or advancedSignals permission");
+					return null;
+				}
+				throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+			}
+
+			return response.data as ComprehensiveSignalOutput;
+		} catch (error) {
+			logger.error("Server comprehensive analysis failed", error as Error);
+			return null;
 		}
 	}
 }
