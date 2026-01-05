@@ -44,6 +44,15 @@ async function main() {
 			"pino-pretty",
 			"posthog-node", // Using local telemetry client
 			"@typescript-eslint/*", // From SDK/contracts if pulled in
+			// madge and its heavy deps - only used for static analysis, not runtime
+			"madge", // ~10MB with deps - dependency graph analyzer
+			"typescript", // 8.9MB - pulled by madge's dependency-tree
+			"dependency-tree", // Pulls in typescript, requirejs
+			"precinct", // Pulls in gonzales-pe, babel parser
+			"filing-cabinet", // Pulls in requirejs
+			"requirejs", // 1.2MB - AMD module loader
+			"gonzales-pe", // 548KB - CSS parser
+			"detective-*", // Various language detectives
 			"@snapback/infrastructure", // No longer needed - using local logger/telemetry
 			"@snapback/infrastructure/*", // All subpaths
 			"drizzle-orm", // Database ORM from platform - not needed locally

@@ -808,7 +808,7 @@
         },
         "snapback.mcp.serverUrl": {
           "type": "string",
-          "default": "https://mcp.snapback.dev",
+          "default": "https://snapback-mcp.fly.dev",
           "markdownDescription": "**MCP Server URL**\n\nURL for the remote MCP server. Leave default for cloud, or set to local server.",
           "order": 5
         },

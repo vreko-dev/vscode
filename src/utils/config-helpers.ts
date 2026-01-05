@@ -140,7 +140,7 @@ export const SNAPBACK_CONFIG_DEFAULTS: SnapBackConfigSchema = {
 	"autoDecision.minFilesForBurst": 3,
 	"autoDecision.maxSnapshotsPerMinute": 4,
 	"mcp.enabled": true,
-	"mcp.serverUrl": "https://mcp.snapback.dev",
+	"mcp.serverUrl": "https://snapback-mcp.fly.dev",
 	"mcp.authType": "bearer",
 	"mcp.authToken": "",
 	"mcp.apiKey": "",

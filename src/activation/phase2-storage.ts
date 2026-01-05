@@ -232,7 +232,24 @@ export async function initializePhase2Storage(
 		const startT = Date.now();
 		mcpManager.start().catch((err) => {
 			logger.error("MCP server failed to start", err);
-			// Extension continues with reduced functionality
+
+			// Show user notification with troubleshooting options
+			vscode.window
+				.showWarningMessage(
+					"SnapBack MCP: Connection failed - AI assistant features limited",
+					"Diagnose",
+					"Retry",
+					"Dismiss",
+				)
+				.then((choice) => {
+					if (choice === "Diagnose") {
+						vscode.commands.executeCommand("snapback.mcp.status");
+					} else if (choice === "Retry") {
+						mcpManager.start().catch((retryErr) => {
+							logger.error("MCP retry failed", retryErr);
+						});
+					}
+				});
 		});
 		logger.debug("MCPLifecycleManager.start() called", {
 			ms: Date.now() - startT,

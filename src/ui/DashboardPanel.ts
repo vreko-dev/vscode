@@ -17,6 +17,7 @@
  */
 
 import * as vscode from "vscode";
+import { getMCPBridge } from "../bridges/MCPBridge";
 import type { HeatTracker } from "../heat/HeatTracker";
 import type { OperationCoordinator } from "../operationCoordinator";
 import { logger } from "../utils/logger";
@@ -65,6 +66,7 @@ interface DashboardMessage {
 		| "injectPrompt"
 		| "configureMCP"
 		| "showMCPStatus"
+		| "diagnoseMCP"
 		| "copyCommand"
 		| "createSnapshot"
 		| "openSettings"
@@ -273,6 +275,10 @@ export class DashboardPanel implements vscode.Disposable {
 				await vscode.commands.executeCommand("snapback.mcp.status");
 				break;
 
+			case "diagnoseMCP":
+				await vscode.commands.executeCommand("snapback.mcp.diagnose");
+				break;
+
 			case "injectPrompt":
 			case "configureMCP":
 				await this.injectSystemPrompt();
@@ -440,6 +446,9 @@ export class DashboardPanel implements vscode.Disposable {
 				</div>
 			</div>
 
+			<!-- MCP Status -->
+			${this.getMCPStatusSection()}
+
 			<!-- Token Savings -->
 			${
 				restoresThisWeek > 0
@@ -470,6 +479,62 @@ export class DashboardPanel implements vscode.Disposable {
 						${BRANDING.ui.settings} VS Code Settings
 					</button>
 				</div>
+			</div>
+		</div>
+		`;
+	}
+
+	/**
+	 * Get MCP status section for Home tab
+	 */
+	private getMCPStatusSection(): string {
+		const config = vscode.workspace.getConfiguration("snapback");
+		const mcpEnabled = config.get<boolean>("mcp.enabled", true);
+		const serverUrl = config.get<string>("mcp.serverUrl", "");
+
+		const statusIcon = mcpEnabled ? "$(plug)" : "$(debug-disconnect)";
+		const statusText = mcpEnabled ? "MCP Enabled" : "MCP Disabled";
+		const statusClass = mcpEnabled ? "mcp-enabled" : "mcp-disabled";
+
+		// Get queue depth from MCPBridge (G9: offline queue visibility)
+		let queueStatusHtml = "";
+		try {
+			const bridge = getMCPBridge();
+			const status = bridge.getStatus();
+			const pendingTotal = status.pendingObservations + status.pendingChanges;
+			if (pendingTotal > 0) {
+				queueStatusHtml = `
+				<div class="mcp-queue warning">
+					<span class="queue-icon">$(sync~spin)</span>
+					<span class="queue-text">${pendingTotal} item${pendingTotal !== 1 ? "s" : ""} queued</span>
+				</div>`;
+			} else if (status.pushCount > 0) {
+				queueStatusHtml = `
+				<div class="mcp-queue synced">
+					<span class="queue-icon">$(check)</span>
+					<span class="queue-text">Synced (${status.pushCount} pushes)</span>
+				</div>`;
+			}
+		} catch {
+			// MCPBridge not initialized yet
+		}
+
+		return `
+		<div class="mcp-section">
+			<h3>MCP CONNECTION</h3>
+			<div class="mcp-status ${statusClass}">
+				<span class="mcp-icon">${statusIcon}</span>
+				<span class="mcp-text">${statusText}</span>
+				${serverUrl ? `<span class="mcp-server">${serverUrl}</span>` : ""}
+			</div>
+			${queueStatusHtml}
+			<div class="mcp-actions">
+				<button class="action-btn-small" id="mcp-diagnose-btn">
+					Diagnose
+				</button>
+				<button class="action-btn-small" id="mcp-status-btn">
+					AI Status
+				</button>
 			</div>
 		</div>
 		`;
@@ -1026,6 +1091,103 @@ export class DashboardPanel implements vscode.Disposable {
 			5%, 15% { opacity: 1; transform: translateY(0); }
 			25%, 100% { opacity: 0; transform: translateY(-8px); }
 		}
+
+		/* MCP Status Section */
+		.mcp-section {
+			margin-bottom: 24px;
+			padding: 16px;
+			background: var(--bg-secondary);
+			border-radius: 8px;
+			border: 1px solid var(--border);
+		}
+
+		.mcp-section h3 {
+			font-size: 12px;
+			text-transform: uppercase;
+			color: var(--text-secondary);
+			margin-bottom: 12px;
+			letter-spacing: 0.5px;
+		}
+
+		.mcp-status {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-bottom: 12px;
+		}
+
+		.mcp-status.mcp-enabled .mcp-text {
+			color: var(--success);
+		}
+
+		.mcp-status.mcp-disabled .mcp-text {
+			color: var(--text-secondary);
+		}
+
+		.mcp-icon {
+			font-size: 16px;
+		}
+
+		.mcp-text {
+			font-weight: 500;
+		}
+
+		.mcp-server {
+			font-size: 12px;
+			color: var(--text-secondary);
+			font-family: var(--vscode-editor-font-family);
+		}
+
+		.mcp-queue {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 12px;
+			padding: 8px 12px;
+			border-radius: 4px;
+			font-size: 12px;
+		}
+
+		.mcp-queue.warning {
+			background: rgba(255, 165, 0, 0.15);
+			border: 1px solid rgba(255, 165, 0, 0.3);
+			color: var(--warning, #f5a623);
+		}
+
+		.mcp-queue.synced {
+			background: rgba(40, 167, 69, 0.15);
+			border: 1px solid rgba(40, 167, 69, 0.3);
+			color: var(--success, #28a745);
+		}
+
+		.queue-icon {
+			font-size: 14px;
+		}
+
+		.queue-text {
+			font-weight: 500;
+		}
+
+		.mcp-actions {
+			display: flex;
+			gap: 8px;
+		}
+
+		.action-btn-small {
+			padding: 6px 12px;
+			border: 1px solid var(--border);
+			border-radius: 4px;
+			background: var(--bg-primary);
+			color: var(--text-primary);
+			cursor: pointer;
+			font-size: 12px;
+			transition: all 0.2s;
+		}
+
+		.action-btn-small:hover {
+			background: var(--accent);
+			border-color: var(--accent);
+		}
 		`;
 	}
 
@@ -1071,6 +1233,15 @@ export class DashboardPanel implements vscode.Disposable {
 
 		document.getElementById('export-btn')?.addEventListener('click', () => {
 			vscode.postMessage({ command: 'exportDebugInfo' });
+		});
+
+		// MCP buttons
+		document.getElementById('mcp-diagnose-btn')?.addEventListener('click', () => {
+			vscode.postMessage({ command: 'diagnoseMCP' });
+		});
+
+		document.getElementById('mcp-status-btn')?.addEventListener('click', () => {
+			vscode.postMessage({ command: 'showMCPStatus' });
 		});
 
 		// Copy buttons
