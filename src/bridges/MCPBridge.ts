@@ -52,24 +52,33 @@ export interface MCPObservation {
  * MCPBridge configuration
  */
 export interface MCPBridgeConfig {
-	/** MCP bridge endpoint (default: http://localhost:3100) */
-	mcpEndpoint?: string;
+	/** Remote MCP bridge endpoint (default: https://snapback-mcp.fly.dev) */
+	remoteEndpoint?: string;
+	/** Local MCP bridge endpoint for fallback (default: http://localhost:3100) */
+	localEndpoint?: string;
 	/** Flush interval in ms (default: 5000) */
 	flushInterval?: number;
 	/** Enable AI attribution detection (default: true) */
 	enableAIDetection?: boolean;
 	/** Risk file patterns */
 	riskPatterns?: string[];
-	/** Workspace ID for scoped event filtering */
+	/** Workspace ID for scoped event filtering (ws_[32 hex chars]) */
 	workspaceId?: string;
+	/** Use local endpoint only (for development/offline mode) */
+	useLocalOnly?: boolean;
 }
 
 /**
  * Payload sent to MCP bridge endpoint
  */
 interface BridgePushPayload {
-	observations: MCPObservation[];
-	changes: MCPFileChange[];
+	/** Workspace ID for server-side context storage (ws_[32 hex chars]) */
+	workspaceId: string;
+	/** Observations to push */
+	observations: Array<Omit<MCPObservation, "workspaceId">>;
+	/** File changes to push */
+	changes: Array<Omit<MCPFileChange, "workspaceId">>;
+	/** Workspace root path (for local bridge compatibility) */
 	workspaceRoot: string;
 }
 
@@ -165,7 +174,8 @@ function getRiskReason(filePath: string): string {
  * Usage:
  * ```typescript
  * const bridge = new MCPBridge({
- *   mcpEndpoint: "http://localhost:3100",
+ *   remoteEndpoint: "https://snapback-mcp.fly.dev",
+ *   localEndpoint: "http://localhost:3100",
  *   flushInterval: 5000,
  * });
  *
@@ -180,12 +190,17 @@ function getRiskReason(filePath: string): string {
 type CircuitState = "closed" | "open" | "half-open";
 
 export class MCPBridge {
-	private readonly mcpEndpoint: string;
+	/** Remote MCP endpoint (Fly.dev) */
+	private readonly remoteEndpoint: string;
+	/** Local MCP endpoint (fallback) */
+	private readonly localEndpoint: string;
+	/** Use local endpoint only (skip remote) */
+	private readonly useLocalOnly: boolean;
 	private readonly flushInterval: number;
 	private readonly enableAIDetection: boolean;
 	private readonly riskPatterns: string[];
 	private readonly workspaceRoot: string;
-	/** Workspace ID for scoped event filtering */
+	/** Workspace ID for scoped event filtering (ws_[32 hex chars]) */
 	private readonly workspaceId: string;
 
 	// State
@@ -199,7 +214,10 @@ export class MCPBridge {
 	// Stats
 	private pushCount = 0;
 	private failureCount = 0;
+	private remoteFailureCount = 0;
+	private localFailureCount = 0;
 	private lastPushTime: number | null = null;
+	private lastSuccessfulEndpoint: "remote" | "local" | null = null;
 
 	// Circuit breaker state (G8: rate limit handling)
 	private circuitState: CircuitState = "closed";
@@ -209,7 +227,12 @@ export class MCPBridge {
 	private readonly circuitResetTimeout = 30000; // Try again after 30s
 
 	constructor(config: MCPBridgeConfig = {}) {
-		this.mcpEndpoint = config.mcpEndpoint ?? "http://127.0.0.1:3100";
+		// Remote endpoint: Fly.dev by default
+		this.remoteEndpoint = config.remoteEndpoint ?? "https://snapback-mcp.fly.dev";
+		// Local endpoint: localhost bridge receiver for fallback
+		this.localEndpoint = config.localEndpoint ?? "http://127.0.0.1:3100";
+		// Use local only mode (for development or offline)
+		this.useLocalOnly = config.useLocalOnly ?? false;
 		this.flushInterval = config.flushInterval ?? 5000;
 		this.enableAIDetection = config.enableAIDetection ?? true;
 		this.riskPatterns = config.riskPatterns ?? DEFAULT_RISK_PATTERNS;
@@ -508,6 +531,7 @@ export class MCPBridge {
 	 * Flush queued observations and changes to MCP server
 	 *
 	 * Uses circuit breaker pattern to prevent cascading failures (G8).
+	 * Tries remote endpoint first, falls back to local on failure.
 	 */
 	async flushToMCP(): Promise<void> {
 		// Skip if nothing to flush
@@ -521,39 +545,87 @@ export class MCPBridge {
 			return;
 		}
 
+		// Build payload with workspaceId at top level for remote server
 		const payload: BridgePushPayload = {
-			observations: [...this.observationQueue],
-			changes: [...this.changeQueue],
+			workspaceId: this.workspaceId,
+			observations: this.observationQueue.map(({ workspaceId: _ws, ...rest }) => rest),
+			changes: this.changeQueue.map(({ workspaceId: _ws, ...rest }) => rest),
 			workspaceRoot: this.workspaceRoot,
 		};
 
+		let success = false;
+
+		// Try remote first (unless useLocalOnly is set)
+		if (!this.useLocalOnly) {
+			success = await this.pushToEndpoint(this.remoteEndpoint, payload, "remote");
+		}
+
+		// Fallback to local if remote failed
+		if (!success) {
+			success = await this.pushToEndpoint(this.localEndpoint, payload, "local");
+		}
+
+		if (success) {
+			// Clear queues on success
+			this.observationQueue = [];
+			this.changeQueue = [];
+			this.pushCount++;
+			this.lastPushTime = Date.now();
+			this.onPushSuccess();
+		} else {
+			this.onPushFailure();
+			this.failureCount++;
+		}
+	}
+
+	/**
+	 * Push payload to a specific endpoint
+	 *
+	 * @param endpoint - The endpoint URL
+	 * @param payload - The payload to push
+	 * @param endpointType - "remote" or "local" for logging
+	 * @returns true if successful, false otherwise
+	 */
+	private async pushToEndpoint(
+		endpoint: string,
+		payload: BridgePushPayload,
+		endpointType: "remote" | "local",
+	): Promise<boolean> {
 		try {
-			const response = await fetch(`${this.mcpEndpoint}/bridge/push`, {
+			const response = await fetch(`${endpoint}/bridge/push`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(payload),
 			});
 
 			if (response.ok) {
-				// Success - reset circuit breaker
-				this.onPushSuccess();
-
-				// Clear queues on success
-				this.observationQueue = [];
-				this.changeQueue = [];
-				this.pushCount++;
-				this.lastPushTime = Date.now();
-			} else {
-				// HTTP error - count as failure
-				this.onPushFailure();
-				this.failureCount++;
-				logger.warn("MCPBridge push failed", { status: response.status, circuitState: this.circuitState });
+				this.lastSuccessfulEndpoint = endpointType;
+				logger.debug(`MCPBridge push succeeded via ${endpointType}`, {
+					observations: payload.observations.length,
+					changes: payload.changes.length,
+				});
+				return true;
 			}
-		} catch (_error) {
-			// Network error - count as failure
-			this.onPushFailure();
-			this.failureCount++;
-			// Keep queued for retry (silent failure is expected when MCP not running)
+
+			// HTTP error
+			if (endpointType === "remote") {
+				this.remoteFailureCount++;
+			} else {
+				this.localFailureCount++;
+			}
+			logger.debug(`MCPBridge push failed via ${endpointType}`, {
+				status: response.status,
+			});
+			return false;
+		} catch (error) {
+			// Network error
+			if (endpointType === "remote") {
+				this.remoteFailureCount++;
+			} else {
+				this.localFailureCount++;
+			}
+			// Silent failure is expected when endpoint not running
+			return false;
 		}
 	}
 
@@ -693,32 +765,73 @@ export class MCPBridge {
 		connected: boolean;
 		pushCount: number;
 		failureCount: number;
+		remoteFailureCount: number;
+		localFailureCount: number;
 		pendingObservations: number;
 		pendingChanges: number;
 		lastPushTime: number | null;
+		lastSuccessfulEndpoint: "remote" | "local" | null;
+		remoteEndpoint: string;
+		localEndpoint: string;
+		workspaceId: string;
 	} {
 		return {
 			connected: this.failureCount === 0 || this.pushCount > 0,
 			pushCount: this.pushCount,
 			failureCount: this.failureCount,
+			remoteFailureCount: this.remoteFailureCount,
+			localFailureCount: this.localFailureCount,
 			pendingObservations: this.observationQueue.length,
 			pendingChanges: this.changeQueue.length,
 			lastPushTime: this.lastPushTime,
+			lastSuccessfulEndpoint: this.lastSuccessfulEndpoint,
+			remoteEndpoint: this.remoteEndpoint,
+			localEndpoint: this.localEndpoint,
+			workspaceId: this.workspaceId,
 		};
 	}
 
 	/**
 	 * Check if MCP bridge is reachable
+	 * Checks remote first, then local
+	 *
+	 * @returns Object with health status for each endpoint
 	 */
-	async checkHealth(): Promise<boolean> {
+	async checkHealth(): Promise<{
+		remoteHealthy: boolean;
+		localHealthy: boolean;
+		anyHealthy: boolean;
+	}> {
+		const results = {
+			remoteHealthy: false,
+			localHealthy: false,
+			anyHealthy: false,
+		};
+
+		// Check remote health
+		if (!this.useLocalOnly) {
+			try {
+				const response = await fetch(`${this.remoteEndpoint}/health`, {
+					method: "GET",
+				});
+				results.remoteHealthy = response.ok;
+			} catch {
+				results.remoteHealthy = false;
+			}
+		}
+
+		// Check local health
 		try {
-			const response = await fetch(`${this.mcpEndpoint}/bridge/health`, {
+			const response = await fetch(`${this.localEndpoint}/bridge/health`, {
 				method: "GET",
 			});
-			return response.ok;
+			results.localHealthy = response.ok;
 		} catch {
-			return false;
+			results.localHealthy = false;
 		}
+
+		results.anyHealthy = results.remoteHealthy || results.localHealthy;
+		return results;
 	}
 }
 

@@ -309,12 +309,12 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 			const state = await vscode.window.showQuickPick(
 				[
-					{ label: "$(shield) Protected", value: "protected" },
+					{ label: "🛡️ Protected", value: "protected" },
 					// REMOVED: Recording option - Recording state removed (Option 3)
-					{ label: "$(pulse) Activity (5 snaps)", value: "activity" },
-					{ label: "$(alert) Attention/Review", value: "attention" },
-					{ label: "$(circle-slash) Disabled", value: "disabled" },
-					{ label: "$(debug-restart) Reset All", value: "reset" },
+					{ label: "💓 Activity (5 snaps)", value: "activity" },
+					{ label: "🚨 Attention/Review", value: "attention" },
+					{ label: "🚫 Disabled", value: "disabled" },
+					{ label: "🔄 Reset All", value: "reset" },
 				],
 				{ placeHolder: "Select status bar state to test" },
 			);
@@ -660,9 +660,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		// 🆕 Initialize MCPBridge for pair programming observations
 		// Pushes file changes and observations to MCP server for composite tools
 		// Uses workspace-scoped instance to prevent cross-workspace event leakage
+		// Remote endpoint (Fly.dev) is tried first, with local fallback
 		const primaryWorkspaceId = workspaceFolders[0]?.uri.toString() || "default";
 		mcpBridge = getMCPBridge(primaryWorkspaceId, {
-			mcpEndpoint: "http://127.0.0.1:3100",
+			remoteEndpoint: "https://snapback-mcp.fly.dev",
+			localEndpoint: "http://127.0.0.1:3100",
 			flushInterval: 5000,
 			enableAIDetection: true,
 		});
