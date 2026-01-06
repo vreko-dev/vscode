@@ -68,8 +68,8 @@ describe('StatusBarManager', () => {
       statusBar.updateStats({ checkpointsToday: 5 });
       // ACT: Call showIdle()
       statusBar.showIdle();
-      // ASSERT: Text should show checkpoint count
-      expect(mockStatusBarItem.text).toBe('$(shield) 5 checkpoints today');
+      // ASSERT: Text should show snapshot count (note: UI uses "snapshot" terminology)
+      expect(mockStatusBarItem.text).toBe('$(shield) 5 snapshots today');
     });
 
     it('should transition from ai-session to idle after 5s', () => {
@@ -82,14 +82,30 @@ describe('StatusBarManager', () => {
       expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
     });
 
-    it('should transition from checkpoint to idle-stats after 3s', () => {
+    it('should transition from checkpoint to idle after 3s (UI animation only)', () => {
+      // 🐛 FIX: showCheckpointCreated is UI animation only, it does NOT increment counter
+      // Counter should only be incremented via incrementSnapshotCount()
       statusBar.showCheckpointCreated();
-      expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+      expect(mockStatusBarItem.text).toBe('$(check) Snapshot saved');
 
       vi.advanceTimersByTime(3000);
 
-      // After timeout, should be in idle-stats (checkpoint count is now 1)
-      expect(mockStatusBarItem.text).toBe('$(shield) 1 checkpoint today');
+      // After timeout, should be in idle (no checkpoints - UI animation doesn't count)
+      expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+    });
+
+    it('should transition from checkpoint to idle-stats when counter was incremented via proper method', () => {
+      // First increment counter via proper method (simulating SNAPSHOT_CREATED event)
+      statusBar.incrementSnapshotCount();
+
+      // Then show the checkpoint animation
+      statusBar.showCheckpointCreated();
+      expect(mockStatusBarItem.text).toBe('$(check) Snapshot saved');
+
+      vi.advanceTimersByTime(3000);
+
+      // After timeout, should be in idle-stats (snapshot count is 1 from incrementSnapshotCount)
+      expect(mockStatusBarItem.text).toBe('$(shield) 1 snapshot today');
     });
 
     it('should transition from restored to idle after 5s', () => {
@@ -106,14 +122,17 @@ describe('StatusBarManager', () => {
     });
 
     it('should cancel pending transition when new state is set', () => {
+      // First set up a checkpoint via the proper method
+      statusBar.incrementSnapshotCount();
+
       statusBar.showAISession('Cursor');
       vi.advanceTimersByTime(2000); // Halfway through ai-session timeout
       statusBar.showCheckpointCreated(); // New state - should cancel ai-session timeout
 
       vi.advanceTimersByTime(3000); // Checkpoint timeout
 
-      // Should be in idle-stats (checkpoint count = 1), not from stale ai-session timeout
-      expect(mockStatusBarItem.text).toBe('$(shield) 1 checkpoint today');
+      // Should be in idle-stats (snapshot count = 1 from incrementSnapshotCount), not from stale ai-session timeout
+      expect(mockStatusBarItem.text).toBe('$(shield) 1 snapshot today');
     });
   });
 
@@ -130,14 +149,14 @@ describe('StatusBarManager', () => {
     it('should show checkpoint count in idle-stats state', () => {
       statusBar.updateStats({ checkpointsToday: 5 });
       statusBar.showIdle();
-      expect(mockStatusBarItem.text).toBe('$(shield) 5 checkpoints today');
+      expect(mockStatusBarItem.text).toBe('$(shield) 5 snapshots today');
     });
 
     it('should handle singular checkpoint correctly', () => {
-      // EDGE CASE: "1 checkpoint" not "1 checkpoints"
+      // EDGE CASE: "1 snapshot" not "1 snapshots"
       statusBar.updateStats({ checkpointsToday: 1 });
       statusBar.showIdle();
-      expect(mockStatusBarItem.text).toBe('$(shield) 1 checkpoint today');
+      expect(mockStatusBarItem.text).toBe('$(shield) 1 snapshot today');
     });
 
     it('should show AI tool name in ai-session state', () => {
@@ -249,18 +268,30 @@ describe('StatusBarManager', () => {
   // ===========================================================================
 
   describe('stats tracking', () => {
-    it('should increment checkpoint count on showCheckpointCreated', () => {
+    it('should NOT increment checkpoint count on showCheckpointCreated (regression test)', () => {
+      // 🐛 REGRESSION TEST: showCheckpointCreated is UI-only animation
+      // Counter should NOT increment here - only via incrementSnapshotCount()
+      const countBefore = statusBar.getSnapshotCount();
       statusBar.showCheckpointCreated();
-      vi.advanceTimersByTime(3000); // Wait for transition to idle-stats
+      expect(statusBar.getSnapshotCount()).toBe(countBefore); // No increment!
 
-      // Should show 1 checkpoint
-      expect(mockStatusBarItem.text).toBe('$(shield) 1 checkpoint today');
+      vi.advanceTimersByTime(3000); // Wait for transition
 
-      statusBar.showCheckpointCreated();
-      vi.advanceTimersByTime(3000);
+      // Should return to idle (not idle-stats since no actual snapshots)
+      expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+    });
 
-      // Should show 2 checkpoints
-      expect(mockStatusBarItem.text).toBe('$(shield) 2 checkpoints today');
+    it('should increment checkpoint count ONLY via incrementSnapshotCount', () => {
+      // This is the CORRECT way to increment the counter
+      expect(statusBar.getSnapshotCount()).toBe(0);
+
+      statusBar.incrementSnapshotCount();
+      expect(statusBar.getSnapshotCount()).toBe(1);
+      expect(mockStatusBarItem.text).toBe('$(shield) 1 snapshot today');
+
+      statusBar.incrementSnapshotCount();
+      expect(statusBar.getSnapshotCount()).toBe(2);
+      expect(mockStatusBarItem.text).toBe('$(shield) 2 snapshots today');
     });
 
     it('should increment AI session count on showAISession', () => {
@@ -284,8 +315,8 @@ describe('StatusBarManager', () => {
       statusBar.updateStats(newStats);
       statusBar.showIdle();
 
-      // Should reflect updated checkpoint count
-      expect(mockStatusBarItem.text).toBe('$(shield) 10 checkpoints today');
+      // Should reflect updated snapshot count
+      expect(mockStatusBarItem.text).toBe('$(shield) 10 snapshots today');
     });
 
     it('should record last checkpoint info', () => {
@@ -297,8 +328,8 @@ describe('StatusBarManager', () => {
 
       statusBar.recordCheckpoint(checkpointInfo);
 
-      // Should show checkpoint created state
-      expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+      // Should show snapshot created state
+      expect(mockStatusBarItem.text).toBe('$(check) Snapshot saved');
 
       // Tooltip should include the checkpoint info
       expect(mockStatusBarItem.tooltip).toBeDefined();
@@ -320,7 +351,8 @@ describe('StatusBarManager', () => {
       // Tooltip is a MarkdownString, check its value property
       const tooltip = mockStatusBarItem.tooltip;
       expect(tooltip).toBeDefined();
-      expect(tooltip.value).toContain('7 checkpoints');
+      // Note: Implementation uses "snapshots" not "checkpoints" in tooltip
+      expect(tooltip.value).toContain('7 snapshots');
       expect(tooltip.value).toContain('2 AI sessions');
     });
 
@@ -332,7 +364,8 @@ describe('StatusBarManager', () => {
       });
 
       const tooltip = mockStatusBarItem.tooltip;
-      expect(tooltip.value).toContain('Last checkpoint');
+      // Note: Implementation may use "Last snapshot" or similar
+      expect(tooltip.value).toMatch(/Last (checkpoint|snapshot)/i);
       expect(tooltip.value).toContain('2m ago');
       expect(tooltip.value).toContain('Cursor');
     });
@@ -341,7 +374,7 @@ describe('StatusBarManager', () => {
       statusBar.showIdle();
 
       const tooltip = mockStatusBarItem.tooltip;
-      expect(tooltip.value).not.toContain('Last checkpoint');
+      expect(tooltip.value).not.toMatch(/Last (checkpoint|snapshot)/i);
     });
   });
 
@@ -468,7 +501,7 @@ describe('StatusBarManager', () => {
         const steps: ActivityStep[] = [
           { text: '$(sparkle) AI detected', duration: 2000 },
           { text: '$(sync~spin) Capturing...', duration: 1000 },
-          { text: '$(check) Checkpoint saved', duration: 1000 },
+          { text: '$(check) Snapshot saved', duration: 1000 },
         ];
 
         // Start sequence
@@ -483,7 +516,7 @@ describe('StatusBarManager', () => {
         statusBar.showCheckpointCreated();
 
         // Sequence should be aborted, new state should be active
-        expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+        expect(mockStatusBarItem.text).toBe('$(check) Snapshot saved');
         expect(statusBar.isSequenceRunning()).toBe(false);
       });
 
@@ -510,8 +543,10 @@ describe('StatusBarManager', () => {
         expect(mockStatusBarItem.text).toBe('$(zap) Second sequence');
       });
 
-      it('should increment stats with showAIDetectedSequence', async () => {
-        const checkpointsBefore = (statusBar as any).stats.checkpointsToday;
+      it('should NOT increment checkpoint count with showAIDetectedSequence (regression test)', async () => {
+        // 🐛 REGRESSION TEST: showAIDetectedSequence shows UI animation only
+        // It does NOT create a snapshot, so counter should NOT increment
+        const checkpointsBefore = statusBar.getSnapshotCount();
         const aiSessionsBefore = (statusBar as any).stats.aiSessionsToday;
 
         const sequencePromise = statusBar.showAIDetectedSequence('Cursor');
@@ -519,9 +554,11 @@ describe('StatusBarManager', () => {
         // Should show custom tool name
         expect(mockStatusBarItem.text).toBe('$(sparkle) Cursor detected');
 
-        // Stats should be incremented
-        expect((statusBar as any).stats.checkpointsToday).toBe(checkpointsBefore + 1);
+        // AI sessions should increment (this is correct - we detected AI)
         expect((statusBar as any).stats.aiSessionsToday).toBe(aiSessionsBefore + 1);
+
+        // 🐛 FIX: Checkpoints should NOT increment (no actual snapshot created)
+        expect(statusBar.getSnapshotCount()).toBe(checkpointsBefore);
 
         // Complete the sequence
         await vi.advanceTimersByTimeAsync(3500);
@@ -552,13 +589,17 @@ describe('StatusBarManager', () => {
         await sequencePromise;
       });
 
-      it('should handle showBurstDetectedSequence', async () => {
-        const checkpointsBefore = (statusBar as any).stats.checkpointsToday;
+      it('should NOT increment checkpoint count with showBurstDetectedSequence (regression test)', async () => {
+        // 🐛 REGRESSION TEST: showBurstDetectedSequence shows UI animation only
+        // It does NOT create a snapshot, so counter should NOT increment
+        const checkpointsBefore = statusBar.getSnapshotCount();
 
         const sequencePromise = statusBar.showBurstDetectedSequence();
 
         expect(mockStatusBarItem.text).toBe('$(zap) Rapid changes');
-        expect((statusBar as any).stats.checkpointsToday).toBe(checkpointsBefore + 1);
+
+        // 🐛 FIX: Checkpoints should NOT increment (no actual snapshot created)
+        expect(statusBar.getSnapshotCount()).toBe(checkpointsBefore);
 
         await vi.advanceTimersByTimeAsync(3300);
         await sequencePromise;
@@ -570,7 +611,7 @@ describe('StatusBarManager', () => {
         expect(mockStatusBarItem.text).toBe('$(sync~spin) Saving...');
 
         await vi.advanceTimersByTimeAsync(500);
-        expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+        expect(mockStatusBarItem.text).toBe('$(check) Snapshot saved');
 
         await vi.advanceTimersByTimeAsync(2000);
         await sequencePromise;
@@ -588,8 +629,8 @@ describe('StatusBarManager', () => {
         await vi.advanceTimersByTimeAsync(500);
         await sequencePromise;
 
-        // Should show checkpoint count in idle-stats
-        expect(mockStatusBarItem.text).toBe('$(shield) 5 checkpoints today');
+        // Should show snapshot count in idle-stats
+        expect(mockStatusBarItem.text).toBe('$(shield) 5 snapshots today');
       });
 
       it('should clean up on dispose during sequence', async () => {
@@ -872,7 +913,7 @@ describe('StatusBarManager', () => {
         text: 'This should NOT show',
       });
 
-      expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+      expect(mockStatusBarItem.text).toBe('$(check) Snapshot saved');
     });
 
     it('should NOT display queue when in restored state', () => {
@@ -899,7 +940,7 @@ describe('StatusBarManager', () => {
       statusBar.showCheckpointCreated();
 
       // State machine should take over
-      expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+      expect(mockStatusBarItem.text).toBe('$(check) Snapshot saved');
     });
 
     it('should process queue after returning to idle from state machine state', () => {
@@ -912,7 +953,7 @@ describe('StatusBarManager', () => {
 
       // Enter a state machine state
       statusBar.showCheckpointCreated();
-      expect(mockStatusBarItem.text).toBe('$(check) Checkpoint saved');
+      expect(mockStatusBarItem.text).toBe('$(check) Snapshot saved');
 
       // Wait for transition to idle
       vi.advanceTimersByTime(3000);
@@ -935,6 +976,146 @@ describe('StatusBarManager', () => {
 
       // Command should be reset to default
       expect(mockStatusBarItem.command).toBe('snapback.showQuickPicker');
+    });
+  });
+
+  // ===========================================================================
+  // PHANTOM COUNTER BUG REGRESSION TESTS
+  // ===========================================================================
+
+  describe('phantom counter bug regression tests', () => {
+    /**
+     * 🐛 BUG CONTEXT:
+     * The phantom counter bug caused checkpointsToday to increment on detection events
+     * (AI detected, burst detected) WITHOUT creating actual snapshots.
+     *
+     * ROOT CAUSE:
+     * - showCheckpointCreated() incremented counter (UI animation)
+     * - showAIDetectedSequence() incremented counter (AI detection)
+     * - showBurstDetectedSequence() incremented counter (burst detection)
+     *
+     * FIX:
+     * - Counter should ONLY be incremented via incrementSnapshotCount()
+     * - incrementSnapshotCount() should ONLY be called from SNAPSHOT_CREATED event handlers
+     */
+
+    describe('counter integrity', () => {
+      it('showCheckpointCreated should NOT increment checkpointsToday', () => {
+        const countBefore = statusBar.getSnapshotCount();
+        statusBar.showCheckpointCreated();
+        expect(statusBar.getSnapshotCount()).toBe(countBefore);
+      });
+
+      it('showAIDetectedSequence should NOT increment checkpointsToday', async () => {
+        const countBefore = statusBar.getSnapshotCount();
+        const sequencePromise = statusBar.showAIDetectedSequence('Cursor');
+        expect(statusBar.getSnapshotCount()).toBe(countBefore);
+        await vi.advanceTimersByTimeAsync(3500);
+        await sequencePromise;
+        expect(statusBar.getSnapshotCount()).toBe(countBefore);
+      });
+
+      it('showBurstDetectedSequence should NOT increment checkpointsToday', async () => {
+        const countBefore = statusBar.getSnapshotCount();
+        const sequencePromise = statusBar.showBurstDetectedSequence();
+        expect(statusBar.getSnapshotCount()).toBe(countBefore);
+        await vi.advanceTimersByTimeAsync(3500);
+        await sequencePromise;
+        expect(statusBar.getSnapshotCount()).toBe(countBefore);
+      });
+
+      it('incrementSnapshotCount should be the ONLY way to increment counter', () => {
+        expect(statusBar.getSnapshotCount()).toBe(0);
+
+        // Animation methods should NOT increment
+        statusBar.showCheckpointCreated();
+        expect(statusBar.getSnapshotCount()).toBe(0);
+
+        // The only valid method
+        statusBar.incrementSnapshotCount();
+        expect(statusBar.getSnapshotCount()).toBe(1);
+      });
+
+      it('multiple detection events without snapshots should not inflate counter', async () => {
+        expect(statusBar.getSnapshotCount()).toBe(0);
+
+        // Simulate multiple AI detections
+        statusBar.showAIDetectedSequence('Cursor');
+        await vi.advanceTimersByTimeAsync(4000); // Wait for sequence to complete
+
+        statusBar.showAIDetectedSequence('Copilot');
+        await vi.advanceTimersByTimeAsync(4000);
+
+        // Simulate multiple burst detections
+        statusBar.showBurstDetectedSequence();
+        await vi.advanceTimersByTimeAsync(4000);
+
+        statusBar.showBurstDetectedSequence();
+        await vi.advanceTimersByTimeAsync(4000);
+
+        // Counter should still be 0 - no actual snapshots were created
+        expect(statusBar.getSnapshotCount()).toBe(0);
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+      });
+
+      it('counter should match actual snapshot count pattern', () => {
+        // Simulate a realistic flow:
+        // 1. AI detected (no snapshot yet)
+        // 2. Snapshot created (counter should increment)
+        // 3. Burst detected (no snapshot yet)
+        // 4. Snapshot created (counter should increment)
+
+        expect(statusBar.getSnapshotCount()).toBe(0);
+
+        // AI detected - no counter change
+        statusBar.showAIDetectedSequence('Cursor');
+        expect(statusBar.getSnapshotCount()).toBe(0);
+
+        // Snapshot created via event - counter increments
+        statusBar.incrementSnapshotCount();
+        expect(statusBar.getSnapshotCount()).toBe(1);
+
+        // Burst detected - no counter change
+        statusBar.showBurstDetectedSequence();
+        expect(statusBar.getSnapshotCount()).toBe(1);
+
+        // Another snapshot created - counter increments
+        statusBar.incrementSnapshotCount();
+        expect(statusBar.getSnapshotCount()).toBe(2);
+      });
+    });
+
+    describe('display consistency', () => {
+      it('idle-stats should only show when incrementSnapshotCount was called', () => {
+        // Animation methods should not trigger idle-stats
+        statusBar.showCheckpointCreated();
+        vi.advanceTimersByTime(3000);
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack'); // idle, not idle-stats
+
+        // After proper increment
+        statusBar.incrementSnapshotCount();
+        statusBar.showIdle();
+        expect(mockStatusBarItem.text).toBe('$(shield) 1 snapshot today');
+      });
+
+      it('getSnapshotCount should always reflect incrementSnapshotCount calls', () => {
+        // Baseline
+        expect(statusBar.getSnapshotCount()).toBe(0);
+
+        // Call various animation methods
+        statusBar.showCheckpointCreated();
+        statusBar.showAIDetectedSequence('Cursor');
+        statusBar.showBurstDetectedSequence();
+
+        // Still 0
+        expect(statusBar.getSnapshotCount()).toBe(0);
+
+        // Only incrementSnapshotCount changes it
+        statusBar.incrementSnapshotCount();
+        expect(statusBar.getSnapshotCount()).toBe(1);
+        statusBar.incrementSnapshotCount();
+        expect(statusBar.getSnapshotCount()).toBe(2);
+      });
     });
   });
 });

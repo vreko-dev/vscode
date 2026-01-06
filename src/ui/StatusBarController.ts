@@ -19,7 +19,7 @@
  * @packageDocumentation
  */
 
-import type * as vscode from "vscode";
+import * as vscode from "vscode";
 import { AIDetectionToast, type AISignal } from "../notifications/AIDetectionToast";
 import { type StateOptions, StatusBarState, UnifiedStatusBar } from "./UnifiedStatusBar";
 
@@ -30,10 +30,13 @@ import { type StateOptions, StatusBarState, UnifiedStatusBar } from "./UnifiedSt
  * - Single source of truth for status bar state
  * - Clear priority order for state resolution
  * - Handles AI detection via toast (not status bar)
+ * - Workspace-scoped to prevent cross-workspace count leakage
  */
 export class StatusBarController implements vscode.Disposable {
 	private readonly statusBar: UnifiedStatusBar;
 	private readonly aiToast: AIDetectionToast;
+	/** Workspace ID this controller is scoped to */
+	private readonly workspaceId: string;
 
 	// State inputs
 	private extensionEnabled = true;
@@ -41,9 +44,33 @@ export class StatusBarController implements vscode.Disposable {
 	private isRecording = false;
 	private snapshotCount = 0;
 
-	constructor() {
+	constructor(workspaceId?: string) {
 		this.statusBar = new UnifiedStatusBar();
 		this.aiToast = new AIDetectionToast();
+		// Use provided workspaceId or derive from workspace folder
+		this.workspaceId = workspaceId ?? vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
+	}
+
+	/**
+	 * Get the workspace ID this controller is scoped to
+	 */
+	getWorkspaceId(): string {
+		return this.workspaceId;
+	}
+
+	/**
+	 * Check if an event belongs to this controller's workspace
+	 * Use this to filter events before calling setSnapshotCount
+	 *
+	 * IMPORTANT: Events without workspaceId are rejected to enforce strict
+	 * workspace isolation. All event sources MUST include workspaceId.
+	 */
+	shouldProcessEvent(eventWorkspaceId?: string): boolean {
+		if (!eventWorkspaceId) {
+			// Events without workspaceId are rejected - all sources must include it
+			return false;
+		}
+		return eventWorkspaceId === this.workspaceId;
 	}
 
 	/**
@@ -76,6 +103,14 @@ export class StatusBarController implements vscode.Disposable {
 	setSnapshotCount(count: number): void {
 		this.snapshotCount = count;
 		this.updateStatusBar();
+	}
+
+	/**
+	 * Get current snapshot count
+	 * Useful for debugging workspace isolation
+	 */
+	getSnapshotCount(): number {
+		return this.snapshotCount;
 	}
 
 	/**

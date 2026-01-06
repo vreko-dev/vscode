@@ -260,11 +260,14 @@ export class StatusBarManager implements vscode.Disposable {
 	 * Show checkpoint created
 	 *
 	 * HINT: Auto-transitions to idle-stats after 3s
+	 * NOTE: This method only handles UI animation. Counter increment is handled
+	 * separately via incrementSnapshotCount() which is called on SNAPSHOT_CREATED events.
 	 */
 	showCheckpointCreated(): void {
 		this.clearTransitionTimeout();
 		this.setState("checkpoint");
-		this.stats.checkpointsToday++;
+		// 🐛 FIX: Removed checkpointsToday++ - counter should only increment on actual
+		// snapshot creation (SNAPSHOT_CREATED event), not on UI animation display
 
 		this.transitionTimeout = setTimeout(() => {
 			this.showIdle();
@@ -444,6 +447,10 @@ export class StatusBarManager implements vscode.Disposable {
 	 * Triggered when AI tool activity is detected.
 	 * Sequence: "AI detected" → "Capturing..." → "Checkpoint saved"
 	 *
+	 * NOTE: This shows a visual indication of AI detection, but does NOT create
+	 * a snapshot. Counter increment is handled separately via incrementSnapshotCount()
+	 * which is called only on actual SNAPSHOT_CREATED events.
+	 *
 	 * @param tool - Optional AI tool name for context
 	 */
 	async showAIDetectedSequence(tool?: string): Promise<void> {
@@ -456,9 +463,11 @@ export class StatusBarManager implements vscode.Disposable {
 			{ text: "$(check) Snapshot saved", duration: 1500 },
 		];
 
-		// Increment stats
+		// 🐛 FIX: Only increment AI session counter, NOT checkpointsToday
+		// The checkpoint counter should only increment when an actual snapshot is created
+		// (via SNAPSHOT_CREATED event), not when AI activity is merely detected
 		this.stats.aiSessionsToday++;
-		this.stats.checkpointsToday++;
+		// Removed: this.stats.checkpointsToday++ - this was causing phantom counter bug
 
 		return this.showActivitySequence(steps);
 	}
@@ -478,9 +487,15 @@ export class StatusBarManager implements vscode.Disposable {
 	 *
 	 * Triggered when rapid changes are detected.
 	 * Sequence: "Rapid changes" → "Capturing..." → "Checkpoint saved"
+	 *
+	 * NOTE: This shows a visual indication of burst detection, but does NOT create
+	 * a snapshot. Counter increment is handled separately via incrementSnapshotCount()
+	 * which is called only on actual SNAPSHOT_CREATED events.
 	 */
 	async showBurstDetectedSequence(): Promise<void> {
-		this.stats.checkpointsToday++;
+		// 🐛 FIX: Removed checkpointsToday++ - this was causing phantom counter bug
+		// Counter should only increment when an actual snapshot is created
+		// (via SNAPSHOT_CREATED event), not when burst activity is merely detected
 		return this.showActivitySequenceByType("burst-detected");
 	}
 
@@ -735,6 +750,41 @@ export class StatusBarManager implements vscode.Disposable {
 	recordCheckpoint(info: StatusBarStats["lastCheckpoint"]): void {
 		this.stats.lastCheckpoint = info;
 		this.showCheckpointCreated();
+	}
+
+	/**
+	 * Increment snapshot count
+	 *
+	 * IMPORTANT: This is the ONLY method that should increment checkpointsToday.
+	 * It must be called exclusively from SNAPSHOT_CREATED event handlers.
+	 *
+	 * DO NOT call this from:
+	 * - showCheckpointCreated() - UI animation only
+	 * - showAIDetectedSequence() - AI detection only, no snapshot
+	 * - showBurstDetectedSequence() - burst detection only, no snapshot
+	 *
+	 * @example
+	 * ```typescript
+	 * // In SNAPSHOT_CREATED event handler:
+	 * eventBus.on(SnapBackEvent.SNAPSHOT_CREATED, () => {
+	 *   statusBarManager.incrementSnapshotCount();
+	 * });
+	 * ```
+	 */
+	incrementSnapshotCount(): void {
+		this.stats.checkpointsToday++;
+
+		// Refresh display if in idle state to show updated count
+		if (this.state === "idle-stats" || this.state === "idle") {
+			this.showIdle();
+		}
+	}
+
+	/**
+	 * Get current snapshot count (for testing/debugging)
+	 */
+	getSnapshotCount(): number {
+		return this.stats.checkpointsToday;
 	}
 
 	// ===========================================================================
