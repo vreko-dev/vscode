@@ -14,6 +14,7 @@
  * @module bridges/MCPBridge
  */
 
+import { createHash } from "node:crypto";
 import * as vscode from "vscode";
 import { getMCPTelemetry } from "../services/MCPTelemetry";
 import { logger } from "../utils/logger";
@@ -226,6 +227,9 @@ export class MCPBridge {
 	private readonly circuitFailureThreshold = 5; // Open after 5 consecutive failures
 	private readonly circuitResetTimeout = 30000; // Try again after 30s
 
+	// Fetch timeout in milliseconds
+	private readonly fetchTimeout = 5000;
+
 	constructor(config: MCPBridgeConfig = {}) {
 		// Remote endpoint: Fly.dev by default
 		this.remoteEndpoint = config.remoteEndpoint ?? "https://snapback-mcp.fly.dev";
@@ -246,6 +250,24 @@ export class MCPBridge {
 	 */
 	getWorkspaceId(): string {
 		return this.workspaceId;
+	}
+
+	/**
+	 * Get the formatted workspace ID for remote server communication.
+	 *
+	 * Converts the raw workspace URI (e.g., "file:///Users/user1/project")
+	 * to the server-expected format: "ws_[32 hex chars]"
+	 *
+	 * The MD5 hash ensures:
+	 * - Consistent 32-char hex output regardless of path length
+	 * - Privacy: workspace path is not transmitted to remote server
+	 * - Deterministic: same path always produces same hash
+	 *
+	 * @returns Formatted workspace ID in "ws_[32 hex]" format
+	 */
+	getFormattedWorkspaceId(): string {
+		const hash = createHash("md5").update(this.workspaceId).digest("hex");
+		return `ws_${hash}`;
 	}
 
 	/**
@@ -545,9 +567,10 @@ export class MCPBridge {
 			return;
 		}
 
-		// Build payload with workspaceId at top level for remote server
+		// Build payload with formatted workspaceId (ws_[hash]) for remote server
+		// The formatted ID hashes the raw URI for privacy and server compatibility
 		const payload: BridgePushPayload = {
-			workspaceId: this.workspaceId,
+			workspaceId: this.getFormattedWorkspaceId(),
 			observations: this.observationQueue.map(({ workspaceId: _ws, ...rest }) => rest),
 			changes: this.changeQueue.map(({ workspaceId: _ws, ...rest }) => rest),
 			workspaceRoot: this.workspaceRoot,
@@ -596,6 +619,7 @@ export class MCPBridge {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(payload),
+				signal: AbortSignal.timeout(this.fetchTimeout),
 			});
 
 			if (response.ok) {
@@ -617,7 +641,7 @@ export class MCPBridge {
 				status: response.status,
 			});
 			return false;
-		} catch (error) {
+		} catch (_error) {
 			// Network error
 			if (endpointType === "remote") {
 				this.remoteFailureCount++;
@@ -774,6 +798,7 @@ export class MCPBridge {
 		remoteEndpoint: string;
 		localEndpoint: string;
 		workspaceId: string;
+		formattedWorkspaceId: string;
 	} {
 		return {
 			connected: this.failureCount === 0 || this.pushCount > 0,
@@ -788,6 +813,7 @@ export class MCPBridge {
 			remoteEndpoint: this.remoteEndpoint,
 			localEndpoint: this.localEndpoint,
 			workspaceId: this.workspaceId,
+			formattedWorkspaceId: this.getFormattedWorkspaceId(),
 		};
 	}
 
@@ -813,6 +839,7 @@ export class MCPBridge {
 			try {
 				const response = await fetch(`${this.remoteEndpoint}/health`, {
 					method: "GET",
+					signal: AbortSignal.timeout(this.fetchTimeout),
 				});
 				results.remoteHealthy = response.ok;
 			} catch {
@@ -824,6 +851,7 @@ export class MCPBridge {
 		try {
 			const response = await fetch(`${this.localEndpoint}/bridge/health`, {
 				method: "GET",
+				signal: AbortSignal.timeout(this.fetchTimeout),
 			});
 			results.localHealthy = response.ok;
 		} catch {
