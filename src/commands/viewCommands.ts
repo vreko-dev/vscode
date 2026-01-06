@@ -167,7 +167,7 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 
 					// Show status bar with restore action (deferred confirmation)
 					const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
-					statusBarItem.text = `$(history) Reviewing: ${snapshotLabel} (${files.length} files)`;
+					statusBarItem.text = `📜 Reviewing: ${snapshotLabel} (${files.length} files)`;
 					statusBarItem.tooltip = "Click to restore all files from this snapshot";
 					statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 					statusBarItem.show();

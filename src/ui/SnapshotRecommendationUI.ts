@@ -158,7 +158,7 @@ export class SnapshotRecommendationUI implements vscode.Disposable {
 		this.lastNotificationTime = Date.now();
 
 		const healthSignage = SESSION_HEALTH_SIGNAGE[recommendation.sessionHealth];
-		const message = `${healthSignage.emoji} ${recommendation.reason}`;
+		const message = `${healthSignage.icon} ${recommendation.reason}`;
 
 		let result: string | undefined;
 

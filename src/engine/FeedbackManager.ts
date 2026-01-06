@@ -107,7 +107,7 @@ export class FeedbackManager {
 			this.currentMessageId = this.statusBarManager.enqueueMessage({
 				id: `${FeedbackManager.MESSAGE_PREFIX}-${detectionId}`,
 				priority: "medium", // Higher than pioneer tips, lower than health warnings
-				text: "$(robot) AI Detected",
+				text: "🤖 AI Detected",
 				tooltip:
 					"**AI Activity Detected**\nSnapBack is protecting this burst.\n\n*Incorrect? Click to report (+50 pts)*",
 				duration: 0, // Persistent until dismissed
@@ -117,7 +117,7 @@ export class FeedbackManager {
 			this.currentMessageId = this.statusBarManager.enqueueMessage({
 				id: `${FeedbackManager.MESSAGE_PREFIX}-${detectionId}`,
 				priority: "medium",
-				text: "$(robot)? AI Uncertain",
+				text: "🤖? AI Uncertain",
 				tooltip: "**Uncertain Detection**\nHelp us verify (+20 pts)\n\n*Click to provide feedback*",
 				duration: 0,
 				backgroundColor: "statusBarItem.warningBackground",

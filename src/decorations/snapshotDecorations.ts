@@ -324,7 +324,7 @@ export class SnapshotDecorations {
 			// For now, return a simple hover message
 			// In a more advanced implementation, we could show the actual snapshot content
 			const hoverText = new vscode.MarkdownString(
-				"$(history) This line has changed since the last snapshot\n\n" +
+				"📜 This line has changed since the last snapshot\n\n" +
 					`**Snapshot:** ${latestSnapshot.id.substring(0, 8)}\n` +
 					`**Time:** ${new Date(latestSnapshot.timestamp).toLocaleString()}`,
 			);

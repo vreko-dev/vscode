@@ -18,9 +18,9 @@
  * @packageDocumentation
  */
 
-import { logger } from "../../utils/logger";
 import * as vscode from "vscode";
 import type { IStorageManager, SnapshotManifest } from "../../storage/types";
+import { logger } from "../../utils/logger";
 import {
 	type AnySnapshotManifest,
 	formatAnchorFile,
@@ -161,7 +161,7 @@ export class SnapshotQuickPick implements vscode.Disposable {
 			logger.error("Failed to load snapshots for QuickPick", error as Error);
 			this.quickPick.items = [
 				{
-					label: "$(error) Failed to load snapshots",
+					label: "❌ Failed to load snapshots",
 					description: "Check the output panel for details",
 				},
 			];
@@ -198,7 +198,7 @@ export class SnapshotQuickPick implements vscode.Disposable {
 
 		// Header: Recent snapshots
 		items.push({
-			label: "$(history) Recent Snapshots",
+			label: "📜 Recent Snapshots",
 			kind: vscode.QuickPickItemKind.Separator,
 		});
 
@@ -209,7 +209,7 @@ export class SnapshotQuickPick implements vscode.Disposable {
 			}
 		} else {
 			items.push({
-				label: "$(info) No snapshots yet",
+				label: "ℹ️ No snapshots yet",
 				description: "Snapshots will appear here as you work",
 			});
 		}
@@ -222,12 +222,12 @@ export class SnapshotQuickPick implements vscode.Disposable {
 
 		// Actions
 		items.push({
-			label: "$(folder) Browse all snapshots...",
+			label: "📁 Browse all snapshots...",
 			action: "browse",
 		});
 
 		items.push({
-			label: "$(gear) Snapshot settings...",
+			label: "⚙️ Snapshot settings...",
 			action: "settings",
 		});
 

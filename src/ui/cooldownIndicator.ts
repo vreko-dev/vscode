@@ -135,7 +135,7 @@ export class CooldownIndicator {
 		}
 
 		// Show the cooldown indicator
-		this.statusBarItem.text = `$(clock) ${cooldownCount}`;
+		this.statusBarItem.text = `⏱️ ${cooldownCount}`;
 		this.statusBarItem.tooltip = this.createCooldownTooltip();
 		this.statusBarItem.show();
 	}

@@ -192,7 +192,7 @@ export class WelcomeView implements vscode.WebviewViewProvider, vscode.Disposabl
             <body>
                 <div class="welcome-container">
                     <div class="header">
-                        <div class="logo">🛡️</div>
+                        <div class="logo">🧢</div>
                         <h1>SnapBack</h1>
                         <p>Protect your code from unintended changes</p>
 

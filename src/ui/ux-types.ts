@@ -35,13 +35,13 @@ import type {
  * @see StatusBarManager for implementation
  */
 export type StatusBarState =
-	| "idle" // $(shield) SnapBack
-	| "idle-stats" // $(shield) 3 checkpoints today
-	| "ai-session" // $(sparkle) Cursor session protected
-	| "checkpoint" // $(check) Checkpoint saved
-	| "restored" // $(history) Restored 47 lines
+	| "idle" // 🛡️ SnapBack
+	| "idle-stats" // 🛡️ 3 checkpoints today
+	| "ai-session" // ✨ Cursor session protected
+	| "checkpoint" // ✅ Checkpoint saved
+	| "restored" // 📜 Restored 47 lines
 	| "vitals" // 💓45 🌡️🔥 📊78 🫁92 (power user mode)
-	| "recommendation"; // $(warning) Snapshot Recommended
+	| "recommendation"; // ⚠️ Snapshot Recommended
 
 /**
  * Stats tracked for status bar display
@@ -276,14 +276,14 @@ export interface VitalsDisplayData {
  * ```typescript
  * // AI detection sequence
  * [
- *   { text: "$(sparkle) AI detected", duration: 1500 },
- *   { text: "$(sync~spin) Analyzing...", duration: 1000 },
- *   { text: "$(check) Checkpoint saved", duration: 2000 },
+ *   { text: "✨ AI detected", duration: 1500 },
+ *   { text: "🔄 Analyzing...", duration: 1000 },
+ *   { text: "✅ Checkpoint saved", duration: 2000 },
  * ]
  * ```
  */
 export interface ActivityStep {
-	/** Status bar text with codicon (e.g., "$(sparkle) AI detected") */
+	/** Status bar text with codicon (e.g., "✨ AI detected") */
 	text: string;
 	/** Duration in milliseconds to show this step */
 	duration: number;
@@ -316,31 +316,31 @@ export interface ActivitySequenceConfig {
 /**
  * Predefined activity sequences for common events
  *
- * CRITICAL: Use $(sync~spin) sparingly - only for actual in-progress work
+ * CRITICAL: Use 🔄 sparingly - only for actual in-progress work
  */
 export const ACTIVITY_SEQUENCES: Record<ActivitySequenceType, ActivityStep[]> = {
 	"ai-detected": [
-		{ text: "$(sparkle) AI detected", duration: 1200 },
-		{ text: "$(sync~spin) Capturing...", duration: 800 },
-		{ text: "$(check) Snapshot saved", duration: 1500 },
+		{ text: "✨ AI detected", duration: 1200 },
+		{ text: "🔄 Capturing...", duration: 800 },
+		{ text: "✅ Snapshot saved", duration: 1500 },
 	],
 	"vitals-degrading": [
-		{ text: "$(warning) Health declining", duration: 1200, backgroundColor: "statusBarItem.warningBackground" },
-		{ text: "$(heart) Monitoring...", duration: 800 },
-		{ text: "$(shield) Auto-protected", duration: 1500 },
+		{ text: "⚠️ Health declining", duration: 1200, backgroundColor: "statusBarItem.warningBackground" },
+		{ text: "💚 Monitoring...", duration: 800 },
+		{ text: "🛡️ Auto-protected", duration: 1500 },
 	],
 	"burst-detected": [
-		{ text: "$(zap) Rapid changes", duration: 1000 },
-		{ text: "$(sync~spin) Capturing...", duration: 800 },
-		{ text: "$(check) Snapshot saved", duration: 1500 },
+		{ text: "⚡ Rapid changes", duration: 1000 },
+		{ text: "🔄 Capturing...", duration: 800 },
+		{ text: "✅ Snapshot saved", duration: 1500 },
 	],
 	"checkpoint-created": [
-		{ text: "$(sync~spin) Saving...", duration: 500 },
-		{ text: "$(check) Snapshot saved", duration: 2000 },
+		{ text: "🔄 Saving...", duration: 500 },
+		{ text: "✅ Snapshot saved", duration: 2000 },
 	],
 	"restore-complete": [
-		{ text: "$(sync~spin) Restoring...", duration: 800 },
-		{ text: "$(history) Restored", duration: 2000, backgroundColor: "statusBarItem.warningBackground" },
+		{ text: "🔄 Restoring...", duration: 800 },
+		{ text: "📜 Restored", duration: 2000, backgroundColor: "statusBarItem.warningBackground" },
 	],
 } as const;
 

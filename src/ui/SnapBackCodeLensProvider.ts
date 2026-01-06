@@ -52,7 +52,7 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 
 			// Add main CodeLens with protection information
 			const protectionInfoLens = new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
-				title: "$(shield) BLOCK Protection Active - Save requires snapshot",
+				title: "🛡️ BLOCK Protection Active - Save requires snapshot",
 				command: "snapback.showProtectionDetails",
 				arguments: [filePath],
 			});
@@ -60,21 +60,21 @@ export class SnapBackCodeLensProvider implements vscode.CodeLensProvider {
 
 			// Add action CodeLenses
 			const actionLens = new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
-				title: "$(check) Allow once",
+				title: "✅ Allow once",
 				command: "snapback.allowOnce",
 				arguments: [filePath],
 			});
 			codeLenses.push(actionLens);
 
 			const markWrongLens = new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
-				title: "$(circle-slash) Mark wrong",
+				title: "🚫 Mark wrong",
 				command: "snapback.markWrong",
 				arguments: [filePath],
 			});
 			codeLenses.push(markWrongLens);
 
 			const detailsLens = new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
-				title: "$(info) Details",
+				title: "ℹ️ Details",
 				command: "snapback.showProtectionDetails",
 				arguments: [filePath],
 			});

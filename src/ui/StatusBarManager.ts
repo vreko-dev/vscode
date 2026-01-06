@@ -54,7 +54,7 @@ const STATE_TIMEOUTS: Partial<Record<StatusBarState, number>> = {
 /**
  * Status bar text templates
  *
- * HINT: Use VS Code codicons like $(shield), $(sparkle), etc.
+ * HINT: Use VS Code codicons like 🛡️, ✨, etc.
  * Full list: https://code.visualstudio.com/api/references/icons-in-labels
  */
 
@@ -103,17 +103,16 @@ export interface QueuedMessage {
 }
 
 const STATUS_TEXT: Record<StatusBarState, string | ((data: unknown) => string)> = {
-	idle: "$(shield) SnapBack",
+	idle: "🧢 SnapBack",
 	"idle-stats": (stats: unknown) =>
-		`$(shield) ${(stats as StatusBarStats).checkpointsToday} snapshot${(stats as StatusBarStats).checkpointsToday !== 1 ? "s" : ""} today`,
-	"ai-session": (tool: unknown) =>
-		tool ? `$(sparkle) ${tool as string} session protected` : "$(zap) Active session",
-	checkpoint: "$(check) Snapshot saved",
-	restored: (lines: unknown) => `$(history) Restored${lines ? ` ${lines as number}` : ""} lines`,
+		`🧢 ${(stats as StatusBarStats).checkpointsToday} snapshot${(stats as StatusBarStats).checkpointsToday !== 1 ? "s" : ""} today`,
+	"ai-session": (tool: unknown) => (tool ? `✨ ${tool as string} session protected` : "⚡ Active session"),
+	checkpoint: "✅ Snapshot saved",
+	restored: (lines: unknown) => `📜 Restored${lines ? ` ${lines as number}` : ""} lines`,
 	vitals: (vitals: unknown) => formatVitalsText(vitals as VitalsDisplayData),
 	recommendation: (urgency: unknown) => {
 		const u = urgency as RecommendationUrgency;
-		const icon = u === "critical" ? "$(alert)" : u === "high" ? "$(warning)" : "$(info)";
+		const icon = u === "critical" ? "🚨" : u === "high" ? "⚠️" : "ℹ️";
 		return `${icon} Snapshot Recommended`;
 	},
 };
@@ -377,9 +376,9 @@ export class StatusBarManager implements vscode.Disposable {
 	 * @example
 	 * ```typescript
 	 * await statusBar.showActivitySequence([
-	 *   { text: "$(sparkle) AI detected", duration: 1500 },
-	 *   { text: "$(sync~spin) Analyzing...", duration: 1000 },
-	 *   { text: "$(check) Checkpoint saved", duration: 2000 },
+	 *   { text: "✨ AI detected", duration: 1500 },
+	 *   { text: "🔄 Analyzing...", duration: 1000 },
+	 *   { text: "✅ Checkpoint saved", duration: 2000 },
 	 * ]);
 	 * ```
 	 */
@@ -456,11 +455,11 @@ export class StatusBarManager implements vscode.Disposable {
 	async showAIDetectedSequence(tool?: string): Promise<void> {
 		const steps: ActivityStep[] = [
 			{
-				text: tool ? `$(sparkle) ${tool} detected` : "$(sparkle) AI detected",
+				text: tool ? `✨ ${tool} detected` : "✨ AI detected",
 				duration: 1200,
 			},
-			{ text: "$(sync~spin) Capturing...", duration: 800 },
-			{ text: "$(check) Snapshot saved", duration: 1500 },
+			{ text: "🔄 Capturing...", duration: 800 },
+			{ text: "✅ Snapshot saved", duration: 1500 },
 		];
 
 		// 🐛 FIX: Only increment AI session counter, NOT checkpointsToday
@@ -661,16 +660,16 @@ export class StatusBarManager implements vscode.Disposable {
 		const healthSignage = SESSION_HEALTH_SIGNAGE[this.sessionHealth];
 		const trajectorySignage = TRAJECTORY_SIGNAGE[this.trajectory];
 
-		md.appendMarkdown(`**SnapBack** ${healthSignage.emoji} ${healthSignage.label}\n\n`);
+		md.appendMarkdown(`**SnapBack** ${healthSignage.icon} ${healthSignage.label}\n\n`);
 
 		// Recommendation reason if showing recommendation
 		if (this.state === "recommendation" && this.recommendationReason) {
-			md.appendMarkdown(`**$(warning) ${this.recommendationReason}**\n\n`);
+			md.appendMarkdown(`**⚠️ ${this.recommendationReason}**\n\n`);
 			md.appendMarkdown("*Click to create snapshot*\n\n");
 		}
 
 		// Session health section
-		md.appendMarkdown(`**Session Health:** ${healthSignage.emoji} ${healthSignage.label}`);
+		md.appendMarkdown(`**Session Health:** ${healthSignage.icon} ${healthSignage.label}`);
 		md.appendMarkdown(` ${trajectorySignage.arrow}\n`);
 		md.appendMarkdown(`*${healthSignage.description}*\n\n`);
 
@@ -681,16 +680,16 @@ export class StatusBarManager implements vscode.Disposable {
 
 			md.appendMarkdown("**Workspace Vitals:**\n");
 			md.appendMarkdown(
-				`- ${pulseSignage.emoji} Pulse: ${pulseSignage.label} (${this.currentVitals.pulse.value}/min)\n`,
+				`- ${pulseSignage.icon} Pulse: ${pulseSignage.label} (${this.currentVitals.pulse.value}/min)\n`,
 			);
-			md.appendMarkdown(`- ${tempSignage.emoji} Temperature: ${tempSignage.label}`);
+			md.appendMarkdown(`- ${tempSignage.icon} Temperature: ${tempSignage.label}`);
 			if (this.currentVitals.temperature.tool) {
 				md.appendMarkdown(` (${this.currentVitals.temperature.tool})`);
 			}
 			md.appendMarkdown("\n");
 			md.appendMarkdown(`- 📊 Pressure: ${this.currentVitals.pressure.value}%\n`);
 			md.appendMarkdown(`- 🫁 Oxygen: ${this.currentVitals.oxygen.value}%\n`);
-			md.appendMarkdown(`- ${trajectorySignage.emoji} Trajectory: ${trajectorySignage.label}\n\n`);
+			md.appendMarkdown(`- ${trajectorySignage.icon} Trajectory: ${trajectorySignage.label}\n\n`);
 		}
 
 		// Stats section
@@ -821,7 +820,7 @@ export class StatusBarManager implements vscode.Disposable {
 	 * // Enqueue a pioneer tip
 	 * const id = statusBar.enqueueMessage({
 	 *   priority: "low",
-	 *   text: "$(rocket) Join Pioneers for early access",
+	 *   text: "🚀 Join Pioneers for early access",
 	 *   duration: 10000, // 10 seconds
 	 *   command: "snapback.showPioneerSignup",
 	 * });

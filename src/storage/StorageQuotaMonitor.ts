@@ -230,7 +230,7 @@ export class StorageQuotaMonitor {
 
 		if (status.isCritical || status.isFull) {
 			return {
-				label: `$(warning) ${percentUsed}%`,
+				label: `⚠️ ${percentUsed}%`,
 				tooltip: `Storage critical: ${usedGB}GB / ${totalGB}GB used. Free space needed.`,
 				severity: "critical",
 			};
@@ -238,7 +238,7 @@ export class StorageQuotaMonitor {
 
 		if (status.isWarning) {
 			return {
-				label: `$(alert) ${percentUsed}%`,
+				label: `🚨 ${percentUsed}%`,
 				tooltip: `Storage warning: ${usedGB}GB / ${totalGB}GB used. Consider freeing space.`,
 				severity: "warning",
 			};

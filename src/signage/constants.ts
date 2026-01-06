@@ -2,6 +2,8 @@ import {
 	type BrandSignage,
 	type CoreConceptKey,
 	type CoreConceptSignage,
+	type EventTypeKey,
+	type EventTypeSignage,
 	FILE_HEALTH_CANONICAL,
 	type FileHealthCanonical,
 	type FileHealthDecorationSignage,
@@ -18,6 +20,10 @@ import {
 	SESSION_HEALTH_CANONICAL,
 	type SessionHealthCanonical,
 	type SessionHealthSignage,
+	type SnapshotOriginKey,
+	type SnapshotOriginSignage,
+	type StatusKey,
+	type StatusSignage,
 	TEMPERATURE_LEVEL_CANONICAL,
 	type TemperatureLevelCanonical,
 	type TemperatureLevelSignage,
@@ -28,14 +34,13 @@ import {
 
 /**
  * Single source of truth for protection level signage.
- * If you change emoji/labels here, the whole UI updates.
+ * If you change icons/labels here, the whole UI updates.
  */
 export const PROTECTION_LEVEL_SIGNAGE: Readonly<Record<ProtectionLevelCanonical, ProtectionLevelSignage>> = {
 	watch: {
 		level: PROTECTION_LEVEL_CANONICAL.WATCH,
 		label: "Watch",
-		emoji: "🟢",
-		codicon: "eye",
+		icon: "🟢",
 		color: "#10B981",
 		themeColor: "charts.green",
 		description: "Auto-snapshot on save with zero friction.",
@@ -44,9 +49,8 @@ export const PROTECTION_LEVEL_SIGNAGE: Readonly<Record<ProtectionLevelCanonical,
 	warn: {
 		level: PROTECTION_LEVEL_CANONICAL.WARN,
 		label: "Warn",
-		emoji: "🟡",
-		codicon: "warning",
-		color: "#FACC15", // yellow
+		icon: "🟡",
+		color: "#FACC15",
 		themeColor: "charts.yellow",
 		description: "Notify before save; review changes and confirm.",
 		tooltip: "Warn: confirm before save. Review the diff and choose when to create snapshots.",
@@ -54,8 +58,7 @@ export const PROTECTION_LEVEL_SIGNAGE: Readonly<Record<ProtectionLevelCanonical,
 	block: {
 		level: PROTECTION_LEVEL_CANONICAL.BLOCK,
 		label: "Block",
-		emoji: "🔴",
-		codicon: "error",
+		icon: "🔴",
 		color: "#EF4444",
 		themeColor: "charts.red",
 		description: "Require snapshot or explicit override before saving.",
@@ -71,15 +74,15 @@ export const REPO_STATUS_SIGNAGE: Readonly<Record<RepoStatusCanonical, RepoStatu
 	unprotected: {
 		status: REPO_STATUS_CANONICAL.UNPROTECTED,
 		label: "Unprotected",
-		emoji: "⭕",
-		color: "#9CA3AF", // gray
+		icon: "⭕",
+		color: "#9CA3AF",
 		description: "No critical files are currently protected.",
 		tooltip: "Unprotected: no critical files have protection levels applied in this workspace.",
 	},
 	partial: {
 		status: REPO_STATUS_CANONICAL.PARTIAL,
 		label: "Partial",
-		emoji: "🟡",
+		icon: "🟡",
 		color: "#FACC15",
 		description: "Some critical files are protected; others are not.",
 		tooltip: "Partial: some critical files are protected, but there are gaps in coverage.",
@@ -87,7 +90,7 @@ export const REPO_STATUS_SIGNAGE: Readonly<Record<RepoStatusCanonical, RepoStatu
 	protected: {
 		status: REPO_STATUS_CANONICAL.PROTECTED,
 		label: "Protected",
-		emoji: "🟢",
+		icon: "🟢",
 		color: "#10B981",
 		description: "All critical files are covered by protection levels.",
 		tooltip: "Protected: all critical files have an active protection level applied.",
@@ -95,7 +98,7 @@ export const REPO_STATUS_SIGNAGE: Readonly<Record<RepoStatusCanonical, RepoStatu
 	error: {
 		status: REPO_STATUS_CANONICAL.ERROR,
 		label: "Error",
-		emoji: "⚠️",
+		icon: "⚠️",
 		color: "#F97316",
 		description: "Repo protection status could not be determined.",
 		tooltip: "Error: SnapBack couldn't compute repo protection status. Check logs or try reloading.",
@@ -110,24 +113,21 @@ export const FILE_HEALTH_DECORATIONS: Readonly<Record<FileHealthCanonical, FileH
 	protected: {
 		state: FILE_HEALTH_CANONICAL.PROTECTED,
 		label: "Protected",
-		badge: "🛡️",
-		codicon: "shield",
+		icon: "🛡️",
 		themeColor: "charts.green",
 		tooltip: "Protected by SnapBack.",
 	},
 	warning: {
 		state: FILE_HEALTH_CANONICAL.WARNING,
 		label: "Warning",
-		badge: "⚠️",
-		codicon: "warning",
+		icon: "⚠️",
 		themeColor: "charts.yellow",
 		tooltip: "Warning detected — review recommended.",
 	},
 	risk: {
 		state: FILE_HEALTH_CANONICAL.RISK,
 		label: "Risk",
-		badge: "🚨",
-		codicon: "error",
+		icon: "🚨",
 		themeColor: "charts.red",
 		tooltip: "Risk detected — a snapshot was created for safety.",
 	},
@@ -137,7 +137,7 @@ export const FILE_HEALTH_DECORATIONS: Readonly<Record<FileHealthCanonical, FileH
  * Brand signage for consistent status bar / titles.
  */
 export const BRAND_SIGNAGE: BrandSignage = {
-	logoEmoji: "🧢",
+	logo: "🧢",
 	shortLabel: "SnapBack",
 	fullLabel: "SnapBack Protection",
 } as const;
@@ -149,36 +149,31 @@ export const CORE_CONCEPT_SIGNAGE: Readonly<Record<CoreConceptKey, CoreConceptSi
 	snapshot: {
 		key: "snapshot",
 		label: "Snapshot",
-		emoji: "📸",
-		codicon: "history",
+		icon: "📸",
 		tooltip: "Point-in-time capture of your files for instant restore.",
 	},
 	session: {
 		key: "session",
 		label: "Session",
-		emoji: "🕐",
-		codicon: "debug",
+		icon: "🕐",
 		tooltip: "Time-bounded collection of activity and snapshots (definition evolving).",
 	},
 	protectedFiles: {
 		key: "protectedFiles",
 		label: "Protected Files",
-		emoji: "🛡️",
-		codicon: "shield",
+		icon: "🛡️",
 		tooltip: "Files currently under SnapBack protection.",
 	},
 	blockingIssues: {
 		key: "blockingIssues",
 		label: "Blocking Issues",
-		emoji: "⚠️",
-		codicon: "error",
+		icon: "⚠️",
 		tooltip: "Critical issues that may block safe changes.",
 	},
 	watchItems: {
 		key: "watchItems",
 		label: "Watch Items",
-		emoji: "📊",
-		codicon: "graph",
+		icon: "📊",
 		tooltip: "Non-blocking items SnapBack is monitoring.",
 	},
 } as const;
@@ -194,8 +189,7 @@ export const SESSION_HEALTH_SIGNAGE: Readonly<Record<SessionHealthCanonical, Ses
 	healthy: {
 		health: SESSION_HEALTH_CANONICAL.HEALTHY,
 		label: "Healthy",
-		emoji: "💚",
-		codicon: "heart",
+		icon: "💚",
 		color: "#10B981",
 		themeColor: "charts.green",
 		description: "Session is in excellent health with low risk.",
@@ -204,8 +198,7 @@ export const SESSION_HEALTH_SIGNAGE: Readonly<Record<SessionHealthCanonical, Ses
 	warning: {
 		health: SESSION_HEALTH_CANONICAL.WARNING,
 		label: "Warning",
-		emoji: "💛",
-		codicon: "warning",
+		icon: "💛",
 		color: "#FACC15",
 		themeColor: "charts.yellow",
 		description: "Session health is degraded; consider a snapshot.",
@@ -214,8 +207,7 @@ export const SESSION_HEALTH_SIGNAGE: Readonly<Record<SessionHealthCanonical, Ses
 	critical: {
 		health: SESSION_HEALTH_CANONICAL.CRITICAL,
 		label: "Critical",
-		emoji: "❤️‍🔥",
-		codicon: "error",
+		icon: "❤️‍🔥",
 		color: "#EF4444",
 		themeColor: "charts.red",
 		description: "Session health is critical; snapshot strongly recommended.",
@@ -230,9 +222,8 @@ export const TRAJECTORY_SIGNAGE: Readonly<Record<TrajectoryCanonical, Trajectory
 	improving: {
 		trajectory: TRAJECTORY_CANONICAL.IMPROVING,
 		label: "Improving",
-		emoji: "📈",
+		icon: "📈",
 		arrow: "↗",
-		codicon: "arrow-up",
 		color: "#10B981",
 		themeColor: "charts.green",
 		description: "Risk is decreasing; session stabilizing.",
@@ -241,9 +232,8 @@ export const TRAJECTORY_SIGNAGE: Readonly<Record<TrajectoryCanonical, Trajectory
 	stable: {
 		trajectory: TRAJECTORY_CANONICAL.STABLE,
 		label: "Stable",
-		emoji: "➡️",
+		icon: "➡️",
 		arrow: "→",
-		codicon: "dash",
 		color: "#6B7280",
 		themeColor: "charts.gray",
 		description: "Risk is holding steady.",
@@ -252,9 +242,8 @@ export const TRAJECTORY_SIGNAGE: Readonly<Record<TrajectoryCanonical, Trajectory
 	degrading: {
 		trajectory: TRAJECTORY_CANONICAL.DEGRADING,
 		label: "Degrading",
-		emoji: "📉",
+		icon: "📉",
 		arrow: "↘",
-		codicon: "arrow-down",
 		color: "#F59E0B",
 		themeColor: "charts.orange",
 		description: "Risk is increasing; monitor closely.",
@@ -263,9 +252,8 @@ export const TRAJECTORY_SIGNAGE: Readonly<Record<TrajectoryCanonical, Trajectory
 	critical: {
 		trajectory: TRAJECTORY_CANONICAL.CRITICAL,
 		label: "Critical",
-		emoji: "🚨",
+		icon: "🚨",
 		arrow: "↓↓",
-		codicon: "error",
 		color: "#EF4444",
 		themeColor: "charts.red",
 		description: "Risk trajectory is critical; immediate action needed.",
@@ -280,8 +268,7 @@ export const PULSE_LEVEL_SIGNAGE: Readonly<Record<PulseLevelCanonical, PulseLeve
 	resting: {
 		level: PULSE_LEVEL_CANONICAL.RESTING,
 		label: "Resting",
-		emoji: "💤",
-		codicon: "debug-pause",
+		icon: "💤",
 		color: "#6B7280",
 		themeColor: "charts.gray",
 		description: "Minimal activity detected.",
@@ -290,8 +277,7 @@ export const PULSE_LEVEL_SIGNAGE: Readonly<Record<PulseLevelCanonical, PulseLeve
 	steady: {
 		level: PULSE_LEVEL_CANONICAL.STEADY,
 		label: "Steady",
-		emoji: "💓",
-		codicon: "pulse",
+		icon: "💓",
 		color: "#10B981",
 		themeColor: "charts.green",
 		description: "Normal, healthy coding pace.",
@@ -300,8 +286,7 @@ export const PULSE_LEVEL_SIGNAGE: Readonly<Record<PulseLevelCanonical, PulseLeve
 	elevated: {
 		level: PULSE_LEVEL_CANONICAL.ELEVATED,
 		label: "Elevated",
-		emoji: "💗",
-		codicon: "pulse",
+		icon: "💗",
 		color: "#FACC15",
 		themeColor: "charts.yellow",
 		description: "Higher than normal activity.",
@@ -310,8 +295,7 @@ export const PULSE_LEVEL_SIGNAGE: Readonly<Record<PulseLevelCanonical, PulseLeve
 	racing: {
 		level: PULSE_LEVEL_CANONICAL.RACING,
 		label: "Racing",
-		emoji: "💖",
-		codicon: "zap",
+		icon: "💖",
 		color: "#F59E0B",
 		themeColor: "charts.orange",
 		description: "Very high activity; potential AI-assisted burst.",
@@ -320,8 +304,7 @@ export const PULSE_LEVEL_SIGNAGE: Readonly<Record<PulseLevelCanonical, PulseLeve
 	critical: {
 		level: PULSE_LEVEL_CANONICAL.CRITICAL,
 		label: "Critical",
-		emoji: "💥",
-		codicon: "flame",
+		icon: "💥",
 		color: "#EF4444",
 		themeColor: "charts.red",
 		description: "Extremely high velocity; snapshot urgently recommended.",
@@ -336,8 +319,7 @@ export const TEMPERATURE_LEVEL_SIGNAGE: Readonly<Record<TemperatureLevelCanonica
 	cool: {
 		level: TEMPERATURE_LEVEL_CANONICAL.COOL,
 		label: "Cool",
-		emoji: "🧊",
-		codicon: "symbol-constant",
+		icon: "🧊",
 		color: "#3B82F6",
 		themeColor: "charts.blue",
 		description: "Low AI change density; stable codebase.",
@@ -346,8 +328,7 @@ export const TEMPERATURE_LEVEL_SIGNAGE: Readonly<Record<TemperatureLevelCanonica
 	warm: {
 		level: TEMPERATURE_LEVEL_CANONICAL.WARM,
 		label: "Warm",
-		emoji: "🌡️",
-		codicon: "symbol-event",
+		icon: "🌡️",
 		color: "#10B981",
 		themeColor: "charts.green",
 		description: "Moderate AI activity; normal operation.",
@@ -356,8 +337,7 @@ export const TEMPERATURE_LEVEL_SIGNAGE: Readonly<Record<TemperatureLevelCanonica
 	hot: {
 		level: TEMPERATURE_LEVEL_CANONICAL.HOT,
 		label: "Hot",
-		emoji: "🔥",
-		codicon: "flame",
+		icon: "🔥",
 		color: "#F59E0B",
 		themeColor: "charts.orange",
 		description: "High AI change density; increased risk.",
@@ -366,8 +346,7 @@ export const TEMPERATURE_LEVEL_SIGNAGE: Readonly<Record<TemperatureLevelCanonica
 	burning: {
 		level: TEMPERATURE_LEVEL_CANONICAL.BURNING,
 		label: "Burning",
-		emoji: "🌋",
-		codicon: "warning",
+		icon: "🌋",
 		color: "#EF4444",
 		themeColor: "charts.red",
 		description: "Extreme AI change density; critical risk level.",
@@ -409,4 +388,188 @@ export function canonicalProtectionLevelToLegacy(level: ProtectionLevelCanonical
 			return "Watched";
 		}
 	}
+}
+
+// =============================================================================
+// NEW SIGNAGE CONSTANTS (Branding Consolidation)
+// =============================================================================
+
+/**
+ * Snapshot origin signage for tracking how snapshots were created.
+ */
+export const SNAPSHOT_ORIGIN_SIGNAGE: Readonly<Record<SnapshotOriginKey, SnapshotOriginSignage>> = {
+	aiDetected: {
+		key: "aiDetected",
+		label: "AI Detected",
+		icon: "🤖",
+		tooltip: "AI-detected changes",
+	},
+	automated: {
+		key: "automated",
+		label: "Automated",
+		icon: "⚡",
+		tooltip: "Auto-triggered",
+	},
+	interactive: {
+		key: "interactive",
+		label: "Manual",
+		icon: "📸",
+		tooltip: "User-created",
+	},
+	preRestore: {
+		key: "preRestore",
+		label: "Pre-Restore",
+		icon: "⏪",
+		tooltip: "Before restore",
+	},
+} as const;
+
+/**
+ * Event type signage for activity tracking.
+ */
+export const EVENT_TYPE_SIGNAGE: Readonly<Record<EventTypeKey, EventTypeSignage>> = {
+	aiEdit: {
+		key: "aiEdit",
+		label: "AI Edit",
+		icon: "✨",
+	},
+	manualSnapshot: {
+		key: "manualSnapshot",
+		label: "Manual Snapshot",
+		icon: "💾",
+	},
+	autoSnapshot: {
+		key: "autoSnapshot",
+		label: "Auto Snapshot",
+		icon: "🔄",
+	},
+	restore: {
+		key: "restore",
+		label: "Restore",
+		icon: "↩️",
+	},
+	configChange: {
+		key: "configChange",
+		label: "Config Change",
+		icon: "⚙️",
+	},
+} as const;
+
+/**
+ * General status signage for UI feedback.
+ */
+export const STATUS_SIGNAGE: Readonly<Record<StatusKey, StatusSignage>> = {
+	success: { key: "success", icon: "✅", label: "Success" },
+	warning: { key: "warning", icon: "⚠️", label: "Warning" },
+	error: { key: "error", icon: "❌", label: "Error" },
+	info: { key: "info", icon: "ℹ️", label: "Info" },
+	sync: { key: "sync", icon: "🔄", label: "Syncing" },
+	clock: { key: "clock", icon: "⏱️", label: "Waiting" },
+} as const;
+
+/**
+ * Complete UI icon dictionary for QuickPicks and other UI elements.
+ * These are emoji-only for cross-IDE compatibility (VS Code, Cursor, Windsurf).
+ */
+export const QUICKPICK_ICONS = {
+	// Navigation
+	folder: "📁",
+	files: "📂",
+	file: "📄",
+	history: "📜",
+	gear: "⚙️",
+	dashboard: "📊",
+	book: "📖",
+	listTree: "🌳",
+	repo: "📦",
+
+	// Actions
+	check: "✅",
+	checkAll: "☑️",
+	diff: "🔀",
+	restore: "↩️",
+	pencil: "✏️",
+
+	// Arrows
+	arrowRight: "➡️",
+	arrowLeft: "⬅️",
+	arrowBoth: "↔️",
+
+	// Status
+	error: "❌",
+	warning: "⚠️",
+	info: "ℹ️",
+	disabled: "🚫",
+
+	// Protection
+	shield: "🛡️",
+	lock: "🔒",
+	key: "🔑",
+	eye: "👁️",
+
+	// AI/Activity
+	sparkle: "✨",
+	robot: "🤖",
+	zap: "⚡",
+	pulse: "💓",
+	heart: "💚",
+
+	// Misc
+	rocket: "🚀",
+	clock: "⏱️",
+	plug: "🔌",
+	alert: "🚨",
+	bug: "🐛",
+	beaker: "🧪",
+} as const;
+
+/**
+ * Animation frame sequences for status indicators.
+ * Note: These are static emoji sequences, not animated codicons.
+ */
+export const ANIMATION_FRAMES = {
+	spinner: ["◐", "◓", "◑", "◒"],
+	dots: ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"],
+	pulse: ["💓", "💗", "💖", "💗"],
+	shield: ["🛡️", "🔒", "🛡️"],
+	ai: ["🤖", "👁️", "🤖"],
+	restore: ["📜", "⬅️", "✅"],
+} as const;
+
+/**
+ * Pre-built status bar text strings using signage constants.
+ */
+export const STATUS_BAR_TEXT = {
+	idle: `${BRAND_SIGNAGE.logo} SnapBack`,
+	idleWithStats: (count: number) => `${BRAND_SIGNAGE.logo} ${count} snapshot${count !== 1 ? "s" : ""} today`,
+	aiSession: (tool?: string) =>
+		tool
+			? `${EVENT_TYPE_SIGNAGE.aiEdit.icon} ${tool} session protected`
+			: `${SNAPSHOT_ORIGIN_SIGNAGE.automated.icon} Active session`,
+	checkpoint: `${STATUS_SIGNAGE.success.icon} Snapshot saved`,
+	restored: (lines?: number) =>
+		lines
+			? `${EVENT_TYPE_SIGNAGE.restore.icon} Restored ${lines} lines`
+			: `${EVENT_TYPE_SIGNAGE.restore.icon} Restored`,
+	recommendation: (urgency: "critical" | "high" | "normal") => {
+		const icons = {
+			critical: QUICKPICK_ICONS.alert,
+			high: STATUS_SIGNAGE.warning.icon,
+			normal: STATUS_SIGNAGE.info.icon,
+		};
+		return `${icons[urgency]} Snapshot Recommended`;
+	},
+} as const;
+
+// =============================================================================
+// TYPE-SAFE ICON HELPER
+// =============================================================================
+
+/**
+ * Type-safe getter for QuickPick icons.
+ * @example icon("shield") // "🛡️"
+ */
+export type QuickPickIconKey = keyof typeof QUICKPICK_ICONS;
+export function icon(key: QuickPickIconKey): string {
+	return QUICKPICK_ICONS[key];
 }

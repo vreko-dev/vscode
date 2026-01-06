@@ -40,17 +40,17 @@ export interface DecorationConfig {
  */
 export const DECORATION_CONFIG: Record<FileHealthLevel, DecorationConfig> = {
 	protected: {
-		badge: FILE_HEALTH_DECORATIONS.protected.badge || "🛡️",
+		badge: FILE_HEALTH_DECORATIONS.protected.icon || "🛡️",
 		color: new vscode.ThemeColor(FILE_HEALTH_DECORATIONS.protected.themeColor || "charts.green"),
 		tooltip: FILE_HEALTH_DECORATIONS.protected.tooltip || "Protected by SnapBack",
 	},
 	warning: {
-		badge: FILE_HEALTH_DECORATIONS.warning.badge || "⚠️",
+		badge: FILE_HEALTH_DECORATIONS.warning.icon || "⚠️",
 		color: new vscode.ThemeColor(FILE_HEALTH_DECORATIONS.warning.themeColor || "charts.yellow"),
 		tooltip: FILE_HEALTH_DECORATIONS.warning.tooltip || "Warning detected — review recommended.",
 	},
 	risk: {
-		badge: FILE_HEALTH_DECORATIONS.risk.badge || "🚨",
+		badge: FILE_HEALTH_DECORATIONS.risk.icon || "🚨",
 		color: new vscode.ThemeColor(FILE_HEALTH_DECORATIONS.risk.themeColor || "charts.red"),
 		tooltip: FILE_HEALTH_DECORATIONS.risk.tooltip || "Risk detected — a snapshot was created for safety.",
 	},

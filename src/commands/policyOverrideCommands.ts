@@ -126,17 +126,17 @@ export function registerPolicyOverrideCommands(
 				const newLevel = await vscode.window.showQuickPick(
 					[
 						{
-							label: `${watchSignage.emoji} ${watchSignage.label}`,
+							label: `${watchSignage.icon} ${watchSignage.label}`,
 							description: watchSignage.description || "Silent auto-snapshotting",
 							value: "watch",
 						},
 						{
-							label: `${warnSignage.emoji} ${warnSignage.label}`,
+							label: `${warnSignage.icon} ${warnSignage.label}`,
 							description: warnSignage.description || "Confirm before save",
 							value: "warn",
 						},
 						{
-							label: `${blockSignage.emoji} ${blockSignage.label}`,
+							label: `${blockSignage.icon} ${blockSignage.label}`,
 							description: blockSignage.description || "Require snapshot or explicit override",
 							value: "block",
 						},

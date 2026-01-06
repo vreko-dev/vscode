@@ -463,11 +463,11 @@ A snapshot will be created before saving.`,
 
 		// Prompt for reason - QuickPick with preset options
 		const reasons = [
-			{ label: "$(bug) Fixing a bug", value: "bug-fix" },
-			{ label: "$(key) Updating credentials/secrets", value: "credentials" },
-			{ label: "$(sync) Refactoring", value: "refactor" },
-			{ label: "$(beaker) Testing/experimentation", value: "testing" },
-			{ label: "$(pencil) Other...", value: "custom" },
+			{ label: "🐛 Fixing a bug", value: "bug-fix" },
+			{ label: "🔑 Updating credentials/secrets", value: "credentials" },
+			{ label: "🔄 Refactoring", value: "refactor" },
+			{ label: "🧪 Testing/experimentation", value: "testing" },
+			{ label: "✏️ Other...", value: "custom" },
 		];
 
 		const selected = await vscode.window.showQuickPick(reasons, {

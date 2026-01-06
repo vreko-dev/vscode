@@ -39,8 +39,7 @@ export type FileHealthCanonical = (typeof FILE_HEALTH_CANONICAL)[keyof typeof FI
  */
 export type SignageBase = Readonly<{
 	label: string;
-	emoji?: string;
-	codicon?: string; // VS Code icon id, e.g. "eye", "warning", "error"
+	icon?: string; // Emoji icon for cross-IDE compatibility (VS Code, Cursor, Windsurf)
 	color?: string; // Hex color, e.g. "#10B981"
 	themeColor?: string; // VS Code theme color id, e.g. "charts.green"
 	description?: string;
@@ -60,11 +59,10 @@ export type RepoStatusSignage = SignageBase &
 export type FileHealthDecorationSignage = SignageBase &
 	Readonly<{
 		state: FileHealthCanonical;
-		badge?: string; // Used for gutter/inline badges
 	}>;
 
 export type BrandSignage = Readonly<{
-	logoEmoji: string;
+	logo: string; // Brand emoji (🧢)
 	shortLabel: string;
 	fullLabel: string;
 }>;
@@ -153,4 +151,38 @@ export type PulseLevelSignage = SignageBase &
 export type TemperatureLevelSignage = SignageBase &
 	Readonly<{
 		level: TemperatureLevelCanonical;
+	}>;
+
+// =============================================================================
+// NEW SIGNAGE TYPES (Branding Consolidation)
+// =============================================================================
+
+/**
+ * Snapshot origin keys for tracking how snapshots were created.
+ */
+export type SnapshotOriginKey = "aiDetected" | "automated" | "interactive" | "preRestore";
+
+export type SnapshotOriginSignage = SignageBase &
+	Readonly<{
+		key: SnapshotOriginKey;
+	}>;
+
+/**
+ * Event type keys for activity tracking.
+ */
+export type EventTypeKey = "aiEdit" | "manualSnapshot" | "autoSnapshot" | "restore" | "configChange";
+
+export type EventTypeSignage = SignageBase &
+	Readonly<{
+		key: EventTypeKey;
+	}>;
+
+/**
+ * Status keys for general status indicators.
+ */
+export type StatusKey = "success" | "warning" | "error" | "info" | "sync" | "clock";
+
+export type StatusSignage = SignageBase &
+	Readonly<{
+		key: StatusKey;
 	}>;

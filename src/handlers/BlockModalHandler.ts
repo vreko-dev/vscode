@@ -239,7 +239,7 @@ export class BlockModalHandler {
 		// For auto-save: create silent snapshot, don't interrupt
 		if (this.config.showAutoSaveNotification) {
 			// Show subtle notification
-			vscode.window.setStatusBarMessage(`$(shield) SnapBack: Auto-snapshot for ${fileName}`, 3000);
+			vscode.window.setStatusBarMessage(`🛡️ SnapBack: Auto-snapshot for ${fileName}`, 3000);
 		}
 
 		return BlockAction.AUTO_SNAPSHOT;

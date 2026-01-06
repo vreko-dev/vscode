@@ -492,7 +492,7 @@ export class DashboardPanel implements vscode.Disposable {
 		const mcpEnabled = config.get<boolean>("mcp.enabled", true);
 		const serverUrl = config.get<string>("mcp.serverUrl", "");
 
-		const statusIcon = mcpEnabled ? "$(plug)" : "$(debug-disconnect)";
+		const statusIcon = mcpEnabled ? "🔌" : "🔌";
 		const statusText = mcpEnabled ? "MCP Enabled" : "MCP Disabled";
 		const statusClass = mcpEnabled ? "mcp-enabled" : "mcp-disabled";
 
@@ -506,13 +506,13 @@ export class DashboardPanel implements vscode.Disposable {
 			if (pendingTotal > 0) {
 				queueStatusHtml = `
 				<div class="mcp-queue warning">
-					<span class="queue-icon">$(sync~spin)</span>
+					<span class="queue-icon">🔄</span>
 					<span class="queue-text">${pendingTotal} item${pendingTotal !== 1 ? "s" : ""} queued</span>
 				</div>`;
 			} else if (status.pushCount > 0) {
 				queueStatusHtml = `
 				<div class="mcp-queue synced">
-					<span class="queue-icon">$(check)</span>
+					<span class="queue-icon">✅</span>
 					<span class="queue-text">Synced (${status.pushCount} pushes)</span>
 				</div>`;
 			}

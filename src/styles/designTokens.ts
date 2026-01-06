@@ -92,9 +92,9 @@ export const DesignTokens: DesignTokensType & {
 		},
 	},
 	icons: {
-		watch: PROTECTION_LEVEL_SIGNAGE.watch.emoji || "🟢", // From signage module
-		warn: PROTECTION_LEVEL_SIGNAGE.warn.emoji || "🟡", // From signage module
-		block: PROTECTION_LEVEL_SIGNAGE.block.emoji || "🔴", // From signage module
+		watch: PROTECTION_LEVEL_SIGNAGE.watch.icon || "🟢", // From signage module
+		warn: PROTECTION_LEVEL_SIGNAGE.warn.icon || "🟡", // From signage module
+		block: PROTECTION_LEVEL_SIGNAGE.block.icon || "🔴", // From signage module
 	},
 	typography: {
 		fontSize: {

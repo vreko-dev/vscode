@@ -79,11 +79,11 @@ export class ProtectionCodeLensProvider implements vscode.CodeLensProvider {
 	private getProtectionIcon(level: "watch" | "warn" | "block" | undefined): string {
 		switch (level) {
 			case "watch":
-				return getProtectionLevelSignage("watch").emoji || "🟢";
+				return getProtectionLevelSignage("watch").icon || "🟢";
 			case "warn":
-				return getProtectionLevelSignage("warn").emoji || "🟡";
+				return getProtectionLevelSignage("warn").icon || "🟡";
 			case "block":
-				return getProtectionLevelSignage("block").emoji || "🔴";
+				return getProtectionLevelSignage("block").icon || "🔴";
 			default:
 				return "🔓";
 		}

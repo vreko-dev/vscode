@@ -62,7 +62,7 @@ export class PioneerStatusItem implements vscode.Disposable {
 			this.currentMessageId = this.statusBarManager.enqueueMessage({
 				id: `${PioneerStatusItem.MESSAGE_PREFIX}-join`,
 				priority: "low",
-				text: "$(rocket) Join Pioneers",
+				text: "🚀 Join Pioneers",
 				tooltip: "**Pioneer Program**\nUnlock exclusive features!\n\n*Click to join*",
 				duration: 10000, // Show for 10 seconds
 				command: "snapback.pioneer.statusBarClick",

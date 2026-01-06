@@ -5,9 +5,9 @@
  * message queue system. Shows connection status and provides troubleshooting actions.
  *
  * States:
- * - Connected: $(plug) MCP (green, low priority - hidden when healthy)
- * - Disconnected: $(plug) MCP ⚠ (warning background, high priority)
- * - Reconnecting: $(sync~spin) MCP (medium priority, shows attempt count)
+ * - Connected: 🔌 MCP (green, low priority - hidden when healthy)
+ * - Disconnected: 🔌 MCP ⚠ (warning background, high priority)
+ * - Reconnecting: 🔄 MCP (medium priority, shows attempt count)
  *
  * @packageDocumentation
  */
@@ -203,7 +203,7 @@ export class MCPStatusItem implements vscode.Disposable {
 		this.setState("connected");
 
 		// Show brief success notification if we were disconnected
-		vscode.window.setStatusBarMessage("$(check) MCP connected", 3000);
+		vscode.window.setStatusBarMessage("✅ MCP connected", 3000);
 	}
 
 	/**
@@ -233,7 +233,7 @@ export class MCPStatusItem implements vscode.Disposable {
 				this.statusBarManager.enqueueMessage({
 					id: this.MESSAGE_ID,
 					priority: "high",
-					text: "$(plug) MCP ⚠",
+					text: "🔌 MCP ⚠",
 					tooltip: "MCP server disconnected. Click to diagnose.",
 					backgroundColor: "statusBarItem.warningBackground",
 					command: "snapback.mcp.status",
@@ -245,7 +245,7 @@ export class MCPStatusItem implements vscode.Disposable {
 				this.statusBarManager.enqueueMessage({
 					id: this.MESSAGE_ID,
 					priority: "medium",
-					text: `$(sync~spin) MCP (${this.reconnectAttempt}/3)`,
+					text: `🔄 MCP (${this.reconnectAttempt}/3)`,
 					tooltip: "Reconnecting to MCP server...",
 					command: "snapback.mcp.status",
 					duration: 0, // Persistent until state changes

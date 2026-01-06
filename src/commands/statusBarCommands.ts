@@ -33,7 +33,7 @@ async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry
 
 	if (files.length === 0) {
 		const result = await vscode.window.showInformationMessage(
-			`${BRAND_SIGNAGE.logoEmoji} No files are currently protected`,
+			`${BRAND_SIGNAGE.logo} No files are currently protected`,
 			"Protect a File",
 			"Learn More",
 		);
@@ -72,7 +72,7 @@ async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry
 
 		// Watch level
 		{
-			label: `${getProtectionLevelSignage("watch").emoji} ${getProtectionLevelSignage("watch").label} (Silent)`,
+			label: `${getProtectionLevelSignage("watch").icon} ${getProtectionLevelSignage("watch").label} (Silent)`,
 			description: `${watchCount} ${watchCount === 1 ? "file" : "files"}`,
 			detail: "Auto-snapshot on save • No notifications • Zero friction",
 			buttons:
@@ -94,7 +94,7 @@ async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry
 
 		// Warn level
 		{
-			label: `${getProtectionLevelSignage("warn").emoji} ${getProtectionLevelSignage("warn").label} (Notify)`,
+			label: `${getProtectionLevelSignage("warn").icon} ${getProtectionLevelSignage("warn").label} (Notify)`,
 			description: `${warnCount} ${warnCount === 1 ? "file" : "files"}`,
 			detail: "Confirmation prompt before save • Review changes • Stay informed",
 			buttons:
@@ -116,7 +116,7 @@ async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry
 
 		// Block level
 		{
-			label: `${getProtectionLevelSignage("block").emoji} ${getProtectionLevelSignage("block").label} (Required)`,
+			label: `${getProtectionLevelSignage("block").icon} ${getProtectionLevelSignage("block").label} (Required)`,
 			description: `${blockCount} ${blockCount === 1 ? "file" : "files"}`,
 			detail: "Snapshot required • Maximum protection • Critical files",
 			buttons:
@@ -144,7 +144,7 @@ async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry
 
 		// View all files
 		{
-			label: "$(list-tree) View All Protected Files",
+			label: "🌳 View All Protected Files",
 			description: "Open protection sidebar",
 			detail: "Browse all protected files in tree view",
 			action: async () => {
@@ -154,7 +154,7 @@ async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry
 
 		// Refresh
 		{
-			label: "$(refresh) Refresh Protection Status",
+			label: "🔄 Refresh Protection Status",
 			description: "Reload from storage",
 			detail: "Sync protection state across all views",
 			action: async () => {
@@ -164,7 +164,7 @@ async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry
 
 		// Quick protect
 		{
-			label: "$(shield) Protect Current File",
+			label: "🛡️ Protect Current File",
 			description: "Add active file to protection",
 			detail: "Quickly protect the file you're currently editing",
 			action: async () => {
@@ -174,7 +174,7 @@ async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry
 
 		// Settings
 		{
-			label: "$(gear) Configure SnapBack",
+			label: "⚙️ Configure SnapBack",
 			description: "Extension settings",
 			detail: "Customize protection behavior and preferences",
 			action: async () => {
@@ -187,7 +187,7 @@ async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry
 
 		// Documentation
 		{
-			label: "$(book) Documentation",
+			label: "📖 Documentation",
 			description: "Learn more about SnapBack",
 			detail: "View guides, tips, and best practices",
 			action: async () => {
@@ -198,7 +198,7 @@ async function showProtectionStatus(protectedFileRegistry: ProtectedFileRegistry
 
 	// Create QuickPick with brand styling
 	const quickPick = vscode.window.createQuickPick<EnhancedQuickPickItem>();
-	quickPick.title = `${BRAND_SIGNAGE.logoEmoji} ${BRAND_SIGNAGE.shortLabel} Protection Status`;
+	quickPick.title = `${BRAND_SIGNAGE.logo} ${BRAND_SIGNAGE.shortLabel} Protection Status`;
 	quickPick.placeholder = "Select an action or press Escape to close";
 	quickPick.items = items;
 	quickPick.matchOnDescription = true;
@@ -245,18 +245,18 @@ async function showFilesByLevel(
 
 	// Get signage (level is already canonical)
 	const signage = getProtectionLevelSignage(level);
-	const info = { name: signage.label, emoji: signage.emoji || "" };
+	const info = { name: signage.label, icon: signage.icon || "" };
 
 	// Create file selection QuickPick
 	const items = filteredFiles.map((file) => ({
-		label: `$(file) ${file.label}`,
+		label: `📄 ${file.label}`,
 		description: file.path,
 		detail: `Last protected: ${new Date(file.lastProtectedAt || Date.now()).toLocaleString()}`,
 		file: file,
 	}));
 
 	const selected = await vscode.window.showQuickPick(items, {
-		title: `${info.emoji} ${info.name} Level Files (${filteredFiles.length})`,
+		title: `${info.icon} ${info.name} Level Files (${filteredFiles.length})`,
 		placeHolder: "Select a file to open",
 		matchOnDescription: true,
 	});

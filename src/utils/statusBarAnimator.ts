@@ -64,31 +64,31 @@ export const ANIMATION_PRESETS = {
 	snapshotCreated: {
 		frames: ["⚡", "📷", "✓"],
 		frameDurationMs: 150,
-		finalIcon: "$(shield)",
+		finalIcon: "🛡️",
 		animationType: "snapshot_created",
 	} as AnimationConfig,
 
 	/** Animation for protection level change */
 	protectionChanged: {
-		frames: ["$(shield)", "$(lock)", "$(shield)"],
+		frames: ["🛡️", "🔒", "🛡️"],
 		frameDurationMs: 200,
-		finalIcon: "$(shield)",
+		finalIcon: "🛡️",
 		animationType: "protection_changed",
 	} as AnimationConfig,
 
 	/** Animation when AI activity is detected */
 	aiDetected: {
-		frames: ["🤖", "$(eye)", "🤖"],
+		frames: ["🤖", "👁️", "🤖"],
 		frameDurationMs: 200,
-		finalIcon: "$(shield)",
+		finalIcon: "🛡️",
 		animationType: "ai_detected",
 	} as AnimationConfig,
 
 	/** Animation for restore operation */
 	snapshotRestored: {
-		frames: ["$(history)", "$(arrow-left)", "$(check)"],
+		frames: ["📜", "⬅️", "✅"],
 		frameDurationMs: 150,
-		finalIcon: "$(shield)",
+		finalIcon: "🛡️",
 		animationType: "snapshot_restored",
 	} as AnimationConfig,
 } as const;

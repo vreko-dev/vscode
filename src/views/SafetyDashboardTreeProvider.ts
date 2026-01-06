@@ -3,7 +3,6 @@
  * Unified tree view for workspace safety status
  */
 
-import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
@@ -12,6 +11,7 @@ import type { ProtectionService } from "../services/protectionService";
 import type { StorageSnapshotSummaryProvider } from "../services/snapshotSummaryProvider";
 import type { BlockingIssue, WatchItem, WorkspaceSafetyService } from "../services/WorkspaceSafetyService";
 import { CORE_CONCEPT_SIGNAGE, REPO_STATUS_SIGNAGE } from "../signage/index";
+import { logger } from "../utils/logger";
 
 type SafetyTreeNode =
 	| SectionNode
@@ -107,19 +107,19 @@ export class SafetyDashboardTreeProvider implements vscode.TreeDataProvider<Safe
 
 			sections.push(
 				new SectionNode(
-					`${CORE_CONCEPT_SIGNAGE.blockingIssues.emoji} ${CORE_CONCEPT_SIGNAGE.blockingIssues.label}`,
+					`${CORE_CONCEPT_SIGNAGE.blockingIssues.icon} ${CORE_CONCEPT_SIGNAGE.blockingIssues.label}`,
 					signals.blockingIssues.length,
 					"section.blocking",
 					signals.blockingIssues.length > 0, // Auto-expand if has blocking issues
 				),
 				new SectionNode(
-					`${CORE_CONCEPT_SIGNAGE.watchItems.emoji} ${CORE_CONCEPT_SIGNAGE.watchItems.label}`,
+					`${CORE_CONCEPT_SIGNAGE.watchItems.icon} ${CORE_CONCEPT_SIGNAGE.watchItems.label}`,
 					signals.watchItems.length,
 					"section.watch",
 					false, // Default collapsed
 				),
 				new SectionNode(
-					`${CORE_CONCEPT_SIGNAGE.snapshot.emoji} ${CORE_CONCEPT_SIGNAGE.snapshot.label}`,
+					`${CORE_CONCEPT_SIGNAGE.snapshot.icon} ${CORE_CONCEPT_SIGNAGE.snapshot.label}`,
 					snapshotCount,
 					"section.snapshots",
 					false, // Default collapsed
@@ -216,7 +216,7 @@ export class SafetyDashboardTreeProvider implements vscode.TreeDataProvider<Safe
 			error: "error",
 		};
 		const canonical = statusMap[status] || "unprotected";
-		return REPO_STATUS_SIGNAGE[canonical].emoji || "⭕";
+		return REPO_STATUS_SIGNAGE[canonical].icon || "⭕";
 	}
 
 	private getStatusLabel(status: string): string {

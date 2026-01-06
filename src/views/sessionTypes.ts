@@ -40,8 +40,8 @@ export class SessionTreeItem extends vscode.TreeItem {
 		const lines = [
 			`**Session ${session.id}**`,
 			"",
-			`${CORE_CONCEPT_SIGNAGE.session.emoji} Started: ${new Date(session.startedAt).toLocaleString()}`,
-			`${CORE_CONCEPT_SIGNAGE.session.emoji} Ended: ${new Date(session.endedAt).toLocaleString()}`,
+			`${CORE_CONCEPT_SIGNAGE.session.icon} Started: ${new Date(session.startedAt).toLocaleString()}`,
+			`${CORE_CONCEPT_SIGNAGE.session.icon} Ended: ${new Date(session.endedAt).toLocaleString()}`,
 			`⏱ Duration: ${Math.round((session.endedAt - session.startedAt) / 1000)}s`,
 			`📁 Files: ${session.files.length}`,
 			"",

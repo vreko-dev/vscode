@@ -12,13 +12,13 @@
  * @packageDocumentation
  */
 
-import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import { MCPStorageReader } from "../storage/bridge/MCPStorageReader";
 import { type ExtensionStorageAdapter, SnapshotBridge } from "../storage/bridge/SnapshotBridge";
 import type { UnifiedSnapshot } from "../storage/bridge/UnifiedSnapshot";
 import { fromLegacyManifest } from "../storage/bridge/UnifiedSnapshot";
 import type { IStorageManager } from "../storage/types";
+import { logger } from "../utils/logger";
 import { formatRelativeTime, getFileTypeIcon } from "./snapshot-display/formatting";
 
 // =============================================================================
@@ -104,7 +104,7 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 	 */
 	async show(): Promise<void> {
 		const quickPick = vscode.window.createQuickPick<SnapshotQuickPickItem>();
-		quickPick.title = "$(shield) SnapBack";
+		quickPick.title = "🧢 SnapBack";
 		quickPick.placeholder = "Select a snapshot to restore, or browse history...";
 		quickPick.matchOnDescription = true;
 		quickPick.matchOnDetail = true;
@@ -121,7 +121,7 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 			logger.error("Failed to load snapshots for QuickPicker", error as Error);
 			quickPick.items = [
 				{
-					label: "$(error) Failed to load snapshots",
+					label: "❌ Failed to load snapshots",
 					description: "Check the output panel for details",
 				},
 			];
@@ -166,7 +166,7 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 			}
 		} else {
 			items.push({
-				label: "$(info) No snapshots yet",
+				label: "ℹ️ No snapshots yet",
 				description: "Snapshots are created automatically when you save protected files",
 			});
 		}
@@ -178,13 +178,13 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 		});
 
 		items.push({
-			label: "$(folder) Browse full history...",
+			label: "📁 Browse full history...",
 			description: "View all snapshots grouped by session",
 			action: "browse",
 		});
 
 		items.push({
-			label: "$(dashboard) Open Dashboard",
+			label: "📊 Open Dashboard",
 			description: "Full snapshot management in browser",
 			action: "dashboard",
 		});
@@ -283,7 +283,7 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 	 */
 	private async showRestoreOptions(snapshot: SnapshotQuickPickItem): Promise<void> {
 		const quickPick = vscode.window.createQuickPick<SnapshotQuickPickItem>();
-		quickPick.title = `$(history) Restore: ${snapshot.label}`;
+		quickPick.title = `📜 Restore: ${snapshot.label}`;
 		quickPick.placeholder = "Choose restore action...";
 
 		if (!snapshot.snapshotId) {
@@ -304,14 +304,14 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 		// Single file: show diff directly
 		if (fileCount === 1) {
 			items.push({
-				label: "$(diff) Compare with current",
+				label: "🔀 Compare with current",
 				description: "View side-by-side diff before restoring",
 				action: "restore",
 				snapshotId: snapshot.snapshotId,
 			});
 
 			items.push({
-				label: "$(debug-step-back) Restore file",
+				label: "↩️ Restore file",
 				description: "Replace current file with snapshot version",
 				action: "restore",
 				snapshotId: snapshot.snapshotId,
@@ -319,21 +319,21 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 		} else {
 			// Multiple files: offer selective restore
 			items.push({
-				label: "$(diff) Preview all changes",
+				label: "🔀 Preview all changes",
 				description: `Compare ${fileCount} files with current versions`,
 				action: "restore",
 				snapshotId: snapshot.snapshotId,
 			});
 
 			items.push({
-				label: "$(checklist) Select files to restore...",
+				label: "☑️ Select files to restore...",
 				description: "Choose which files to restore",
 				action: "restore",
 				snapshotId: snapshot.snapshotId,
 			});
 
 			items.push({
-				label: "$(debug-step-back) Restore all files",
+				label: "↩️ Restore all files",
 				description: `Replace all ${fileCount} files with snapshot versions`,
 				action: "restore",
 				snapshotId: snapshot.snapshotId,
@@ -363,7 +363,7 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 	 */
 	private async showFullHistory(): Promise<void> {
 		const quickPick = vscode.window.createQuickPick<SnapshotQuickPickItem>();
-		quickPick.title = "$(folder) Browse Snapshot History";
+		quickPick.title = "📁 Browse Snapshot History";
 		quickPick.placeholder = "Search snapshots...";
 		quickPick.matchOnDescription = true;
 		quickPick.matchOnDetail = true;
@@ -397,7 +397,7 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 			quickPick.busy = false;
 		} catch (error) {
 			logger.error("Failed to load snapshot history", error as Error);
-			quickPick.items = [{ label: "$(error) Failed to load history" }];
+			quickPick.items = [{ label: "❌ Failed to load history" }];
 			quickPick.busy = false;
 		}
 

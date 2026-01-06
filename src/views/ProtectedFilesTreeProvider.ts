@@ -166,7 +166,7 @@ export class ProtectedFilesTreeProvider implements vscode.TreeDataProvider<vscod
 function createProtectionLevelSection(level: ProtectionLevelCanonical, count: number): vscode.TreeItem {
 	const signage = PROTECTION_LEVEL_SIGNAGE[level];
 	const item = new vscode.TreeItem(
-		`${signage.emoji} ${signage.label}`,
+		`${signage.icon} ${signage.label}`,
 		vscode.TreeItemCollapsibleState.Collapsed, // Default to collapsed
 	);
 
@@ -236,7 +236,7 @@ function computeRelativePath(filePath: string): string {
 
 function buildTooltip(
 	entry: ProtectedFileEntry,
-	signage: { label: string; description?: string; emoji?: string },
+	signage: { label: string; description?: string; icon?: string },
 ): vscode.MarkdownString {
 	const tooltip = new vscode.MarkdownString();
 	tooltip.supportHtml = false;
@@ -245,10 +245,10 @@ function buildTooltip(
 	const lines = [
 		`**${entry.label}**`,
 		"",
-		`${signage.emoji} **${signage.label}** protection`,
+		`${signage.icon} **${signage.label}** protection`,
 		signage.description || "",
 		"",
-		`${CORE_CONCEPT_SIGNAGE.protectedFiles.emoji} ${entry.path}`,
+		`${CORE_CONCEPT_SIGNAGE.protectedFiles.icon} ${entry.path}`,
 	];
 
 	if (entry.lastProtectedAt) {

@@ -6,10 +6,10 @@
  * This file EXTENDS the signage system (signage/constants.ts) and icon system
  * (constants/icons.ts) with dashboard-specific UI elements and MCP agent voice.
  *
- * DUAL SYSTEM:
+ * UNIFIED EMOJI SYSTEM:
  * - MCP Agent Responses: `🧢 SnapBack:` prefix
  * - Product UI: Re-exports from signage + dashboard-specific additions
- * - Status Bar: $(codicons) for VS Code native look
+ * - Status Bar: Emoji icons for cross-IDE compatibility (VS Code, Cursor, Windsurf)
  *
  * RULE: For existing signage categories, always import from signage/constants.ts
  *
@@ -38,17 +38,17 @@ import {
  */
 export const ESSENTIAL_EMOJIS = {
 	/** Snapshot created - from CORE_CONCEPT_SIGNAGE */
-	snapshot: CORE_CONCEPT_SIGNAGE.snapshot.emoji,
+	snapshot: CORE_CONCEPT_SIGNAGE.snapshot.icon,
 	/** Restored/undone - from SNAPBACK_ICONS */
 	restore: "⏪",
 	/** Protected state - from FILE_HEALTH_DECORATIONS */
-	protected: FILE_HEALTH_DECORATIONS.protected.badge,
+	protected: FILE_HEALTH_DECORATIONS.protected.icon,
 	/** AI detected - from SNAPBACK_ICONS */
 	aiDetected: SNAPBACK_ICONS.AI_TOOL,
 	/** Safe/healthy - from SESSION_HEALTH_SIGNAGE */
 	safe: "✅",
 	/** Needs attention - from FILE_HEALTH_DECORATIONS */
-	warning: FILE_HEALTH_DECORATIONS.warning.badge,
+	warning: FILE_HEALTH_DECORATIONS.warning.icon,
 	/** Tokens/money saved */
 	money: "💰",
 	/** Pioneer points */
@@ -154,7 +154,7 @@ export const BRANDING = {
 	/** MCP agent voice - uses BRAND_SIGNAGE */
 	agent: {
 		/** Always prefix agent responses with this */
-		prefix: `${BRAND_SIGNAGE.logoEmoji} ${BRAND_SIGNAGE.shortLabel}:`,
+		prefix: `${BRAND_SIGNAGE.logo} ${BRAND_SIGNAGE.shortLabel}:`,
 
 		/**
 		 * Format an agent response
@@ -163,35 +163,35 @@ export const BRANDING = {
 		 * BRANDING.agent.format("Checkpoint created before refactoring auth.ts")
 		 * // "🧢 SnapBack: Checkpoint created before refactoring auth.ts"
 		 */
-		format: (message: string) => `${BRAND_SIGNAGE.logoEmoji} ${BRAND_SIGNAGE.shortLabel}: ${message}`,
+		format: (message: string) => `${BRAND_SIGNAGE.logo} ${BRAND_SIGNAGE.shortLabel}: ${message}`,
 	},
 
-	/** Status bar codicons (not emojis) */
+	/** Status bar emoji icons (cross-IDE compatible) */
 	statusBar: {
-		idle: "$(shield)",
-		aiSession: "$(sparkle)",
-		checkpoint: "$(check)",
-		restored: "$(history)",
-		warning: "$(warning)",
-		sync: "$(sync~spin)",
-		heart: "$(heart)",
-		zap: "$(zap)",
+		idle: "🧢",
+		aiSession: "✨",
+		checkpoint: "✅",
+		restored: "📜",
+		warning: "⚠️",
+		sync: "🔄",
+		heart: "💚",
+		zap: "⚡",
 	},
 
 	/** Heat level decorations - from TEMPERATURE_LEVEL_SIGNAGE */
 	heat: {
 		none: "",
 		warm: "•",
-		hot: TEMPERATURE_LEVEL_SIGNAGE.hot.emoji,
-		critical: TEMPERATURE_LEVEL_SIGNAGE.burning.emoji,
-		aiHot: `${SNAPBACK_ICONS.AI_TOOL}${TEMPERATURE_LEVEL_SIGNAGE.hot.emoji}`,
+		hot: TEMPERATURE_LEVEL_SIGNAGE.hot.icon,
+		critical: TEMPERATURE_LEVEL_SIGNAGE.burning.icon,
+		aiHot: `${SNAPBACK_ICONS.AI_TOOL}${TEMPERATURE_LEVEL_SIGNAGE.hot.icon}`,
 	},
 
 	/** Protection level badges - from PROTECTION_LEVEL_SIGNAGE */
 	protection: {
-		block: PROTECTION_LEVEL_SIGNAGE.block.emoji,
-		warn: PROTECTION_LEVEL_SIGNAGE.warn.emoji,
-		watch: PROTECTION_LEVEL_SIGNAGE.watch.emoji,
+		block: PROTECTION_LEVEL_SIGNAGE.block.icon,
+		warn: PROTECTION_LEVEL_SIGNAGE.warn.icon,
+		watch: PROTECTION_LEVEL_SIGNAGE.watch.icon,
 	},
 
 	/** Re-export signage for convenience */

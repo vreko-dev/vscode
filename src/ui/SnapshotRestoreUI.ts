@@ -117,7 +117,7 @@ export class SnapshotRestoreUI {
 						const fileName = cp.anchorFile ? path.basename(cp.anchorFile) : cp.name;
 						const fileDisplay = cp.fileCount > 1 ? `${fileName} (+${cp.fileCount - 1})` : fileName;
 						return {
-							label: `$(clock) ${fileDisplay}`,
+							label: `⏱️ ${fileDisplay}`,
 							description: this.formatTimeAgo(cp.timestamp),
 							detail: `${cp.fileCount} files`,
 							id: cp.id,
@@ -325,7 +325,7 @@ export class SnapshotRestoreUI {
 	private showRestoreStatusBar(snapshotName: string, fileCount: number): void {
 		this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
 
-		this.statusBarItem.text = `$(repo) Reviewing: ${snapshotName} (${fileCount} files)`;
+		this.statusBarItem.text = `📦 Reviewing: ${snapshotName} (${fileCount} files)`;
 		this.statusBarItem.tooltip = "Click to choose: Restore or Cancel";
 		// Wire the status bar item to the restore command
 		this.statusBarItem.command = "snapback.internal.restoreFromPreview";

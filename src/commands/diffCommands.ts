@@ -32,10 +32,18 @@ function formatRelativeTime(timestamp: number): string {
 	const hours = Math.floor(diff / 3600000);
 	const days = Math.floor(diff / 86400000);
 
-	if (minutes < 1) return "just now";
-	if (minutes < 60) return `${minutes}m ago`;
-	if (hours < 24) return `${hours}h ago`;
-	if (days === 1) return "yesterday";
+	if (minutes < 1) {
+		return "just now";
+	}
+	if (minutes < 60) {
+		return `${minutes}m ago`;
+	}
+	if (hours < 24) {
+		return `${hours}h ago`;
+	}
+	if (days === 1) {
+		return "yesterday";
+	}
 	return `${days}d ago`;
 }
 
@@ -182,9 +190,9 @@ export async function showSnapshotDetails(snapshotId: string, storageManager: IS
 			Object.keys(snapshot.files).map(async (filePath) => {
 				const exists = await fileExists(vscode.Uri.file(filePath));
 				return {
-					label: `$(file) ${path.basename(filePath)}`,
+					label: `📄 ${path.basename(filePath)}`,
 					description: path.dirname(filePath),
-					detail: exists ? "Compare with current" : "$(warning) Deleted",
+					detail: exists ? "Compare with current" : "⚠️ Deleted",
 					filePath,
 				};
 			}),

@@ -361,17 +361,17 @@ export class FileRelocationDetector {
 		// Build quick pick items
 		const items: vscode.QuickPickItem[] = [
 			{
-				label: "$(arrow-right) Restore to original locations",
+				label: "➡️ Restore to original locations",
 				description: `Restore ${movedFiles.length} file(s) to their original paths`,
 				detail: "Files will be created at their snapshot locations",
 			},
 			{
-				label: "$(arrow-both) Follow renames",
+				label: "↔️ Follow renames",
 				description: `Update ${movedFiles.length} file(s) at their new locations`,
 				detail: "Content will be restored to where files were moved",
 			},
 			{
-				label: "$(list-selection) Choose per file",
+				label: "📋 Choose per file",
 				description: "Decide individually for each moved file",
 				detail: "Shows options for each relocated file",
 			},
@@ -415,24 +415,24 @@ export class FileRelocationDetector {
 		for (const relocation of relocations) {
 			const items: vscode.QuickPickItem[] = [
 				{
-					label: `$(file) Restore to original: ${relocation.originalPath}`,
+					label: `📄 Restore to original: ${relocation.originalPath}`,
 					description: "Create file at original snapshot location",
 				},
 			];
 
 			if (relocation.newPath) {
 				items.push({
-					label: `$(arrow-right) Follow rename: ${relocation.newPath}`,
+					label: `➡️ Follow rename: ${relocation.newPath}`,
 					description: `Update file at new location (${relocation.relocationType})`,
 				});
 				items.push({
-					label: "$(files) Restore both locations",
+					label: "📂 Restore both locations",
 					description: "Create file at both original and new locations",
 				});
 			}
 
 			items.push({
-				label: "$(x) Skip this file",
+				label: "🚫 Skip this file",
 				description: "Don't restore this file",
 			});
 

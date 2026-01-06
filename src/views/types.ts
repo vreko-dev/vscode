@@ -223,7 +223,7 @@ export interface ProtectionLevelMetadata {
 export const PROTECTION_LEVELS: Record<ProtectionLevel, ProtectionLevelMetadata> = {
 	watch: {
 		level: "watch",
-		icon: PROTECTION_LEVEL_SIGNAGE.watch.emoji || "🟢",
+		icon: PROTECTION_LEVEL_SIGNAGE.watch.icon || "🟢",
 		label: PROTECTION_LEVEL_SIGNAGE.watch.label,
 		description: PROTECTION_LEVEL_SIGNAGE.watch.description || "Silent auto-snapshot on save",
 		color: PROTECTION_LEVEL_SIGNAGE.watch.color || "#10B981",
@@ -231,7 +231,7 @@ export const PROTECTION_LEVELS: Record<ProtectionLevel, ProtectionLevelMetadata>
 	},
 	warn: {
 		level: "warn",
-		icon: PROTECTION_LEVEL_SIGNAGE.warn.emoji || "🟡",
+		icon: PROTECTION_LEVEL_SIGNAGE.warn.icon || "🟡",
 		label: PROTECTION_LEVEL_SIGNAGE.warn.label,
 		description: PROTECTION_LEVEL_SIGNAGE.warn.description || "Notify before save with options",
 		color: PROTECTION_LEVEL_SIGNAGE.warn.color || "#FACC15",
@@ -239,7 +239,7 @@ export const PROTECTION_LEVELS: Record<ProtectionLevel, ProtectionLevelMetadata>
 	},
 	block: {
 		level: "block",
-		icon: PROTECTION_LEVEL_SIGNAGE.block.emoji || "🔴",
+		icon: PROTECTION_LEVEL_SIGNAGE.block.icon || "🔴",
 		label: PROTECTION_LEVEL_SIGNAGE.block.label,
 		description: PROTECTION_LEVEL_SIGNAGE.block.description || "Require snapshot or explicit override",
 		color: PROTECTION_LEVEL_SIGNAGE.block.color || "#EF4444",

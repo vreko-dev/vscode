@@ -75,13 +75,13 @@ export class AIOptInManager {
 
 		const items: (vscode.QuickPickItem & { value: boolean })[] = [
 			{
-				label: "$(check) Enable automatic snapshots",
+				label: "✅ Enable automatic snapshots",
 				description: "Create snapshots automatically during AI-assisted coding sessions",
 				detail: "SnapBack will create snapshots when it detects rapid, large insertions typical of AI assistants",
 				value: true,
 			},
 			{
-				label: "$(x) Keep manual snapshots only",
+				label: "🚫 Keep manual snapshots only",
 				description: "Continue creating snapshots manually as usual",
 				detail: "You can still create snapshots manually with the existing commands",
 				value: false,

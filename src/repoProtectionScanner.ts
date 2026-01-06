@@ -100,7 +100,7 @@ export class RepoProtectionScanner {
 
 		// Add "Select All" option at the top
 		items.push({
-			label: "$(check-all) Select All Recommendations",
+			label: "☑️ Select All Recommendations",
 			description: `Apply all ${recommendations.length} recommended protections`,
 			recommendation: null as FileProtectionRecommendation | null,
 			category: "selectAll",
