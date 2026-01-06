@@ -91,35 +91,36 @@ export class StorageManager implements IStorageManager {
 		// This must succeed for snapshots and sessions to work
 		try {
 			await vscode.workspace.fs.createDirectory(this.storageUri);
-		} catch (err: any) {
+		} catch (err: unknown) {
 			// Handle specific error cases with clear user guidance
-			if (err.code === "FileExists") {
+			const e = err as { code?: string; message?: string };
+			if (e.code === "FileExists") {
 				// OK - directory already exists, continue normally
-			} else if (err.code === "NoSpace" || err.message?.includes("ENOSPC") || err.message?.includes("no space")) {
+			} else if (e.code === "NoSpace" || e.message?.includes("ENOSPC") || e.message?.includes("no space")) {
 				// Disk full - provide actionable guidance
-				const error = new Error(
+				const storageError = new Error(
 					"Cannot initialize SnapBack storage: Your disk is full. Free up space and reload VS Code to use snapshot features.",
 				);
-				error.name = "StorageSpaceError";
-				throw error;
+				storageError.name = "StorageSpaceError";
+				throw storageError;
 			} else if (
-				err.code === "NoPermissions" ||
-				err.message?.includes("EACCES") ||
-				err.message?.includes("permission")
+				e.code === "NoPermissions" ||
+				e.message?.includes("EACCES") ||
+				e.message?.includes("permission")
 			) {
 				// Permission denied - guide user to fix permissions
-				const error = new Error(
+				const storageError = new Error(
 					`Cannot initialize SnapBack storage: Permission denied accessing ${this.storageUri.fsPath}. Check folder permissions and reload VS Code.`,
 				);
-				error.name = "StoragePermissionError";
-				throw error;
+				storageError.name = "StoragePermissionError";
+				throw storageError;
 			} else {
 				// Unknown error - provide debug info
-				const error = new Error(
-					`Cannot initialize SnapBack storage: ${err.message || "Unknown error"}. Check the Output panel for details.`,
+				const storageError = new Error(
+					`Cannot initialize SnapBack storage: ${e.message || "Unknown error"}. Check the Output panel for details.`,
 				);
-				error.name = "StorageInitializationError";
-				throw error;
+				storageError.name = "StorageInitializationError";
+				throw storageError;
 			}
 		}
 
@@ -165,25 +166,22 @@ export class StorageManager implements IStorageManager {
 			});
 
 			this._componentsInitialized = true;
-		} catch (err: any) {
+		} catch (err: unknown) {
 			// Provide user-friendly error messages for common storage failures
-			if (err.code === "NoSpace" || err.message?.includes("ENOSPC") || err.message?.includes("no space")) {
-				const error = new Error(
+			const e = err as { code?: string; message?: string };
+			if (e.code === "NoSpace" || e.message?.includes("ENOSPC") || e.message?.includes("no space")) {
+				const storageError = new Error(
 					"Cannot create snapshot: Your disk is full. Free up space to continue using SnapBack.",
 				);
-				error.name = "StorageSpaceError";
-				throw error;
+				storageError.name = "StorageSpaceError";
+				throw storageError;
 			}
-			if (
-				err.code === "NoPermissions" ||
-				err.message?.includes("EACCES") ||
-				err.message?.includes("permission")
-			) {
-				const error = new Error(
+			if (e.code === "NoPermissions" || e.message?.includes("EACCES") || e.message?.includes("permission")) {
+				const storageError = new Error(
 					`Cannot access storage: Permission denied. Check folder permissions for ${this.storageUri.fsPath}`,
 				);
-				error.name = "StoragePermissionError";
-				throw error;
+				storageError.name = "StoragePermissionError";
+				throw storageError;
 			}
 			// Re-throw with original error for debugging
 			throw err;
@@ -313,7 +311,7 @@ export class StorageManager implements IStorageManager {
 			clusterFiles: Map<string, string>;
 		},
 		trigger: SnapshotManifest["trigger"],
-		options?: { name?: string; metadata?: any },
+		options?: { name?: string; metadata?: Record<string, unknown> },
 	): Promise<SnapshotManifest | null> {
 		// 1. Check Cooldown (Ephemeral debounce)
 		// We use the anchor file + "snapshot_created" as the cooldown key
@@ -388,6 +386,7 @@ export class StorageManager implements IStorageManager {
 			timestamp: v2Manifest.timestamp,
 			trigger: options.trigger,
 			anchorFile: v2Manifest.anchorFile,
+			workspaceId: vscode.workspace.workspaceFolders?.[0]?.uri.toString(),
 		});
 
 		// Return V1-compatible manifest for backward compatibility

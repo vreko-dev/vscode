@@ -499,7 +499,8 @@ export class DashboardPanel implements vscode.Disposable {
 		// Get queue depth from MCPBridge (G9: offline queue visibility)
 		let queueStatusHtml = "";
 		try {
-			const bridge = getMCPBridge();
+			const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
+			const bridge = getMCPBridge(workspaceId);
 			const status = bridge.getStatus();
 			const pendingTotal = status.pendingObservations + status.pendingChanges;
 			if (pendingTotal > 0) {

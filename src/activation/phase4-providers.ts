@@ -143,10 +143,12 @@ export async function initializePhase4Providers(
 		logger.debug("StatusBarManager", { ms: Date.now() - t });
 
 		// Initialize StatusBarController (new consolidated status bar)
+		// Pass workspaceId for workspace-scoped event filtering
 		t = Date.now();
-		const statusBarController = new StatusBarController();
+		const statusBarWorkspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
+		const statusBarController = new StatusBarController(statusBarWorkspaceId);
 		context.subscriptions.push(statusBarController);
-		logger.debug("StatusBarController", { ms: Date.now() - t });
+		logger.debug("StatusBarController", { ms: Date.now() - t, workspaceId: statusBarWorkspaceId });
 
 		// Initialize MCPStatusItem for MCP connection visibility
 		let mcpStatusItem: MCPStatusItem | undefined;

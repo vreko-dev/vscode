@@ -759,6 +759,7 @@ export class OperationCoordinator {
 						name: snapshotManifest.name,
 						timestamp: snapshotManifest.timestamp,
 						trigger: snapshotManifest.trigger,
+						workspaceId: vscode.workspace.workspaceFolders?.[0]?.uri.toString(),
 					});
 
 					// Convert SnapshotManifest to Snapshot type for compatibility

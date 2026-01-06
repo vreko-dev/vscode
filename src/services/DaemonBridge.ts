@@ -98,6 +98,8 @@ export interface SnapshotCreatedEvent {
 	filePath: string;
 	trigger: "manual" | "auto" | "mcp" | "ai-detection";
 	source: "extension" | "mcp" | "cli";
+	/** Workspace ID (URI string) for multi-workspace isolation */
+	workspaceId?: string;
 }
 
 export interface SessionStatusResult {
@@ -170,7 +172,7 @@ export class DaemonBridge extends vscode.Disposable {
 			}
 
 			const pid = Number.parseInt(readFileSync(pidPath, "utf8").trim(), 10);
-			if (isNaN(pid)) {
+			if (Number.isNaN(pid)) {
 				return false;
 			}
 
@@ -310,7 +312,9 @@ export class DaemonBridge extends vscode.Disposable {
 		this.buffer = lines.pop() || "";
 
 		for (const line of lines) {
-			if (!line.trim()) continue;
+			if (!line.trim()) {
+				continue;
+			}
 
 			try {
 				const message: JsonRpcResponse = JSON.parse(line);
@@ -371,6 +375,7 @@ export class DaemonBridge extends vscode.Disposable {
 					filePath: data.filePath as string,
 					trigger: data.trigger as "manual" | "auto" | "mcp" | "ai-detection",
 					source: data.source as "extension" | "mcp" | "cli",
+					workspaceId: data.workspaceId as string | undefined,
 				});
 				break;
 
@@ -445,7 +450,7 @@ export class DaemonBridge extends vscode.Disposable {
 				timeout,
 			});
 
-			this.socket!.write(JSON.stringify(request) + "\n");
+			this.socket?.write(`${JSON.stringify(request)}\n`);
 		});
 	}
 

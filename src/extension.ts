@@ -28,7 +28,7 @@ import { AnonymousIdManager } from "./auth/AnonymousIdManager";
 import { AuthState } from "./auth/AuthState";
 import { createCredentialsManager } from "./auth/credentials";
 import { EventBridge } from "./bridges/EventBridge";
-import { MCPBridge } from "./bridges/MCPBridge"; // 🆕 Import MCPBridge for pair programming
+import { disposeAllMCPBridges, getMCPBridge, type MCPBridge } from "./bridges/MCPBridge"; // 🆕 Import MCPBridge for pair programming
 import { SignalBridge } from "./bridges/SignalBridge";
 import { registerDiffCommands } from "./commands/diffCommands"; // 🆕 Import diff commands
 // SnapBackOAuthProvider is now used by UnifiedAuthProvider internally
@@ -144,9 +144,10 @@ let aiDetectionToast: AIDetectionToast | null = null;
 let vitalsUpdateInterval: NodeJS.Timeout | null = null;
 // 🆕 Global reference to Heat Integration
 let heatIntegration: HeatIntegration | null = null;
-// 🆕 Timeout for AI recording state (auto-clear after inactivity)
-let aiRecordingTimeout: NodeJS.Timeout | null = null;
-const AI_RECORDING_TIMEOUT_MS = 30_000; // 30 seconds of no AI activity clears recording state
+// REMOVED: aiRecordingTimeout - Recording state removed (Option 3)
+// The "Recording..." state was triggering on AI extension presence rather than actual
+// AI-assisted editing activity. StatusBarManager.showAIDetectedSequence() already
+// provides visual feedback for AI activity, making the recording state redundant.
 
 // 🆕 Global reference to refresh views function
 let refreshViews = () => {};
@@ -309,7 +310,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			const state = await vscode.window.showQuickPick(
 				[
 					{ label: "$(shield) Protected", value: "protected" },
-					{ label: "$(record) Recording", value: "recording" },
+					// REMOVED: Recording option - Recording state removed (Option 3)
 					{ label: "$(pulse) Activity (5 snaps)", value: "activity" },
 					{ label: "$(alert) Attention/Review", value: "attention" },
 					{ label: "$(circle-slash) Disabled", value: "disabled" },
@@ -324,16 +325,14 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Reset all states first
 			statusBarController.setExtensionEnabled(true);
 			statusBarController.setNeedsAttention(false);
-			statusBarController.setRecording(false);
+			// REMOVED: setRecording(false) - Recording state removed (Option 3)
 			statusBarController.setSnapshotCount(0);
 
 			switch (state.value) {
 				case "protected":
 					// Already reset to protected
 					break;
-				case "recording":
-					statusBarController.setRecording(true);
-					break;
+				// REMOVED: recording case - Recording state removed (Option 3)
 				case "activity":
 					statusBarController.setSnapshotCount(5);
 					break;
@@ -642,23 +641,11 @@ export async function activate(context: vscode.ExtensionContext) {
 						void aiDetectionToast.show(signals);
 					}
 
-					// 🆕 Wire StatusBarController recording state
-					// Shows "Recording..." while AI activity is detected
-					if (statusBarController) {
-						// Clear existing timeout
-						if (aiRecordingTimeout) {
-							clearTimeout(aiRecordingTimeout);
-						}
-						// Set recording state
-						statusBarController.setRecording(true);
-						// Auto-clear after inactivity
-						aiRecordingTimeout = setTimeout(() => {
-							if (statusBarController) {
-								statusBarController.setRecording(false);
-							}
-							aiRecordingTimeout = null;
-						}, AI_RECORDING_TIMEOUT_MS);
-					}
+					// REMOVED: Recording state trigger (Option 3)
+					// The "Recording..." state was triggering on AI extension presence (having
+					// Copilot/Cursor installed) rather than actual AI-assisted editing.
+					// StatusBarManager.showAIDetectedSequence() already provides appropriate
+					// visual feedback when AI activity is detected.
 				}
 
 				// 🆕 Trigger status bar activity sequence for burst detection
@@ -672,7 +659,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// 🆕 Initialize MCPBridge for pair programming observations
 		// Pushes file changes and observations to MCP server for composite tools
-		mcpBridge = new MCPBridge({
+		// Uses workspace-scoped instance to prevent cross-workspace event leakage
+		const primaryWorkspaceId = workspaceFolders[0]?.uri.toString() || "default";
+		mcpBridge = getMCPBridge(primaryWorkspaceId, {
 			mcpEndpoint: "http://127.0.0.1:3100",
 			flushInterval: 5000,
 			enableAIDetection: true,
@@ -680,11 +669,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		mcpBridge.activate(context, signalBridge ?? undefined);
 		context.subscriptions.push({
 			dispose: () => {
-				mcpBridge?.dispose();
+				// Dispose all workspace-scoped bridges on deactivation
+				disposeAllMCPBridges();
 				mcpBridge = null;
 			},
 		});
-		logger.info("MCPBridge initialized for pair programming");
+		logger.info("MCPBridge initialized for pair programming", { workspaceId: primaryWorkspaceId });
 
 		// Phase 3: Business logic managers
 		const phase3Start = Date.now();
@@ -1217,23 +1207,49 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Capture eventBus in closure to avoid null check issues
 			const bus = eventBus;
 
-			// 🆕 Track snapshot count for StatusBarController
+			// 🆕 Track snapshot count for StatusBarController (workspace-scoped)
 			let sessionSnapshotCount = 0;
+			// Use consistent workspace ID for filtering (URI string format)
+			const currentWorkspaceId = workspaceFolders[0]?.uri.toString() || "default";
 
 			const snapshotCreatedHandler = (payload: unknown) => {
-				logger.info("Snapshot created event received", payload);
-				// Refresh all tree views when snapshot is created
-				refreshViews();
+				const data = payload as { id: string; workspaceId?: string; filePath?: string; source?: string };
+				logger.info("Snapshot created event received", {
+					...data,
+					currentWorkspaceId,
+					eventWorkspaceId: data.workspaceId,
+				});
 
-				// 🆕 Update StatusBarController snapshot count
-				sessionSnapshotCount++;
-				if (statusBarController) {
-					statusBarController.setSnapshotCount(sessionSnapshotCount);
+				// 🆕 Workspace-scoped filtering: Only update status bar for current workspace
+				// This prevents multi-workspace cross-contamination
+				const shouldProcess = statusBarController?.shouldProcessEvent(data.workspaceId) ?? true;
+
+				if (shouldProcess) {
+					// Refresh all tree views when snapshot is created
+					refreshViews();
+
+					// 🆕 Update StatusBarController snapshot count (workspace-scoped)
+					sessionSnapshotCount++;
+					if (statusBarController) {
+						statusBarController.setSnapshotCount(sessionSnapshotCount);
+					}
+
+					// 🐛 FIX: Also update StatusBarManager (vitalsStatusBar) snapshot count
+					// This ensures the vitals status bar counter matches actual snapshot count,
+					// fixing the phantom counter bug where detection events were incrementing
+					// the counter without creating actual snapshots
+					if (vitalsStatusBar) {
+						vitalsStatusBar.incrementSnapshotCount();
+					}
+
+					// Show notification only for current workspace
+					vscode.window.showInformationMessage(`🧢 Snapshot created by AI: ${data.id}`);
+				} else {
+					logger.debug("Snapshot event filtered - different workspace", {
+						eventWorkspaceId: data.workspaceId,
+						currentWorkspaceId,
+					});
 				}
-
-				// Show notification
-				const data = payload as { id: string };
-				vscode.window.showInformationMessage(`🧢 Snapshot created by AI: ${data.id}`);
 			};
 			bus.on(SnapBackEvent.SNAPSHOT_CREATED, snapshotCreatedHandler);
 			context.subscriptions.push({
@@ -1285,18 +1301,20 @@ export async function activate(context: vscode.ExtensionContext) {
 					snapshotId: event.snapshotId,
 					source: event.source,
 					trigger: event.trigger,
+					workspaceId: currentWorkspaceId,
 				});
 
 				// Forward to EventBus so AutoDecisionIntegration can reset vitals pressure
+				// Include workspaceId for proper scope isolation
 				bus.publish(SnapBackEvent.SNAPSHOT_CREATED, {
 					id: event.snapshotId,
 					filePath: event.filePath,
 					source: event.source,
 					trigger: event.trigger,
+					workspaceId: currentWorkspaceId, // 🆕 Add workspace scope
 				});
 
-				// Refresh views
-				refreshViews();
+				// Note: refreshViews is handled by snapshotCreatedHandler which filters by workspace
 			};
 			daemonBridge.onSnapshotCreated(daemonSnapshotHandler);
 			context.subscriptions.push({
@@ -1606,11 +1624,7 @@ export async function deactivate() {
 			clearInterval(vitalsUpdateInterval);
 			vitalsUpdateInterval = null;
 		}
-		// 🆕 Clear AI recording timeout
-		if (aiRecordingTimeout) {
-			clearTimeout(aiRecordingTimeout);
-			aiRecordingTimeout = null;
-		}
+		// REMOVED: aiRecordingTimeout cleanup - Recording state removed (Option 3)
 		// REMOVED: vitalsIntegration dispose - consolidated into VitalsUIIntegration
 		// VitalsUIIntegration is disposed as part of phase4Result
 		if (vitalsStatusBar) {
