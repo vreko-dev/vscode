@@ -351,7 +351,8 @@ export function registerMcpCommands(
 			// 5. Check MCPBridge queue depth and circuit breaker (G8, G9)
 			diagnostics.push("\n📊 Queue & Circuit Breaker Status:");
 			try {
-				const bridge = getMCPBridge();
+				const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
+				const bridge = getMCPBridge(workspaceId);
 				const status = bridge.getStatus();
 				const circuitState = bridge.getCircuitState();
 
@@ -409,7 +410,8 @@ export function registerMcpCommands(
 
 			// Track telemetry for diagnose execution (G10: MCP metrics)
 			try {
-				const bridge = getMCPBridge();
+				const diagWorkspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
+				const bridge = getMCPBridge(diagWorkspaceId);
 				const status = bridge.getStatus();
 				const circuitState = bridge.getCircuitState();
 

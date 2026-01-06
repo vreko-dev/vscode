@@ -32,6 +32,8 @@ export interface MCPFileChange {
 	timestamp: number;
 	aiAttributed: boolean;
 	linesChanged: number;
+	/** Workspace ID this change belongs to */
+	workspaceId: string;
 }
 
 /**
@@ -42,6 +44,8 @@ export interface MCPObservation {
 	message: string;
 	timestamp: number;
 	context?: Record<string, unknown>;
+	/** Workspace ID this observation belongs to */
+	workspaceId: string;
 }
 
 /**
@@ -56,6 +60,8 @@ export interface MCPBridgeConfig {
 	enableAIDetection?: boolean;
 	/** Risk file patterns */
 	riskPatterns?: string[];
+	/** Workspace ID for scoped event filtering */
+	workspaceId?: string;
 }
 
 /**
@@ -179,6 +185,8 @@ export class MCPBridge {
 	private readonly enableAIDetection: boolean;
 	private readonly riskPatterns: string[];
 	private readonly workspaceRoot: string;
+	/** Workspace ID for scoped event filtering */
+	private readonly workspaceId: string;
 
 	// State
 	private observationQueue: MCPObservation[] = [];
@@ -206,6 +214,15 @@ export class MCPBridge {
 		this.enableAIDetection = config.enableAIDetection ?? true;
 		this.riskPatterns = config.riskPatterns ?? DEFAULT_RISK_PATTERNS;
 		this.workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
+		// Use provided workspaceId or derive from workspace folder URI
+		this.workspaceId = config.workspaceId ?? vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
+	}
+
+	/**
+	 * Get the workspace ID this bridge instance is scoped to
+	 */
+	getWorkspaceId(): string {
+		return this.workspaceId;
 	}
 
 	/**
@@ -300,6 +317,7 @@ export class MCPBridge {
 			timestamp: Date.now(),
 			aiAttributed,
 			linesChanged: lineCount, // Approximation
+			workspaceId: this.workspaceId,
 		};
 
 		this.changeQueue.push(change);
@@ -315,6 +333,7 @@ export class MCPBridge {
 				message: `High-risk file modified: ${filePath} (${reason})`,
 				timestamp: Date.now(),
 				context: { file: filePath, riskLevel: "high", reason },
+				workspaceId: this.workspaceId,
 			});
 		}
 	}
@@ -331,6 +350,7 @@ export class MCPBridge {
 			timestamp: Date.now(),
 			aiAttributed: false,
 			linesChanged: 0,
+			workspaceId: this.workspaceId,
 		};
 
 		this.changeQueue.push(change);
@@ -348,6 +368,7 @@ export class MCPBridge {
 			timestamp: Date.now(),
 			aiAttributed: false,
 			linesChanged: 0,
+			workspaceId: this.workspaceId,
 		};
 
 		this.changeQueue.push(change);
@@ -377,6 +398,7 @@ export class MCPBridge {
 					charCount: burstState.charCount,
 					suggestion: "snapshot",
 				},
+				workspaceId: this.workspaceId,
 			});
 		}
 
@@ -398,6 +420,7 @@ export class MCPBridge {
 						confidence: aiResult.confidence,
 						method: aiResult.method,
 					},
+					workspaceId: this.workspaceId,
 				});
 			}
 		}
@@ -433,6 +456,7 @@ export class MCPBridge {
 			message,
 			timestamp: Date.now(),
 			context,
+			workspaceId: this.workspaceId,
 		});
 	}
 
@@ -445,6 +469,7 @@ export class MCPBridge {
 			message,
 			timestamp: Date.now(),
 			context,
+			workspaceId: this.workspaceId,
 		});
 	}
 
@@ -456,6 +481,7 @@ export class MCPBridge {
 			type: "progress",
 			message,
 			timestamp: Date.now(),
+			workspaceId: this.workspaceId,
 		});
 	}
 
@@ -697,27 +723,92 @@ export class MCPBridge {
 }
 
 // =============================================================================
-// SINGLETON
+// WORKSPACE-KEYED INSTANCES (Replaces Singleton Pattern)
 // =============================================================================
 
-let mcpBridge: MCPBridge | null = null;
+/**
+ * Workspace-keyed MCPBridge instances for proper scope isolation.
+ *
+ * Each workspace gets its own MCPBridge instance to prevent:
+ * - Activity counts leaking between workspaces
+ * - Events from one workspace affecting another workspace's status bar
+ * - MCP pushes containing events from multiple workspaces
+ *
+ * Pattern follows VitalsUIIntegration and UnifiedDataService.
+ */
+const mcpBridgeInstances: Map<string, MCPBridge> = new Map();
 
 /**
- * Get or create MCPBridge singleton
+ * Get or create MCPBridge for a specific workspace
+ *
+ * @param workspaceId - Unique identifier for the workspace (typically URI.toString())
+ * @param config - Optional configuration (only used when creating new instance)
+ * @returns MCPBridge instance scoped to the workspace
+ *
+ * @example
+ * ```typescript
+ * const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() || 'default';
+ * const bridge = getMCPBridge(workspaceId, { flushInterval: 3000 });
+ * ```
  */
-export function getMCPBridge(config?: MCPBridgeConfig): MCPBridge {
-	if (!mcpBridge) {
-		mcpBridge = new MCPBridge(config);
+export function getMCPBridge(workspaceId: string, config?: MCPBridgeConfig): MCPBridge {
+	let instance = mcpBridgeInstances.get(workspaceId);
+	if (!instance) {
+		instance = new MCPBridge({ ...config, workspaceId });
+		mcpBridgeInstances.set(workspaceId, instance);
+		logger.debug("MCPBridge instance created for workspace", { workspaceId });
 	}
-	return mcpBridge;
+	return instance;
 }
 
 /**
- * Dispose MCPBridge singleton
+ * Dispose MCPBridge for a specific workspace
+ *
+ * @param workspaceId - Workspace identifier to dispose
+ */
+export function disposeMCPBridgeForWorkspace(workspaceId: string): void {
+	const instance = mcpBridgeInstances.get(workspaceId);
+	if (instance) {
+		instance.dispose();
+		mcpBridgeInstances.delete(workspaceId);
+		logger.debug("MCPBridge instance disposed for workspace", { workspaceId });
+	}
+}
+
+/**
+ * Dispose all MCPBridge instances
+ * Call during extension deactivation
+ */
+export function disposeAllMCPBridges(): void {
+	for (const [workspaceId, instance] of mcpBridgeInstances) {
+		instance.dispose();
+		logger.debug("MCPBridge instance disposed for workspace", { workspaceId });
+	}
+	mcpBridgeInstances.clear();
+}
+
+/**
+ * Get all active MCPBridge workspace IDs
+ * Useful for debugging and testing
+ */
+export function getActiveMCPBridgeWorkspaces(): string[] {
+	return Array.from(mcpBridgeInstances.keys());
+}
+
+/**
+ * @deprecated Use getMCPBridge(workspaceId, config) instead
+ * Legacy singleton getter - for backward compatibility only
+ * Returns the first available instance or creates one for the default workspace
+ */
+export function getMCPBridgeLegacy(config?: MCPBridgeConfig): MCPBridge {
+	const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
+	return getMCPBridge(workspaceId, config);
+}
+
+/**
+ * @deprecated Use disposeAllMCPBridges() instead
+ * Legacy dispose - for backward compatibility only
  */
 export function disposeMCPBridge(): void {
-	if (mcpBridge) {
-		mcpBridge.dispose();
-		mcpBridge = null;
-	}
+	disposeAllMCPBridges();
 }
