@@ -835,7 +835,24 @@
           "default": false,
           "markdownDescription": "**Show Sidebar Tree View**\n\nEnable the full SnapBack tree view in the Activity Bar. When off, uses minimal status bar UI.",
           "order": 8
+        },
+        "snapback.ui.hideInternalFiles": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "**Hide Internal Files**\n\nHide `.snapback/` directory contents in VS Code explorer. Internal files are implementation details users don't need to see.",
+          "order": 9
+        },
+        "snapback.mcp.autoEnable": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "**Auto-Configure MCP**\n\nAutomatically configure MCP for detected AI assistants (Cursor, Claude Desktop, Windsurf) on extension activation.",
+          "order": 10
         }
+      }
+    },
+    "configurationDefaults": {
+      "files.exclude": {
+        "**/.snapback": true
       }
     },
     "keybindings": [

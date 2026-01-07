@@ -43,8 +43,11 @@ interface ConfigurationResult {
 /**
  * Auto-configure MCP for detected AI assistants
  *
- * Called during extension activation. Detects AI clients and prompts
- * user to enable SnapBack MCP integration.
+ * Called during extension activation. Configures silently (invisible by default)
+ * and only shows success notification after completion.
+ *
+ * Philosophy: "Configure everything that has a clear benefit and no downside."
+ * Only ask permission for: cloud sync, billing, or elevated permissions.
  *
  * @param context - VS Code extension context
  */
@@ -54,13 +57,13 @@ export async function autoConfigureMCP(context: vscode.ExtensionContext): Promis
 
 	const config = vscode.workspace.getConfiguration("snapback");
 
-	// Check if auto-configure is enabled (default: true)
+	// Check if auto-configure is disabled by user preference
 	if (!config.get<boolean>("mcp.autoEnable", true)) {
 		logger.debug("[MCP] Auto-configure disabled in settings");
 		return;
 	}
 
-	// Check if we've already configured (don't re-prompt)
+	// Check if we've already configured (idempotent)
 	const hasConfigured = context.globalState.get<boolean>("mcp.configured");
 	if (hasConfigured) {
 		logger.debug("[MCP] Already configured, skipping auto-configure");
@@ -88,41 +91,26 @@ export async function autoConfigureMCP(context: vscode.ExtensionContext): Promis
 			return;
 		}
 
-		// Show prompt to user
-		const clientNames = detection.needsSetup.map((c) => c.displayName).join(", ");
-		const response = await vscode.window.showInformationMessage(
-			`SnapBack detected ${clientNames}. Enable AI protection integration?`,
-			"Enable",
-			"Not Now",
-			"Never Ask",
-		);
-
-		trackTelemetry("mcp_auto_configure_prompt_shown", {
+		// 🔥 SILENT CONFIGURATION: No prompt, just configure
+		// This is the core value proposition - protection should be automatic
+		trackTelemetry("mcp_auto_configure_started", {
 			clients: detection.needsSetup.map((c) => c.name),
-			response: response || "dismissed",
 		});
 
-		if (response === "Never Ask") {
-			await config.update("mcp.autoEnable", false, vscode.ConfigurationTarget.Global);
-			return;
-		}
-
-		if (response !== "Enable") {
-			return;
-		}
-
-		// Configure all detected clients
-		await configureClients(detection.needsSetup, context);
+		// Configure all detected clients silently
+		await configureClientsSilently(detection.needsSetup, context);
 	} catch (error) {
 		logger.error("[MCP] Auto-configure failed", error instanceof Error ? error : undefined);
 		trackTelemetry("mcp_auto_configure_error", {
 			error: error instanceof Error ? error.message : "Unknown error",
 		});
+		// Fail silently - don't interrupt user workflow
 	}
 }
 
 /**
  * Configure SnapBack MCP for multiple clients
+ * (Used by manual configuration command - shows progress)
  */
 async function configureClients(clients: AIClientConfig[], context: vscode.ExtensionContext): Promise<void> {
 	const results: ConfigurationResult[] = [];
@@ -174,6 +162,80 @@ async function configureClients(clients: AIClientConfig[], context: vscode.Exten
 
 	// Mark as configured
 	await context.globalState.update("mcp.configured", true);
+}
+
+/**
+ * Configure MCP clients silently (no progress dialog, no prompts)
+ *
+ * Philosophy: "Invisible by default, surface when beneficial."
+ * Only shows a single success toast AFTER configuration is complete.
+ * Failures are logged but don't interrupt user workflow.
+ */
+async function configureClientsSilently(clients: AIClientConfig[], context: vscode.ExtensionContext): Promise<void> {
+	const results: ConfigurationResult[] = [];
+
+	// Get API key if user is authenticated
+	const apiKey = await getStoredApiKey(context);
+	// Get workspace ID for MCP tier resolution (always available)
+	const workspaceId = await getOrCreateWorkspaceId(context.secrets);
+	const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId });
+
+	// Configure each client silently (no progress UI)
+	for (const client of clients) {
+		try {
+			const result = writeClientConfig(client, mcpConfig);
+			results.push({
+				client: client.displayName,
+				success: result.success,
+				error: result.error,
+			});
+		} catch (err) {
+			results.push({
+				client: client.displayName,
+				success: false,
+				error: err instanceof Error ? err.message : "Unknown error",
+			});
+		}
+	}
+
+	const successful = results.filter((r) => r.success);
+	const failed = results.filter((r) => !r.success);
+
+	// 🎉 FIRST VALUE MOMENT: Show success toast with primary client
+	// Only show after successful configuration - this builds trust
+	if (successful.length > 0) {
+		const primaryClient = successful[0].client; // Use first successful client
+		const message =
+			successful.length === 1
+				? `🧢 SnapBack is now protecting your ${primaryClient} sessions`
+				: `🧢 SnapBack is now protecting ${successful.length} AI assistants`;
+
+		// Deferred toast - let extension finish activation first
+		setTimeout(() => {
+			vscode.window.showInformationMessage(message, "Learn More").then((selection) => {
+				if (selection === "Learn More") {
+					vscode.env.openExternal(vscode.Uri.parse("https://snapback.dev/docs/mcp"));
+				}
+			});
+		}, 2000); // 2 second delay for better UX
+	}
+
+	// Log failures for diagnostics but don't bother user
+	if (failed.length > 0) {
+		logger.warn("[MCP] Some clients failed to configure silently", {
+			failed: failed.map((r) => ({ client: r.client, error: r.error })),
+		});
+	}
+
+	trackTelemetry("mcp_auto_configure_silent_complete", {
+		successful: successful.map((r) => r.client),
+		failed: failed.map((r) => r.client),
+	});
+
+	// Mark as configured (even partial success is progress)
+	if (successful.length > 0) {
+		await context.globalState.update("mcp.configured", true);
+	}
 }
 
 /**
