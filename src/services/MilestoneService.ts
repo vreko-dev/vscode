@@ -8,10 +8,18 @@ import type { TelemetryProxy } from "./telemetry-proxy";
  * Tracks accumulated value metrics (protected files, recoveries) and triggers
  * milestone events to recognize user progress.
  *
+ * Philosophy: "Invisible until needed, celebrate when beneficial."
+ * These are the THREE strategic celebration moments in the onboarding flow:
+ *
+ * 1. First AI Detection → "🧢 SnapBack detected Cursor. Protection active." (handled by AIDetectionToast)
+ * 2. First Snapshot → "🧢 SnapBack: Your first save is protected!" (handled here)
+ * 3. After 10 saves → "🧢 SnapBack: Protected 10 times!" (handled here)
+ *
  * Strategy:
  * - Avoid gamification (no points/XP)
  * - Focus on genuine value delivered (files protected, disaster averted)
  * - Use globalState for persistence across sessions
+ * - Integrate Pioneer Program funnel at engagement moments
  */
 export class MilestoneService {
 	private static readonly KEYS = {
@@ -19,12 +27,15 @@ export class MilestoneService {
 		TOTAL_RECOVERIES: "snapback.milestones.totalRecoveries",
 		LAST_MILESTONE_SHOWN: "snapback.milestones.lastShown",
 		FIRST_SNAPSHOT_CREATED: "snapback.events.first_snapshot_created",
+		SNAPSHOT_COUNT: "snapback.milestones.snapshotCount",
 	};
 
 	// Milestone thresholds
 	private static readonly THRESHOLDS = {
 		FILES_PROTECTED: [10, 100, 1000, 5000, 10000],
 		RECOVERIES: [1, 5, 10, 25, 50],
+		// Pioneer funnel engagement thresholds
+		PIONEER_ENGAGEMENT: [10, 50, 100],
 	};
 
 	constructor(
@@ -36,6 +47,8 @@ export class MilestoneService {
 	/**
 	 * P0 FIX: Track first snapshot creation (P0 Blocker #3)
 	 * Records when the user creates their first snapshot for milestone tracking
+	 *
+	 * This is CELEBRATION MOMENT #2: "Your first save is protected. Breathe easy."
 	 */
 	async trackFirstSnapshot(): Promise<void> {
 		const hasCreated = this.context.globalState.get<boolean>(MilestoneService.KEYS.FIRST_SNAPSHOT_CREATED, false);
@@ -47,13 +60,62 @@ export class MilestoneService {
 				timestamp: Date.now(),
 			});
 
+			// 🎉 CELEBRATION MOMENT #2: First snapshot
+			// Philosophy: This builds trust - user sees the value for the first time
 			this.notificationManager.showNotification({
 				id: `first-snapshot-${Date.now()}`,
 				type: "info",
-				icon: "📸",
-				message: "First Snapshot Created!",
-				detail: "Your first snapshot is secured. Code changes are now being tracked.",
+				icon: "🧢",
+				message: "🧢 SnapBack: Your first save is protected!",
+				detail: "Breathe easy. SnapBack is watching over your code.",
 				timestamp: Date.now(),
+			});
+		}
+
+		// Always increment snapshot count (for Pioneer engagement)
+		await this.incrementSnapshotCount();
+	}
+
+	/**
+	 * Track total snapshot count and check for Pioneer engagement milestones
+	 *
+	 * This triggers CELEBRATION MOMENT #3 at 10 snapshots:
+	 * "🌱 You've been protected 10 times. Unlock Pro →"
+	 */
+	private async incrementSnapshotCount(): Promise<void> {
+		const current = this.context.globalState.get<number>(MilestoneService.KEYS.SNAPSHOT_COUNT, 0);
+		const newValue = current + 1;
+
+		await this.context.globalState.update(MilestoneService.KEYS.SNAPSHOT_COUNT, newValue);
+
+		// Check for Pioneer engagement threshold
+		this.checkPioneerEngagement(current, newValue);
+	}
+
+	/**
+	 * Check if user crossed a Pioneer engagement threshold
+	 *
+	 * CELEBRATION MOMENT #3: Pioneer funnel integration
+	 * After demonstrating value (10 snapshots), invite to Pioneer Program
+	 */
+	private checkPioneerEngagement(prev: number, current: number): void {
+		const engagementThreshold = MilestoneService.THRESHOLDS.PIONEER_ENGAGEMENT[0]; // 10
+
+		if (prev < engagementThreshold && current >= engagementThreshold) {
+			// 🎉 CELEBRATION MOMENT #3: Pioneer funnel entry
+			this.telemetryProxy.trackEvent("pioneer_engagement.threshold_reached", {
+				threshold: engagementThreshold,
+				timestamp: Date.now(),
+			});
+
+			this.notificationManager.showNotification({
+				id: `pioneer-engagement-${Date.now()}`,
+				type: "info",
+				icon: "🧢",
+				message: `🧢 SnapBack: Protected ${engagementThreshold} times!`,
+				detail: "You're on a roll. Join the Pioneer Program to unlock Pro features.",
+				timestamp: Date.now(),
+				actions: [{ title: "Join Pioneer Program", command: "snapback.pioneer.login" }],
 			});
 		}
 	}

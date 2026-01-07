@@ -30,6 +30,55 @@ describe("MilestoneService", () => {
 		);
 	});
 
+	describe("trackFirstSnapshot - 🧢 SnapBack Branding", () => {
+		it("should show branded celebration message on first snapshot", async () => {
+			// GIVEN: No previous first snapshot
+			mockGlobalState.get.mockImplementation((key: string) => {
+				if (key === "snapback.events.first_snapshot_created") return false;
+				if (key === "snapback.milestones.snapshotCount") return 0;
+				return undefined;
+			});
+
+			// WHEN: First snapshot created
+			await service.trackFirstSnapshot();
+
+			// THEN: Should show 🧢 branded notification
+			expect(mockNotificationManager.showNotification).toHaveBeenCalledWith(
+				expect.objectContaining({
+					icon: "🧢",
+					message: "🧢 SnapBack: Your first save is protected!",
+				})
+			);
+		});
+
+		it("should trigger Pioneer engagement at 10 snapshots", async () => {
+			// GIVEN: 9 snapshots already (one away from Pioneer threshold)
+			mockGlobalState.get.mockImplementation((key: string) => {
+				if (key === "snapback.events.first_snapshot_created") return true;
+				if (key === "snapback.milestones.snapshotCount") return 9;
+				return undefined;
+			});
+
+			// WHEN: 10th snapshot
+			await service.trackFirstSnapshot();
+
+			// THEN: Should trigger Pioneer engagement notification
+			expect(mockTelemetryProxy.trackEvent).toHaveBeenCalledWith(
+				"pioneer_engagement.threshold_reached",
+				expect.objectContaining({ threshold: 10 })
+			);
+			expect(mockNotificationManager.showNotification).toHaveBeenCalledWith(
+				expect.objectContaining({
+					icon: "🧢",
+					message: "🧢 SnapBack: Protected 10 times!",
+					actions: expect.arrayContaining([
+						expect.objectContaining({ title: "Join Pioneer Program" })
+					]),
+				})
+			);
+		});
+	});
+
 	describe("incrementProtectedFiles", () => {
 		it("should trigger milestone when threshold is reached", async () => {
 			// GIVEN: 99 files protected (1 away from 100)
