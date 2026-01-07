@@ -151,7 +151,7 @@ View your SnapBack snapshots directly in VS Code's built-in Timeline view:
 
 -   Check the [main README](../../README.md) for general information
 -   Review the [CHANGELOG](../../CHANGELOG.md) for recent updates
--   Open an [issue](https://github.com/Marcelle-Labs/SnapBack/issues) for bug reports
--   Join the [discussion](https://github.com/Marcelle-Labs/SnapBack/discussions) for questions
+-   Open an [issue](https://github.com/snapback-dev/vscode/issues) for bug reports
+-   Join the [discussion](https://github.com/snapback-dev/vscode/discussions) for questions
 
 Happy coding! 🧢

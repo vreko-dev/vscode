@@ -411,7 +411,7 @@ pnpm run security:audit:fix
 For security questions or concerns:
 - **Email**: security@snapback.dev
 - **Security Team**: [@snapback-security](https://github.com/orgs/snapback/teams/security)
-- **Issue Reporting**: https://github.com/Marcelle-Labs/SnapBack/security/advisories
+- **Issue Reporting**: https://github.com/snapback-dev/vscode/security/advisories
 
 ---
 
