@@ -33,11 +33,21 @@ export function registerSnapshotCreationCommands(
 
 	// Command: Create Snapshot
 	// UX: Tell what you did, not what you're doing (no premature "Creating..." message)
+	// 🐛 FIX: Accept URI parameter from context menu right-click
+	// VS Code passes the clicked file's URI when invoked from explorer/context menu
+	// Without this, the anchor file would default to alphabetically first file instead of clicked file
 	disposables.push(
-		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.CREATE_LEGACY, async () => {
+		vscode.commands.registerCommand(COMMANDS.SNAPSHOT.CREATE_LEGACY, async (uri?: vscode.Uri) => {
 			try {
+				// If invoked from context menu, use the clicked file as the specific file
+				// This ensures the anchor file is set correctly for manual snapshots
+				const specificFiles = uri ? [uri.fsPath] : undefined;
+
 				// Silent operation - only notify on completion
-				const snapshotId = await operationCoordinator.coordinateSnapshotCreation();
+				const snapshotId = await operationCoordinator.coordinateSnapshotCreation(
+					true, // showNotification
+					specificFiles,
+				);
 
 				// Only proceed if snapshot was created successfully
 				if (snapshotId) {

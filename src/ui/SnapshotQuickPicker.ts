@@ -13,6 +13,7 @@
  */
 
 import * as vscode from "vscode";
+import { SNAPBACK_ICONS } from "../constants/icons";
 import { MCPStorageReader } from "../storage/bridge/MCPStorageReader";
 import { type ExtensionStorageAdapter, SnapshotBridge } from "../storage/bridge/SnapshotBridge";
 import type { UnifiedSnapshot } from "../storage/bridge/UnifiedSnapshot";
@@ -34,7 +35,7 @@ interface SnapshotQuickPickItem extends vscode.QuickPickItem {
 	trigger?: string;
 	fileCount?: number;
 	primaryFile?: string;
-	action?: "restore" | "browse" | "dashboard" | "separator";
+	action?: "restore" | "browse" | "dashboard" | "protection" | "separator";
 }
 
 /**
@@ -148,12 +149,40 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 
 	/**
 	 * Build QuickPick items with recent snapshots and actions
+	 *
+	 * Structure: Actions (Dashboard-first) → Recent Snapshots
+	 * Dashboard is emphasized as the primary action per UX spec.
 	 */
 	private async buildQuickPickItems(): Promise<SnapshotQuickPickItem[]> {
 		const items: SnapshotQuickPickItem[] = [];
 		const snapshots = await this.loadRecentSnapshots();
 
-		// Header: Recent snapshots
+		// Actions section FIRST - Dashboard emphasized as primary action
+		items.push({
+			label: "Actions",
+			kind: vscode.QuickPickItemKind.Separator,
+		});
+
+		// Dashboard is FIRST and emphasized
+		items.push({
+			label: `${SNAPBACK_ICONS.OVERVIEW} Open Dashboard`,
+			description: "Full snapshot management & workspace vitals",
+			action: "dashboard",
+		});
+
+		items.push({
+			label: `${SNAPBACK_ICONS.SESSION} Browse full history...`,
+			description: "View all snapshots grouped by session",
+			action: "browse",
+		});
+
+		items.push({
+			label: `${SNAPBACK_ICONS.SHIELD} Protection Status`,
+			description: "View and manage file protection levels",
+			action: "protection",
+		});
+
+		// Recent snapshots section
 		if (snapshots.length > 0) {
 			items.push({
 				label: "Recent Snapshots",
@@ -166,28 +195,15 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 			}
 		} else {
 			items.push({
-				label: "ℹ️ No snapshots yet",
+				label: "Recent Snapshots",
+				kind: vscode.QuickPickItemKind.Separator,
+			});
+
+			items.push({
+				label: `${SNAPBACK_ICONS.IN_PROGRESS} No snapshots yet`,
 				description: "Snapshots are created automatically when you save protected files",
 			});
 		}
-
-		// Actions section
-		items.push({
-			label: "Actions",
-			kind: vscode.QuickPickItemKind.Separator,
-		});
-
-		items.push({
-			label: "📁 Browse full history...",
-			description: "View all snapshots grouped by session",
-			action: "browse",
-		});
-
-		items.push({
-			label: "📊 Open Dashboard",
-			description: "Full snapshot management in browser",
-			action: "dashboard",
-		});
 
 		return items;
 	}
@@ -273,6 +289,18 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 							`Failed to open dashboard: ${error instanceof Error ? error.message : "unknown error"}`,
 						);
 					}
+				}
+				break;
+
+			case "protection":
+				try {
+					// Show protection status Quick Pick
+					await vscode.commands.executeCommand("snapback.showProtectionStatus");
+				} catch (error) {
+					logger.error("Failed to show protection status", error as Error);
+					vscode.window.showErrorMessage(
+						`Failed to show protection status: ${error instanceof Error ? error.message : "unknown error"}`,
+					);
 				}
 				break;
 		}

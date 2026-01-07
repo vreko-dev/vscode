@@ -17,8 +17,14 @@ export const PIONEER_DASHBOARD_URL = "https://console.snapback.dev/dashboard";
 /** WebSocket ping interval in milliseconds */
 export const WS_PING_INTERVAL = 25000;
 
-/** WebSocket reconnect delay in milliseconds */
+/** WebSocket reconnect base delay in milliseconds */
 export const WS_RECONNECT_DELAY = 3000;
+
+/** WebSocket reconnect maximum delay in milliseconds (2 minutes) */
+export const WS_RECONNECT_MAX_DELAY = 120000;
+
+/** WebSocket reconnect maximum attempts before giving up */
+export const WS_RECONNECT_MAX_ATTEMPTS = 10;
 
 /**
  * Timing-related constants

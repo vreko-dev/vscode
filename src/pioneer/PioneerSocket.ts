@@ -8,7 +8,13 @@
 import type { PioneerTier } from "@snapback/contracts";
 import * as vscode from "vscode";
 import WebSocket from "ws";
-import { API_BASE_URL, WS_PING_INTERVAL, WS_RECONNECT_DELAY } from "../constants";
+import {
+	API_BASE_URL,
+	WS_PING_INTERVAL,
+	WS_RECONNECT_DELAY,
+	WS_RECONNECT_MAX_ATTEMPTS,
+	WS_RECONNECT_MAX_DELAY,
+} from "../constants";
 import { logger } from "../utils/logger";
 import type { PioneerAuth } from "./PioneerAuth";
 
@@ -78,6 +84,7 @@ export class PioneerSocket implements vscode.Disposable {
 	private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 	private shouldReconnect = true;
 	private isConnected = false;
+	private reconnectAttempts = 0;
 
 	// Event emitters
 	private onConnectedEmitter = new vscode.EventEmitter<PioneerSocketEvents["connected"]>();
@@ -126,6 +133,7 @@ export class PioneerSocket implements vscode.Disposable {
 			this.ws.on("open", () => {
 				logger.info("PioneerSocket: Connected");
 				this.isConnected = true;
+				this.reconnectAttempts = 0; // Reset on successful connection
 				this.startPing();
 			});
 
@@ -140,10 +148,20 @@ export class PioneerSocket implements vscode.Disposable {
 
 				this.onDisconnectedEmitter.fire({ reason: reason.toString() });
 
-				// Auto-reconnect if enabled
+				// Auto-reconnect with exponential backoff if enabled
 				if (this.shouldReconnect && code !== 1000) {
-					logger.info(`PioneerSocket: Reconnecting in ${WS_RECONNECT_DELAY}ms...`);
-					this.reconnectTimeout = setTimeout(() => this.connect(), WS_RECONNECT_DELAY);
+					if (this.reconnectAttempts >= WS_RECONNECT_MAX_ATTEMPTS) {
+						logger.warn("PioneerSocket: Max reconnect attempts reached, giving up");
+						this.onErrorEmitter.fire({ message: "Max reconnect attempts reached" });
+						return;
+					}
+
+					const delay = this.calculateBackoffDelay();
+					this.reconnectAttempts++;
+					logger.info(
+						`PioneerSocket: Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${WS_RECONNECT_MAX_ATTEMPTS})...`,
+					);
+					this.reconnectTimeout = setTimeout(() => this.connect(), delay);
 				}
 			});
 
@@ -228,6 +246,27 @@ export class PioneerSocket implements vscode.Disposable {
 			const err = error instanceof Error ? error : new Error(String(error));
 			logger.error(`PioneerSocket: Failed to parse message: ${err.message} data=${data}`, err);
 		}
+	}
+
+	/**
+	 * Calculate exponential backoff delay with jitter.
+	 *
+	 * Uses exponential backoff (2^attempt * base) with random jitter (±25%)
+	 * to prevent thundering herd when server recovers from outage.
+	 *
+	 * @returns Delay in milliseconds
+	 */
+	private calculateBackoffDelay(): number {
+		// Exponential backoff: base * 2^attempts (3s, 6s, 12s, 24s, 48s, 96s...)
+		const exponentialDelay = WS_RECONNECT_DELAY * 2 ** this.reconnectAttempts;
+
+		// Cap at maximum delay
+		const cappedDelay = Math.min(exponentialDelay, WS_RECONNECT_MAX_DELAY);
+
+		// Add jitter (±25%) to prevent thundering herd
+		const jitter = cappedDelay * 0.25 * (Math.random() * 2 - 1);
+
+		return Math.round(cappedDelay + jitter);
 	}
 
 	/**

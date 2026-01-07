@@ -753,14 +753,10 @@ export class OperationCoordinator {
 						}
 					}
 
-					// REFACTOR: Use extracted publishEvent helper
-					this.publishEvent(SnapBackEvent.SNAPSHOT_CREATED, {
-						id: snapshotManifest.id,
-						name: snapshotManifest.name,
-						timestamp: snapshotManifest.timestamp,
-						trigger: snapshotManifest.trigger,
-						workspaceId: vscode.workspace.workspaceFolders?.[0]?.uri.toString(),
-					});
+					// 🐛 FIX: Removed duplicate SNAPSHOT_CREATED publish
+					// The event is already published by this.storage.createSnapshot() at StorageManager.ts:384
+					// Publishing here caused the counter to increment twice (double-count bug)
+					// See: https://github.com/snapback-dev/vscode/issues/XXX
 
 					// Convert SnapshotManifest to Snapshot type for compatibility
 					const snapshot: Snapshot = {

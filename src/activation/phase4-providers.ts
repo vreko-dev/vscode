@@ -16,7 +16,6 @@ import type { IStorageManager } from "../storage/types";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 import { MCPStatusItem } from "../ui/MCPStatusItem";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
-import { StatusBarController } from "../ui/StatusBarController";
 import { createStatusBarManager, type StatusBarManager } from "../ui/StatusBarManager";
 import { createVitalsUIIntegration, registerVitalsCommands, type VitalsUIIntegration } from "../ui/VitalsUIIntegration";
 import { logger } from "../utils/logger";
@@ -34,8 +33,7 @@ export interface Phase4Result {
 	snapshotDocumentProvider: SnapshotDocumentProvider;
 	protectionDecorationProvider: ProtectionDecorationProvider;
 	protectionCodeLensProvider: ProtectionCodeLensProvider;
-	statusBarManager: StatusBarManager; // Legacy vitals-aware status bar
-	statusBarController: StatusBarController; // New consolidated status bar
+	statusBarManager: StatusBarManager; // Consolidated status bar
 	mcpStatusItem?: MCPStatusItem; // MCP connection status indicator
 	welcomeView: WelcomeView;
 	snapshotDecorations: SnapshotDecorations;
@@ -136,19 +134,11 @@ export async function initializePhase4Providers(
 		workspaceSafetyService.startAutoRefresh(); // Auto-refresh every 60s
 		logger.debug("WorkspaceSafetyService", { ms: Date.now() - t });
 
-		// Initialize StatusBarManager for vitals display (legacy)
+		// Initialize StatusBarManager (consolidated status bar)
 		t = Date.now();
 		const statusBarManager = createStatusBarManager();
 		context.subscriptions.push(statusBarManager);
 		logger.debug("StatusBarManager", { ms: Date.now() - t });
-
-		// Initialize StatusBarController (new consolidated status bar)
-		// Pass workspaceId for workspace-scoped event filtering
-		t = Date.now();
-		const statusBarWorkspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
-		const statusBarController = new StatusBarController(statusBarWorkspaceId);
-		context.subscriptions.push(statusBarController);
-		logger.debug("StatusBarController", { ms: Date.now() - t, workspaceId: statusBarWorkspaceId });
 
 		// Initialize MCPStatusItem for MCP connection visibility
 		let mcpStatusItem: MCPStatusItem | undefined;
@@ -193,7 +183,6 @@ export async function initializePhase4Providers(
 			protectionDecorationProvider,
 			protectionCodeLensProvider,
 			statusBarManager,
-			statusBarController,
 			mcpStatusItem,
 			welcomeView,
 			snapshotDecorations,

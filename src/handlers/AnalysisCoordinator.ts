@@ -71,13 +71,12 @@ export class AnalysisCoordinator {
 		// Map risk assessment to analysis result for backward compatibility
 		let analysisResult: AnalysisResult | BasicAnalysisResult;
 		try {
-			// For now, try to get detailed analysis from API for diagnostics
+			// Try to get detailed analysis from API with retry logic
 			const apiClient = new ApiClient();
-			const apiResult = await apiClient.analyzeFiles([{ path: filePath, content }]);
-			analysisResult = apiResult as AnalysisResult | BasicAnalysisResult;
+			analysisResult = await this.fetchAnalysisWithRetry(apiClient, filePath, content);
 		} catch (error) {
-			logger.error("API analysis failed, using risk assessment result", error as Error);
-			// Fallback to risk assessment result
+			logger.error("API analysis failed after retries, using risk assessment result", error as Error);
+			// Fallback to risk assessment result only after all retries exhausted
 			analysisResult = {
 				score: riskAssessment.score / 100, // Normalize to 0-1
 				factors: riskAssessment.factors,
@@ -109,6 +108,82 @@ export class AnalysisCoordinator {
 			shouldBlock: blockingResult.shouldBlock,
 			userOverride: blockingResult.userOverride,
 		};
+	}
+
+	/**
+	 * Fetch analysis from API with exponential backoff retry.
+	 *
+	 * Retries transient failures (network errors, 5xx) up to 3 times
+	 * with exponential backoff (500ms, 1s, 2s) before falling back
+	 * to local risk assessment.
+	 *
+	 * @param apiClient - API client instance
+	 * @param filePath - File path to analyze
+	 * @param content - File content to analyze
+	 * @returns Analysis result from API
+	 * @throws Error if all retries exhausted
+	 */
+	private async fetchAnalysisWithRetry(
+		apiClient: ApiClient,
+		filePath: string,
+		content: string,
+	): Promise<AnalysisResult | BasicAnalysisResult> {
+		const maxRetries = 3;
+		const baseDelay = 500; // 500ms base delay
+
+		let lastError: Error | undefined;
+
+		for (let attempt = 0; attempt < maxRetries; attempt++) {
+			try {
+				const apiResult = await apiClient.analyzeFiles([{ path: filePath, content }]);
+				return apiResult as AnalysisResult | BasicAnalysisResult;
+			} catch (error) {
+				lastError = error instanceof Error ? error : new Error(String(error));
+
+				// Don't retry on client errors (4xx) - these are not transient
+				if (this.isClientError(lastError)) {
+					logger.warn("API analysis failed with client error, not retrying", { error: lastError.message });
+					throw lastError;
+				}
+
+				// Log retry attempt
+				if (attempt < maxRetries - 1) {
+					const delay = baseDelay * 2 ** attempt; // 500ms, 1s, 2s
+					logger.warn(`API analysis failed, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`, {
+						error: lastError.message,
+					});
+					await this.sleep(delay);
+				}
+			}
+		}
+
+		// All retries exhausted
+		throw lastError ?? new Error("API analysis failed after retries");
+	}
+
+	/**
+	 * Check if error is a client error (4xx) that shouldn't be retried.
+	 */
+	private isClientError(error: Error): boolean {
+		const message = error.message.toLowerCase();
+		// Check for common 4xx error patterns
+		return (
+			message.includes("400") ||
+			message.includes("401") ||
+			message.includes("403") ||
+			message.includes("404") ||
+			message.includes("bad request") ||
+			message.includes("unauthorized") ||
+			message.includes("forbidden") ||
+			message.includes("not found")
+		);
+	}
+
+	/**
+	 * Sleep for specified duration.
+	 */
+	private sleep(ms: number): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
 	/**
