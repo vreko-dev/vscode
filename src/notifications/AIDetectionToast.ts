@@ -2,13 +2,16 @@
  * AIDetectionToast - Toast notification for AI activity detection
  *
  * Replaces status bar AI detection with a non-intrusive toast notification.
- * Users can provide feedback about which AI tool they're using.
+ * Philosophy: "Invisible until needed, surface when beneficial."
+ *
+ * This is a FIRST VALUE MOMENT - the user should feel trust, not confusion.
+ * We INFORM them that protection is active, we don't ASK questions.
  *
  * Reference: Status Bar Consolidation Spec
  *
  * TRIGGER RULES:
  * - AI activity detected with confidence > 70%
- * - User has not already provided feedback this session
+ * - User has not already been informed this session
  * - At least 30 seconds since last toast (prevent spam)
  *
  * @packageDocumentation
@@ -28,9 +31,9 @@ export interface AISignal {
 }
 
 /**
- * Available AI tool options
+ * Detected AI tool types (for telemetry)
  */
-const AI_TOOLS = ["Cursor", "Copilot", "Claude", "Windsurf", "Other", "Not AI"] as const;
+const AI_TOOLS = ["Cursor", "Copilot", "Claude", "Windsurf", "Other"] as const;
 export type AITool = (typeof AI_TOOLS)[number];
 
 /**
@@ -48,9 +51,9 @@ const COOLDOWN_MS = 30_000;
  *
  * Design principles:
  * - Non-intrusive (toast, not modal)
- * - Once per session (after feedback)
+ * - Once per session (after first detection)
  * - Respects cooldown (no spam)
- * - Tracks feedback for improvement
+ * - INFORMS, does not ASK - builds trust
  */
 export class AIDetectionToast {
 	private hasShownThisSession = false;
@@ -59,8 +62,11 @@ export class AIDetectionToast {
 	/**
 	 * Show AI detection toast if conditions are met
 	 *
+	 * Philosophy: Inform the user that protection is active.
+	 * This is a TRUST-BUILDING moment, not a data-gathering moment.
+	 *
 	 * @param signals - Detected AI signals with confidence scores
-	 * @returns Selected AI tool or undefined if dismissed/not shown
+	 * @returns The inferred AI tool, or undefined if not shown
 	 */
 	async show(signals: AISignal[]): Promise<AITool | undefined> {
 		// Check confidence threshold (use max confidence from signals)
@@ -81,22 +87,51 @@ export class AIDetectionToast {
 			return undefined;
 		}
 
-		// Show toast
+		// Infer the AI tool from signals
+		const inferredTool = this.inferAITool(signals);
+
+		// Show informative toast (not asking a question)
 		this.lastShownAt = now;
+		this.hasShownThisSession = true;
 
-		const selection = await vscode.window.showInformationMessage(
-			"🧢 AI activity detected. Which assistant are you using?",
-			...AI_TOOLS,
-		);
+		// 🎉 FIRST VALUE MOMENT: Inform, don't ask
+		const message =
+			inferredTool && inferredTool !== "Other"
+				? `🧢 SnapBack detected ${inferredTool}. Protection active.`
+				: "🧢 SnapBack: AI activity detected. Protection active.";
 
-		if (selection) {
-			this.hasShownThisSession = true;
+		vscode.window.showInformationMessage(message);
 
-			// Track feedback via telemetry
-			this.trackFeedback(signals, selection as AITool);
+		// Track detection via telemetry (non-blocking)
+		this.trackDetection(signals, inferredTool);
+
+		return inferredTool;
+	}
+
+	/**
+	 * Infer AI tool from signal types
+	 */
+	private inferAITool(signals: AISignal[]): AITool {
+		// Map signal types to AI tools
+		const typeToTool: Record<string, AITool> = {
+			cursor: "Cursor",
+			copilot: "Copilot",
+			claude: "Claude",
+			windsurf: "Windsurf",
+			"github-copilot": "Copilot",
+			"cursor-ai": "Cursor",
+		};
+
+		for (const signal of signals) {
+			const normalizedType = signal.type.toLowerCase();
+			for (const [key, tool] of Object.entries(typeToTool)) {
+				if (normalizedType.includes(key)) {
+					return tool;
+				}
+			}
 		}
 
-		return selection as AITool | undefined;
+		return "Other";
 	}
 
 	/**
@@ -108,23 +143,23 @@ export class AIDetectionToast {
 	}
 
 	/**
-	 * Track AI tool feedback via telemetry
+	 * Track AI detection via telemetry (non-blocking)
 	 */
-	private trackFeedback(signals: AISignal[], selection: AITool): void {
+	private trackDetection(signals: AISignal[], inferredTool: AITool): void {
 		try {
 			// Guard: Check if TelemetryService is initialized
 			if (!TelemetryService.isInitialized()) {
-				logger.warn("AIDetectionToast: TelemetryService not initialized, skipping feedback tracking");
+				logger.warn("AIDetectionToast: TelemetryService not initialized, skipping tracking");
 				return;
 			}
 
 			const telemetry = TelemetryService.getInstance();
-			telemetry.track("ai_tool_feedback", {
+			telemetry.track("ai_detection", {
 				detected_signals: signals.map((s) => ({ type: s.type, confidence: s.confidence })),
-				user_selection: selection,
+				inferred_tool: inferredTool,
 			});
 		} catch (error) {
-			logger.error("AIDetectionToast: Failed to track feedback", error instanceof Error ? error : undefined);
+			logger.error("AIDetectionToast: Failed to track detection", error instanceof Error ? error : undefined);
 		}
 	}
 }

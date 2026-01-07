@@ -3,6 +3,9 @@
  *
  * Tests for the AI detection toast notification.
  *
+ * Philosophy: "Invisible until needed, surface when beneficial."
+ * The toast INFORMS users about AI detection, it does NOT ASK questions.
+ *
  * @packageDocumentation
  */
 
@@ -38,23 +41,28 @@ describe("AIDetectionToast", () => {
 	});
 
 	// ===========================================================================
-	// SHOW TESTS
+	// SHOW TESTS - "Inform, Don't Ask" Philosophy
 	// ===========================================================================
 
 	describe("show", () => {
-		it("should display information message with tool options", async () => {
-			const showMessageSpy = vi.mocked(vscode.window.showInformationMessage).mockResolvedValue("Cursor" as any);
+		it("should display informative message with 🧢 SnapBack branding (no options to click)", async () => {
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
 
-			await toast.show([{ type: "burst", confidence: 0.8 }]);
+			await toast.show([{ type: "cursor", confidence: 0.8 }]);
 
-			expect(showMessageSpy).toHaveBeenCalledWith(
-				"🧢 AI activity detected. Which assistant are you using?",
-				"Cursor",
-				"Copilot",
-				"Claude",
-				"Windsurf",
-				"Other",
-				"Not AI",
+			// Should show branded informative message - NO tool options
+			expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+				"🧢 SnapBack detected Cursor. Protection active."
+			);
+		});
+
+		it("should show generic message when tool cannot be inferred", async () => {
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
+
+			await toast.show([{ type: "unknown-signal", confidence: 0.8 }]);
+
+			expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+				"🧢 SnapBack: AI activity detected. Protection active."
 			);
 		});
 
@@ -136,17 +144,16 @@ describe("AIDetectionToast", () => {
 		});
 
 		it("should return selected tool", async () => {
-			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue("Claude" as any);
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
 
-			const result = await toast.show([{ type: "burst", confidence: 0.8 }]);
+			const result = await toast.show([{ type: "claude", confidence: 0.8 }]);
 
+			// Returns inferred tool (no user selection needed)
 			expect(result).toBe("Claude");
 		});
 
-		it("should return undefined if dismissed", async () => {
-			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
-
-			const result = await toast.show([{ type: "burst", confidence: 0.8 }]);
+		it("should return undefined if not shown (below threshold)", async () => {
+			const result = await toast.show([{ type: "burst", confidence: 0.5 }]);
 
 			expect(result).toBeUndefined();
 		});
@@ -202,37 +209,41 @@ describe("AIDetectionToast", () => {
 	// ===========================================================================
 
 	describe("telemetry", () => {
-		it("should track feedback when user selects option", async () => {
-			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue("Copilot" as any);
+		it("should track detection with inferred tool", async () => {
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
 
 			await toast.show([
-				{ type: "burst", confidence: 0.8 },
+				{ type: "copilot", confidence: 0.8 },
 				{ type: "pattern", confidence: 0.9 },
 			]);
 
-			expect(mockTrack).toHaveBeenCalledWith("ai_tool_feedback", {
+			expect(mockTrack).toHaveBeenCalledWith("ai_detection", {
 				detected_signals: [
-					{ type: "burst", confidence: 0.8 },
+					{ type: "copilot", confidence: 0.8 },
 					{ type: "pattern", confidence: 0.9 },
 				],
-				user_selection: "Copilot",
+				inferred_tool: "Copilot",
 			});
 		});
 
-		it("should not track feedback when user dismisses", async () => {
+		it("should always track when toast is shown (no user interaction needed)", async () => {
 			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
 
 			await toast.show([{ type: "burst", confidence: 0.8 }]);
 
-			expect(mockTrack).not.toHaveBeenCalled();
+			// Now we always track (no user interaction needed)
+			expect(mockTrack).toHaveBeenCalledWith("ai_detection", expect.objectContaining({
+				inferred_tool: "Other",
+			}));
 		});
 
 		it("should handle telemetry service not initialized", async () => {
 			vi.mocked(TelemetryService.isInitialized).mockReturnValue(false);
-			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue("Cursor" as any);
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
 
-			// Should not throw
-			await expect(toast.show([{ type: "burst", confidence: 0.8 }])).resolves.toBe("Cursor");
+			// Should not throw, returns inferred tool
+			const result = await toast.show([{ type: "cursor", confidence: 0.8 }]);
+			expect(result).toBe("Cursor");
 		});
 	});
 
@@ -241,34 +252,37 @@ describe("AIDetectionToast", () => {
 	// ===========================================================================
 
 	describe("edge cases", () => {
-		it("should handle all tool options", async () => {
-			const tools = ["Cursor", "Copilot", "Claude", "Windsurf", "Other", "Not AI"];
+		it("should infer all supported tools correctly", async () => {
+			const toolMappings = [
+				{ signal: "cursor", expected: "Cursor" },
+				{ signal: "copilot", expected: "Copilot" },
+				{ signal: "claude", expected: "Claude" },
+				{ signal: "windsurf", expected: "Windsurf" },
+				{ signal: "github-copilot", expected: "Copilot" },
+				{ signal: "cursor-ai", expected: "Cursor" },
+				{ signal: "unknown", expected: "Other" },
+			];
 
-			for (const tool of tools) {
-				// Create new toast for each test
+			for (const { signal, expected } of toolMappings) {
 				const newToast = new AIDetectionToast();
-				vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(tool as any);
+				vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
 
-				const result = await newToast.show([{ type: "burst", confidence: 0.8 }]);
+				const result = await newToast.show([{ type: signal, confidence: 0.8 }]);
 
-				expect(result).toBe(tool);
+				expect(result).toBe(expected);
 			}
 		});
 
-		it("should only mark as shown if user makes selection", async () => {
-			// First call: user dismisses
+		it("should mark as shown immediately (no user selection required)", async () => {
 			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
+
+			// First call shows toast
 			await toast.show([{ type: "burst", confidence: 0.8 }]);
 
-			// Advance past cooldown
-			vi.advanceTimersByTime(31000);
+			// Second call should NOT show (hasShownThisSession is true)
+			await toast.show([{ type: "burst", confidence: 0.9 }]);
 
-			// Second call: should show again since user didn't select
-			// (hasShownThisSession should not be set when dismissed)
-			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
-			await toast.show([{ type: "burst", confidence: 0.8 }]);
-
-			expect(vscode.window.showInformationMessage).toHaveBeenCalledTimes(2);
+			expect(vscode.window.showInformationMessage).toHaveBeenCalledTimes(1);
 		});
 	});
 });
