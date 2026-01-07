@@ -6,7 +6,6 @@
  */
 
 import { vi } from "vitest";
-import EventEmitter from "node:events";
 
 // Mock event emitter for VS Code events
 class MockEventEmitter {
