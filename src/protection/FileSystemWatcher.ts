@@ -7,12 +7,20 @@ export class FileSystemWatcher {
 	private disposables: vscode.Disposable[] = [];
 
 	constructor(private registry: ProtectedFileRegistry) {
-		// Watch all files in workspace
-		this.watcher = vscode.workspace.createFileSystemWatcher("**/*");
+		// Watch workspace files, excluding internal directories
+		this.watcher = vscode.workspace.createFileSystemWatcher(
+			"**/*",
+			false, // ignoreCreateEvents
+			false, // ignoreChangeEvents
+			false, // ignoreDeleteEvents
+		);
 
 		// Handle file deletion
 		this.disposables.push(
 			this.watcher.onDidDelete((uri) => {
+				if (this.shouldIgnore(uri.fsPath)) {
+					return;
+				}
 				if (this.registry.isProtected(uri.fsPath)) {
 					logger.info(`[SnapBack] Protected file deleted, removing from registry: ${uri.fsPath}`);
 					this.registry.remove(uri.fsPath);
@@ -20,20 +28,43 @@ export class FileSystemWatcher {
 			}),
 		);
 
-		// Handle file creation (to detect when a protected file is restored)
+		// Handle file creation (only log for non-ignored files)
 		this.disposables.push(
 			this.watcher.onDidCreate((uri) => {
-				// Could implement logic to handle file creation if needed
-				logger.info(`[SnapBack] File created: ${uri.fsPath}`);
+				if (this.shouldIgnore(uri.fsPath)) {
+					return;
+				}
+				// Only log if it's a protected file or potentially protectable
+				if (this.registry.isProtected(uri.fsPath)) {
+					logger.info(`[SnapBack] Protected file created: ${uri.fsPath}`);
+				}
 			}),
 		);
 
-		// Handle file changes (to detect when a protected file is modified)
+		// Handle file changes (only log for non-ignored files)
 		this.disposables.push(
 			this.watcher.onDidChange((uri) => {
-				// Could implement logic to handle file changes if needed
-				logger.info(`[SnapBack] File changed: ${uri.fsPath}`);
+				if (this.shouldIgnore(uri.fsPath)) {
+					return;
+				}
+				// Only log if it's a protected file
+				if (this.registry.isProtected(uri.fsPath)) {
+					logger.info(`[SnapBack] Protected file changed: ${uri.fsPath}`);
+				}
 			}),
+		);
+	}
+
+	/**
+	 * Check if a file path should be ignored from monitoring
+	 */
+	private shouldIgnore(filePath: string): boolean {
+		const patterns = ["/.git/", "/.snapback/", "/node_modules/", "/dist/", "/build/", "/.vscode/"];
+
+		return (
+			patterns.some((pattern) => filePath.includes(pattern)) ||
+			filePath.endsWith(".log") ||
+			filePath.endsWith(".lock")
 		);
 	}
 
