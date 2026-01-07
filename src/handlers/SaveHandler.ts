@@ -9,8 +9,8 @@ import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskService } from "../services/aiRiskService";
 import { NoopAIRiskService } from "../services/aiRiskService";
 import { recordFileModification } from "../services/IntelligenceService";
-import type { MilestoneService } from "../services/MilestoneService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { UnifiedOnboardingService } from "../services/UnifiedOnboardingService";
 import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
 import { getCoreEventTracker } from "../telemetry/core-event-tracker";
 import type { AnalysisResult, BasicAnalysisResult } from "../types/api";
@@ -62,7 +62,7 @@ export class SaveHandler {
 	private auditLogger: AuditLogger;
 	private aiWarningManager: AIWarningManager;
 	private decorationProvider: FileHealthDecorationProvider | null = null;
-	private milestoneService?: MilestoneService;
+	private unifiedOnboarding?: UnifiedOnboardingService;
 
 	// SignalBridge for AI detection (V2 engine integration)
 	private signalBridge: SignalBridge;
@@ -94,9 +94,9 @@ export class SaveHandler {
 		operationCoordinator: OperationCoordinator,
 		decorationProvider?: FileHealthDecorationProvider,
 		aiRiskService?: AIRiskService,
-		milestoneService?: MilestoneService,
+		unifiedOnboarding?: UnifiedOnboardingService,
 	) {
-		this.milestoneService = milestoneService;
+		this.unifiedOnboarding = unifiedOnboarding;
 		// Initialize services with proper dependency injection
 		this.auditLogger = new AuditLogger(registry);
 		this.cooldownService = new CooldownService(registry);
@@ -104,13 +104,13 @@ export class SaveHandler {
 		// Use provided AIRiskService or create NoopAIRiskService
 		const riskService = aiRiskService || new NoopAIRiskService();
 
-		this.analysisCoordinator = new AnalysisCoordinator(registry, this.auditLogger, riskService, milestoneService);
+		this.analysisCoordinator = new AnalysisCoordinator(registry, this.auditLogger, riskService, unifiedOnboarding);
 		this.protectionLevelHandler = new ProtectionLevelHandler(
 			registry,
 			operationCoordinator,
 			this.cooldownService,
 			this.auditLogger,
-			milestoneService,
+			unifiedOnboarding,
 		);
 		this.aiWarningManager = new AIWarningManager();
 		this.decorationProvider = decorationProvider || null;
@@ -261,16 +261,11 @@ export class SaveHandler {
 			// 🆕 Track First Protected Save (Activation Funnel)
 			const hasTrackedSave = context.globalState.get<boolean>("snapback.hasProtectedSave", false);
 
-			if (!hasTrackedSave && this.milestoneService) {
-				// Fire and forget notification - wrapped in async IIFE
+			if (!hasTrackedSave && this.unifiedOnboarding) {
+				// Track first protected save via unified onboarding
 				void (async () => {
-					if (this.milestoneService) {
-						await this.milestoneService.triggerFirstTimeEvent(
-							"first_protected_save",
-							"SnapBack Active! 🛡️",
-							"Your first protected save is secure. We'll watch your back from here.",
-						);
-						// Mark as tracked locally to avoid repeat calls
+					if (this.unifiedOnboarding) {
+						void this.unifiedOnboarding.trackFileProtection(1);
 						await context.globalState.update("snapback.hasProtectedSave", true);
 
 						// 🆕 Track in activation funnel (P0-3)
@@ -427,13 +422,10 @@ export class SaveHandler {
 				this.queueAsyncAnalysis(filePath, filename, preSaveContent, document);
 
 				// Track timeout for telemetry
-				if (this.milestoneService) {
-					// Use telemetry proxy directly via the milestone service's reference
-					logger.info("Save handler timeout tracked", {
-						file: document.fileName,
-						timeout_ms: SaveHandler.SAVE_TIMEOUT_MS,
-					});
-				}
+				logger.info("Save handler timeout tracked", {
+					file: document.fileName,
+					timeout_ms: SaveHandler.SAVE_TIMEOUT_MS,
+				});
 			} else {
 				logger.debug("Risk analysis completed", {
 					correlationId,

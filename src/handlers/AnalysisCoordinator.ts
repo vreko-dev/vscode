@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import type { AIRiskService } from "../services/aiRiskService";
 import { ApiClient } from "../services/api-client";
-import type { MilestoneService } from "../services/MilestoneService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { UnifiedOnboardingService } from "../services/UnifiedOnboardingService";
 import type { AnalysisResult, BasicAnalysisResult } from "../types/api";
 import { logger } from "../utils/logger";
 import type { ProtectionLevel } from "../views/types";
@@ -39,7 +39,7 @@ export class AnalysisCoordinator {
 		private registry: ProtectedFileRegistry,
 		private auditLogger: AuditLogger,
 		private aiRiskService: AIRiskService,
-		private milestoneService?: MilestoneService,
+		private unifiedOnboarding?: UnifiedOnboardingService,
 	) {
 		this.diagnosticPublisher = new DiagnosticPublisher();
 	}
@@ -341,12 +341,9 @@ export class AnalysisCoordinator {
 	 * Called when high or critical issues are found.
 	 */
 	private triggerFirstAIDetection(): void {
-		if (this.milestoneService) {
-			void this.milestoneService.triggerFirstTimeEvent(
-				"first_ai_detection",
-				"First AI Risk Detected! 🛡️",
-				"SnapBack just caught its first potential issue. You're now coding with an AI safety net.",
-			);
+		// Track AI detection via unified onboarding
+		if (this.unifiedOnboarding) {
+			void this.unifiedOnboarding.trackAIDetection("AI Risk Detector");
 		}
 	}
 

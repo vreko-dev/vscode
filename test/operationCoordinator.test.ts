@@ -6,7 +6,7 @@ import { NotificationManager } from "./notificationManager";
 import { StorageManager } from "./storage/StorageManager";
 import { TelemetryProxy } from "./services/telemetry-proxy";
 import { ConflictResolver } from "./conflictResolver";
-import { MilestoneService } from "./services/MilestoneService";
+import { UnifiedOnboardingService } from "../src/services/UnifiedOnboardingService";
 
 // Mocks
 vi.mock("vscode");
@@ -15,7 +15,7 @@ vi.mock("./notificationManager");
 vi.mock("./storage/StorageManager");
 vi.mock("./services/telemetry-proxy");
 vi.mock("./conflictResolver");
-vi.mock("./services/MilestoneService");
+vi.mock("./services/UnifiedOnboardingService");
 
 describe("OperationCoordinator", () => {
 	let coordinator: OperationCoordinator;
@@ -24,7 +24,7 @@ describe("OperationCoordinator", () => {
 	let mockStorage: StorageManager;
 	let mockTelemetryProxy: TelemetryProxy;
 	let mockConflictResolver: ConflictResolver;
-	let mockMilestoneService: MilestoneService;
+	let mockUnifiedOnboarding: UnifiedOnboardingService;
 
 	beforeEach(() => {
 		mockWorkspaceMemory = new WorkspaceMemoryManager({} as any) as any;
@@ -32,7 +32,11 @@ describe("OperationCoordinator", () => {
 		mockStorage = new StorageManager({ globalStorageUri: { fsPath: "/tmp" } } as any) as any;
 		mockTelemetryProxy = new TelemetryProxy({} as any) as any;
 		mockConflictResolver = new ConflictResolver();
-		mockMilestoneService = new MilestoneService({} as any, mockTelemetryProxy, mockNotificationManager);
+		mockUnifiedOnboarding = {
+			trackSnapshotCreated: vi.fn(),
+			trackFileProtection: vi.fn(),
+			trackRecovery: vi.fn(),
+		} as any;
 
 		coordinator = new OperationCoordinator(
 			mockWorkspaceMemory,
@@ -40,7 +44,7 @@ describe("OperationCoordinator", () => {
 			mockStorage,
 			mockTelemetryProxy,
 			mockConflictResolver,
-			mockMilestoneService,
+			mockUnifiedOnboarding,
 			{} as any // Mock SessionCoordinator
 		);
 

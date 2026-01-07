@@ -739,7 +739,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			phase3Result.operationCoordinator,
 			fileHealthDecorationProvider,
 			aiRiskService,
-			phase3Result.milestoneService,
+			phase3Result.unifiedOnboarding,
 		);
 		saveHandler.register(context);
 
@@ -952,12 +952,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Removed: StatusBarController no longer used - protection status shown in Activity Bar only
 		}
 
-		// 🆕 Phase 15: Initialize Onboarding & Progressive Disclosure
+		// 🆕 Phase 15: Initialize Unified Onboarding & Progressive Disclosure
 		const phase15Start = Date.now();
 		try {
 			const { UserExperienceService } = await import("./services/UserExperienceService");
 			const { ProgressiveDisclosureController } = await import("./ui/ProgressiveDisclosureController");
-			const { OnboardingProgression } = await import("./onboardingProgression");
 
 			// Initialize user experience tracking
 			const userExperienceService = new UserExperienceService(context);
@@ -966,15 +965,17 @@ export async function activate(context: vscode.ExtensionContext) {
 			const progressiveDisclosure = new ProgressiveDisclosureController(context, userExperienceService);
 			context.subscriptions.push(progressiveDisclosure);
 
-			// Initialize onboarding progression tracking
-			const onboardingProgression = new OnboardingProgression(context.globalState);
+			// 🧢 Initialize Unified Onboarding Service (replaces OnboardingProgression + MilestoneService)
+			const unifiedOnboarding = phase3Result.unifiedOnboarding;
+			await unifiedOnboarding.initialize();
 
-			// Track first activation
-			onboardingProgression.initialize();
+			// Store reference for use by other components
+			(context as any)._unifiedOnboarding = unifiedOnboarding;
 
-			logger.info("Onboarding & Progressive Disclosure initialized", {
+			logger.info("Unified Onboarding & Progressive Disclosure initialized", {
 				experienceLevel: await userExperienceService.getExperienceLevel(),
-				onboardingPhase: onboardingProgression.getCurrentPhase(),
+				onboardingState: unifiedOnboarding.getCurrentState(),
+				snapshotsCreated: unifiedOnboarding.getMetrics().snapshotsCreated,
 			});
 		} catch (error) {
 			logger.warn("Failed to initialize onboarding services (non-critical)", { error });

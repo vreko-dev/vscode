@@ -3,10 +3,10 @@ import { registerConnectCommand, registerOpenSnapshotInWebCommand } from "../com
 import { registerToggleGroupingModeCommand } from "../commands/toggleGroupingMode";
 import { COMMANDS } from "../constants/index";
 import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
+import { logger } from "../utils/logger";
 import { VIEW_IDS } from "../views/ViewRegistry";
 import type { Phase4Result } from "./phase4-providers";
 import { PhaseLogger } from "./phaseLogger";
-import { logger } from "../utils/logger";
 
 export type Phase5Result = Record<string, never>;
 

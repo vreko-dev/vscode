@@ -76,8 +76,8 @@ import * as vscode from "vscode";
 import type { ConflictResolver } from "./conflictResolver";
 import type { NotificationManager } from "./notificationManager";
 import { ClusterRestoreHandler, snapshotContentsToRestoreFiles } from "./restore/ClusterRestoreHandler";
-import type { MilestoneService } from "./services/MilestoneService";
 import type { TelemetryProxy } from "./services/telemetry-proxy";
+import type { UnifiedOnboardingService } from "./services/UnifiedOnboardingService";
 import type { SessionCoordinator } from "./snapshot/SessionCoordinator";
 import type { IStorageManager } from "./storage/types.js";
 import { getActivationFunnel } from "./telemetry/ActivationFunnelIntegration";
@@ -250,7 +250,7 @@ export class OperationCoordinator {
 		private storage: IStorageManager,
 		private telemetryProxy: TelemetryProxy,
 		private conflictResolver: ConflictResolver,
-		private milestoneService: MilestoneService,
+		private unifiedOnboarding: UnifiedOnboardingService,
 		private sessionCoordinator: SessionCoordinator,
 		private eventBus?: SnapBackEventBus,
 	) {}
@@ -1259,13 +1259,8 @@ export class OperationCoordinator {
 					severity: severity,
 				});
 
-				// Track Milestone and trigger first_restore tracking
-				void this.milestoneService.incrementRecoveries();
-				void this.milestoneService.triggerFirstTimeEvent(
-					"first_restore",
-					"Recovery Complete! 🎉",
-					"You've successfully restored your code from a snapshot. SnapBack has your back!",
-				);
+				// Track onboarding recovery milestone
+				void this.unifiedOnboarding.trackRecovery();
 
 				// 🆕 Track in activation funnel - this completes the funnel! (P0-3)
 				const funnel = getActivationFunnel();

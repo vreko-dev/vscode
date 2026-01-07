@@ -4,8 +4,8 @@ import { SnapshotNamingStrategy } from "@snapback-oss/sdk";
 import * as vscode from "vscode";
 import { RecoveryUXNotification } from "../notifications/RecoveryUXNotification";
 import type { OperationCoordinator } from "../operationCoordinator";
-import type { MilestoneService } from "../services/MilestoneService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { UnifiedOnboardingService } from "../services/UnifiedOnboardingService";
 import { getCoreEventTracker } from "../telemetry/core-event-tracker";
 import { logger } from "../utils/logger";
 import { sdkLogger } from "../utils/sdkLoggerAdapter";
@@ -66,7 +66,7 @@ export class ProtectionLevelHandler {
 		private operationCoordinator: OperationCoordinator,
 		private cooldownService: CooldownService,
 		private auditLogger: AuditLogger,
-		private milestoneService?: MilestoneService,
+		private unifiedOnboarding?: UnifiedOnboardingService,
 	) {}
 
 	/**
@@ -1069,12 +1069,10 @@ A snapshot will be created before saving.`,
 			// This was logged but never called - the viral moment was missing!
 			void this.showRecoveryNotification(filePath, snapshotId);
 
-			// Track Milestone (files protected)
-			if (this.milestoneService) {
-				void this.milestoneService.incrementProtectedFiles();
-
-				// P0 FIX: Track first snapshot creation (P0 Blocker #3)
-				void this.milestoneService.trackFirstSnapshot();
+			// Track onboarding metrics (snapshots + protected files)
+			if (this.unifiedOnboarding) {
+				void this.unifiedOnboarding.trackSnapshotCreated();
+				void this.unifiedOnboarding.trackFileProtection(1);
 			}
 
 			// Track snapshot_created event (P0 - Demo Critical)

@@ -32,12 +32,11 @@ export interface Phase3Result {
 	// snapshotRestoreUI will be created in phase 4 after SnapshotDocumentProvider is available
 	snapshotNavigatorProvider: SnapshotNavigatorProvider;
 	protectionService: ProtectionService; // 🟢 TDD GREEN: Protection audit service
-	milestoneService: MilestoneService;
+	unifiedOnboarding: import("../services/UnifiedOnboardingService").UnifiedOnboardingService;
 	mcpToolsService: MCPToolsService | null; // 🔧 MCP Tools integration
 }
 
 import { MCPToolsService } from "../services/MCPToolsService";
-import { MilestoneService } from "../services/MilestoneService";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
 import { logger } from "../utils/logger";
 
@@ -73,10 +72,17 @@ export async function initializePhase3Managers(
 		const smartContextDetector = new SmartContextDetector(workspaceMemoryManager);
 		logger.debug("SmartContextDetector", { ms: Date.now() - t });
 
-		// Initialize Milestone Service
+		// SnapBack Unified Onboarding is initialized here (replaces MilestoneService)
+		// This must happen in Phase 3 because OperationCoordinator depends on it
 		t = Date.now();
-		const milestoneService = new MilestoneService(_context, telemetryProxy, notificationManager);
-		logger.debug("MilestoneService", { ms: Date.now() - t });
+		const { UnifiedOnboardingService } = await import("../services/UnifiedOnboardingService");
+		const unifiedOnboarding = new UnifiedOnboardingService(
+			_context.globalState,
+			telemetryProxy,
+			notificationManager,
+		);
+		// Note: initialize() will be called in Phase 15 to avoid blocking Phase 3
+		logger.debug("UnifiedOnboardingService created", { ms: Date.now() - t });
 
 		// Initialize SessionCoordinator (needed by OperationCoordinator for snapshot file tracking)
 		t = Date.now();
@@ -91,7 +97,7 @@ export async function initializePhase3Managers(
 			storage,
 			telemetryProxy,
 			conflictResolver,
-			milestoneService,
+			unifiedOnboarding,
 			sessionCoordinator, // BUG FIX: Wire in SessionCoordinator for snapshot file tracking
 			eventBus, // Wire in event bus
 		);
@@ -218,7 +224,7 @@ export async function initializePhase3Managers(
 			// snapshotRestoreUI will be added in phase 4
 			snapshotNavigatorProvider,
 			protectionService, // 🟢 TDD GREEN
-			milestoneService,
+			unifiedOnboarding,
 			mcpToolsService, // 🔧 MCP Tools integration
 		};
 	} catch (error) {
