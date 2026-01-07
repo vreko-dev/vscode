@@ -65,8 +65,7 @@ import type { ProtectionChangedPayload } from "./types/api";
 import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
 import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
-import type { StatusBarController } from "./ui/StatusBarController"; // 🆕 Import StatusBarController type
-import type { StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import Vitals StatusBar type
+import type { StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import StatusBarManager type
 // REMOVED: VitalsIntegration - consolidated into VitalsUIIntegration to eliminate duplicate status bar updates
 import { logger } from "./utils/logger";
 import { findProjectRoot } from "./utils/projectRoot";
@@ -134,10 +133,8 @@ let signalBridge: SignalBridge | null = null;
 let mcpBridge: MCPBridge | null = null;
 // 🆕 Global reference to EventBridge for V2 engine telemetry
 let eventBridge: EventBridge | null = null;
-// 🆕 Global reference to Vitals StatusBar (legacy)
+// 🆕 Global reference to StatusBarManager (consolidated status bar)
 let vitalsStatusBar: StatusBarManager | null = null;
-// 🆕 Global reference to StatusBarController (new consolidated)
-let statusBarController: StatusBarController | null = null;
 // 🆕 Global reference to AIDetectionToast
 let aiDetectionToast: AIDetectionToast | null = null;
 // REMOVED: vitalsIntegration - consolidated into VitalsUIIntegration
@@ -303,17 +300,17 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Usage: Run command "SnapBack: Debug Status Bar" from Command Palette
 	context.subscriptions.push(
 		vscode.commands.registerCommand("snapback.__debugStatusBar", async () => {
-			if (!statusBarController) {
-				vscode.window.showWarningMessage("StatusBarController not initialized yet");
+			if (!vitalsStatusBar) {
+				vscode.window.showWarningMessage("StatusBarManager not initialized yet");
 				return;
 			}
 			const state = await vscode.window.showQuickPick(
 				[
-					{ label: "🛡️ Protected", value: "protected" },
-					// REMOVED: Recording option - Recording state removed (Option 3)
-					{ label: "💓 Activity (5 snaps)", value: "activity" },
-					{ label: "🚨 Attention/Review", value: "attention" },
-					{ label: "🚫 Disabled", value: "disabled" },
+					{ label: "🧢 Idle", value: "idle" },
+					{ label: "✨ AI Session", value: "ai-session" },
+					{ label: "✅ Checkpoint", value: "checkpoint" },
+					{ label: "📜 Restored", value: "restored" },
+					{ label: "⚡ AI Detected Sequence", value: "ai-sequence" },
 					{ label: "🔄 Reset All", value: "reset" },
 				],
 				{ placeHolder: "Select status bar state to test" },
@@ -322,28 +319,24 @@ export async function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			// Reset all states first
-			statusBarController.setExtensionEnabled(true);
-			statusBarController.setNeedsAttention(false);
-			// REMOVED: setRecording(false) - Recording state removed (Option 3)
-			statusBarController.setSnapshotCount(0);
-
 			switch (state.value) {
-				case "protected":
-					// Already reset to protected
+				case "idle":
+					vitalsStatusBar.showIdle();
 					break;
-				// REMOVED: recording case - Recording state removed (Option 3)
-				case "activity":
-					statusBarController.setSnapshotCount(5);
+				case "ai-session":
+					vitalsStatusBar.showAISession("Cursor");
 					break;
-				case "attention":
-					statusBarController.setNeedsAttention(true);
+				case "checkpoint":
+					vitalsStatusBar.showCheckpointCreated();
 					break;
-				case "disabled":
-					statusBarController.setExtensionEnabled(false);
+				case "restored":
+					vitalsStatusBar.showRestored(42);
+					break;
+				case "ai-sequence":
+					void vitalsStatusBar.showAIDetectedSequence("Cursor");
 					break;
 				case "reset":
-					// Already reset
+					vitalsStatusBar.showIdle();
 					break;
 			}
 			vscode.window.showInformationMessage(`Status bar set to: ${state.label}`);
@@ -995,9 +988,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Use StatusBarManager from Phase 4 (avoid creating duplicate)
 			vitalsStatusBar = phase4Result.statusBarManager;
 
-			// 🆕 Use StatusBarController from Phase 4 (new consolidated status bar)
-			statusBarController = phase4Result.statusBarController;
-
 			// 🆕 Create AIDetectionToast for AI detection notifications
 			aiDetectionToast = new AIDetectionToast();
 
@@ -1209,8 +1199,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			// Capture eventBus in closure to avoid null check issues
 			const bus = eventBus;
 
-			// 🆕 Track snapshot count for StatusBarController (workspace-scoped)
-			let sessionSnapshotCount = 0;
 			// Use consistent workspace ID for filtering (URI string format)
 			const currentWorkspaceId = workspaceFolders[0]?.uri.toString() || "default";
 
@@ -1224,22 +1212,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
 				// 🆕 Workspace-scoped filtering: Only update status bar for current workspace
 				// This prevents multi-workspace cross-contamination
-				const shouldProcess = statusBarController?.shouldProcessEvent(data.workspaceId) ?? true;
+				const shouldProcess = !data.workspaceId || data.workspaceId === currentWorkspaceId;
 
 				if (shouldProcess) {
 					// Refresh all tree views when snapshot is created
 					refreshViews();
 
-					// 🆕 Update StatusBarController snapshot count (workspace-scoped)
-					sessionSnapshotCount++;
-					if (statusBarController) {
-						statusBarController.setSnapshotCount(sessionSnapshotCount);
-					}
-
-					// 🐛 FIX: Also update StatusBarManager (vitalsStatusBar) snapshot count
-					// This ensures the vitals status bar counter matches actual snapshot count,
-					// fixing the phantom counter bug where detection events were incrementing
-					// the counter without creating actual snapshots
+					// 🆕 Update StatusBarManager snapshot count
 					if (vitalsStatusBar) {
 						vitalsStatusBar.incrementSnapshotCount();
 					}
@@ -1632,14 +1611,7 @@ export async function deactivate() {
 		if (vitalsStatusBar) {
 			vitalsStatusBar.dispose();
 			vitalsStatusBar = null;
-			logger.info("Vitals StatusBar disposed");
-		}
-
-		// 🆕 Dispose StatusBarController (new consolidated status bar)
-		if (statusBarController) {
-			statusBarController.dispose();
-			statusBarController = null;
-			logger.info("StatusBarController disposed");
+			logger.info("StatusBarManager disposed");
 		}
 
 		// 🆕 Clear AIDetectionToast
