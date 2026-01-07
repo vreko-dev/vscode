@@ -15,11 +15,11 @@ import type {
 	LegacyWalkthroughStepCompletedEvent,
 } from "@snapback/contracts";
 import { LEGACY_TELEMETRY_EVENTS, SnapBackEventBus } from "@snapback/contracts";
-import { TelemetryClient } from "./telemetry/local-telemetry-client";
 import * as vscode from "vscode";
-import { logger } from "./utils/logger";
 import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService
 import { TelemetryProxy } from "./services/telemetry-proxy";
+import { TelemetryClient } from "./telemetry/local-telemetry-client";
+import { logger } from "./utils/logger";
 
 /**
  * VS Code Telemetry Integration
