@@ -14,9 +14,9 @@
  * @module commands/snapshotCommands
  */
 
-import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
+import { logger } from "../utils/logger";
 import { extractSnapshotId } from "../utils/treeItemUtils";
 
 /**

@@ -6,12 +6,12 @@
  * Includes manual API key auth for corporate proxy environments (P1-5)
  */
 
-import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import { createManualAuthFlow } from "../auth/ManualAuthFlow";
 import { COMMANDS } from "../constants/index";
 import { getSecureConfig } from "../security/SecureConfigService";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
+import { logger } from "../utils/logger";
 
 // Auth provider constants
 const AUTH_PROVIDER_ID = "snapback" as const;

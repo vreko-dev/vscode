@@ -12,12 +12,12 @@
  * 5. Telemetry tracks choice for accuracy monitoring
  */
 
-import { logger } from "../utils/logger";
 import type { BurstDetectionResult } from "@snapback/sdk";
 import * as vscode from "vscode";
 import { SNAPBACK_ICONS } from "../constants/index";
 import type { Result } from "../types/result";
 import { Ok } from "../types/result";
+import { logger } from "../utils/logger";
 
 /**
  * AI detection data passed to warning manager

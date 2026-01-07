@@ -1,8 +1,7 @@
-import { logger } from "../utils/logger";
 import {
 	type AuthResult,
 	createDeviceAuthClient,
-	DeviceAuthClient,
+	type DeviceAuthClient,
 	type DeviceCodeResponse,
 	type FlowState,
 } from "@snapback-oss/sdk";
@@ -10,6 +9,7 @@ import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
 import { TelemetryProxy } from "../services/telemetry-proxy";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
+import { logger } from "../utils/logger";
 
 // Re-export types for backward compatibility
 export type { AuthResult, FlowState };

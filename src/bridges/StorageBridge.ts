@@ -18,8 +18,6 @@
 
 import type { SnapBackEventBus } from "@snapback/contracts";
 import { Storage as V2Storage } from "@snapback/engine";
-
-import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import type { StorageManager as V1Storage } from "../storage/StorageManager";
 import type {
@@ -34,6 +32,7 @@ import type {
 	SnapshotWithContent,
 	StorageMetadata,
 } from "../storage/types";
+import { logger } from "../utils/logger";
 
 /**
  * Configuration for StorageBridge

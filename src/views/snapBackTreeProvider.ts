@@ -10,12 +10,12 @@
  */
 
 import * as path from "node:path";
-import { logger } from "../utils/logger";
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/commands";
 import { SNAPBACK_ICONS } from "../constants/icons";
 import type { IStorageManager, SnapshotManifest } from "../storage/types";
 import { formatAbsoluteTime, getFileTypeIcon } from "../ui/snapshot-display/formatting";
+import { logger } from "../utils/logger";
 import { createTreeItemBadgeProvider, type TreeItemBadgeProvider } from "../utils/treeItemBadgeProvider";
 import { TimeGroupingStrategy } from "./grouping/TimeGroupingStrategy";
 import type { GroupingMode, ProblemItem, SnapshotDisplayItem, TimeGroup, TreeViewConfig } from "./types";

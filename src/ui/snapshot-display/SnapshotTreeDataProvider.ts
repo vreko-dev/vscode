@@ -23,9 +23,9 @@
  * @packageDocumentation
  */
 
-import { logger } from "../../utils/logger";
 import * as vscode from "vscode";
 import type { IStorageManager, SnapshotManifest } from "../../storage/types";
+import { logger } from "../../utils/logger";
 import {
 	type AnySnapshotManifest,
 	type DateGroup,

@@ -30,8 +30,8 @@
  * Reference: AUTODECISION_ANTIPATTERNS_DEEP_DIVE.md - Section 1 & 2
  */
 
-import { logger } from "../utils/logger";
 import * as vscode from "vscode";
+import { logger } from "../utils/logger";
 
 /**
  * Events emitted by WorkspaceContextManager

@@ -6,8 +6,8 @@
 import { exec } from "node:child_process";
 import * as path from "node:path";
 import { promisify } from "node:util";
-import { logger } from "../utils/logger";
 import * as vscode from "vscode";
+import { logger } from "../utils/logger";
 import type { StorageSnapshotSummaryProvider } from "./snapshotSummaryProvider";
 
 const execAsync = promisify(exec);

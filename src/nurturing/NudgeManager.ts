@@ -1,5 +1,5 @@
-import { logger } from "../utils/logger";
 import type { ExtensionContext } from "vscode";
+import { logger } from "../utils/logger";
 
 /**
  * Nudge Trigger Types

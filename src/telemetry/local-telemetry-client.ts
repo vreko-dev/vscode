@@ -84,7 +84,7 @@ export class TelemetryClient {
 	private proxyUrl: string;
 	private offlineMode = false;
 	private flushTimer: ReturnType<typeof setInterval> | null = null;
-	private version: string = "unknown";
+	private version = "unknown";
 
 	constructor(
 		_apiKey: string,

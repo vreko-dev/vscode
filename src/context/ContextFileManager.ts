@@ -509,7 +509,9 @@ export class ContextFileManager implements Disposable {
 
 			await this.writeContext(updated);
 		} catch (error) {
-			logger.debug("Failed to update live state", { error: error instanceof Error ? error.message : String(error) });
+			logger.debug("Failed to update live state", {
+				error: error instanceof Error ? error.message : String(error),
+			});
 		} finally {
 			this.isUpdating = false;
 		}

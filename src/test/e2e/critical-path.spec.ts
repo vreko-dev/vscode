@@ -13,6 +13,7 @@
  */
 
 import { describe, test } from "mocha";
+
 // TODO: Import VS Code test utilities
 // import * as vscode from 'vscode';
 

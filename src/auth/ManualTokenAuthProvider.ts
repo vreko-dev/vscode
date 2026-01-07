@@ -51,7 +51,7 @@ export interface ProxyEnvironment {
 export class ManualTokenAuthProvider {
 	private readonly apiBaseUrl: string;
 
-	constructor(apiBaseUrl: string = "https://api.snapback.dev") {
+	constructor(apiBaseUrl = "https://api.snapback.dev") {
 		this.apiBaseUrl = apiBaseUrl;
 	}
 

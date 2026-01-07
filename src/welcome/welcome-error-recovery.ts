@@ -11,8 +11,8 @@
  * Goal: Never leave the welcome panel in a broken state
  */
 
-import { logger } from "../utils/logger";
 import { RetryPresets, withRetry } from "@snapback/sdk";
+import { logger } from "../utils/logger";
 
 export type ErrorSeverity = "info" | "warning" | "error" | "critical";
 
