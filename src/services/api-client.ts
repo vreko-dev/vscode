@@ -245,6 +245,9 @@ export class ApiClient {
 	/**
 	 * Detect AI tool presence via server-side analysis
 	 *
+	 * @deprecated Use ApiClientORPC.detectAiServer() instead - migrated to oRPC
+	 * @see apps/vscode/src/services/api-client-orpc.ts
+	 *
 	 * Requires Pro plan or advancedSignals permission.
 	 * Falls back to local SignalBridge if not authorized.
 	 */
@@ -278,6 +281,9 @@ export class ApiClient {
 
 	/**
 	 * Detect security threats via server-side analysis
+	 *
+	 * @deprecated Use ApiClientORPC.detectThreatsServer() instead - migrated to oRPC
+	 * @see apps/vscode/src/services/api-client-orpc.ts
 	 *
 	 * Requires Pro plan or advancedSignals permission.
 	 * Falls back to local SignalBridge if not authorized.
@@ -313,6 +319,9 @@ export class ApiClient {
 	/**
 	 * Analyze edit burst patterns via server-side analysis
 	 *
+	 * @deprecated Use ApiClientORPC.analyzeBurstServer() instead - migrated to oRPC
+	 * @see apps/vscode/src/services/api-client-orpc.ts
+	 *
 	 * Requires Pro plan or advancedSignals permission.
 	 * Falls back to local SignalBridge if not authorized.
 	 */
@@ -347,6 +356,9 @@ export class ApiClient {
 	/**
 	 * Analyze code complexity via server-side analysis
 	 *
+	 * @deprecated Use ApiClientORPC.analyzeComplexityServer() instead - migrated to oRPC
+	 * @see apps/vscode/src/services/api-client-orpc.ts
+	 *
 	 * Requires Pro plan or advancedSignals permission.
 	 * Falls back to local SignalBridge if not authorized.
 	 */
@@ -380,6 +392,9 @@ export class ApiClient {
 
 	/**
 	 * Run comprehensive signal analysis via server
+	 *
+	 * @deprecated Use ApiClientORPC.analyzeComprehensive() instead - migrated to oRPC
+	 * @see apps/vscode/src/services/api-client-orpc.ts
 	 *
 	 * Executes all signals in parallel and computes overall risk score.
 	 * Requires Pro plan or advancedSignals permission.
