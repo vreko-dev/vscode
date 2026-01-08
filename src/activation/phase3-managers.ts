@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { ConflictResolver } from "../conflictResolver";
 import { NotificationManager } from "../notificationManager";
 import { OperationCoordinator } from "../operationCoordinator";
+import { PlatformCoordinator } from "../platform/PlatformCoordinator";
 import { NoopAIRiskService } from "../services/aiRiskService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { ProtectionManager } from "../services/protectionPolicy";
@@ -34,6 +35,7 @@ export interface Phase3Result {
 	protectionService: ProtectionService; // 🟢 TDD GREEN: Protection audit service
 	unifiedOnboarding: import("../services/UnifiedOnboardingService").UnifiedOnboardingService;
 	mcpToolsService: MCPToolsService | null; // 🔧 MCP Tools integration
+	platformCoordinator: PlatformCoordinator; // 🎯 Multi-surface coordination
 }
 
 import { MCPToolsService } from "../services/MCPToolsService";
@@ -41,13 +43,14 @@ import type { TelemetryProxy } from "../services/telemetry-proxy";
 import { logger } from "../utils/logger";
 
 export async function initializePhase3Managers(
-	_context: vscode.ExtensionContext,
+	context: vscode.ExtensionContext,
 	workspaceRoot: string,
 	storage: IStorageManager,
 	telemetryProxy: TelemetryProxy,
 	protectedFileRegistry?: ProtectedFileRegistry,
 	snapbackrcLoader?: import("../protection/SnapBackRCLoader.js").SnapBackRCLoader,
 	eventBus?: import("@snapback/contracts").SnapBackEventBus,
+	mcpHealthGuardian?: import("../services/MCPHealthGuardian").MCPHealthGuardian,
 ): Promise<Phase3Result> {
 	const phase3Start = Date.now();
 	logger.debug("Phase 3 starting...");
@@ -77,7 +80,7 @@ export async function initializePhase3Managers(
 		t = Date.now();
 		const { UnifiedOnboardingService } = await import("../services/UnifiedOnboardingService");
 		const unifiedOnboarding = new UnifiedOnboardingService(
-			_context.globalState,
+			context.globalState,
 			telemetryProxy,
 			notificationManager,
 		);
@@ -211,6 +214,38 @@ export async function initializePhase3Managers(
 		logger.debug("Phase 3 completed", { ms: Date.now() - phase3Start });
 		PhaseLogger.logPhase("3: Business Logic Managers");
 
+		// 🎯 Initialize PlatformCoordinator for multi-surface coordination
+		// This happens after all managers are created so it can wire up celebrations
+		t = Date.now();
+		const platformCoordinator = new PlatformCoordinator(context, workspaceRoot);
+
+		// Initialize with extension surface
+		const packageJson = context.extension?.packageJSON as { version?: string } | undefined;
+		const version = packageJson?.version || "unknown";
+		const initResult = await platformCoordinator.initialize("extension", version);
+
+		if (initResult.celebration) {
+			logger.info("Platform initialized", {
+				firstInit: initResult.firstInit,
+				workspaceId: initResult.workspaceId,
+				celebration: initResult.celebration.message,
+			});
+		}
+
+		// Wire celebration events to notification manager
+		platformCoordinator.onCelebration((celebration) => {
+			logger.info("Celebration event", { type: celebration.type, message: celebration.message });
+			// Celebrations are already shown as toasts by PlatformCoordinator
+		});
+
+		// Wire MCPHealthGuardian if available (it may be created later in phase2)
+		if (mcpHealthGuardian) {
+			logger.debug("Wiring MCPHealthGuardian to PlatformCoordinator");
+			platformCoordinator.wireHealthGuardian(mcpHealthGuardian);
+		}
+
+		logger.debug("PlatformCoordinator", { ms: Date.now() - t });
+
 		return {
 			workspaceMemoryManager,
 			operationCoordinator,
@@ -226,6 +261,7 @@ export async function initializePhase3Managers(
 			protectionService, // 🟢 TDD GREEN
 			unifiedOnboarding,
 			mcpToolsService, // 🔧 MCP Tools integration
+			platformCoordinator, // 🎯 Multi-surface coordination
 		};
 	} catch (error) {
 		PhaseLogger.logError("3: Business Logic Managers", error as Error);
