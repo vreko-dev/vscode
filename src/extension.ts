@@ -63,6 +63,7 @@ import { disposeActivationFunnel, initializeActivationFunnel } from "./telemetry
 import { initializeCoreEventTracker } from "./telemetry/core-event-tracker";
 import type { ProtectionChangedPayload } from "./types/api";
 import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
+import { OnboardingPanelProvider } from "./ui/OnboardingPanelProvider"; // 🆕 Onboarding webview
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
 import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
 import type { StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import StatusBarManager type
@@ -71,7 +72,6 @@ import { logger } from "./utils/logger";
 import { findProjectRoot } from "./utils/projectRoot";
 import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver"; // 🆕 Import WorkspaceFolderResolver
 import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry";
-import { WelcomePanel } from "./welcome/WelcomePanel"; // 🆕 Fallback for 3rd party IDEs
 
 // 🆕 IntelligenceService imported dynamically after process.exit guard (see deactivate function)
 
@@ -381,14 +381,18 @@ export async function activate(context: vscode.ExtensionContext) {
 				);
 				logger.info("Welcome walkthrough opened for first-time user", { extensionId });
 			} catch (error) {
-				// Walkthrough not supported in this VS Code fork - show WelcomePanel instead
-				logger.warn("Native walkthrough not available, showing WelcomePanel fallback", {
+				// Walkthrough not supported in this VS Code fork - show OnboardingPanel React webview instead
+				logger.warn("Native walkthrough not available, showing OnboardingPanel fallback", {
 					extensionId,
 					error: error instanceof Error ? error.message : String(error),
 				});
 
-				// Fallback: Show custom WelcomePanel webview
-				WelcomePanel.createOrShow(context.extensionUri);
+				// Fallback: Show React-based OnboardingPanel webview
+				void Promise.resolve(vscode.commands.executeCommand("snapback.openOnboarding")).catch(
+					(err: unknown) => {
+						logger.error("Failed to open onboarding panel", { error: err });
+					},
+				);
 			}
 		}, 1500); // Small delay to let extension fully activate
 	}
@@ -559,10 +563,34 @@ export async function activate(context: vscode.ExtensionContext) {
 		// 🆕 Initialize SignalBridge for AI paste/burst detection (V2 engine only)
 		signalBridge = new SignalBridge({ burstThreshold: 30 });
 
+		// 🛡️ Activation Grace Period: Track when extension is ready
+		// Note: Uses local variable because this is a closure, not a class method
+		let isActivationGracePeriod = true;
+		let gracePeriodTimeout: NodeJS.Timeout | null = setTimeout(() => {
+			isActivationGracePeriod = false;
+			gracePeriodTimeout = null;
+			logger.debug("Extension: Activation grace period ended, AI detection now active");
+		}, 2000);
+
+		// Register cleanup for grace period timeout
+		context.subscriptions.push({
+			dispose: () => {
+				if (gracePeriodTimeout) {
+					clearTimeout(gracePeriodTimeout);
+					gracePeriodTimeout = null;
+				}
+			},
+		});
+
 		// Subscribe to document changes for burst detection
 		context.subscriptions.push(
 			vscode.workspace.onDidChangeTextDocument((e) => {
 				if (!signalBridge) {
+					return;
+				}
+
+				// 🛡️ Skip events during activation grace period to prevent false positives
+				if (isActivationGracePeriod) {
 					return;
 				}
 
@@ -970,6 +998,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			await unifiedOnboarding.initialize();
 
 			// Store reference for use by other components
+			// biome-ignore lint/suspicious/noExplicitAny: ExtensionContext needs dynamic property
 			(context as any)._unifiedOnboarding = unifiedOnboarding;
 
 			logger.info("Unified Onboarding & Progressive Disclosure initialized", {
@@ -981,6 +1010,93 @@ export async function activate(context: vscode.ExtensionContext) {
 			logger.warn("Failed to initialize onboarding services (non-critical)", { error });
 		}
 		phaseTimings["Phase 15 (Onboarding)"] = Date.now() - phase15Start;
+
+		// 🆕 Register Onboarding Webview Panel Command
+		try {
+			const mcpBaseUrl = config.get<string>("snapback.mcpBaseUrl", "https://snapback-mcp.fly.dev");
+
+			// Create onboarding panel provider (CLI link manager optional for now)
+			const onboardingProvider = new OnboardingPanelProvider(
+				context,
+				mcpBaseUrl,
+				undefined, // CLI link manager - will be wired later if available
+			);
+
+			// Register command
+			context.subscriptions.push(
+				vscode.commands.registerCommand("snapback.openOnboarding", async () => {
+					await onboardingProvider.createOrShow();
+				}),
+			);
+
+			// Show onboarding on first install (non-blocking)
+			const hasSeenOnboarding = context.globalState.get<boolean>("snapback.hasSeenOnboarding", false);
+			if (!hasSeenOnboarding) {
+				// Delay to let extension fully activate
+				setTimeout(async () => {
+					try {
+						await vscode.commands.executeCommand("snapback.openOnboarding");
+						await context.globalState.update("snapback.hasSeenOnboarding", true);
+					} catch (error) {
+						logger.warn("Failed to show onboarding panel", { error });
+					}
+				}, 2000);
+			}
+
+			logger.info("Onboarding webview panel registered");
+		} catch (error) {
+			logger.warn("Failed to register onboarding panel (non-critical)", { error });
+		}
+
+		// 🆕 Register Language Model Detection Command (vscode.lm API)
+		try {
+			context.subscriptions.push(
+				vscode.commands.registerCommand("snapback.detectLanguageModels", async () => {
+					try {
+						if (!signalBridge) {
+							vscode.window.showErrorMessage("SnapBack SignalBridge not initialized");
+							return;
+						}
+
+						// Detect language models using vscode.lm API
+						const result = await signalBridge.detectLanguageModels();
+
+						if (result.totalModels === 0) {
+							vscode.window.showInformationMessage(
+								"No language models detected. Ensure GitHub Copilot is installed and active.",
+								"Learn More",
+							);
+							return;
+						}
+
+						// Show detected models
+						const modelList = result.models
+							.map((m) => `• ${m.family} (${m.vendor}, ${m.maxInputTokens} tokens)`)
+							.join("\n");
+
+						vscode.window.showInformationMessage(
+							`🧢 SnapBack detected ${result.totalModels} language model(s):\n${modelList}`,
+							"Configure MCP",
+						);
+
+						logger.info("Language models detected via command", {
+							count: result.totalModels,
+							copilot: result.copilotEnabled,
+							models: result.models.map((m) => m.family).join(", "),
+						});
+					} catch (error) {
+						logger.error("Failed to detect language models", { error });
+						vscode.window.showErrorMessage(
+							`Failed to detect language models: ${error instanceof Error ? error.message : String(error)}`,
+						);
+					}
+				}),
+			);
+
+			logger.info("Language model detection command registered");
+		} catch (error) {
+			logger.warn("Failed to register language model detection command (non-critical)", { error });
+		}
 
 		// 🆕 Phase 16: Initialize Vitals StatusBar (power user feature)
 		// CONSOLIDATED: VitalsIntegration removed - now handled by VitalsUIIntegration

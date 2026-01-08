@@ -11,7 +11,10 @@
 
 import { AIDetector, BurstDetector, type BurstEvent } from "@snapback/engine/signals";
 import * as vscode from "vscode";
-
+import {
+	getLanguageModelDetectionService,
+	type LanguageModelDetectionResult,
+} from "../services/LanguageModelDetectionService";
 import { logger } from "../utils/logger";
 
 /**
@@ -161,6 +164,29 @@ export class SignalBridge {
 			method: result.method,
 			indicators: result.indicators,
 		};
+	}
+
+	/**
+	 * Detect active language models using VS Code LM API
+	 *
+	 * Uses vscode.lm.selectChatModels() to get real-time model availability.
+	 * This complements file-based MCP detection with live model status.
+	 *
+	 * NOTE: Must be called from user-initiated action (requires consent dialog)
+	 *
+	 * @returns LanguageModelDetectionResult with active models
+	 */
+	async detectLanguageModels(): Promise<LanguageModelDetectionResult> {
+		const lmService = getLanguageModelDetectionService();
+		return lmService.detectLanguageModels();
+	}
+
+	/**
+	 * Get cached language model detection (if recent)
+	 */
+	getCachedLanguageModels(): LanguageModelDetectionResult | null {
+		const lmService = getLanguageModelDetectionService();
+		return lmService.getCachedDetection();
 	}
 
 	/**
