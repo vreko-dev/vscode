@@ -22,6 +22,29 @@ import {
 } from "vscode-languageclient/node";
 import { logger } from "../utils/logger";
 
+/**
+ * Structured snapshot recommendation based on pressure analysis
+ * 2026 best practice: Actionable, context-aware recommendations
+ */
+export interface PressureRecommendation {
+	/** Should a snapshot be created now? */
+	shouldSnapshot: boolean;
+	/** Urgency level (0-100) */
+	urgency: number;
+	/** Primary reason for recommendation */
+	reason: string;
+	/** Detailed context for the recommendation */
+	context: {
+		pressure: number;
+		trajectory: string;
+		phase: string;
+	};
+	/** Suggested action for the user */
+	action: "snapshot_now" | "snapshot_soon" | "monitor" | "none";
+	/** Educational message explaining why this matters */
+	educational?: string;
+}
+
 let client: LanguageClient | undefined;
 
 // =============================================================================
@@ -31,6 +54,8 @@ let client: LanguageClient | undefined;
 interface CachedVitals {
 	snapshot: VitalsSnapshot;
 	thresholdMultiplier: number;
+	phaseRiskMultiplier: number;
+	currentBranch: string;
 	timestamp: number;
 }
 
@@ -147,6 +172,131 @@ export class WorkspaceVitalsProxy {
 		const vitals = this.current();
 		return vitals.pressure.value >= PRESSURE_THRESHOLDS.high || vitals.trajectory === "critical";
 	}
+
+	/**
+	 * 🆕 PhaseDetector: Set current git branch for phase-aware calculations
+	 */
+	setCurrentBranch(branchName: string): void {
+		if (isLanguageServerActive()) {
+			sendRequest("snapback/vitals/setCurrentBranch", {
+				workspaceId: this.workspaceId,
+				branchName,
+			}).catch(() => {
+				// Ignore errors - this is a notification
+			});
+		}
+	}
+
+	/**
+	 * 🆕 PhaseDetector: Get phase-aware risk multiplier
+	 * Hotfix branches return higher multipliers (more protective)
+	 */
+	getPhaseRiskMultiplier(): number {
+		return getPhaseRiskMultiplierFromCacheSync(this.workspaceId);
+	}
+
+	/**
+	 * 🆕 PhaseDetector: Check if current phase requires frequent snapshots
+	 */
+	requiresFrequentSnapshots(): boolean {
+		const cached = vitalsCache.get(this.workspaceId);
+		const branch = cached?.currentBranch ?? "main";
+		// Hotfix and release branches require more frequent snapshots
+		return /hotfix|release|urgent/i.test(branch);
+	}
+
+	// =========================================================================
+	// PRESSURE RECOMMENDATIONS (2026 industry standard)
+	// =========================================================================
+
+	/**
+	 * 🆕 Get structured snapshot recommendation based on current pressure
+	 *
+	 * 2026 Best Practice: Recommendations should be:
+	 * - Actionable (clear next step)
+	 * - Context-aware (includes relevant data)
+	 * - Educational (explains why it matters)
+	 */
+	getPressureRecommendation(): PressureRecommendation {
+		const vitals = this.current();
+		const value = vitals.pressure.value;
+		const trajectory = vitals.trajectory;
+
+		let shouldSnapshot = false;
+		let urgency = 0;
+		let reason = "";
+		let action: PressureRecommendation["action"] = "none";
+		let educational: string | undefined;
+
+		// Critical pressure (>=80) or critical trajectory: Immediate action
+		if (value >= PRESSURE_THRESHOLDS.critical || trajectory === "critical") {
+			shouldSnapshot = true;
+			urgency = 100;
+			reason = `Critical pressure (${value}%) - immediate snapshot recommended`;
+			action = "snapshot_now";
+			educational =
+				"High pressure indicates significant unsnapshot'd work. Creating a snapshot now protects against potential loss.";
+		}
+		// High pressure (>=60): Snapshot soon
+		else if (value >= PRESSURE_THRESHOLDS.high) {
+			shouldSnapshot = true;
+			urgency = 75;
+			reason = `High pressure (${value}%) - snapshot recommended`;
+			action = "snapshot_soon";
+			educational = "Risk is accumulating. A snapshot within the next few minutes will keep your work protected.";
+		}
+		// Moderate pressure (>=40): Monitor
+		else if (value >= PRESSURE_THRESHOLDS.moderate) {
+			shouldSnapshot = false;
+			urgency = 50;
+			reason = `Moderate pressure (${value}%) - monitoring recommended`;
+			action = "monitor";
+			educational =
+				"Your session is progressing normally. Consider a snapshot if you're about to start risky changes.";
+		}
+		// Low pressure: No action needed
+		else {
+			shouldSnapshot = false;
+			urgency = value;
+			reason = "Session health is good - no action needed";
+			action = "none";
+		}
+
+		// Boost urgency if escalating trajectory
+		if (trajectory === "escalating" && value >= 30) {
+			urgency = Math.min(100, urgency + 15);
+			if (action === "monitor") {
+				action = "snapshot_soon";
+				shouldSnapshot = true;
+			}
+		}
+
+		return {
+			shouldSnapshot,
+			urgency,
+			reason,
+			context: {
+				pressure: value,
+				trajectory,
+				phase: this.getCurrentPhase(),
+			},
+			action,
+			educational,
+		};
+	}
+
+	/**
+	 * Get current development phase from branch name
+	 */
+	private getCurrentPhase(): string {
+		const cached = vitalsCache.get(this.workspaceId);
+		const branch = cached?.currentBranch ?? "main";
+		if (/hotfix|fix|bugfix/i.test(branch)) return "hotfix";
+		if (/feature|feat/i.test(branch)) return "feature";
+		if (/release/i.test(branch)) return "release";
+		if (/refactor|cleanup/i.test(branch)) return "refactor";
+		return "unknown";
+	}
 }
 
 // Cache of WorkspaceVitalsProxy instances
@@ -257,6 +407,8 @@ export async function preCacheVitals(workspaceId: string): Promise<void> {
 			vitalsCache.set(workspaceId, {
 				snapshot: response.vitals,
 				thresholdMultiplier: response.thresholdMultiplier ?? 1.0,
+				phaseRiskMultiplier: 1.0, // Will be updated via setCurrentBranch
+				currentBranch: "main",
 				timestamp: Date.now(),
 			});
 			logger.debug("Vitals pre-cached", { workspaceId });
@@ -290,6 +442,14 @@ export function getVitalsFromCacheSync(workspaceId: string): VitalsSnapshot {
 export function getThresholdMultiplierFromCacheSync(workspaceId: string): number {
 	const cached = vitalsCache.get(workspaceId);
 	return cached?.thresholdMultiplier ?? 1.0;
+}
+
+/**
+ * 🆕 Get phase risk multiplier from cache (for PhaseDetector integration)
+ */
+export function getPhaseRiskMultiplierFromCacheSync(workspaceId: string): number {
+	const cached = vitalsCache.get(workspaceId);
+	return cached?.phaseRiskMultiplier ?? 1.0;
 }
 
 /**
@@ -452,6 +612,8 @@ export async function getVitalsViaLSP(workspaceFolder?: vscode.WorkspaceFolder):
 	vitalsCache.set(workspaceId, {
 		snapshot: response.vitals,
 		thresholdMultiplier: 1.0,
+		phaseRiskMultiplier: 1.0,
+		currentBranch: "main",
 		timestamp: Date.now(),
 	});
 

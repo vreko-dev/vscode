@@ -150,6 +150,10 @@ export class UnifiedDataService implements vscode.Disposable {
 	private lastVitals: VitalsSnapshot | null = null;
 	private lastSnapshotTime: number | null = null;
 
+	// Calibrated threshold multiplier from learning system
+	// 0.7 = conservative (more protective), 1.0 = balanced, 1.3 = aggressive (less nagging)
+	private thresholdMultiplier = 1.0;
+
 	// File watchers
 	private fileWatcher: vscode.FileSystemWatcher | null = null;
 	private disposables: vscode.Disposable[] = [];
@@ -373,9 +377,15 @@ export class UnifiedDataService implements vscode.Disposable {
 	 * Get promotion status based on occurrence count
 	 */
 	private getPromotionStatus(count: number): Violation["promotionStatus"] {
-		if (count >= 5) return "automated";
-		if (count >= 3) return "promoted";
-		if (count >= 2) return "ready_for_promotion";
+		if (count >= 5) {
+			return "automated";
+		}
+		if (count >= 3) {
+			return "promoted";
+		}
+		if (count >= 2) {
+			return "ready_for_promotion";
+		}
 		return "tracking";
 	}
 
@@ -412,9 +422,17 @@ export class UnifiedDataService implements vscode.Disposable {
 
 	/**
 	 * Update vitals from external source (AutoDecisionIntegration)
+	 * @param vitals - Current vitals snapshot
+	 * @param thresholdMultiplier - Optional calibrated threshold multiplier (default 1.0)
 	 */
-	updateVitals(vitals: VitalsSnapshot): void {
+	updateVitals(vitals: VitalsSnapshot, thresholdMultiplier?: number): void {
 		this.lastVitals = vitals;
+
+		// Update calibrated threshold multiplier if provided
+		if (thresholdMultiplier !== undefined) {
+			this.thresholdMultiplier = thresholdMultiplier;
+		}
+
 		this._onDataChange.fire({ type: "vitals-updated", data: vitals });
 
 		// Check if health changed significantly
@@ -650,6 +668,15 @@ export class UnifiedDataService implements vscode.Disposable {
 
 	getVitals(): VitalsSnapshot | null {
 		return this.lastVitals;
+	}
+
+	/**
+	 * Get the calibrated threshold multiplier from learning system
+	 * Used by VitalsUIIntegration to adjust health zone boundaries
+	 * @returns Multiplier (0.7 = conservative, 1.0 = balanced, 1.3 = aggressive)
+	 */
+	getThresholdMultiplier(): number {
+		return this.thresholdMultiplier;
 	}
 
 	// ============================================================================
