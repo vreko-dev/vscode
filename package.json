@@ -1,6 +1,6 @@
 {
   "name": "snapback-vscode",
-  "description": "Smart snapshot manager with Watch/Warn/Block protection levels. Code Breaks. SnapBack.",
+  "description": "Automatic snapshots for AI-assisted coding. Recover what Cursor, Copilot, or Claude overwrote in <1 second. Your code never leaves your machine.",
   "version": "1.4.3",
   "activationEvents": [
     "onStartupFinished",
@@ -23,31 +23,24 @@
     "Other"
   ],
   "keywords": [
-    "snapshot",
-    "backup",
-    "code-safety",
-    "ai-protection",
-    "copilot",
+    "ai",
+    "code protection",
     "cursor",
-    "windsurf",
+    "copilot",
+    "claude",
+    "backup",
     "recovery",
-    "rollback",
-    "file-protection",
-    "git",
-    "version-control",
-    "developer-tools",
-    "typescript",
-    "javascript",
-    "productivity",
-    "security",
-    "code-quality",
-    "automation",
-    "testing",
-    "ci-cd",
-    "open-source",
-    "sdk",
+    "snapshots",
+    "undo",
+    "safety",
+    "ai coding",
+    "ai assistant",
+    "code safety",
+    "restore",
+    "snapshot",
+    "windsurf",
     "local-first",
-    "ai-safety"
+    "privacy"
   ],
   "contributes": {
     "authentication": [
@@ -57,6 +50,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "snapback.openOnboarding",
+        "title": "Open Setup Wizard",
+        "category": "SnapBack"
+      },
       {
         "command": "snapback.protectFile",
         "title": "Protect File",
@@ -479,6 +477,126 @@
         "title": "Debug Status Bar States",
         "category": "SnapBack",
         "icon": "$(debug)"
+      },
+      {
+        "command": "snapback.detectLanguageModels",
+        "title": "Detect Language Models",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.pioneer.login",
+        "title": "Pioneer: Login",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.pioneer.logout",
+        "title": "Pioneer: Logout",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.session.list",
+        "title": "List Sessions",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.session.export",
+        "title": "Export Session",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.showSessionBrowser",
+        "title": "Browse Sessions",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.showFullHistory",
+        "title": "Show Full History",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.toggleAIMonitoring",
+        "title": "Toggle AI Monitoring",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.showAIMonitoringStatus",
+        "title": "Show AI Monitoring Status",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.toggleGroupingMode",
+        "title": "Toggle Snapshot Grouping",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.toggleAdvancedMode",
+        "title": "Toggle Advanced Mode",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.showAllFeatures",
+        "title": "Show All Features",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.resetExperienceLevel",
+        "title": "Reset Experience Level",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.showRecommendedAction",
+        "title": "Show Recommended Action",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.refreshSnapshots",
+        "title": "Refresh Snapshots",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.showSnapshotQuickPick",
+        "title": "Quick Snapshot Picker",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.restoreQuickPick",
+        "title": "Quick Restore Picker",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.previewRestoreSession",
+        "title": "Preview Restore Session",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.restoreSession",
+        "title": "Restore Session",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.confirmRestoreFromPreview",
+        "title": "Confirm Restore from Preview",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.openSnapshotFileDiff",
+        "title": "Open Snapshot File Diff",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.openDashboard.activity",
+        "title": "Open Dashboard: Activity",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.openDashboard.settings",
+        "title": "Open Dashboard: Settings",
+        "category": "SnapBack"
+      },
+      {
+        "command": "snapback.protection.workspace",
+        "title": "Protect Workspace",
+        "category": "SnapBack"
       }
     ],
     "viewsContainers": {
@@ -1042,7 +1160,7 @@
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12"
   },
-  "displayName": "SnapBack - Code Safety Net",
+  "displayName": "SnapBack — AI Code Safety Net",
   "engines": {
     "vscode": "^1.99.0"
   },
