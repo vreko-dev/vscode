@@ -9,6 +9,7 @@ import * as vscode from "vscode";
 
 import { SignalBridge } from "../bridges/SignalBridge";
 import { recordFileModification } from "../services/IntelligenceService";
+import { isMonitorableDocument } from "../utils/documentFilters";
 import { logger } from "../utils/logger";
 import { FileHeatDecorationProvider } from "./FileHeatDecorationProvider";
 import { HeatTracker } from "./HeatTracker";
@@ -97,6 +98,12 @@ export class HeatIntegration implements vscode.Disposable {
 		// Track document changes for AI detection
 		this.disposables.push(
 			vscode.workspace.onDidChangeTextDocument((event) => {
+				// 🛡️ CRITICAL: Only monitor real files, not Output channels/git diffs/etc
+				// This prevents recursive loops where SnapBack's logging triggers AI detection
+				if (!isMonitorableDocument(event.document)) {
+					return;
+				}
+
 				this.handleDocumentChange(event);
 			}),
 		);

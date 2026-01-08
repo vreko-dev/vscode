@@ -3,6 +3,7 @@ import type { SnapshotQuickDiffProvider } from "../providers/SnapshotQuickDiffPr
 import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import { detectAIPresence } from "../utils/AIPresenceDetector";
+import { isMonitorableDocument } from "../utils/documentFilters";
 import { logger } from "../utils/logger";
 
 /**
@@ -98,6 +99,12 @@ export class PreSnapshotService implements vscode.Disposable {
 		// Listen to document changes (for manual edit detection)
 		this.disposables.push(
 			vscode.workspace.onDidChangeTextDocument((event) => {
+				// 🛡️ CRITICAL: Only monitor real files, not Output channels/git diffs/etc
+				// This prevents recursive loops where SnapBack's logging triggers AI detection
+				if (!isMonitorableDocument(event.document)) {
+					return;
+				}
+
 				this.handleTextDocumentChange(event).catch((error) => {
 					logger.error("Failed to handle text document change", error instanceof Error ? error : undefined);
 				});

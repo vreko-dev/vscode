@@ -55,6 +55,7 @@ import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Im
 import { getWorkspaceVitalsSync } from "./services/IntelligenceService"; // 🆕 Import for Phase 2A
 import { activateLanguageServer, deactivateLanguageServer, preCacheVitals } from "./services/LanguageClient";
 import { TelemetryProxy } from "./services/telemetry-proxy";
+import type { UnifiedOnboardingService } from "./services/UnifiedOnboardingService";
 import { UserIdentityService } from "./services/UserIdentityService";
 import { createWorkspaceContextManager } from "./services/WorkspaceContextManager"; // 🆕 Import WorkspaceContextManager
 import { WorkspaceManager } from "./services/WorkspaceManager"; // 🆕 Import WorkspaceManager
@@ -68,10 +69,15 @@ import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
 import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
 import type { StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import StatusBarManager type
 // REMOVED: VitalsIntegration - consolidated into VitalsUIIntegration to eliminate duplicate status bar updates
+import { isMonitorableDocument } from "./utils/documentFilters";
 import { logger } from "./utils/logger";
 import { findProjectRoot } from "./utils/projectRoot";
 import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver"; // 🆕 Import WorkspaceFolderResolver
 import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry";
+
+// Module-level fallback for Qoder/VS Code forks that freeze the context object
+// biome-ignore lint/correctness/noUnusedVariables: Fallback storage accessed via module scope
+let globalUnifiedOnboarding: UnifiedOnboardingService | undefined;
 
 // 🆕 IntelligenceService imported dynamically after process.exit guard (see deactivate function)
 
@@ -589,6 +595,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Subscribe to document changes for burst detection
 		context.subscriptions.push(
 			vscode.workspace.onDidChangeTextDocument((e) => {
+				// 🛡️ CRITICAL: Only monitor real files, not Output channels/git diffs/etc
+				// This prevents recursive loops where SnapBack's logging triggers AI detection
+				if (!isMonitorableDocument(e.document)) {
+					return;
+				}
+
 				if (!signalBridge) {
 					return;
 				}
@@ -1027,8 +1039,14 @@ export async function activate(context: vscode.ExtensionContext) {
 			await unifiedOnboarding.initialize();
 
 			// Store reference for use by other components
-			// biome-ignore lint/suspicious/noExplicitAny: ExtensionContext needs dynamic property
-			(context as any)._unifiedOnboarding = unifiedOnboarding;
+			// Use globalState instead of context property (Qoder freezes context object)
+			try {
+				// biome-ignore lint/suspicious/noExplicitAny: ExtensionContext needs dynamic property
+				(context as any)._unifiedOnboarding = unifiedOnboarding;
+			} catch {
+				// Qoder/some VS Code forks freeze the context object - store in module scope instead
+				globalUnifiedOnboarding = unifiedOnboarding;
+			}
 
 			logger.info("Unified Onboarding & Progressive Disclosure initialized", {
 				experienceLevel: await userExperienceService.getExperienceLevel(),

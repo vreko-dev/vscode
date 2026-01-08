@@ -17,6 +17,7 @@
 import { createHash } from "node:crypto";
 import * as vscode from "vscode";
 import { getMCPTelemetry } from "../services/MCPTelemetry";
+import { isMonitorableDocument } from "../utils/documentFilters";
 import { logger } from "../utils/logger";
 import type { SignalBridge } from "./SignalBridge";
 
@@ -358,6 +359,12 @@ export class MCPBridge {
 		// Track text changes for AI detection
 		if (this.enableAIDetection) {
 			const changeWatcher = vscode.workspace.onDidChangeTextDocument((event) => {
+				// 🛡️ CRITICAL: Only monitor real files, not Output channels/git diffs/etc
+				// This prevents recursive loops where SnapBack's logging triggers AI detection
+				if (!isMonitorableDocument(event.document)) {
+					return;
+				}
+
 				this.handleTextChange(event);
 			});
 			this.disposables.push(changeWatcher);

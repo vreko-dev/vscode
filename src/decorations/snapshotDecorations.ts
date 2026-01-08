@@ -1,6 +1,7 @@
 import { createTwoFilesPatch, parsePatch } from "diff";
 import * as vscode from "vscode";
 import type { SnapshotStorage } from "../storage/types";
+import { isMonitorableDocument } from "../utils/documentFilters";
 import { logger } from "../utils/logger";
 
 /**
@@ -57,6 +58,11 @@ export class SnapshotDecorations {
 
 		this.disposables.push(
 			vscode.workspace.onDidChangeTextDocument((event) => {
+				// 🛡️ CRITICAL: Only monitor real files, not Output channels/git diffs/etc
+				if (!isMonitorableDocument(event.document)) {
+					return;
+				}
+
 				const editor = vscode.window.activeTextEditor;
 				if (editor && event.document === editor.document) {
 					this.throttledUpdateDecorations(editor);

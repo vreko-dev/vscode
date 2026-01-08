@@ -1,6 +1,7 @@
 import type { FileChange } from "@snapback/engine";
 import { calculateRiskScore, detectThreats } from "@snapback/engine/signals";
 import * as vscode from "vscode";
+import { isMonitorableDocument } from "./utils/documentFilters";
 import { logger } from "./utils/logger";
 
 export class EditorDecorations {
@@ -83,6 +84,11 @@ export class EditorDecorations {
 
 		this.disposables.push(
 			vscode.workspace.onDidChangeTextDocument((event) => {
+				// 🛡️ CRITICAL: Only monitor real files, not Output channels/git diffs/etc
+				if (!isMonitorableDocument(event.document)) {
+					return;
+				}
+
 				const editor = vscode.window.activeTextEditor;
 				if (editor && event.document === editor.document) {
 					this.updateDecorations(editor);

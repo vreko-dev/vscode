@@ -38,6 +38,7 @@ import type { WorkspaceContextManager } from "../services/WorkspaceContextManage
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import { absoluteToWorkspaceRelative, createAbsolutePath } from "../types/PathBrands";
 import { detectAIPresence } from "../utils/AIPresenceDetector";
+import { isMonitorableDocument } from "../utils/documentFilters";
 import { logger } from "../utils/logger";
 
 export interface FileChangeEvent {
@@ -267,6 +268,12 @@ export class AutoDecisionIntegration {
 		this.disposables.push(
 			vscode.workspace.onDidChangeTextDocument((event) => {
 				const { document } = event;
+
+				// 🛡️ CRITICAL: Only monitor real files, not Output channels/git diffs/etc
+				// This prevents recursive loops where SnapBack's logging triggers AI detection
+				if (!isMonitorableDocument(document)) {
+					return;
+				}
 
 				// Skip if not in workspace
 				if (!vscode.workspace.getWorkspaceFolder(document.uri)) {

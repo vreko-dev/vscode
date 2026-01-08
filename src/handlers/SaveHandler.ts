@@ -15,6 +15,7 @@ import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
 import { getCoreEventTracker } from "../telemetry/core-event-tracker";
 import type { AnalysisResult, BasicAnalysisResult } from "../types/api";
 import type { CooldownIndicator } from "../ui/cooldownIndicator";
+import { isMonitorableDocument } from "../utils/documentFilters";
 import { logger } from "../utils/logger";
 import { AnalysisCoordinator } from "./AnalysisCoordinator";
 import { AuditLogger } from "./AuditLogger";
@@ -151,7 +152,7 @@ export class SaveHandler {
 	 */
 	public async canSaveFile(
 		filePath: string,
-		profile: any | null, // PioneerProfile | null (avoid circular import)
+		profile: { tier?: string } | null,
 	): Promise<{ allowed: boolean; reason?: string; clusterAnchor?: string; requiresSnapshot?: boolean }> {
 		// If not a protected file, allow save
 		if (!this.registry.isProtected(filePath)) {
@@ -200,7 +201,7 @@ export class SaveHandler {
 	 * @param profile - Pioneer profile or null
 	 * @returns true if user is a pioneer, false otherwise
 	 */
-	public isUserPioneer(profile: any | null): boolean {
+	public isUserPioneer(profile: { tier?: string } | null): boolean {
 		// Simplified check - profile must exist and have a tier
 		return profile !== null && profile !== undefined && profile.tier !== undefined;
 	}
@@ -308,6 +309,12 @@ export class SaveHandler {
 		// Register document change listener for AI detection and cache invalidation
 		// This tracks changes for SignalBridge and prevents stale cluster detection
 		const changeDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
+			// 🛡️ CRITICAL: Only monitor real files, not Output channels/git diffs/etc
+			// This prevents recursive loops where SnapBack's logging triggers AI detection
+			if (!isMonitorableDocument(event.document)) {
+				return;
+			}
+
 			const filePath = event.document.uri.fsPath;
 			if (this.registry.isProtected(filePath)) {
 				// Invalidate cluster cache

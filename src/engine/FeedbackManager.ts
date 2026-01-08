@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { TelemetryService } from "../analytics/telemetry";
 import { PointsTracker } from "../pioneer/PointsTracker";
 import type { StatusBarManager } from "../ui/StatusBarManager";
+import { isMonitorableDocument } from "../utils/documentFilters";
 import { logger } from "../utils/logger";
 
 interface DetectionContext {
@@ -198,6 +199,11 @@ export class FeedbackManager {
 		// Fix #2: Only dismiss on "Significant" edits
 		this.activeDisposables.push(
 			vscode.workspace.onDidChangeTextDocument((e) => {
+				// 🛡️ CRITICAL: Only monitor real files, not Output channels/git diffs/etc
+				if (!isMonitorableDocument(e.document)) {
+					return;
+				}
+
 				if (!this.currentDetection || e.document !== this.currentDetection.document) {
 					return;
 				}
