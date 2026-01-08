@@ -304,14 +304,14 @@ export class VitalsDashboardPanel {
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}';">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Workspace Vitals</title>
 	<link rel="stylesheet" href="${styleUri}">
 </head>
 <body>
 	<div id="root"></div>
-	<script nonce="${nonce}" src="${scriptUri}"></script>
+	<script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
 	}
@@ -353,7 +353,7 @@ export class VitalsDashboardPanel {
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'nonce-${nonce}';">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Workspace Vitals</title>
 	<style>
@@ -866,8 +866,12 @@ export class VitalsDashboardPanel {
 
 	private getHealthColor(score: number): string {
 		// Return CSS class name for health badge
-		if (score < 30) return "critical";
-		if (score < 70) return "warning";
+		if (score < 30) {
+			return "critical";
+		}
+		if (score < 70) {
+			return "warning";
+		}
 		return "good";
 	}
 

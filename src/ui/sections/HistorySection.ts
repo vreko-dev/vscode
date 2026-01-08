@@ -246,7 +246,7 @@ export class HistorySection {
 			if (!groups.has(group)) {
 				groups.set(group, []);
 			}
-			groups.get(group)!.push(session);
+			groups.get(group)?.push(session);
 		}
 
 		return groups;
