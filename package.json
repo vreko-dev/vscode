@@ -1091,6 +1091,7 @@
   },
   "dependencies": {
     "@snapback-oss/sdk": "workspace:*",
+    "@snapback/api-client": "workspace:*",
     "@snapback/config": "workspace:*",
     "@snapback/contracts": "workspace:*",
     "@snapback/core": "workspace:*",
