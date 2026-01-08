@@ -817,11 +817,11 @@ export class VitalsDashboardPanel {
 
 	// ============================================================================
 	// COLOR HELPERS - Use signage system for consistency
-	// All signage constants have color defined, so we use non-null assertion
+	// All signage constants have color defined - using fallback for type safety
 	// ============================================================================
 
 	/** Default fallback color from signage system */
-	private readonly DEFAULT_COLOR = TRAJECTORY_SIGNAGE.stable.color!;
+	private readonly DEFAULT_COLOR = TRAJECTORY_SIGNAGE.stable.color ?? "#6B7280";
 
 	private getPulseColor(level: string): string {
 		// Use signage system colors - maps to PulseLevelCanonical
@@ -839,23 +839,23 @@ export class VitalsDashboardPanel {
 	private getPressureColor(value: number): string {
 		// Derive from session health thresholds
 		if (value > 75) {
-			return SESSION_HEALTH_SIGNAGE.critical.color!;
+			return SESSION_HEALTH_SIGNAGE.critical.color ?? "#EF4444";
 		}
 		if (value > 50) {
-			return SESSION_HEALTH_SIGNAGE.warning.color!;
+			return SESSION_HEALTH_SIGNAGE.warning.color ?? "#FACC15";
 		}
-		return SESSION_HEALTH_SIGNAGE.healthy.color!;
+		return SESSION_HEALTH_SIGNAGE.healthy.color ?? "#10B981";
 	}
 
 	private getOxygenColor(value: number): string {
 		// Inverse of pressure - low oxygen is critical
 		if (value < 30) {
-			return SESSION_HEALTH_SIGNAGE.critical.color!;
+			return SESSION_HEALTH_SIGNAGE.critical.color ?? "#EF4444";
 		}
 		if (value < 60) {
-			return SESSION_HEALTH_SIGNAGE.warning.color!;
+			return SESSION_HEALTH_SIGNAGE.warning.color ?? "#FACC15";
 		}
-		return SESSION_HEALTH_SIGNAGE.healthy.color!;
+		return SESSION_HEALTH_SIGNAGE.healthy.color ?? "#10B981";
 	}
 
 	private getTrajectoryArrow(trajectory: string): string {
