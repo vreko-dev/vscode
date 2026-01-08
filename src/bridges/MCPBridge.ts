@@ -211,6 +211,10 @@ export class MCPBridge {
 	private disposables: vscode.Disposable[] = [];
 	private flushTimer: NodeJS.Timeout | null = null;
 	private signalBridge: SignalBridge | null = null;
+	/** Activation grace period flag - prevents false positives during extension startup */
+	private isActivationGracePeriod = true;
+	/** Grace period timeout handle - cleared on disposal to prevent memory leaks */
+	private gracePeriodTimeout: NodeJS.Timeout | null = null;
 
 	// Stats
 	private pushCount = 0;
@@ -282,13 +286,27 @@ export class MCPBridge {
 		// Start periodic flush
 		this.startFlushTimer();
 
-		logger.debug("MCPBridge activated");
+		// 🛡️ Activation Grace Period: Wait 2s before enabling AI detection
+		// Prevents false positives from VSCode loading documents during extension startup
+		this.gracePeriodTimeout = setTimeout(() => {
+			this.isActivationGracePeriod = false;
+			this.gracePeriodTimeout = null;
+			logger.debug("MCPBridge: Activation grace period ended, AI detection now active");
+		}, 2000);
+
+		logger.debug("MCPBridge activated (AI detection delayed 2s)");
 	}
 
 	/**
 	 * Dispose the bridge (cleanup)
 	 */
 	dispose(): void {
+		// Clear grace period timeout to prevent memory leak
+		if (this.gracePeriodTimeout) {
+			clearTimeout(this.gracePeriodTimeout);
+			this.gracePeriodTimeout = null;
+		}
+
 		if (this.flushTimer) {
 			clearInterval(this.flushTimer);
 			this.flushTimer = null;
@@ -299,8 +317,10 @@ export class MCPBridge {
 		}
 		this.disposables = [];
 
-		// Final flush
-		this.flushToMCP().catch(() => {});
+		// Final flush (expected to fail if server offline)
+		this.flushToMCP().catch((err) => {
+			logger.debug("MCPBridge disposal flush failed (expected if server offline)", { error: err });
+		});
 
 		logger.debug("MCPBridge disposed");
 	}
@@ -424,6 +444,11 @@ export class MCPBridge {
 	 */
 	private handleTextChange(event: vscode.TextDocumentChangeEvent): void {
 		if (!this.signalBridge) {
+			return;
+		}
+
+		// 🛡️ Skip events during activation grace period to prevent false positives
+		if (this.isActivationGracePeriod) {
 			return;
 		}
 
@@ -776,6 +801,48 @@ export class MCPBridge {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Force circuit breaker to open state (proactive protection)
+	 * Used by MCPHealthGuardian when health check fails
+	 */
+	forceOpenCircuit(reason?: string): void {
+		const previousState = this.circuitState;
+		this.circuitState = "open";
+		this.lastFailureTime = Date.now();
+		logger.warn("Circuit breaker forced open", {
+			previousState,
+			reason: reason || "Proactive health check failure",
+		});
+	}
+
+	/**
+	 * Force circuit breaker to closed state (reset)
+	 * Used by MCPHealthGuardian when health recovers
+	 */
+	forceCloseCircuit(reason?: string): void {
+		const previousState = this.circuitState;
+		this.circuitState = "closed";
+		this.consecutiveFailures = 0;
+		this.lastFailureTime = null;
+		logger.info("Circuit breaker forced closed", {
+			previousState,
+			reason: reason || "Proactive health recovery",
+		});
+	}
+
+	/**
+	 * Force circuit breaker to half-open state (allow test)
+	 * Used by MCPHealthGuardian during recovery window
+	 */
+	forceHalfOpenCircuit(reason?: string): void {
+		const previousState = this.circuitState;
+		this.circuitState = "half-open";
+		logger.info("Circuit breaker forced to half-open", {
+			previousState,
+			reason: reason || "Recovery test",
+		});
 	}
 
 	// =========================================================================

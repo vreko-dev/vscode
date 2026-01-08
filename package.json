@@ -415,6 +415,18 @@
         "icon": "$(close)"
       },
       {
+        "command": "snapback.mcp.validate",
+        "title": "Validate MCP Configurations",
+        "category": "SnapBack MCP",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "snapback.mcp.repair",
+        "title": "Repair MCP Configurations",
+        "category": "SnapBack MCP",
+        "icon": "$(wrench)"
+      },
+      {
         "command": "snapback.openVitalsDashboard",
         "title": "Open Vitals Dashboard",
         "category": "SnapBack",
@@ -960,19 +972,19 @@
     ]
   },
   "dependencies": {
+    "@snapback-oss/sdk": "workspace:*",
     "@snapback/config": "workspace:*",
     "@snapback/contracts": "workspace:*",
-    "@snapback/mcp-config": "workspace:*",
-    "@snapback/mcp": "workspace:*",
     "@snapback/core": "workspace:*",
     "@snapback/engine": "workspace:*",
     "@snapback/infrastructure": "workspace:*",
     "@snapback/intelligence": "workspace:*",
+    "@snapback/mcp": "workspace:*",
+    "@snapback/mcp-config": "workspace:*",
     "@snapback/sdk": "workspace:*",
-    "@snapback-oss/sdk": "workspace:*",
-    "vscode-languageclient": "^9.0.1",
     "ajv": "catalog:",
     "async-lock": "catalog:",
+    "async-mutex": "^0.5.0",
     "base64url": "catalog:",
     "chokidar": "catalog:",
     "diff": "catalog:",
@@ -990,6 +1002,7 @@
     "semver": "catalog:",
     "simple-git": "catalog:",
     "tweetnacl": "catalog:",
+    "vscode-languageclient": "^9.0.1",
     "ws": "catalog:"
   },
   "optionalDependencies": {
@@ -1006,14 +1019,13 @@
     "@types/glob": "catalog:",
     "@types/mocha": "catalog:",
     "@types/node": "catalog:",
+    "@types/proper-lockfile": "^4.1.4",
     "@types/semver": "catalog:",
     "@types/vscode": "catalog:",
     "@types/ws": "catalog:",
     "@vitest/ui": "catalog:",
     "@vscode/test-cli": "catalog:",
     "@vscode/test-electron": "catalog:",
-    "vscode-languageserver": "^9.0.1",
-    "vscode-languageserver-textdocument": "^1.0.12",
     "esbuild": "catalog:",
     "esbuild-visualizer": "^0.7.0",
     "glob": "catalog:",
@@ -1021,11 +1033,14 @@
     "mocha": "catalog:",
     "msw": "catalog:",
     "npm-run-all": "catalog:",
+    "proper-lockfile": "^4.1.2",
     "size-limit": "catalog:",
     "svgo": "catalog:",
     "ts-brand": "^0.2.0",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
   },
   "displayName": "SnapBack - Code Safety Net",
   "engines": {

@@ -368,6 +368,22 @@ export class MCPLifecycleManager implements vscode.Disposable {
 	}
 
 	/**
+	 * Get the remote MCP client for health monitoring
+	 * Returns null if not connected or using local mode
+	 */
+	getRemoteClient(): RemoteMCPClient | null {
+		return this.remoteClient;
+	}
+
+	/**
+	 * Get the configured server URL
+	 * Returns undefined if not configured
+	 */
+	getServerUrl(): string | undefined {
+		return this.remoteServerUrl;
+	}
+
+	/**
 	 * Send a request to the MCP server
 	 */
 	async sendRequest(endpoint: string, data?: unknown): Promise<unknown> {
