@@ -1,5 +1,6 @@
 // MCP Configuration View JavaScript
 (() => {
+	// biome-ignore lint/correctness/noUndeclaredVariables: acquireVsCodeApi is provided by VSCode webview context
 	const vscode = acquireVsCodeApi();
 
 	const form = document.getElementById("add-server-form");
