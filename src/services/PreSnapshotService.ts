@@ -51,6 +51,10 @@ export class PreSnapshotService implements vscode.Disposable {
 	private disposables: vscode.Disposable[] = [];
 	private readonly debounceMs: number;
 	private readonly enabled: boolean;
+	/** Activation grace period flag - prevents false positives during extension startup */
+	private isActivationGracePeriod = true;
+	/** Grace period timeout handle - cleared on disposal to prevent memory leaks */
+	private gracePeriodTimeout: NodeJS.Timeout | null = null;
 
 	constructor(
 		private snapshotManager: SnapshotManager,
@@ -65,6 +69,14 @@ export class PreSnapshotService implements vscode.Disposable {
 		// Register event listeners
 		if (this.enabled) {
 			this.registerEventListeners();
+
+			// 🛡️ Activation Grace Period: Wait 2s before enabling AI detection
+			// Prevents false positives from VSCode loading documents during extension startup
+			this.gracePeriodTimeout = setTimeout(() => {
+				this.isActivationGracePeriod = false;
+				this.gracePeriodTimeout = null;
+				logger.debug("PreSnapshotService: Activation grace period ended, AI detection now active");
+			}, 2000);
 		}
 	}
 
@@ -166,6 +178,11 @@ export class PreSnapshotService implements vscode.Disposable {
 	 */
 	public async handleTextDocumentChange(event: vscode.TextDocumentChangeEvent): Promise<void> {
 		if (!this.enabled) {
+			return;
+		}
+
+		// 🛡️ Skip events during activation grace period to prevent false positives
+		if (this.isActivationGracePeriod) {
 			return;
 		}
 
@@ -325,6 +342,12 @@ export class PreSnapshotService implements vscode.Disposable {
 	 * Dispose service and clean up resources
 	 */
 	dispose(): void {
+		// Clear grace period timeout to prevent memory leak
+		if (this.gracePeriodTimeout) {
+			clearTimeout(this.gracePeriodTimeout);
+			this.gracePeriodTimeout = null;
+		}
+
 		// Cancel all pending timeouts
 		for (const state of this.debounceState.values()) {
 			clearTimeout(state.timeout);

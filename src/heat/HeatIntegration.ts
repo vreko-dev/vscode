@@ -29,6 +29,10 @@ export class HeatIntegration implements vscode.Disposable {
 	private readonly decorationProvider: FileHeatDecorationProvider;
 	private readonly signalBridge: SignalBridge;
 	private readonly disposables: vscode.Disposable[] = [];
+	/** Activation grace period flag - prevents false positives during extension startup */
+	private isActivationGracePeriod = true;
+	/** Grace period timeout handle - cleared on disposal to prevent memory leaks */
+	private gracePeriodTimeout: NodeJS.Timeout | null = null;
 
 	// Track recent document changes for AI detection on save
 	private recentChanges = new Map<string, vscode.TextDocumentContentChangeEvent[]>();
@@ -42,7 +46,15 @@ export class HeatIntegration implements vscode.Disposable {
 		this.setupEventListeners();
 		this.registerDecorationProvider();
 
-		logger.debug("HeatIntegration initialized");
+		// 🛡️ Activation Grace Period: Wait 2s before enabling AI detection
+		// Prevents false positives from VSCode loading documents during extension startup
+		this.gracePeriodTimeout = setTimeout(() => {
+			this.isActivationGracePeriod = false;
+			this.gracePeriodTimeout = null;
+			logger.debug("HeatIntegration: Activation grace period ended, AI detection now active");
+		}, 2000);
+
+		logger.debug("HeatIntegration initialized (AI detection delayed 2s)");
 	}
 
 	// ─────────────────────────────────────────────────────────────────
@@ -116,6 +128,11 @@ export class HeatIntegration implements vscode.Disposable {
 
 		// Skip non-file schemes
 		if (event.document.uri.scheme !== "file") {
+			return;
+		}
+
+		// 🛡️ Skip events during activation grace period to prevent false positives
+		if (this.isActivationGracePeriod) {
 			return;
 		}
 
@@ -207,6 +224,12 @@ export class HeatIntegration implements vscode.Disposable {
 	// ─────────────────────────────────────────────────────────────────
 
 	dispose(): void {
+		// Clear grace period timeout to prevent memory leak
+		if (this.gracePeriodTimeout) {
+			clearTimeout(this.gracePeriodTimeout);
+			this.gracePeriodTimeout = null;
+		}
+
 		for (const d of this.disposables) {
 			d.dispose();
 		}

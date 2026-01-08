@@ -72,6 +72,10 @@ export class AutoDecisionIntegration {
 	private isProcessing = false;
 	private disposables: vscode.Disposable[] = [];
 	private isActive = false;
+	/** Activation grace period flag - prevents false positives during extension startup */
+	private isActivationGracePeriod = true;
+	/** Grace period timeout handle - cleared on deactivation to prevent memory leaks */
+	private gracePeriodTimeout: NodeJS.Timeout | null = null;
 	// private repoId: string;
 
 	private readonly DEBOUNCE_MS = 300;
@@ -201,7 +205,15 @@ export class AutoDecisionIntegration {
 			logger.debug("Subscribed to SNAPSHOT_CREATED events for vitals pressure reset");
 		}
 
-		logger.info("AutoDecisionIntegration activated");
+		// 🛡️ Activation Grace Period: Wait 2s before enabling AI detection
+		// Prevents false positives from VSCode loading documents during extension startup
+		this.gracePeriodTimeout = setTimeout(() => {
+			this.isActivationGracePeriod = false;
+			this.gracePeriodTimeout = null;
+			logger.debug("AutoDecisionIntegration: Activation grace period ended, AI detection now active");
+		}, 2000);
+
+		logger.info("AutoDecisionIntegration activated (AI detection delayed 2s)");
 	}
 
 	/**
@@ -213,6 +225,12 @@ export class AutoDecisionIntegration {
 		}
 
 		this.isActive = false;
+
+		// Clear grace period timeout to prevent memory leak
+		if (this.gracePeriodTimeout) {
+			clearTimeout(this.gracePeriodTimeout);
+			this.gracePeriodTimeout = null;
+		}
 
 		// Cancel pending debounce
 		if (this.bufferTimeout) {
@@ -324,6 +342,11 @@ export class AutoDecisionIntegration {
 	 */
 	private onFileChange(event: FileChangeEvent): void {
 		if (!this.isActive) {
+			return;
+		}
+
+		// 🛡️ Skip events during activation grace period to prevent false positives
+		if (this.isActivationGracePeriod) {
 			return;
 		}
 

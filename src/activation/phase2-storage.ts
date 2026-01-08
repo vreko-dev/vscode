@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import type { ProtectionConfig } from "@snapback/contracts";
+import type { ProtectionConfig, SnapBackEventBus } from "@snapback/contracts";
 import { ProtectionManager as SDKProtectionManager } from "@snapback/sdk";
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
@@ -11,8 +11,10 @@ import { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator";
 import { AutoProtectConfig } from "../protection/autoProtectConfig";
 import { ConfigFileManager } from "../protection/ConfigFileManager";
 import { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
+import { MCPHealthGuardian } from "../services/MCPHealthGuardian";
 import { MCPLifecycleManager } from "../services/MCPLifecycleManager";
 import { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import { RemoteMCPHealthExecutor } from "../services/RemoteMCPHealthExecutor";
 import { migrateExistingSnapshots } from "../snapshot/migration/encrypt-existing-snapshots";
 import { StorageManager } from "../storage/StorageManager";
 import { logger } from "../utils/logger";
@@ -37,7 +39,7 @@ export interface Phase2Result {
 export async function initializePhase2Storage(
 	workspaceRoot: string,
 	context: ExtensionContext,
-	eventBus?: any,
+	eventBus?: SnapBackEventBus,
 ): Promise<Phase2Result> {
 	const phase2Start = Date.now();
 	logger.info("[PERF] Phase 2 starting...");
@@ -253,6 +255,81 @@ export async function initializePhase2Storage(
 		});
 		logger.debug("MCPLifecycleManager.start() called", {
 			ms: Date.now() - startT,
+		});
+
+		// 🩺 Initialize MCPHealthGuardian for proactive health monitoring
+		// This runs independently of the connection - starts when connection succeeds
+		let healthGuardian: MCPHealthGuardian | null = null;
+
+		// Subscribe to MCP connection state changes to manage health monitoring
+		mcpManager.onStateChange((event) => {
+			if (event.state === "connected") {
+				// Connection established - start health monitoring
+				const remoteClient = mcpManager.getRemoteClient();
+				const serverUrl = mcpManager.getServerUrl();
+
+				if (remoteClient && serverUrl) {
+					// Create executor and guardian if not already created
+					if (!healthGuardian) {
+						const executor = new RemoteMCPHealthExecutor(remoteClient, serverUrl);
+						healthGuardian = new MCPHealthGuardian(executor, {
+							// Production config: balanced polling intervals
+							pollerConfig: {
+								activeInterval: 3000, // 3s when actively using MCP
+								idleInterval: 10000, // 10s when idle
+								backgroundInterval: 30000, // 30s when window unfocused
+								recoveringInterval: 1000, // 1s during recovery
+								deepCheckFrequency: 10, // Deep check every 10th poll
+							},
+							failureThreshold: 3,
+							recoveryThreshold: 2,
+						});
+
+						// Wire window focus events
+						context.subscriptions.push(
+							vscode.window.onDidChangeWindowState((windowState) => {
+								healthGuardian?.setWindowFocused(windowState.focused);
+							}),
+						);
+
+						// Subscribe to health changes for logging and potential circuit breaker control
+						healthGuardian.onHealthChange((healthEvent) => {
+							logger.info("MCP health state changed", {
+								from: healthEvent.from,
+								to: healthEvent.to,
+								latencyMs: healthEvent.latencyMs,
+							});
+						});
+
+						healthGuardian.onFailure((failureEvent) => {
+							logger.warn("MCP health check failure", {
+								error: failureEvent.error,
+								consecutiveFailures: failureEvent.consecutiveFailures,
+							});
+						});
+
+						healthGuardian.onRecovery((recoveryEvent) => {
+							logger.info("MCP health recovered", {
+								downtimeMs: recoveryEvent.downtimeMs,
+								latencyMs: recoveryEvent.latencyMs,
+							});
+						});
+
+						// Register for cleanup
+						context.subscriptions.push(healthGuardian);
+					}
+
+					// Start monitoring
+					healthGuardian.start();
+					logger.info("MCPHealthGuardian started - proactive health monitoring active");
+				}
+			} else if (event.state === "disconnected" || event.state === "disabled") {
+				// Stop health monitoring when disconnected
+				if (healthGuardian) {
+					healthGuardian.stop();
+					logger.info("MCPHealthGuardian stopped - connection lost");
+				}
+			}
 		});
 
 		// Register for cleanup:
