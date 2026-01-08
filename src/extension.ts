@@ -565,12 +565,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// 🛡️ Activation Grace Period: Track when extension is ready
 		// Note: Uses local variable because this is a closure, not a class method
+		// 🐛 FIX: Increased from 2s to 6s because:
+		// - Activation takes ~3.5s (budget is 500ms but we're exceeding it)
+		// - VS Code workspace restoration can trigger document changes after activation
+		// - Need buffer time for VS Code to finish restoring editor state
 		let isActivationGracePeriod = true;
 		let gracePeriodTimeout: NodeJS.Timeout | null = setTimeout(() => {
 			isActivationGracePeriod = false;
 			gracePeriodTimeout = null;
-			logger.debug("Extension: Activation grace period ended, AI detection now active");
-		}, 2000);
+			logger.info("Extension: Activation grace period ended (6s), AI/burst detection now active");
+		}, 6000);
 
 		// Register cleanup for grace period timeout
 		context.subscriptions.push({
@@ -591,6 +595,24 @@ export async function activate(context: vscode.ExtensionContext) {
 
 				// 🛡️ Skip events during activation grace period to prevent false positives
 				if (isActivationGracePeriod) {
+					logger.debug("Grace period: Skipping document change event", {
+						file: e.document.fileName,
+						changeCount: e.contentChanges.length,
+						reason: e.reason, // 1 = Undo, 2 = Redo, undefined = normal edit
+					});
+					return;
+				}
+
+				// 🛡️ Skip undo/redo operations - these are often VS Code restoration or user navigation
+				// Not AI-generated content
+				if (
+					e.reason === vscode.TextDocumentChangeReason.Undo ||
+					e.reason === vscode.TextDocumentChangeReason.Redo
+				) {
+					logger.debug("Skipping undo/redo document change", {
+						file: e.document.fileName,
+						reason: e.reason === vscode.TextDocumentChangeReason.Undo ? "undo" : "redo",
+					});
 					return;
 				}
 
@@ -639,7 +661,8 @@ export async function activate(context: vscode.ExtensionContext) {
 				// Detect AI tool usage
 				const aiResult = signalBridge.detectAI(e.document, e.contentChanges);
 				if (aiResult.tool) {
-					logger.debug("AI tool detected", {
+					// 🔍 [SB_STATUS] Log AI detection from SignalBridge
+					logger.info("[SB_STATUS] AI tool detected by SignalBridge", {
 						tool: aiResult.tool,
 						confidence: aiResult.confidence,
 						method: aiResult.method,
@@ -671,6 +694,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
 				// 🆕 Trigger status bar activity sequence for burst detection
 				if (burstState.detected && vitalsStatusBar) {
+					// 🔍 [SB_STATUS] Log burst detection from SignalBridge
+					logger.info("[SB_STATUS] Burst detected by SignalBridge", {
+						velocity: burstState.velocity,
+						charCount: burstState.charCount,
+						filePath: burstState.filePath,
+					});
 					void vitalsStatusBar.showBurstDetectedSequence();
 				}
 			}),
@@ -1007,7 +1036,10 @@ export async function activate(context: vscode.ExtensionContext) {
 				snapshotsCreated: unifiedOnboarding.getMetrics().snapshotsCreated,
 			});
 		} catch (error) {
-			logger.warn("Failed to initialize onboarding services (non-critical)", { error });
+			logger.warn("Failed to initialize onboarding services (non-critical)", {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+			});
 		}
 		phaseTimings["Phase 15 (Onboarding)"] = Date.now() - phase15Start;
 
@@ -1136,7 +1168,9 @@ export async function activate(context: vscode.ExtensionContext) {
 						// CONSOLIDATED: VitalsUIIntegration now handles BOTH:
 						// 1. Session health updates (updateSessionHealth)
 						// 2. Power user vitals display (showVitals) - no more duplicate call!
-						unifiedDataService.updateVitals(snapshot);
+						// 🆕 ThresholdCalibrator: Pass calibrated threshold multiplier for adaptive health zones
+						const thresholdMultiplier = workspaceVitals.getThresholdMultiplier();
+						unifiedDataService.updateVitals(snapshot, thresholdMultiplier);
 
 						// Track trajectory changes for telemetry (privacy-safe: no file content)
 						if (lastTrajectory !== null && lastTrajectory !== snapshot.trajectory) {

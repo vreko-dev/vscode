@@ -147,9 +147,9 @@ export class AIDetectionToast {
 	 */
 	private trackDetection(signals: AISignal[], inferredTool: AITool): void {
 		try {
-			// Guard: Check if TelemetryService is initialized
+			// Guard: Check if TelemetryService is initialized (debug level - expected during early startup)
 			if (!TelemetryService.isInitialized()) {
-				logger.warn("AIDetectionToast: TelemetryService not initialized, skipping tracking");
+				logger.debug("AIDetectionToast: TelemetryService not initialized, skipping tracking");
 				return;
 			}
 

@@ -1,6 +1,8 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
+import { DORAMetricsService } from "../services/DORAMetricsService";
+import { logger } from "../utils/logger";
 import type { SnapshotFileNode } from "../views/snapshotNavigatorProvider";
 import { WelcomePanel } from "../welcome/WelcomePanel";
 import { compareWithSnapshot } from "./compareWithSnapshot";
@@ -186,6 +188,12 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 						return;
 					}
 
+					// Initialize DORA metrics tracking for this recovery
+					const doraMetrics = DORAMetricsService.for(ctx.workspaceRoot);
+					const recoveryStartTime = Date.now();
+					doraMetrics.recordRecoveryStart(snapshotId, files.length);
+					logger.info("Recovery started", { snapshotId, fileCount: files.length });
+
 					// Restore using the coordinator with progress notification
 					const result = await vscode.window.withProgress(
 						{
@@ -198,15 +206,48 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 						},
 					);
 
+					const recoveryDurationMs = Date.now() - recoveryStartTime;
+
 					if (result) {
+						// Record successful recovery in DORA metrics
+						doraMetrics.recordRecoveryComplete(snapshotId, true, files.length);
+						logger.info("Recovery completed successfully", {
+							snapshotId,
+							fileCount: files.length,
+							durationMs: recoveryDurationMs,
+						});
+
 						vscode.window.showInformationMessage(
 							`✅ Restored ${files.length} file(s) from "${snapshotLabel}"`,
 						);
 						ctx.refreshViews();
 					} else {
+						// Record failed recovery in DORA metrics
+						doraMetrics.recordRecoveryComplete(snapshotId, false, 0, "Restore operation returned false");
+						logger.warn("Recovery failed", {
+							snapshotId,
+							durationMs: recoveryDurationMs,
+							reason: "operationCoordinator returned false",
+						});
+
 						vscode.window.showErrorMessage("Failed to restore snapshot");
 					}
 				} catch (error) {
+					// Record recovery failure in DORA metrics
+					const errorMessage = error instanceof Error ? error.message : String(error);
+					logger.error("Recovery threw exception", { snapshotId, error: errorMessage });
+
+					// Only record if we have a valid snapshotId (meaning we got past initial validation)
+					if (snapshotId) {
+						try {
+							const doraMetrics = DORAMetricsService.for(ctx.workspaceRoot);
+							doraMetrics.recordRecoveryFailed(snapshotId, errorMessage);
+						} catch (metricsError) {
+							// Don't let metrics recording failure mask the original error
+							logger.warn("Failed to record recovery failure in DORA metrics", { metricsError });
+						}
+					}
+
 					vscode.window.showErrorMessage(`Failed to restore snapshot: ${error}`);
 				}
 			},

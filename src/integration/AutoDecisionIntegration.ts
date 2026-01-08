@@ -423,6 +423,16 @@ export class AutoDecisionIntegration {
 				thresholdMultiplier,
 			});
 
+			// 🆕 Get PressureRecommendation for enhanced decision-making
+			// This provides actionable, context-aware recommendations with educational messaging
+			const pressureRecommendation = this.vitals.getPressureRecommendation();
+			logger.debug("PressureRecommendation", {
+				shouldSnapshot: pressureRecommendation.shouldSnapshot,
+				urgency: pressureRecommendation.urgency,
+				action: pressureRecommendation.action,
+				reason: pressureRecommendation.reason,
+			});
+
 			// Apply threshold multiplier to risk score for vitals-informed decision
 			const adjustedRiskScore = Math.min(100, saveContext.riskScore / thresholdMultiplier);
 			const vitalsAdjustedContext: SaveContext = {
@@ -453,8 +463,8 @@ export class AutoDecisionIntegration {
 				});
 			}
 
-			// Step 4: Execute decision
-			await this.executeDecision(decision, saveContext);
+			// Step 5: Execute decision with PressureRecommendation for enhanced UX
+			await this.executeDecision(decision, saveContext, pressureRecommendation);
 		} catch (error) {
 			logger.error("Error processing batch", error as Error);
 		} finally {
@@ -687,8 +697,16 @@ export class AutoDecisionIntegration {
 	 *
 	 * CRITICAL FIX: Uses OperationCoordinator instead of SnapshotManager
 	 * to ensure events are emitted on the correct event bus for UI refresh.
+	 *
+	 * @param decision - ProtectionDecision from AutoDecisionEngine
+	 * @param context - SaveContext with file and signal information
+	 * @param pressureRecommendation - Optional PressureRecommendation for enhanced messaging
 	 */
-	private async executeDecision(decision: ProtectionDecision, context: SaveContext): Promise<void> {
+	private async executeDecision(
+		decision: ProtectionDecision,
+		context: SaveContext,
+		pressureRecommendation?: { educational?: string; action: string; urgency: number },
+	): Promise<void> {
 		try {
 			// Create snapshot if needed
 			if (decision.createSnapshot && context.files.length > 0) {
@@ -801,10 +819,19 @@ export class AutoDecisionIntegration {
 			if (decision.showNotification) {
 				const notification = this.adapter.adaptDecision(decision);
 
+				// 🆕 Enhance message with educational context from PressureRecommendation
+				let enhancedMessage = notification.message;
+				if (pressureRecommendation?.educational) {
+					enhancedMessage = `${notification.message}\n\n💡 ${pressureRecommendation.educational}`;
+				}
+
 				logger.info("Showing notification", {
 					type: notification.type,
 					severity: notification.severity,
 					title: notification.title,
+					hasEducationalContext: !!pressureRecommendation?.educational,
+					pressureUrgency: pressureRecommendation?.urgency,
+					pressureAction: pressureRecommendation?.action,
 				});
 
 				// Convert to NotificationManager format
@@ -812,7 +839,7 @@ export class AutoDecisionIntegration {
 					id: `decision-${Date.now()}-${Math.random().toString(36).slice(7)}`,
 					type: notification.severity as "info" | "warning" | "error",
 					title: notification.title,
-					message: notification.message,
+					message: enhancedMessage,
 				};
 
 				// Show using VS Code's notification system

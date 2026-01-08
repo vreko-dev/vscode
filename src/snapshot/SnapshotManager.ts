@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { AutoCleanupConfig, DeletionOptions, DeletionResult } from "@snapback-oss/sdk";
 import { SnapshotDeletionService, SnapshotNamingStrategy } from "@snapback-oss/sdk";
 import * as vscode from "vscode";
+import { DORAMetricsService } from "../services/DORAMetricsService";
 import type { GitFileChange as FileChange } from "../types/fileChanges";
 import type {
 	CreateSnapshotOptions,
@@ -268,6 +269,26 @@ export class SnapshotManager {
 				id: snapshot.id,
 				name: snapshot.name,
 			});
+
+			// Record snapshot creation in DORA metrics
+			try {
+				const doraMetrics = DORAMetricsService.for(this.getCurrentWorkspaceRoot());
+				const origin = options.origin ?? "manual";
+				const timeSinceLastChange = options.timeSinceLastChangeMs ?? 0;
+				const isRecoveryTriggered = origin === "recovery";
+				doraMetrics.recordSnapshotCreated(snapshot.id, origin, timeSinceLastChange, isRecoveryTriggered);
+				logger.debug("DORA metrics recorded for snapshot", {
+					snapshotId: snapshot.id,
+					origin,
+					timeSinceLastChange,
+				});
+			} catch (metricsError) {
+				// Log but don't fail snapshot creation for metrics errors
+				logger.warn("Failed to record DORA metrics for snapshot", {
+					snapshotId: snapshot.id,
+					error: metricsError instanceof Error ? metricsError.message : String(metricsError),
+				});
+			}
 
 			// Track snapshot in session coordinator if available
 			if (this.sessionCoordinator) {

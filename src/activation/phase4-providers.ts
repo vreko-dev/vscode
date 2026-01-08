@@ -4,6 +4,7 @@ import type { CredentialsManager } from "../auth/credentials";
 import { registerDashboardCommands } from "../commands/dashboardCommands";
 import { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider";
 import { SnapshotDecorations } from "../decorations/snapshotDecorations";
+import { NudgeManager } from "../nurturing/NudgeManager";
 import { DetectionCodeActionProvider } from "../providers/DetectionCodeActionProvider";
 import { ProtectionCodeLensProvider } from "../providers/ProtectionCodeLensProvider";
 import { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
@@ -152,6 +153,11 @@ export async function initializePhase4Providers(
 			logger.debug("MCPStatusItem", { ms: Date.now() - t });
 		}
 
+		// Initialize NudgeManager for educational messaging
+		t = Date.now();
+		const nudgeManager = new NudgeManager(context);
+		logger.debug("NudgeManager", { ms: Date.now() - t });
+
 		// Initialize VitalsUIIntegration - connects data service to UI components
 		t = Date.now();
 		const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? workspaceRoot;
@@ -160,6 +166,7 @@ export async function initializePhase4Providers(
 			workspaceRoot,
 			context.extensionUri,
 			statusBarManager,
+			nudgeManager,
 		);
 		registerVitalsCommands(context, vitalsUIIntegration);
 		context.subscriptions.push(vitalsUIIntegration);

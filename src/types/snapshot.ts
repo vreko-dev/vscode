@@ -67,6 +67,9 @@ export interface FileInput {
 	action: "add" | "modify" | "delete";
 }
 
+/** Origin of snapshot creation for DORA metrics tracking */
+export type SnapshotOrigin = "manual" | "auto" | "ai-detected" | "recovery";
+
 /**
  * Options for snapshot creation
  */
@@ -75,6 +78,10 @@ export interface CreateSnapshotOptions {
 	description?: string;
 	/** Whether snapshot should be protected */
 	protected?: boolean;
+	/** Origin of the snapshot for DORA metrics (defaults to 'manual') */
+	origin?: SnapshotOrigin;
+	/** Time since last file change in milliseconds (for DORA lead time metric) */
+	timeSinceLastChangeMs?: number;
 }
 
 /**

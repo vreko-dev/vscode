@@ -113,6 +113,14 @@ export class SignalBridge {
 			// Store for AI detection velocity context
 			this.lastBurstEvent = burstEvent;
 
+			// 🔍 [SB:SIGNAL] Log burst detection
+			logger.info("[SB:SIGNAL] BURST detected", {
+				file: document.fileName,
+				charCount: burstEvent.charCount,
+				velocity: burstEvent.velocity,
+				timestamp: Date.now(),
+			});
+
 			return {
 				detected: true,
 				velocity: burstEvent.velocity,
@@ -157,6 +165,18 @@ export class SignalBridge {
 			velocity,
 			charCount,
 		});
+
+		// 🔍 [SB:SIGNAL] Log AI detection result (only if detected)
+		if (result.tool) {
+			logger.info("[SB:SIGNAL] AI detected", {
+				tool: result.tool,
+				confidence: result.confidence,
+				method: result.method,
+				charCount,
+				velocity,
+				timestamp: Date.now(),
+			});
+		}
 
 		return {
 			tool: result.tool,

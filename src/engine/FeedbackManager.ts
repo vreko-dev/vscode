@@ -166,9 +166,9 @@ export class FeedbackManager {
 
 		try {
 			// Guard: Check if TelemetryService is initialized before calling getInstance()
-			// This prevents "TelemetryService not initialized" error
+			// This prevents "TelemetryService not initialized" error (debug level - expected during early startup)
 			if (!TelemetryService.isInitialized()) {
-				logger.warn("TelemetryService not initialized, skipping feedback tracking");
+				logger.debug("TelemetryService not initialized, skipping feedback tracking");
 				vscode.window.showInformationMessage("Thanks for your feedback!");
 				this.dismiss(false);
 				return;
@@ -252,9 +252,9 @@ export class FeedbackManager {
 
 		try {
 			// Guard: Check if TelemetryService is initialized before calling getInstance()
-			// This prevents "TelemetryService not initialized" error when setTimeout fires early
+			// This prevents "TelemetryService not initialized" error when setTimeout fires early (debug level)
 			if (!TelemetryService.isInitialized()) {
-				logger.warn("TelemetryService not initialized, skipping implicit acceptance log");
+				logger.debug("TelemetryService not initialized, skipping implicit acceptance log");
 				return;
 			}
 
