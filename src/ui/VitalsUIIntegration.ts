@@ -19,6 +19,7 @@ import {
 	type VitalsSnapshot,
 } from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
+import type { NudgeManager } from "../nurturing/NudgeManager";
 import {
 	type SnapshotRecommendation as DataRecommendation,
 	type SessionHealth,
@@ -70,12 +71,32 @@ function mapTrajectoryToCanonical(trajectory: SessionHealth["trajectory"]): Traj
 
 /**
  * Derive session health canonical level from health score
+ * 4-zone system: healthy > caution > warning > critical
+ * - healthy (70-100): Low risk, stable
+ * - caution (50-70): Moderate activity, monitor recommended
+ * - warning (40-50): Elevated risk, snapshot recommended
+ * - critical (0-40): High risk, immediate action needed
+ *
+ * 🆕 ThresholdCalibrator integration: Adjusts health score based on user behavior profile
+ * - Conservative users (multiplier < 1.0): Lower effective health score → earlier warnings
+ * - Aggressive users (multiplier > 1.0): Higher effective health score → fewer warnings
+ *
+ * @param healthScore Raw health score (0-100)
+ * @param thresholdMultiplier Calibrated multiplier from learning system (0.7-1.3, default 1.0)
  */
-function deriveHealthLevel(healthScore: number): SessionHealthCanonical {
-	if (healthScore >= 70) {
+function deriveHealthLevel(healthScore: number, thresholdMultiplier = 1.0): SessionHealthCanonical {
+	// Apply calibrated threshold multiplier to adjust health perception
+	// Conservative users (0.7x) see lower effective health → more protective
+	// Aggressive users (1.3x) see higher effective health → less nagging
+	const adjustedHealthScore = Math.min(100, healthScore * thresholdMultiplier);
+
+	if (adjustedHealthScore >= 70) {
 		return "healthy";
 	}
-	if (healthScore >= 40) {
+	if (adjustedHealthScore >= 50) {
+		return "caution";
+	}
+	if (adjustedHealthScore >= 40) {
 		return "warning";
 	}
 	return "critical";
@@ -157,6 +178,7 @@ export class VitalsUIIntegration implements vscode.Disposable {
 	private dataService: UnifiedDataService;
 	private statusBarManager: StatusBarManager;
 	private recommendationUI: SnapshotRecommendationUI;
+	private nudgeManager: NudgeManager | null;
 	private extensionUri: vscode.Uri;
 	private config: VitalsUIConfig;
 	private disposables: vscode.Disposable[] = [];
@@ -168,15 +190,22 @@ export class VitalsUIIntegration implements vscode.Disposable {
 	private lastAutoSnapshotTime = 0;
 	private readonly AUTO_SNAPSHOT_COOLDOWN = 60 * 1000; // 60 seconds
 
+	/**
+	 * Track previous health level for edge detection (only nudge on transitions)
+	 */
+	private previousHealthLevel: SessionHealthCanonical = "healthy";
+
 	constructor(
 		workspaceId: string,
 		workspaceRoot: string,
 		extensionUri: vscode.Uri,
 		statusBarManager: StatusBarManager,
+		nudgeManager: NudgeManager | null,
 		config: Partial<VitalsUIConfig> = {},
 	) {
 		this.extensionUri = extensionUri;
 		this.statusBarManager = statusBarManager;
+		this.nudgeManager = nudgeManager;
 		this.config = { ...DEFAULT_CONFIG, ...config };
 
 		// Initialize data service
@@ -234,7 +263,10 @@ export class VitalsUIIntegration implements vscode.Disposable {
 	 */
 	private handleSessionHealthUpdate(): void {
 		const sessionHealth = this.dataService.getSessionHealth();
-		const healthLevel = deriveHealthLevel(sessionHealth.healthScore);
+
+		// 🆕 ThresholdCalibrator: Get calibrated multiplier for adaptive health zones
+		const thresholdMultiplier = this.dataService.getThresholdMultiplier();
+		const healthLevel = deriveHealthLevel(sessionHealth.healthScore, thresholdMultiplier);
 		const trajectory = mapTrajectoryToCanonical(sessionHealth.trajectory);
 
 		// Debug: Log health state for troubleshooting auto-snapshot triggers
@@ -273,7 +305,41 @@ export class VitalsUIIntegration implements vscode.Disposable {
 				timeSinceLastAutoSnapshot: Date.now() - this.lastAutoSnapshotTime,
 				cooldownMs: this.AUTO_SNAPSHOT_COOLDOWN,
 			});
+
+			// 🆕 NudgeManager Integration: Trigger educational nudge on health degradation
+			// Only trigger on transition TO warning/critical state (edge detection)
+			if (this.nudgeManager && this.previousHealthLevel !== healthLevel) {
+				if (healthLevel === "critical" || healthLevel === "warning") {
+					logger.debug("Triggering session_health_warning nudge", {
+						previousLevel: this.previousHealthLevel,
+						currentLevel: healthLevel,
+					});
+					void this.nudgeManager.maybeNudge("session_health_warning");
+				}
+			}
 		}
+
+		// 🆕 NudgeManager Integration: Trigger snapshot_recommended based on PressureRecommendation
+		// This provides proactive educational messaging before health becomes critical
+		if (this.nudgeManager && healthLevel !== "critical" && healthLevel !== "warning") {
+			const vitals = this.dataService.getVitals();
+			if (vitals) {
+				// Access PressureRecommendation via the data service's vitals
+				const pressureValue = vitals.pressure.value;
+				// Trigger nudge when pressure indicates snapshot is recommended (>= 60)
+				// but health hasn't degraded yet - proactive education
+				if (pressureValue >= 60 && this.previousHealthLevel === healthLevel) {
+					logger.debug("Triggering snapshot_recommended nudge based on pressure", {
+						pressureValue,
+						healthLevel,
+					});
+					void this.nudgeManager.maybeNudge("snapshot_recommended");
+				}
+			}
+		}
+
+		// Update previous health level for edge detection
+		this.previousHealthLevel = healthLevel;
 
 		// For healthy sessions: show recommendation if enabled and below threshold
 		if (this.config.enableRecommendations && sessionHealth.healthScore < this.config.recommendationThreshold) {
@@ -347,7 +413,8 @@ export class VitalsUIIntegration implements vscode.Disposable {
 	 * Trigger recommendation based on session health
 	 */
 	private triggerRecommendation(sessionHealth: SessionHealth): void {
-		const healthLevel = deriveHealthLevel(sessionHealth.healthScore);
+		const thresholdMultiplier = this.dataService.getThresholdMultiplier();
+		const healthLevel = deriveHealthLevel(sessionHealth.healthScore, thresholdMultiplier);
 		const trajectory = mapTrajectoryToCanonical(sessionHealth.trajectory);
 		const urgency = this.calculateUrgency(sessionHealth);
 
@@ -369,7 +436,8 @@ export class VitalsUIIntegration implements vscode.Disposable {
 	 * Transform data service recommendation to UI recommendation
 	 */
 	private transformRecommendation(dataRec: DataRecommendation, sessionHealth: SessionHealth): UIRecommendation {
-		const healthLevel = deriveHealthLevel(sessionHealth.healthScore);
+		const thresholdMultiplier = this.dataService.getThresholdMultiplier();
+		const healthLevel = deriveHealthLevel(sessionHealth.healthScore, thresholdMultiplier);
 		const trajectory = mapTrajectoryToCanonical(sessionHealth.trajectory);
 
 		return {
@@ -418,7 +486,8 @@ export class VitalsUIIntegration implements vscode.Disposable {
 	 * Build human-readable recommendation reason
 	 */
 	private buildRecommendationReason(sessionHealth: SessionHealth): string {
-		const healthLevel = deriveHealthLevel(sessionHealth.healthScore);
+		const thresholdMultiplier = this.dataService.getThresholdMultiplier();
+		const healthLevel = deriveHealthLevel(sessionHealth.healthScore, thresholdMultiplier);
 		const healthSignage = SESSION_HEALTH_SIGNAGE[healthLevel];
 		const trajectory = mapTrajectoryToCanonical(sessionHealth.trajectory);
 		const trajectorySignage = TRAJECTORY_SIGNAGE[trajectory];
@@ -509,12 +578,16 @@ export function registerVitalsCommands(context: vscode.ExtensionContext, integra
 
 /**
  * Factory function for creating vitals integration
+ *
+ * @param nudgeManager - Optional NudgeManager for educational messaging.
+ *                       When provided, triggers nudges on health degradation and pressure thresholds.
  */
 export function createVitalsUIIntegration(
 	workspaceId: string,
 	workspaceRoot: string,
 	extensionUri: vscode.Uri,
 	statusBarManager: StatusBarManager,
+	nudgeManager: NudgeManager | null = null,
 ): VitalsUIIntegration {
 	// Read config from workspace settings
 	const config = vscode.workspace.getConfiguration("snapback");
@@ -524,5 +597,12 @@ export function createVitalsUIIntegration(
 		recommendationThreshold: config.get<number>("vitals.recommendationThreshold", 70),
 	};
 
-	return new VitalsUIIntegration(workspaceId, workspaceRoot, extensionUri, statusBarManager, vitalsConfig);
+	return new VitalsUIIntegration(
+		workspaceId,
+		workspaceRoot,
+		extensionUri,
+		statusBarManager,
+		nudgeManager,
+		vitalsConfig,
+	);
 }

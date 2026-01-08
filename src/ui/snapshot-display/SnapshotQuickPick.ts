@@ -8,9 +8,11 @@
  * - Instant recognition: Icons + file names, not UUIDs
  * - Progressive disclosure: Essential info first
  * - Keyboard-first: Arrow keys, Enter, Escape
+ * - Session grouping: DBSCAN-clustered snapshots by logical work sessions
  *
  * Visual Format:
  * ┌──────────────────────────────────────────────────────────────┐
+ * │  📍 Today 2:30 PM (3 snapshots)                  [Separator] │
  * │  🤖  api.ts                                        5m ago    │
  * │      AI activity detected                                    │
  * └──────────────────────────────────────────────────────────────┘
@@ -19,6 +21,7 @@
  */
 
 import * as vscode from "vscode";
+import { SessionClusterer } from "../../services/SessionClusterer";
 import type { IStorageManager, SnapshotManifest } from "../../storage/types";
 import { logger } from "../../utils/logger";
 import {
@@ -39,19 +42,26 @@ import {
  */
 export interface SnapshotQuickPickItem extends vscode.QuickPickItem {
 	snapshotId?: string;
-	action?: "browse" | "settings";
+	action?: "browse" | "settings" | "restore-session";
+	sessionId?: string;
 }
 
 /**
  * Configuration for the SnapshotQuickPick
  */
 export interface SnapshotQuickPickConfig {
-	/** Maximum recent snapshots to show (default: 10) */
+	/** Maximum recent snapshots to show (default: 20) */
 	maxRecent: number;
+	/** Enable session grouping via DBSCAN (default: true) */
+	enableSessionGrouping: boolean;
+	/** Max time gap (minutes) between snapshots in same session (default: 30) */
+	sessionGapMinutes: number;
 }
 
 const DEFAULT_CONFIG: SnapshotQuickPickConfig = {
-	maxRecent: 10,
+	maxRecent: 20,
+	enableSessionGrouping: true,
+	sessionGapMinutes: 30,
 };
 
 // =============================================================================
@@ -124,6 +134,7 @@ export function createSnapshotQuickPickItem(snapshot: AnySnapshotManifest): Snap
  */
 export class SnapshotQuickPick implements vscode.Disposable {
 	private readonly config: SnapshotQuickPickConfig;
+	private readonly sessionClusterer: SessionClusterer;
 	private quickPick: vscode.QuickPick<SnapshotQuickPickItem> | null = null;
 	private disposables: vscode.Disposable[] = [];
 
@@ -132,6 +143,11 @@ export class SnapshotQuickPick implements vscode.Disposable {
 		config?: Partial<SnapshotQuickPickConfig>,
 	) {
 		this.config = { ...DEFAULT_CONFIG, ...config };
+		this.sessionClusterer = new SessionClusterer({
+			maxGapMinutes: this.config.sessionGapMinutes,
+			minSnapshotsPerSession: 2,
+			includeNoise: true,
+		});
 	}
 
 	/**
@@ -190,28 +206,64 @@ export class SnapshotQuickPick implements vscode.Disposable {
 	}
 
 	/**
-	 * Build QuickPick items with recent snapshots and actions.
+	 * Build QuickPick items with session-grouped snapshots.
+	 * Uses DBSCAN clustering to group snapshots by logical work sessions.
 	 */
 	private async buildQuickPickItems(): Promise<SnapshotQuickPickItem[]> {
 		const items: SnapshotQuickPickItem[] = [];
 		const snapshots = await this.loadRecentSnapshots();
 
-		// Header: Recent snapshots
-		items.push({
-			label: "📜 Recent Snapshots",
-			kind: vscode.QuickPickItemKind.Separator,
-		});
-
-		if (snapshots.length > 0) {
-			// Add snapshot items
-			for (const snapshot of snapshots) {
-				items.push(createSnapshotQuickPickItem(snapshot));
-			}
-		} else {
+		if (snapshots.length === 0) {
+			items.push({
+				label: "📜 Recent Snapshots",
+				kind: vscode.QuickPickItemKind.Separator,
+			});
 			items.push({
 				label: "ℹ️ No snapshots yet",
 				description: "Snapshots will appear here as you work",
 			});
+		} else if (this.config.enableSessionGrouping && snapshots.length >= 3) {
+			// Use session grouping for 3+ snapshots
+			const sessions = this.sessionClusterer.clusterSnapshots(snapshots);
+			logger.debug("Session clustering complete", {
+				snapshots: snapshots.length,
+				sessions: sessions.length,
+			});
+
+			for (const session of sessions) {
+				// Session separator with label
+				items.push({
+					label: `📍 ${session.label}`,
+					kind: vscode.QuickPickItemKind.Separator,
+				});
+
+				// Add "Restore entire session" option for multi-snapshot sessions
+				if (session.snapshots.length > 1) {
+					items.push({
+						label: `    ↩️ Restore session (${session.snapshots.length} snapshots)`,
+						description: `${session.files.length} files`,
+						detail: "    Restore to start of this session",
+						action: "restore-session",
+						sessionId: session.id,
+						snapshotId: session.snapshots[session.snapshots.length - 1].id, // Oldest in session
+					});
+				}
+
+				// Add individual snapshots within session
+				for (const snapshot of session.snapshots) {
+					items.push(createSnapshotQuickPickItem(snapshot));
+				}
+			}
+		} else {
+			// Flat list for small snapshot counts
+			items.push({
+				label: "📜 Recent Snapshots",
+				kind: vscode.QuickPickItemKind.Separator,
+			});
+
+			for (const snapshot of snapshots) {
+				items.push(createSnapshotQuickPickItem(snapshot));
+			}
 		}
 
 		// Separator
@@ -260,11 +312,48 @@ export class SnapshotQuickPick implements vscode.Disposable {
 				await vscode.commands.executeCommand("workbench.action.openSettings", "snapback.snapshot");
 				break;
 
+			case "restore-session":
+				if (item.snapshotId) {
+					await this.confirmAndRestoreSession(item.snapshotId, item.sessionId);
+				}
+				break;
+
 			default:
 				if (item.snapshotId) {
 					await this.confirmAndRestore(item.snapshotId);
 				}
 				break;
+		}
+	}
+
+	/**
+	 * Show confirmation dialog and restore session if confirmed.
+	 */
+	private async confirmAndRestoreSession(snapshotId: string, sessionId?: string): Promise<void> {
+		const manifest = await this.storageManager.getSnapshotManifest(snapshotId);
+		if (!manifest) {
+			vscode.window.showErrorMessage("Snapshot not found");
+			return;
+		}
+
+		const timeLabel = formatRelativeTime(manifest.timestamp);
+
+		const confirm = await vscode.window.showWarningMessage(
+			`Restore to start of session (${timeLabel})?`,
+			{
+				modal: true,
+				detail: "This will restore all files to their state at the beginning of this work session.",
+			},
+			"Restore Session",
+			"Preview First",
+		);
+
+		if (confirm === "Restore Session") {
+			await vscode.commands.executeCommand("snapback.restoreSnapshot", snapshotId);
+			vscode.window.showInformationMessage("🧢 Session restored");
+			logger.info("Session restored", { sessionId, snapshotId });
+		} else if (confirm === "Preview First") {
+			await vscode.commands.executeCommand("snapback.diffSnapshot", snapshotId);
 		}
 	}
 

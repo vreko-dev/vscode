@@ -94,6 +94,10 @@ export class DashboardPanel implements vscode.Disposable {
 	private userTier: UserTier = "explorer";
 	private currentTab: DashboardTab = "home";
 	private activityData: unknown[] = [];
+	/** Debounce timer to prevent event cascade loops */
+	private dataRefreshTimer: NodeJS.Timeout | null = null;
+	/** Flag to prevent re-entrant data loading */
+	private isLoadingData = false;
 	private stats: DashboardStats = {
 		snapshotsToday: 0,
 		totalSnapshots: 0,
@@ -131,17 +135,17 @@ export class DashboardPanel implements vscode.Disposable {
 		this.panel.onDidChangeViewState(
 			() => {
 				if (this.panel.visible) {
-					void this.loadAllData().then(() => this.sendDataToWebview());
+					this.scheduleDataRefresh();
 				}
 			},
 			null,
 			this.disposables,
 		);
 
-		// Listen for data changes - only send updated data, don't reset HTML
+		// Listen for data changes - debounced to prevent event cascade
 		this.disposables.push(
 			this.dataService.onDataChange(() => {
-				void this.loadAllData().then(() => this.sendDataToWebview());
+				this.scheduleDataRefresh();
 			}),
 		);
 
@@ -151,8 +155,44 @@ export class DashboardPanel implements vscode.Disposable {
 
 		// Load user tier FIRST, then load data (fixes race condition)
 		void this.loadUserTier().then(() => {
-			void this.loadAllData().then(() => this.sendDataToWebview());
+			this.scheduleDataRefresh();
 		});
+	}
+
+	/**
+	 * Schedule a debounced data refresh to prevent event cascade loops.
+	 * Multiple calls within 300ms will be coalesced into a single refresh.
+	 */
+	private scheduleDataRefresh(): void {
+		// Clear any pending refresh
+		if (this.dataRefreshTimer) {
+			clearTimeout(this.dataRefreshTimer);
+		}
+
+		// Schedule debounced refresh
+		this.dataRefreshTimer = setTimeout(() => {
+			this.dataRefreshTimer = null;
+			void this.refreshData();
+		}, 300);
+	}
+
+	/**
+	 * Actually refresh data with re-entry guard.
+	 */
+	private async refreshData(): Promise<void> {
+		// Prevent re-entrant calls
+		if (this.isLoadingData) {
+			logger.debug("DashboardPanel: Skipping refresh - already loading");
+			return;
+		}
+
+		this.isLoadingData = true;
+		try {
+			await this.loadAllData();
+			this.sendDataToWebview();
+		} finally {
+			this.isLoadingData = false;
+		}
 	}
 
 	/**
@@ -460,6 +500,12 @@ export class DashboardPanel implements vscode.Disposable {
 	 */
 	dispose(): void {
 		DashboardPanel.instance = undefined;
+
+		// Clear any pending refresh timer
+		if (this.dataRefreshTimer) {
+			clearTimeout(this.dataRefreshTimer);
+			this.dataRefreshTimer = null;
+		}
 
 		while (this.disposables.length) {
 			const d = this.disposables.pop();

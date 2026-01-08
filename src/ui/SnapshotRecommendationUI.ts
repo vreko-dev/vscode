@@ -41,6 +41,7 @@ const ACTIONS = {
 	SNOOZE_30MIN: "Snooze 30min",
 	OPEN_DASHBOARD: "Open Dashboard",
 	DISMISS: "Dismiss",
+	WHY: "Why?", // 🆕 Educational action
 } as const;
 
 /**
@@ -52,6 +53,29 @@ const NOTIFICATION_COOLDOWNS = {
 	high: 5 * 60 * 1000, // 5 minutes
 	critical: 60 * 1000, // 1 minute
 } as const;
+
+/**
+ * 🆕 Educational messaging for snapshot recommendations
+ * Explains WHY snapshots matter based on urgency level
+ */
+const EDUCATIONAL_MESSAGES: Record<string, { tip: string; whyItMatters: string }> = {
+	critical: {
+		tip: "Critical health means high risk of needing recovery. A 5-second snapshot now could save hours later.",
+		whyItMatters: "After 20+ unsnaphotted changes, recovery complexity increases exponentially.",
+	},
+	high: {
+		tip: "Your session has accumulated significant changes. Regular snapshots make recovery simple.",
+		whyItMatters: "Developers who snapshot regularly report 10x faster recovery from unexpected issues.",
+	},
+	medium: {
+		tip: "Good time for a checkpoint! Consistent snapshots build a safety net.",
+		whyItMatters: "The cost of a snapshot is tiny compared to debugging a failed AI refactor.",
+	},
+	default: {
+		tip: "Snapshots are your undo for everything - AI changes, accidental deletes, failed experiments.",
+		whyItMatters: "Think of it as git commit for your workspace state, but faster and more granular.",
+	},
+};
 
 export class SnapshotRecommendationUI implements vscode.Disposable {
 	private lastNotificationTime = 0;
@@ -153,12 +177,23 @@ export class SnapshotRecommendationUI implements vscode.Disposable {
 
 	/**
 	 * Show notification based on urgency
+	 *
+	 * 🆕 Enhanced with educational messaging - includes context about WHY snapshots matter
 	 */
 	private async showNotification(recommendation: SnapshotRecommendation): Promise<void> {
 		this.lastNotificationTime = Date.now();
 
 		const healthSignage = SESSION_HEALTH_SIGNAGE[recommendation.sessionHealth];
-		const message = `${healthSignage.icon} ${recommendation.reason}`;
+
+		// Get educational context based on urgency
+		const education = EDUCATIONAL_MESSAGES[recommendation.urgency] ?? EDUCATIONAL_MESSAGES.default;
+
+		// Build message with educational tip for high/critical urgency
+		let message = `${healthSignage.icon} ${recommendation.reason}`;
+		if (recommendation.urgency === "critical" || recommendation.urgency === "high") {
+			// Add educational tip for urgent situations
+			message += ` • 💡 ${education.tip}`;
+		}
 
 		let result: string | undefined;
 
@@ -225,6 +260,22 @@ export class SnapshotRecommendationUI implements vscode.Disposable {
 			case ACTIONS.DISMISS:
 				// Just dismiss, no action needed
 				break;
+
+			case ACTIONS.WHY: {
+				// 🆕 Show educational message explaining why snapshots matter
+				const educationMsg = EDUCATIONAL_MESSAGES.default;
+				vscode.window
+					.showInformationMessage(
+						`💡 ${educationMsg.tip}\n\n📊 Why it matters: ${educationMsg.whyItMatters}`,
+						"Learn More",
+					)
+					.then((selection) => {
+						if (selection === "Learn More") {
+							vscode.commands.executeCommand("snapback.openDocs");
+						}
+					});
+				break;
+			}
 		}
 	}
 

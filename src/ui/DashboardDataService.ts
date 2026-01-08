@@ -137,6 +137,11 @@ export class DashboardDataService implements vscode.Disposable {
 	private readonly _onDataChange = new vscode.EventEmitter<void>();
 	readonly onDataChange = this._onDataChange.event;
 
+	/** Debounce timer for data change events to prevent cascade loops */
+	private dataChangeDebounceTimer: NodeJS.Timeout | null = null;
+	/** Minimum interval between data change events (ms) */
+	private static readonly DATA_CHANGE_DEBOUNCE_MS = 500;
+
 	private constructor(
 		private readonly coordinator: OperationCoordinator,
 		private readonly _injectedHeatTracker?: HeatTracker,
@@ -693,6 +698,20 @@ export class DashboardDataService implements vscode.Disposable {
 	// ==========================================================================
 
 	/**
+	 * Fire data change event with debouncing to prevent event cascade loops.
+	 */
+	private fireDataChange(): void {
+		if (this.dataChangeDebounceTimer) {
+			return; // Already scheduled
+		}
+
+		this.dataChangeDebounceTimer = setTimeout(() => {
+			this.dataChangeDebounceTimer = null;
+			this._onDataChange.fire();
+		}, DashboardDataService.DATA_CHANGE_DEBOUNCE_MS);
+	}
+
+	/**
 	 * Record a restore event for token savings tracking
 	 */
 	recordRestore(snapshotId: string, filesRestored: number): void {
@@ -709,7 +728,7 @@ export class DashboardDataService implements vscode.Disposable {
 		const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
 		this.restoreEvents = this.restoreEvents.filter((e) => e.timestamp > thirtyDaysAgo);
 
-		this._onDataChange.fire();
+		this.fireDataChange();
 		logger.debug("Restore recorded", { snapshotId, filesRestored, tokensEstimate });
 	}
 
@@ -729,7 +748,7 @@ export class DashboardDataService implements vscode.Disposable {
 		existing.accuracy = Math.round((existing.accuracy + confidence * 100) / 2); // Running average
 
 		this.aiDetectionHistory.set(tool, existing);
-		this._onDataChange.fire();
+		this.fireDataChange();
 	}
 
 	/**
@@ -753,6 +772,12 @@ export class DashboardDataService implements vscode.Disposable {
 	// ==========================================================================
 
 	dispose(): void {
+		// Clear debounce timer
+		if (this.dataChangeDebounceTimer) {
+			clearTimeout(this.dataChangeDebounceTimer);
+			this.dataChangeDebounceTimer = null;
+		}
+
 		for (const d of this.disposables) {
 			d.dispose();
 		}

@@ -184,6 +184,7 @@ export const CORE_CONCEPT_SIGNAGE: Readonly<Record<CoreConceptKey, CoreConceptSi
 
 /**
  * Session health signage for overall workspace health display.
+ * 4-zone system: healthy (green) > caution (orange) > warning (yellow) > critical (red)
  */
 export const SESSION_HEALTH_SIGNAGE: Readonly<Record<SessionHealthCanonical, SessionHealthSignage>> = {
 	healthy: {
@@ -194,6 +195,15 @@ export const SESSION_HEALTH_SIGNAGE: Readonly<Record<SessionHealthCanonical, Ses
 		themeColor: "charts.green",
 		description: "Session is in excellent health with low risk.",
 		tooltip: "Healthy: workspace vitals are stable and within safe thresholds.",
+	},
+	caution: {
+		health: SESSION_HEALTH_CANONICAL.CAUTION,
+		label: "Caution",
+		icon: "🧡",
+		color: "#F97316",
+		themeColor: "charts.orange",
+		description: "Session activity is elevated; monitoring recommended.",
+		tooltip: "Caution: moderate activity detected. Continue monitoring and consider a snapshot soon.",
 	},
 	warning: {
 		health: SESSION_HEALTH_CANONICAL.WARNING,

@@ -86,9 +86,15 @@ export type LegacyProtectionLevelString = "Watched" | "Warning" | "Protected";
 
 /**
  * Canonical session health levels for workspace vitals UI.
+ * NOTE: 4-zone system: healthy > caution > warning > critical
+ * - healthy (70-100): Low risk, stable
+ * - caution (50-70): Moderate activity, monitor recommended
+ * - warning (40-50): Elevated risk, snapshot recommended
+ * - critical (0-40): High risk, immediate action needed
  */
 export const SESSION_HEALTH_CANONICAL = {
 	HEALTHY: "healthy",
+	CAUTION: "caution",
 	WARNING: "warning",
 	CRITICAL: "critical",
 } as const;

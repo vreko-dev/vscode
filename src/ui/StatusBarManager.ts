@@ -38,6 +38,7 @@ import {
 	TRAJECTORY_SIGNAGE,
 } from "../signage/constants";
 import type { SessionHealthCanonical, TrajectoryCanonical } from "../signage/types";
+import { logger } from "../utils/logger";
 import type { ActivitySequenceType, ActivityStep, StatusBarState, StatusBarStats, VitalsDisplayData } from "./ux-types";
 import { ACTIVITY_SEQUENCES, PULSE_EMOJI, TEMP_EMOJI } from "./ux-types";
 
@@ -383,6 +384,12 @@ export class StatusBarManager implements vscode.Disposable {
 	 * ```
 	 */
 	async showActivitySequence(steps: ActivityStep[]): Promise<void> {
+		// 🔍 [SB_STATUS] Log sequence start
+		logger.debug("[SB_STATUS] Activity sequence started", {
+			stepCount: steps.length,
+			steps: steps.map((s) => s.text),
+		});
+
 		// Abort any running sequence
 		this.abortActiveSequence();
 		this.clearTransitionTimeout();
@@ -393,15 +400,26 @@ export class StatusBarManager implements vscode.Disposable {
 		this.isRunningSequence = true;
 
 		try {
-			for (const step of steps) {
+			for (let i = 0; i < steps.length; i++) {
+				const step = steps[i];
 				// Check if aborted before each step
 				if (signal.aborted) {
+					logger.info("[SB:STATUS] sequence aborted", { atStep: i, timestamp: Date.now() });
 					return;
 				}
 
 				// Update status bar for this step
 				this.item.text = step.text;
 				this.item.tooltip = this.buildTooltip();
+
+				// 🔍 [SB:STATUS] Log each step (INFO for visibility)
+				logger.info("[SB:STATUS] sequence step", {
+					step: i + 1,
+					total: steps.length,
+					text: step.text,
+					duration: step.duration,
+					timestamp: Date.now(),
+				});
 
 				// Apply background color if specified
 				if (step.backgroundColor) {
@@ -416,6 +434,7 @@ export class StatusBarManager implements vscode.Disposable {
 
 			// Sequence completed - return to idle
 			if (!signal.aborted) {
+				logger.info("[SB:STATUS] sequence completed", { timestamp: Date.now() });
 				this.item.backgroundColor = undefined;
 				this.showIdle();
 			}
@@ -453,6 +472,15 @@ export class StatusBarManager implements vscode.Disposable {
 	 * @param tool - Optional AI tool name for context
 	 */
 	async showAIDetectedSequence(tool?: string): Promise<void> {
+		// 🔍 [SB:STATUS] Log AI detection trigger
+		logger.info("[SB:STATUS] AI sequence START", {
+			tool: tool ?? "unknown",
+			aiSessionsToday: this.stats.aiSessionsToday + 1,
+			isRunningSequence: this.isRunningSequence,
+			currentState: this.state,
+			timestamp: Date.now(),
+		});
+
 		const steps: ActivityStep[] = [
 			{
 				text: tool ? `✨ ${tool} detected` : "✨ AI detected",
@@ -492,6 +520,13 @@ export class StatusBarManager implements vscode.Disposable {
 	 * which is called only on actual SNAPSHOT_CREATED events.
 	 */
 	async showBurstDetectedSequence(): Promise<void> {
+		// 🔍 [SB:STATUS] Log burst detection trigger
+		logger.info("[SB:STATUS] BURST sequence START", {
+			isRunningSequence: this.isRunningSequence,
+			currentState: this.state,
+			timestamp: Date.now(),
+		});
+
 		// 🐛 FIX: Removed checkpointsToday++ - this was causing phantom counter bug
 		// Counter should only increment when an actual snapshot is created
 		// (via SNAPSHOT_CREATED event), not when burst activity is merely detected
@@ -628,6 +663,8 @@ export class StatusBarManager implements vscode.Disposable {
 	 * to ensure the state machine controls the status bar.
 	 */
 	private setState(state: StatusBarState, data?: unknown): void {
+		const previousState = this.state;
+
 		// Clear any active queued message - state machine takes precedence
 		if (this.activeMessageId) {
 			this.clearQueuedMessageTimeout();
@@ -640,6 +677,14 @@ export class StatusBarManager implements vscode.Disposable {
 		// Only use stats as default for idle-stats state, otherwise pass data as-is
 		const templateData = state === "idle-stats" ? (data ?? this.stats) : data;
 		this.item.text = typeof template === "function" ? template(templateData) : template;
+
+		// 🔍 [SB:STATUS] Log all state transitions (upgraded to INFO for visibility)
+		logger.info("[SB:STATUS] transition", {
+			from: previousState,
+			to: state,
+			text: this.item.text,
+			timestamp: Date.now(),
+		});
 
 		// Reset command to default (queue might have changed it)
 		this.item.command = "snapback.showQuickPicker";

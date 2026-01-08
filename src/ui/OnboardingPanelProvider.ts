@@ -128,7 +128,11 @@ export class OnboardingPanelProvider {
 	 */
 	private async detectProviders(): Promise<void> {
 		try {
-			const detection = detectAIClients();
+			// Pass workspace folder as cwd - process.cwd() in VS Code extensions returns
+			// the VS Code installation directory, NOT the workspace folder
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			logger.debug("Detecting AI providers", { workspaceFolder });
+			const detection = detectAIClients({ cwd: workspaceFolder });
 			const providers: DetectedProvider[] = detection.detected.map((client) => ({
 				id: client.name,
 				displayName: client.displayName,
@@ -154,7 +158,8 @@ export class OnboardingPanelProvider {
 	 */
 	private async configureProviders(): Promise<void> {
 		try {
-			const detection = detectAIClients();
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const detection = detectAIClients({ cwd: workspaceFolder });
 
 			for (const client of detection.detected) {
 				if (!client.hasSnapback) {
@@ -194,7 +199,8 @@ export class OnboardingPanelProvider {
 	 */
 	private async testProviders(): Promise<void> {
 		try {
-			const detection = detectAIClients();
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const detection = detectAIClients({ cwd: workspaceFolder });
 
 			for (const client of detection.detected) {
 				this.panel?.webview.postMessage({
