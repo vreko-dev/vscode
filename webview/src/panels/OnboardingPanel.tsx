@@ -48,11 +48,15 @@ export const OnboardingPanel: React.FC = () => {
 
 	// Listen for messages from extension
 	useEffect(() => {
+		console.log("[OnboardingPanel] Setting up message handler");
+
 		const handleMessage = (event: MessageEvent) => {
 			const msg = event.data;
+			console.log("[OnboardingPanel] Message received:", msg);
 
 			switch (msg.type) {
 				case "providersDetected":
+					console.log("[OnboardingPanel] providersDetected:", msg.providers);
 					setState((s) => ({
 						...s,
 						providers: msg.providers,
@@ -124,8 +128,10 @@ export const OnboardingPanel: React.FC = () => {
 	const handleNext = () => {
 		const steps: Step[] = ["welcome", "detect", "configure", "test", "cli", "complete"];
 		const currentIdx = steps.indexOf(state.currentStep);
+		console.log("[OnboardingPanel] handleNext called", { currentStep: state.currentStep, currentIdx });
 		if (currentIdx < steps.length - 1) {
 			const nextStep = steps[currentIdx + 1];
+			console.log("[OnboardingPanel] Sending next message", { nextStep });
 			setState((s) => ({ ...s, currentStep: nextStep }));
 			vscode?.postMessage({ type: "next", step: nextStep });
 		}
@@ -161,6 +167,10 @@ export const OnboardingPanel: React.FC = () => {
 				);
 
 			case "detect":
+				console.log("[OnboardingPanel] Rendering detect step", {
+					providersCount: state.providers.length,
+					providers: state.providers,
+				});
 				return (
 					<div>
 						<h2 className="text-lg font-bold text-zinc-100 mb-4">🔍 Detecting AI Clients</h2>

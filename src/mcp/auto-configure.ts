@@ -75,8 +75,9 @@ export async function autoConfigureMCP(context: vscode.ExtensionContext): Promis
 	}
 
 	try {
-		// Detect AI clients
-		const detection = detectAIClients();
+		// Detect AI clients (pass workspace folder for project-specific config detection)
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+		const detection = detectAIClients({ cwd: workspaceFolder });
 
 		if (detection.detected.length === 0) {
 			// No AI clients found, nothing to do
@@ -306,7 +307,8 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 	// Command: Configure MCP manually
 	context.subscriptions.push(
 		vscode.commands.registerCommand("snapback.mcp.configure", async () => {
-			const detection = detectAIClients();
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const detection = detectAIClients({ cwd: workspaceFolder });
 
 			if (detection.detected.length === 0) {
 				vscode.window.showInformationMessage(
@@ -353,7 +355,8 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 	// Command: Show MCP status
 	context.subscriptions.push(
 		vscode.commands.registerCommand("snapback.mcp.status", async () => {
-			const detection = detectAIClients();
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const detection = detectAIClients({ cwd: workspaceFolder });
 
 			const items = detection.clients.map((client) => {
 				let status = "⚪ Not installed";
@@ -388,7 +391,8 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 	// Command: Disable MCP for a client
 	context.subscriptions.push(
 		vscode.commands.registerCommand("snapback.mcp.disable", async () => {
-			const detection = detectAIClients();
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const detection = detectAIClients({ cwd: workspaceFolder });
 			const configured = detection.detected.filter((c) => c.hasSnapback);
 
 			if (configured.length === 0) {
@@ -430,7 +434,8 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 	// Command: Validate MCP configurations
 	context.subscriptions.push(
 		vscode.commands.registerCommand("snapback.mcp.validate", async () => {
-			const detection = detectAIClients();
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const detection = detectAIClients({ cwd: workspaceFolder });
 			const configured = detection.detected.filter((c) => c.hasSnapback);
 
 			if (configured.length === 0) {
@@ -499,7 +504,8 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 	// Command: Repair MCP configurations
 	context.subscriptions.push(
 		vscode.commands.registerCommand("snapback.mcp.repair", async () => {
-			const detection = detectAIClients();
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const detection = detectAIClients({ cwd: workspaceFolder });
 			const configured = detection.detected.filter((c) => c.hasSnapback);
 
 			if (configured.length === 0) {
@@ -614,7 +620,8 @@ function initMcpStatusBar(context: vscode.ExtensionContext): void {
  * Check MCP health and update status bar
  */
 async function checkMcpHealthAndUpdateStatusBar(context: vscode.ExtensionContext): Promise<void> {
-	const detection = detectAIClients();
+	const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+	const detection = detectAIClients({ cwd: workspaceFolder });
 	const configured = detection.detected.filter((c) => c.hasSnapback);
 
 	if (configured.length === 0) {

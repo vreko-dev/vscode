@@ -30,15 +30,18 @@ export class OnboardingPanelProvider {
 	 * Create or show the onboarding panel
 	 */
 	public async createOrShow(): Promise<void> {
+		logger.info("[Onboarding] createOrShow called");
 		const column = vscode.ViewColumn.One;
 
 		// If panel already exists, reveal it
 		if (this.panel) {
+			logger.info("[Onboarding] Panel already exists, revealing");
 			this.panel.reveal(column);
 			return;
 		}
 
 		// Create new panel
+		logger.info("[Onboarding] Creating new onboarding panel");
 		this.panel = vscode.window.createWebviewPanel("snapback.onboarding", "SnapBack Setup", column, {
 			enableScripts: true,
 			retainContextWhenHidden: true,
@@ -71,14 +74,17 @@ export class OnboardingPanelProvider {
 	 * Handle messages from webview
 	 */
 	private async handleMessage(message: { type: string; step?: string; [key: string]: unknown }): Promise<void> {
+		logger.info("[Onboarding] Message received from webview", { type: message.type, step: message.step });
 		try {
 			switch (message.type) {
 				case "webviewReady":
 					// Webview loaded, ready to receive messages
+					logger.info("[Onboarding] Webview ready");
 					break;
 
 				case "next":
 					if (message.step) {
+						logger.info("[Onboarding] Next step requested", { step: message.step });
 						await this.handleNextStep(message.step);
 					}
 					break;
@@ -127,12 +133,19 @@ export class OnboardingPanelProvider {
 	 * Detect AI providers on the system
 	 */
 	private async detectProviders(): Promise<void> {
+		logger.info("[Onboarding] Starting provider detection");
 		try {
 			// Pass workspace folder as cwd - process.cwd() in VS Code extensions returns
 			// the VS Code installation directory, NOT the workspace folder
 			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-			logger.debug("Detecting AI providers", { workspaceFolder });
+			logger.info("[Onboarding] Detecting AI providers", { workspaceFolder });
 			const detection = detectAIClients({ cwd: workspaceFolder });
+			logger.info("[Onboarding] Detection result", {
+				totalClients: detection.clients.length,
+				detectedCount: detection.detected.length,
+				needsSetupCount: detection.needsSetup.length,
+				detected: detection.detected.map((c) => ({ name: c.name, hasSnapback: c.hasSnapback })),
+			});
 			const providers: DetectedProvider[] = detection.detected.map((client) => ({
 				id: client.name,
 				displayName: client.displayName,
@@ -140,12 +153,13 @@ export class OnboardingPanelProvider {
 				mcpStatus: client.hasSnapback ? "configured" : "untested",
 			}));
 
+			logger.info("[Onboarding] Sending providersDetected to webview", { count: providers.length });
 			this.panel?.webview.postMessage({
 				type: "providersDetected",
 				providers,
 			});
 		} catch (error) {
-			logger.error("Provider detection failed", error as Error);
+			logger.error("[Onboarding] Provider detection failed", error as Error);
 			this.panel?.webview.postMessage({
 				type: "error",
 				error: "Failed to detect AI providers",
