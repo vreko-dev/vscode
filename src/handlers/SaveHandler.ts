@@ -8,6 +8,7 @@ import { getAIUndoNotification } from "../notifications/AIUndoNotification";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskService } from "../services/aiRiskService";
 import { NoopAIRiskService } from "../services/aiRiskService";
+import type { DaemonBridge } from "../services/DaemonBridge";
 import { recordFileModification } from "../services/IntelligenceService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import type { UnifiedOnboardingService } from "../services/UnifiedOnboardingService";
@@ -64,6 +65,9 @@ export class SaveHandler {
 	private aiWarningManager: AIWarningManager;
 	private decorationProvider: FileHealthDecorationProvider | null = null;
 	private unifiedOnboarding?: UnifiedOnboardingService;
+
+	// DaemonBridge for CLI/MCP coordination (per ARCHITECTURE_REFACTOR_SPEC.md Phase 1)
+	private daemonBridge?: DaemonBridge;
 
 	// SignalBridge for AI detection (V2 engine integration)
 	private signalBridge: SignalBridge;
@@ -140,6 +144,20 @@ export class SaveHandler {
 	public initializeDecisionEngine(engine: ProtectionDecisionEngine): void {
 		this.protectionLevelHandler.initializeDecisionEngine(engine);
 		logger.info("[SnapBack] SDK ProtectionDecisionEngine initialized in SaveHandler");
+	}
+
+	/**
+	 * Set DaemonBridge for CLI/MCP coordination.
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into SaveHandler.
+	 *
+	 * When set, SaveHandler will notify the daemon of file modifications on protected file saves,
+	 * enabling cross-surface snapshot coordination between Extension, CLI, and MCP.
+	 *
+	 * @param bridge - DaemonBridge instance from extension activation
+	 */
+	public setDaemonBridge(bridge: DaemonBridge): void {
+		this.daemonBridge = bridge;
+		logger.info("[SnapBack] DaemonBridge wired into SaveHandler for cross-surface coordination");
 	}
 
 	/**
@@ -549,6 +567,35 @@ export class SaveHandler {
 
 		// If protection handler blocks the save, it will throw CancellationError
 		// If we get here, save is allowed to proceed
+
+		// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Notify daemon of file modification
+		// This enables cross-surface coordination between Extension, CLI, and MCP
+		if (this.daemonBridge) {
+			const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+			const linesChanged = this.countLinesChanged(preSaveContent, document.getText());
+			const isAiAttributed = aiDetectionResult.tool !== null;
+
+			// Fire-and-forget: daemon notification should not block save
+			void this.daemonBridge
+				.recordFileModification(workspacePath, filePath, linesChanged, isAiAttributed)
+				.then((success) => {
+					if (success) {
+						logger.debug("Daemon notified of file modification", {
+							correlationId,
+							filePath,
+							linesChanged,
+							aiAttributed: isAiAttributed,
+						});
+					}
+				})
+				.catch((err) => {
+					logger.debug("Daemon notification failed (non-blocking)", {
+						correlationId,
+						filePath,
+						error: err instanceof Error ? err.message : String(err),
+					});
+				});
+		}
 
 		// Track save_attempt event (P0 - Demo Critical)
 		// Fire-and-forget to avoid blocking save operation

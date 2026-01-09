@@ -20,6 +20,7 @@ import * as vscode from "vscode";
 import { getMCPBridge } from "../bridges/MCPBridge";
 import type { HeatTracker } from "../heat/HeatTracker";
 import type { OperationCoordinator } from "../operationCoordinator";
+import type { DaemonBridge, SnapshotCreatedEvent } from "../services/DaemonBridge";
 import { logger } from "../utils/logger";
 import { type DashboardDataService, getDashboardDataService } from "./DashboardDataService";
 
@@ -98,6 +99,10 @@ export class DashboardPanel implements vscode.Disposable {
 	private dataRefreshTimer: NodeJS.Timeout | null = null;
 	/** Flag to prevent re-entrant data loading */
 	private isLoadingData = false;
+
+	// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: DaemonBridge for cross-surface coordination
+	private daemonBridge?: DaemonBridge;
+	private daemonEventDisposable?: vscode.Disposable;
 	private stats: DashboardStats = {
 		snapshotsToday: 0,
 		totalSnapshots: 0,
@@ -232,6 +237,11 @@ export class DashboardPanel implements vscode.Disposable {
 
 		DashboardPanel.instance = new DashboardPanel(panel, extensionUri, coordinator, heatTracker);
 
+		// Auto-wire DaemonBridge if one was registered
+		if (DashboardPanel._pendingDaemonBridge) {
+			DashboardPanel.instance.setDaemonBridge(DashboardPanel._pendingDaemonBridge);
+		}
+
 		if (initialTab) {
 			DashboardPanel.instance.switchTab(initialTab);
 		}
@@ -246,6 +256,27 @@ export class DashboardPanel implements vscode.Disposable {
 		DashboardPanel.instance?.panel.dispose();
 		DashboardPanel.instance = undefined;
 	}
+
+	/**
+	 * Wire DaemonBridge to the singleton instance.
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into DashboardPanel.
+	 *
+	 * Call this during extension activation after DaemonBridge is initialized.
+	 * If no instance exists yet, the bridge will be wired when dashboard is first opened.
+	 *
+	 * @param bridge - DaemonBridge instance from extension activation
+	 */
+	public static wireDaemonBridge(bridge: DaemonBridge): void {
+		// Store for future instances
+		DashboardPanel._pendingDaemonBridge = bridge;
+
+		// Wire to existing instance if present
+		if (DashboardPanel.instance) {
+			DashboardPanel.instance.setDaemonBridge(bridge);
+		}
+	}
+
+	private static _pendingDaemonBridge?: DaemonBridge;
 
 	/**
 	 * Load user tier based on snapshot history
@@ -493,6 +524,33 @@ export class DashboardPanel implements vscode.Disposable {
 			text += chars.charAt(Math.floor(Math.random() * chars.length));
 		}
 		return text;
+	}
+
+	/**
+	 * Set DaemonBridge for cross-surface coordination.
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into DashboardPanel.
+	 *
+	 * When set, DashboardPanel subscribes to daemon events (onSnapshotCreated)
+	 * to refresh data when snapshots are created from CLI or MCP.
+	 *
+	 * @param bridge - DaemonBridge instance from extension activation
+	 */
+	public setDaemonBridge(bridge: DaemonBridge): void {
+		this.daemonBridge = bridge;
+
+		// Subscribe to snapshot created events from daemon
+		// This enables dashboard to refresh when CLI/MCP creates snapshots
+		this.daemonEventDisposable = bridge.onSnapshotCreated((event: SnapshotCreatedEvent) => {
+			logger.debug("Dashboard received snapshot created event from daemon", {
+				snapshotId: event.snapshotId,
+				source: event.source,
+			});
+			// Refresh dashboard data to show updated stats
+			this.scheduleDataRefresh();
+		});
+
+		this.disposables.push(this.daemonEventDisposable);
+		logger.info("[SnapBack] DaemonBridge wired into DashboardPanel for cross-surface coordination");
 	}
 
 	/**

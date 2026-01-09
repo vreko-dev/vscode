@@ -64,10 +64,12 @@ import { disposeActivationFunnel, initializeActivationFunnel } from "./telemetry
 import { initializeCoreEventTracker } from "./telemetry/core-event-tracker";
 import type { ProtectionChangedPayload } from "./types/api";
 import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
+import { DashboardPanel } from "./ui/DashboardPanel"; // 🆕 Import DashboardPanel for daemon wiring
 import { OnboardingPanelProvider } from "./ui/OnboardingPanelProvider"; // 🆕 Onboarding webview
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
 import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
 import type { StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import StatusBarManager type
+import { VitalsDashboardPanel } from "./ui/VitalsDashboardPanel"; // 🆕 Import VitalsDashboardPanel for daemon wiring
 // REMOVED: VitalsIntegration - consolidated into VitalsUIIntegration to eliminate duplicate status bar updates
 import { isMonitorableDocument } from "./utils/documentFilters";
 import { logger } from "./utils/logger";
@@ -1463,6 +1465,18 @@ export async function activate(context: vscode.ExtensionContext) {
 				.initialize()
 				.then(() => {
 					logger.info("DaemonBridge initialized for cross-surface coordination");
+
+					// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into SaveHandler
+					// This enables SaveHandler to notify daemon of file modifications
+					saveHandler.setDaemonBridge(daemonBridge);
+
+					// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into DashboardPanel
+					// This enables Dashboard to refresh when snapshots are created from CLI/MCP
+					DashboardPanel.wireDaemonBridge(daemonBridge);
+
+					// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into VitalsDashboardPanel
+					// This enables Vitals to refresh when snapshots are created from CLI/MCP
+					VitalsDashboardPanel.wireDaemonBridge(daemonBridge);
 				})
 				.catch((err) => {
 					// Non-fatal: Extension continues without daemon coordination

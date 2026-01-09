@@ -27,6 +27,7 @@
  * @module services/DaemonBridge
  */
 
+import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { createConnection, type Socket } from "node:net";
 import { homedir, platform } from "node:os";
@@ -64,6 +65,41 @@ const MIN_RECONNECT_INTERVAL_MS = 1000;
 
 /** Maximum time between reconnection attempts */
 const MAX_RECONNECT_INTERVAL_MS = 30000;
+
+/** Daemon auto-start timeout in ms */
+const DAEMON_START_TIMEOUT_MS = 10000;
+
+/** Delay before considering daemon started */
+const DAEMON_START_WAIT_MS = 500;
+
+/** Find the snapback CLI executable path */
+function getCliPath(): string | null {
+	try {
+		// Look for snapback in common locations
+		const possiblePaths = [
+			// Global npm install
+			join(homedir(), ".npm-global", "bin", IS_WINDOWS ? "snapback.cmd" : "snapback"),
+			// npx location
+			join(homedir(), ".npm", "_npx", "*", "node_modules", ".bin", IS_WINDOWS ? "snapback.cmd" : "snapback"),
+			// pnpm global
+			join(homedir(), ".local", "share", "pnpm", IS_WINDOWS ? "snapback.cmd" : "snapback"),
+			// Homebrew (macOS)
+			"/usr/local/bin/snapback",
+			"/opt/homebrew/bin/snapback",
+		];
+
+		for (const p of possiblePaths) {
+			if (existsSync(p)) {
+				return p;
+			}
+		}
+
+		// Fall back to PATH resolution (will use shell to find it)
+		return IS_WINDOWS ? "snapback.cmd" : "snapback";
+	} catch {
+		return null;
+	}
+}
 
 // =============================================================================
 // TYPES
@@ -196,7 +232,83 @@ export class DaemonBridge extends vscode.Disposable {
 	}
 
 	/**
-	 * Connect to daemon
+	 * Auto-start the daemon if not running.
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Verify daemon auto-starts on activation.
+	 *
+	 * Spawns `snapback daemon start --detach` and waits for it to be ready.
+	 *
+	 * @returns true if daemon started successfully or was already running
+	 */
+	private async autoStartDaemon(): Promise<boolean> {
+		if (this.isDaemonRunning()) {
+			return true;
+		}
+
+		const cliPath = getCliPath();
+		if (!cliPath) {
+			logger.warn("Cannot auto-start daemon: snapback CLI not found");
+			return false;
+		}
+
+		logger.info("Auto-starting SnapBack daemon...", { cliPath });
+
+		return new Promise((resolve) => {
+			const startTime = Date.now();
+
+			try {
+				// Spawn daemon in detached mode
+				const child: ChildProcess = spawn(cliPath, ["daemon", "start", "--detach"], {
+					detached: true,
+					stdio: "ignore",
+					shell: IS_WINDOWS,
+				});
+
+				child.unref();
+
+				child.on("error", (err) => {
+					logger.warn("Failed to spawn daemon process", {
+						error: err.message,
+					});
+					resolve(false);
+				});
+
+				// Poll for daemon to be ready
+				const checkDaemon = () => {
+					const elapsed = Date.now() - startTime;
+
+					if (elapsed > DAEMON_START_TIMEOUT_MS) {
+						logger.warn("Daemon auto-start timed out");
+						resolve(false);
+						return;
+					}
+
+					if (this.isDaemonRunning()) {
+						logger.info("SnapBack daemon auto-started successfully", {
+							elapsedMs: elapsed,
+						});
+						// Give daemon a moment to set up socket
+						setTimeout(() => resolve(true), DAEMON_START_WAIT_MS);
+						return;
+					}
+
+					// Check again after delay
+					setTimeout(checkDaemon, 200);
+				};
+
+				// Start checking after initial delay
+				setTimeout(checkDaemon, DAEMON_START_WAIT_MS);
+			} catch (err) {
+				logger.warn("Exception during daemon auto-start", {
+					error: err instanceof Error ? err.message : String(err),
+				});
+				resolve(false);
+			}
+		});
+	}
+
+	/**
+	 * Connect to daemon, auto-starting if necessary.
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Verify daemon auto-starts on activation.
 	 */
 	async connect(): Promise<boolean> {
 		if (this.isConnected()) {
@@ -207,9 +319,15 @@ export class DaemonBridge extends vscode.Disposable {
 			return false;
 		}
 
+		// Auto-start daemon if not running
+		// Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Verify daemon auto-starts on activation
 		if (!this.isDaemonRunning()) {
-			logger.debug("Daemon not running, skipping connection attempt");
-			return false;
+			logger.debug("Daemon not running, attempting auto-start...");
+			const started = await this.autoStartDaemon();
+			if (!started) {
+				logger.debug("Daemon auto-start failed, skipping connection attempt");
+				return false;
+			}
 		}
 
 		this.isConnecting = true;

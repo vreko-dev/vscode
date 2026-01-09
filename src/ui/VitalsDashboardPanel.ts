@@ -17,6 +17,7 @@
 
 import type { VitalsSnapshot } from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
+import type { DaemonBridge, SnapshotCreatedEvent } from "../services/DaemonBridge";
 import type {
 	AgentGuidance,
 	Learning,
@@ -31,6 +32,7 @@ import {
 	TEMPERATURE_LEVEL_SIGNAGE,
 	TRAJECTORY_SIGNAGE,
 } from "../signage/constants";
+import { logger } from "../utils/logger";
 
 /**
  * Message types from webview to extension
@@ -69,6 +71,11 @@ export class VitalsDashboardPanel {
 	private updateInterval: NodeJS.Timeout | null = null;
 	private useReactWebview = true; // Enable React WebView bundle
 	private isWebviewReady = false; // Track if React has mounted and is ready for messages
+
+	// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: DaemonBridge for cross-surface coordination
+	private daemonBridge?: DaemonBridge;
+	private daemonEventDisposable?: vscode.Disposable;
+	private static _pendingDaemonBridge?: DaemonBridge;
 
 	private constructor(panel: vscode.WebviewPanel, dataService: UnifiedDataService, extensionUri: vscode.Uri) {
 		this.panel = panel;
@@ -146,6 +153,11 @@ export class VitalsDashboardPanel {
 			);
 
 			VitalsDashboardPanel.instance = new VitalsDashboardPanel(panel, dataService, extensionUri);
+
+			// Auto-wire DaemonBridge if one was registered
+			if (VitalsDashboardPanel._pendingDaemonBridge) {
+				VitalsDashboardPanel.instance.setDaemonBridge(VitalsDashboardPanel._pendingDaemonBridge);
+			}
 		} catch (error) {
 			vscode.window.showErrorMessage(
 				`Failed to open vitals dashboard: ${error instanceof Error ? error.message : "unknown error"}`,
@@ -159,6 +171,54 @@ export class VitalsDashboardPanel {
 	public static kill(): void {
 		VitalsDashboardPanel.instance?.panel.dispose();
 		VitalsDashboardPanel.instance = undefined;
+	}
+
+	/**
+	 * Wire DaemonBridge to the singleton instance.
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into VitalsDashboardPanel.
+	 *
+	 * Call this during extension activation after DaemonBridge is initialized.
+	 * If no instance exists yet, the bridge will be wired when vitals panel is first opened.
+	 *
+	 * @param bridge - DaemonBridge instance from extension activation
+	 */
+	public static wireDaemonBridge(bridge: DaemonBridge): void {
+		// Store for future instances
+		VitalsDashboardPanel._pendingDaemonBridge = bridge;
+
+		// Wire to existing instance if present
+		if (VitalsDashboardPanel.instance) {
+			VitalsDashboardPanel.instance.setDaemonBridge(bridge);
+		}
+	}
+
+	/**
+	 * Set DaemonBridge for cross-surface coordination.
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into VitalsDashboardPanel.
+	 *
+	 * When set, VitalsDashboardPanel subscribes to daemon events (onSnapshotCreated)
+	 * to refresh vitals when snapshots are created from CLI or MCP.
+	 *
+	 * @param bridge - DaemonBridge instance from extension activation
+	 */
+	public setDaemonBridge(bridge: DaemonBridge): void {
+		this.daemonBridge = bridge;
+
+		// Subscribe to snapshot created events from daemon
+		// This enables vitals to refresh when CLI/MCP creates snapshots
+		this.daemonEventDisposable = bridge.onSnapshotCreated((event: SnapshotCreatedEvent) => {
+			logger.debug("VitalsDashboard received snapshot created event from daemon", {
+				snapshotId: event.snapshotId,
+				source: event.source,
+			});
+			// Refresh vitals to show updated pressure/status
+			if (this.isWebviewReady) {
+				this.updateContent();
+			}
+		});
+
+		this.disposables.push(this.daemonEventDisposable);
+		logger.info("[SnapBack] DaemonBridge wired into VitalsDashboardPanel for cross-surface coordination");
 	}
 
 	/**
