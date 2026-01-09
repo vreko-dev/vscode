@@ -10,12 +10,25 @@
  * const manager = new StorageManager(context);
  * await manager.createSnapshot(...);
  *
- * // ✅ NEW (use DaemonBridge)
- * const bridge = new DaemonBridge(context);
- * await bridge.send('snapshot.create', { ... });
+ * // ✅ NEW (use DaemonBridge for snapshot operations)
+ * import { getDaemonBridge } from '../services/DaemonBridge';
+ * const bridge = getDaemonBridge();
+ * const result = await bridge.createSnapshot(workspacePath, ['file.ts'], {
+ *   reason: 'Manual snapshot'
+ * });
  * ```
  *
- * @see DaemonBridge for the new API
+ * **Protocol Gap Note (Phase 6A):**
+ * The daemon protocol supports high-level snapshot operations but not direct
+ * storage access. This is intentional - storage is an implementation detail
+ * of the CLI daemon's @snapback/sdk integration.
+ *
+ * For most use cases, use DaemonBridge snapshot methods instead of direct storage.
+ * Storage-specific operations like cleanup and migration should be handled by
+ * the daemon, which owns the canonical storage implementation.
+ *
+ * @see DaemonBridge for the new snapshot API
+ * @see apps/cli/src/daemon/protocol.ts for available daemon methods
  * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
  */
 

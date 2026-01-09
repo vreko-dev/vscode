@@ -30,22 +30,43 @@ import { SnapshotIconStrategy } from "./SnapshotIconStrategy";
  * SnapshotManager - Central orchestrator for snapshot intelligence system
  *
  * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: This extension-side implementation is deprecated.
- * Use the CLI daemon via DaemonBridge instead:
+ * Use the CLI daemon via DaemonBridge instead for snapshot operations:
  *
  * ```typescript
  * // ❌ OLD (deprecated)
  * const manager = new SnapshotManager(workspaceRoot, storage, ...);
  * await manager.createSnapshot(files);
  *
- * // ✅ NEW (use DaemonBridge)
- * const bridge = new DaemonBridge(context);
- * await bridge.createSnapshot(files, { workspace: workspaceRoot });
+ * // ✅ NEW (use DaemonBridge for create/list/delete/restore)
+ * import { getDaemonBridge } from './services/DaemonBridge';
+ * const bridge = getDaemonBridge();
+ * const result = await bridge.createSnapshot(workspaceRoot, ['file.ts'], {
+ *   reason: 'Manual snapshot',
+ *   trigger: 'manual'
+ * });
  * ```
  *
- * The CLI daemon now owns all snapshot business logic via @snapback/sdk.
- * This class will be removed in Phase 4 of the architecture refactor.
+ * **Protocol Gap Note (Phase 6A):**
+ * The daemon protocol currently supports these operations:
+ * - ✅ snapshot.create → bridge.createSnapshot()
+ * - ✅ snapshot.list → bridge.listSnapshots()
+ * - ✅ snapshot.delete → bridge.deleteSnapshot()
+ * - ✅ snapshot.restore → bridge.restoreSnapshot()
+ *
+ * The following granular methods are NOT yet in daemon protocol:
+ * - ⚠️ get(id) - retrieve single snapshot by ID
+ * - ⚠️ getAll() - retrieve all snapshots (use listSnapshots() instead)
+ * - ⚠️ deleteOlderThan() - batch deletion by age
+ *
+ * Until the daemon protocol is extended with these methods, calling code
+ * should use the high-level operations above. For UI-specific granular queries,
+ * consider keeping local cached data or extending the daemon protocol.
+ *
+ * The CLI daemon uses @snapback/sdk SnapshotManager as the canonical implementation.
+ * This class will be removed in Phase 4 after all calling code is refactored.
  *
  * @see DaemonBridge for the new API
+ * @see apps/cli/src/daemon/protocol.ts for available daemon methods
  * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
  *
  * ---

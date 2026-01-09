@@ -702,6 +702,122 @@ export class DaemonBridge extends vscode.Disposable {
 	}
 
 	// =========================================================================
+	// SNAPSHOT OPERATIONS (ARCHITECTURE_REFACTOR_SPEC.md Phase 6A)
+	// =========================================================================
+
+	/**
+	 * Create a snapshot via the daemon.
+	 *
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 3: Extension should route snapshot
+	 * operations through the CLI daemon which uses @snapback/sdk SnapshotManager.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param files - Array of file paths to snapshot
+	 * @param options - Snapshot creation options
+	 * @returns Snapshot creation result with snapshotId
+	 *
+	 * @example
+	 * ```typescript
+	 * const bridge = getDaemonBridge();
+	 * const result = await bridge.createSnapshot(
+	 *   '/workspace/path',
+	 *   ['src/file.ts'],
+	 *   { reason: 'Manual snapshot', trigger: 'manual' }
+	 * );
+	 * console.log(`Snapshot created: ${result.snapshotId}`);
+	 * ```
+	 */
+	async createSnapshot(
+		workspacePath: string,
+		files: string[],
+		options?: {
+			reason?: string;
+			trigger?: "manual" | "mcp" | "ai_assist" | "session_end";
+		},
+	): Promise<{ snapshotId: string; createdAt: string }> {
+		return this.request("snapshot.create", {
+			workspace: workspacePath,
+			files,
+			...options,
+		});
+	}
+
+	/**
+	 * List snapshots for a workspace via the daemon.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param options - List options (limit, since timestamp)
+	 * @returns Array of snapshots
+	 *
+	 * @example
+	 * ```typescript
+	 * const bridge = getDaemonBridge();
+	 * const snapshots = await bridge.listSnapshots('/workspace/path', { limit: 10 });
+	 * ```
+	 */
+	async listSnapshots(
+		workspacePath: string,
+		options?: {
+			limit?: number;
+			since?: string;
+		},
+	): Promise<Array<{ snapshotId: string; createdAt: string; files: string[] }>> {
+		return this.request("snapshot.list", {
+			workspace: workspacePath,
+			...options,
+		});
+	}
+
+	/**
+	 * Delete a snapshot via the daemon.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param snapshotId - Snapshot ID to delete
+	 * @returns Success boolean
+	 *
+	 * @example
+	 * ```typescript
+	 * const bridge = getDaemonBridge();
+	 * await bridge.deleteSnapshot('/workspace/path', 'snapshot-123');
+	 * ```
+	 */
+	async deleteSnapshot(workspacePath: string, snapshotId: string): Promise<void> {
+		return this.request("snapshot.delete", {
+			workspace: workspacePath,
+			snapshotId,
+		});
+	}
+
+	/**
+	 * Restore a snapshot via the daemon.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param snapshotId - Snapshot ID to restore
+	 * @param options - Restore options
+	 * @returns Restore result
+	 *
+	 * @example
+	 * ```typescript
+	 * const bridge = getDaemonBridge();
+	 * await bridge.restoreSnapshot('/workspace/path', 'snapshot-123', { dryRun: true });
+	 * ```
+	 */
+	async restoreSnapshot(
+		workspacePath: string,
+		snapshotId: string,
+		options?: {
+			files?: string[];
+			dryRun?: boolean;
+		},
+	): Promise<{ restored: string[]; skipped: string[] }> {
+		return this.request("snapshot.restore", {
+			workspace: workspacePath,
+			snapshotId,
+			...options,
+		});
+	}
+
+	// =========================================================================
 	// LIFECYCLE
 	// =========================================================================
 

@@ -2,22 +2,56 @@
  * VSCode SessionCoordinator - Wrapper around SDK SessionCoordinator
  *
  * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: This extension-side wrapper is deprecated.
- * Session management should be handled via CLI daemon instead:
+ * Session management should be handled via CLI daemon for workflow operations:
  *
  * ```typescript
  * // ❌ OLD (deprecated)
  * const coordinator = new SessionCoordinator(storage);
  * coordinator.addCandidate(uri, snapshotId);
  *
- * // ✅ NEW (use DaemonBridge)
- * const bridge = new DaemonBridge(context);
- * await bridge.send('session.addCandidate', { uri, snapshotId });
+ * // ✅ NEW (use DaemonBridge for session workflows)
+ * import { getDaemonBridge } from '../services/DaemonBridge';
+ * const bridge = getDaemonBridge();
+ *
+ * // Begin a session
+ * await bridge.request('session.begin', {
+ *   workspace: workspacePath,
+ *   task: 'Feature implementation',
+ *   files: ['src/file.ts']
+ * });
+ *
+ * // End a session
+ * await bridge.request('session.end', {
+ *   workspace: workspacePath,
+ *   outcome: 'completed',
+ *   createSnapshot: true
+ * });
  * ```
  *
- * The CLI daemon now owns session coordination via @snapback/sdk.
- * This wrapper will be removed in Phase 4 of the architecture refactor.
+ * **Protocol Gap Note (Phase 6A):**
+ * The daemon protocol currently supports these session operations:
+ * - ✅ session.begin - start a new session
+ * - ✅ session.end - finalize a session
+ * - ✅ session.status - get current session state
+ * - ✅ session.review - review session changes
+ *
+ * The following granular methods are NOT yet in daemon protocol:
+ * - ⚠️ addCandidate() - add file to current session
+ * - ⚠️ getCandidateCount() - get number of session files
+ * - ⚠️ handleWindowBlur() - handle focus loss
+ * - ⚠️ onSessionFinalized event - real-time session events
+ *
+ * These granular methods support extension-specific UX (like tree views and
+ * real-time status updates). Until the daemon protocol is extended, consider:
+ * 1. Using high-level session.begin/end workflows for most operations
+ * 2. Keeping granular methods local for UI responsiveness
+ * 3. Extending daemon protocol with real-time event subscriptions
+ *
+ * The CLI daemon uses @snapback/sdk SessionCoordinator as the canonical implementation.
+ * This wrapper will be removed or simplified in Phase 4 after architectural decisions.
  *
  * @see DaemonBridge for the new API
+ * @see apps/cli/src/daemon/protocol.ts for available daemon methods
  * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
  *
  * ---
