@@ -242,10 +242,13 @@ export class SnapBackRCLoader implements vscode.Disposable {
 
 	/**
 	 * Read and parse .snapbackrc file
+	 * P1 UX: Shows actionable notification on parse errors with "Open & Fix" action
 	 */
 	private async readConfig(configPath: string): Promise<SnapBackRC | null> {
+		let content = "";
+
 		try {
-			const content = await fs.readFile(configPath, "utf-8");
+			content = await fs.readFile(configPath, "utf-8");
 
 			// Remove comments and parse JSON5/JSONC
 			const cleanedContent = this.removeComments(content);
@@ -256,8 +259,109 @@ export class SnapBackRCLoader implements vscode.Disposable {
 			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
 				return null;
 			}
+
+			// P1 UX: Handle JSON parse errors with actionable notification
+			if (error instanceof SyntaxError) {
+				this.showConfigParseErrorNotification(configPath, content, error);
+				return null; // Return null to use defaults, don't throw
+			}
+
 			throw error;
 		}
+	}
+
+	/**
+	 * P1 UX: Show user-friendly notification for config parse errors.
+	 * Includes line/column info and "Open & Fix" action.
+	 */
+	private showConfigParseErrorNotification(configPath: string, content: string, error: SyntaxError): void {
+		// Extract position from JSON parse error message
+		// Common formats: "at position 123", "at line 5 column 10"
+		const { line, column } = this.extractErrorPosition(error.message, content);
+
+		const locationInfo = line > 0 ? ` (line ${line}, col ${column})` : "";
+
+		logger.warn("Config parse error", {
+			path: configPath,
+			line,
+			column,
+			error: error.message,
+		});
+
+		// Log policy precedence for clarity
+		logger.info("Config precedence: Using default policy (.snapbackrc invalid)");
+
+		vscode.window
+			.showWarningMessage(
+				`.snapbackrc has invalid JSON${locationInfo}. Using default protection policy.`,
+				"Open & Fix",
+				"View Logs",
+			)
+			.then((choice) => {
+				switch (choice) {
+					case "Open & Fix":
+						this.openConfigAtError(configPath, line, column);
+						break;
+					case "View Logs":
+						vscode.commands.executeCommand("workbench.action.output.toggleOutput", "SnapBack");
+						break;
+				}
+			});
+	}
+
+	/**
+	 * Extract line and column from JSON parse error message
+	 */
+	private extractErrorPosition(errorMessage: string, content: string): { line: number; column: number } {
+		// Try to extract "at position X" format
+		const positionMatch = errorMessage.match(/position\s+(\d+)/i);
+		if (positionMatch) {
+			const position = Number.parseInt(positionMatch[1], 10);
+			return this.offsetToLineColumn(content, position);
+		}
+
+		// Try to extract "at line X column Y" format
+		const lineColMatch = errorMessage.match(/line\s+(\d+)\s+column\s+(\d+)/i);
+		if (lineColMatch) {
+			return {
+				line: Number.parseInt(lineColMatch[1], 10),
+				column: Number.parseInt(lineColMatch[2], 10),
+			};
+		}
+
+		// Default to start of file if we can't parse
+		return { line: 1, column: 1 };
+	}
+
+	/**
+	 * Convert character offset to line/column
+	 */
+	private offsetToLineColumn(content: string, offset: number): { line: number; column: number } {
+		const lines = content.substring(0, offset).split("\n");
+		const line = lines.length;
+		const column = (lines[lines.length - 1]?.length ?? 0) + 1;
+		return { line, column };
+	}
+
+	/**
+	 * Open config file at the error location
+	 */
+	private openConfigAtError(configPath: string, line: number, column: number): void {
+		vscode.workspace.openTextDocument(configPath).then(
+			(doc) => {
+				const position = new vscode.Position(Math.max(0, line - 1), Math.max(0, column - 1));
+				const selection = new vscode.Selection(position, position);
+				vscode.window.showTextDocument(doc, {
+					selection,
+					preview: false,
+				});
+			},
+			(err) => {
+				logger.error("Failed to open config file", err);
+				// Fallback: just open the file without positioning
+				vscode.commands.executeCommand("vscode.open", vscode.Uri.file(configPath));
+			},
+		);
 	}
 
 	/**
