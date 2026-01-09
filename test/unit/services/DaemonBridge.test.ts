@@ -78,6 +78,17 @@ vi.mock("../../../src/utils/logger", () => ({
 	},
 }));
 
+// Mock NotificationManager to prevent vscode.window.showWarningMessage calls
+// Use direct function return pattern to survive vi.clearAllMocks()
+vi.mock("../../../src/services/NotificationManager", () => ({
+	getNotificationManager: () => ({
+		show: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+		warn: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+		error: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+		info: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+	}),
+}));
+
 import { existsSync, readFileSync } from "node:fs";
 import { createConnection } from "node:net";
 import {
@@ -178,6 +189,16 @@ describe("services/DaemonBridge", () => {
 				platform: vi.fn().mockReturnValue("darwin"),
 			}));
 
+			// Re-register NotificationManager mock after resetModules
+			vi.doMock("../../../src/services/NotificationManager", () => ({
+				getNotificationManager: () => ({
+					show: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+					warn: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+					error: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+					info: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+				}),
+			}));
+
 			// Mock process.kill to succeed (process exists)
 			const killSpy = vi.spyOn(process, "kill").mockImplementation(() => true as never);
 
@@ -242,6 +263,16 @@ describe("services/DaemonBridge", () => {
 				createConnection: vi.fn(() => {
 					connectionAttempted = true;
 					return new MockSocket();
+				}),
+			}));
+
+			// Re-register NotificationManager mock after resetModules
+			vi.doMock("../../../src/services/NotificationManager", () => ({
+				getNotificationManager: () => ({
+					show: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+					warn: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+					error: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
+					info: vi.fn().mockResolvedValue({ action: undefined, dismissed: true }),
 				}),
 			}));
 

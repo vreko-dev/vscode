@@ -34,6 +34,7 @@ import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";
+import { getNotificationManager } from "./NotificationManager";
 
 // =============================================================================
 // CONFIGURATION
@@ -370,10 +371,11 @@ export class DaemonBridge extends vscode.Disposable {
 
 	/**
 	 * P1 UX: Show user-friendly notification when CLI is not found.
-	 * Shows once per session with actionable remediation options.
+	 * Uses NotificationManager for consistent cooldown and deduplication.
 	 */
 	private showCliNotFoundNotification(_errorDetails: string): void {
-		// Only show once per session to avoid spam
+		// NotificationManager handles cooldown/deduplication via notification ID
+		// We still track notificationShown to prevent circuit breaker reset spam
 		if (circuitBreaker.notificationShown) {
 			return;
 		}
@@ -381,15 +383,17 @@ export class DaemonBridge extends vscode.Disposable {
 
 		logger.info("Showing CLI not found notification to user");
 
-		vscode.window
-			.showWarningMessage(
-				"SnapBack CLI not found. Some features (daemon mode, advanced sync) are unavailable.",
-				"Configure CLI Path",
-				"Install CLI",
-				"Retry",
-			)
-			.then((choice) => {
-				switch (choice) {
+		// Use NotificationManager for consistent notification handling
+		getNotificationManager()
+			.show({
+				id: "daemon-cli-not-found",
+				priority: "high",
+				message: "SnapBack CLI not found. Some features (daemon mode, advanced sync) are unavailable.",
+				actions: ["Configure CLI Path", "Install CLI", "Retry"],
+				cooldownMs: 300000, // 5 minutes - don't spam if user dismisses
+			})
+			.then((result) => {
+				switch (result.action) {
 					case "Configure CLI Path":
 						vscode.commands.executeCommand("workbench.action.openSettings", "snapback.cliPath");
 						// Reset circuit breaker when user goes to settings

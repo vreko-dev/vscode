@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { minimatch } from "minimatch";
 import * as vscode from "vscode";
 import { DEFAULT_SNAPBACK_CONFIG } from "../config/defaultConfig";
+import { getNotificationManager } from "../services/NotificationManager";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 // Phase 2: Import protection policy infrastructure
 import { ProtectionManager, type ProtectionPolicy } from "../services/protectionPolicy";
@@ -272,6 +273,7 @@ export class SnapBackRCLoader implements vscode.Disposable {
 
 	/**
 	 * P1 UX: Show user-friendly notification for config parse errors.
+	 * Uses NotificationManager for consistent cooldown and deduplication.
 	 * Includes line/column info and "Open & Fix" action.
 	 */
 	private showConfigParseErrorNotification(configPath: string, content: string, error: SyntaxError): void {
@@ -291,14 +293,17 @@ export class SnapBackRCLoader implements vscode.Disposable {
 		// Log policy precedence for clarity
 		logger.info("Config precedence: Using default policy (.snapbackrc invalid)");
 
-		vscode.window
-			.showWarningMessage(
-				`.snapbackrc has invalid JSON${locationInfo}. Using default protection policy.`,
-				"Open & Fix",
-				"View Logs",
-			)
-			.then((choice) => {
-				switch (choice) {
+		// Use NotificationManager for consistent notification handling
+		getNotificationManager()
+			.show({
+				id: "snapbackrc-parse-error",
+				priority: "high",
+				message: `.snapbackrc has invalid JSON${locationInfo}. Using default protection policy.`,
+				actions: ["Open & Fix", "View Logs"],
+				cooldownMs: 60000, // 1 minute - allow re-notification after user edits
+			})
+			.then((result) => {
+				switch (result.action) {
 					case "Open & Fix":
 						this.openConfigAtError(configPath, line, column);
 						break;
