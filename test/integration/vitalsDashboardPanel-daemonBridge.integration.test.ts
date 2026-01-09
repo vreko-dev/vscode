@@ -1,17 +1,19 @@
 /**
+ * @deprecated This test file tests the legacy VitalsDashboardPanel which has been
+ * consolidated into UnifiedDashboardPanel (vitals tab). See UnifiedDashboardPanel.test.ts
+ * for the current implementation tests.
+ *
  * Integration Test: VitalsDashboardPanel → DaemonBridge Wiring
  *
  * Per ARCHITECTURE_REFACTOR_SPEC.md Section 8 Migration Checklist:
- * - [x] Wire DaemonBridge into VitalsDashboardPanel
+ * - [x] Wire DaemonBridge into UnifiedDashboardPanel (consolidation complete)
  *
  * Target Architecture (from spec Section 4.4):
- * - VitalsDashboardPanel should receive DaemonBridge via setDaemonBridge()
- * - Vitals should refresh when CLI/MCP creates snapshots
- * - Event subscription enables cross-surface coordination
+ * - UnifiedDashboardPanel now handles vitals via the "vitals" tab
+ * - DaemonBridge wiring is in UnifiedDashboardPanel.wireDaemonBridge()
  *
  * Test Status:
- * - Tests verify DaemonBridge wiring is in place
- * - Event subscription refreshes vitals on snapshot creation
+ * - These tests are deprecated - use UnifiedDashboardPanel.test.ts instead
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";

@@ -1,22 +1,19 @@
 /**
+ * @deprecated This test file tests the legacy DashboardPanel which has been
+ * consolidated into UnifiedDashboardPanel. See UnifiedDashboardPanel.test.ts
+ * for the current implementation tests.
+ *
  * Integration Test: DashboardPanel → DaemonBridge Wiring
  *
  * Per ARCHITECTURE_REFACTOR_SPEC.md Section 8 Migration Checklist:
- * - [ ] Wire DaemonBridge into DashboardPanel
- * - [ ] Wire DaemonBridge into VitalsDashboardPanel
+ * - [x] Wire DaemonBridge into UnifiedDashboardPanel (consolidation complete)
  *
  * Target Architecture (from spec Section 4.4):
- * - DashboardPanel should receive CliManager/DaemonBridge via constructor
- * - Data loading should route through daemon instead of direct service calls
- * - Actions (createSnapshot, etc.) should delegate to daemon
- *
- * Current Architecture:
- * - DashboardPanel uses DashboardDataService directly
- * - DashboardDataService uses OperationCoordinator directly
+ * - UnifiedDashboardPanel now handles all dashboard functionality
+ * - DaemonBridge wiring is in UnifiedDashboardPanel.wireDaemonBridge()
  *
  * Test Status:
- * - Tests marked with .skip require implementation of DaemonBridge wiring
- * - Infrastructure tests verify existing patterns are in place
+ * - These tests are deprecated - use UnifiedDashboardPanel.test.ts instead
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
