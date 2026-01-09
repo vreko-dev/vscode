@@ -289,7 +289,7 @@ describe("DashboardPanel → DaemonBridge Integration", () => {
 		/**
 		 * DashboardPanel should subscribe to DaemonBridge events
 		 * to receive real-time updates when snapshots are created elsewhere.
-		 * 
+		 *
 		 * IMPLEMENTED: DashboardPanel.setDaemonBridge() subscribes to onSnapshotCreated
 		 */
 		it("DashboardPanel subscribes to onSnapshotCreated via setDaemonBridge", async () => {
@@ -298,10 +298,10 @@ describe("DashboardPanel → DaemonBridge Integration", () => {
 				setDaemonBridge: vi.fn(),
 				scheduleDataRefresh: vi.fn(),
 			};
-			
+
 			// Simulate DashboardPanel wiring
 			mockPanel.setDaemonBridge(mockDaemonBridge);
-			
+
 			expect(mockPanel.setDaemonBridge).toHaveBeenCalledWith(mockDaemonBridge);
 		});
 

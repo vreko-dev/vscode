@@ -162,7 +162,7 @@ describe("DaemonBridge → SaveHandler Integration", () => {
 		 * Per ARCHITECTURE_REFACTOR_SPEC.md:
 		 * SaveHandler should accept DaemonBridge via constructor or setter method.
 		 * This enables the SaveHandler to notify the daemon of file modifications.
-		 * 
+		 *
 		 * IMPLEMENTED: SaveHandler now has setDaemonBridge() method
 		 */
 		it.skip("SaveHandler accepts DaemonBridge in constructor", async () => {
@@ -177,10 +177,10 @@ describe("DaemonBridge → SaveHandler Integration", () => {
 			const mockHandler = {
 				setDaemonBridge: vi.fn(),
 			};
-			
+
 			// Call setDaemonBridge
 			mockHandler.setDaemonBridge(mockDaemonBridge);
-			
+
 			// Verify it was called with the bridge
 			expect(mockHandler.setDaemonBridge).toHaveBeenCalledWith(mockDaemonBridge);
 		});
