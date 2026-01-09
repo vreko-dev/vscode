@@ -25,7 +25,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // =============================================================================
 
 // Use vi.hoisted to ensure mock values are available when vi.mock factories run
-const { mockDataService, defaultSnapshot } = vi.hoisted(() => {
+const { mockDataService, defaultSnapshot, mockWebviewPanel } = vi.hoisted(() => {
 	const defaultSnapshot = {
 		stats: {
 			snapshotsToday: 5,
@@ -74,6 +74,26 @@ const { mockDataService, defaultSnapshot } = vi.hoisted(() => {
 		patterns: [],
 	};
 
+	const mockWebviewPanel = {
+		webview: {
+			html: "",
+			onDidReceiveMessage: vi.fn(() => ({ dispose: vi.fn() })),
+			postMessage: vi.fn().mockResolvedValue(true),
+			// Return string path for HTML interpolation
+			asWebviewUri: vi.fn((uri: { fsPath?: string; path?: string }) => {
+				const path = uri?.fsPath || uri?.path || "unknown";
+				return `vscode-webview://${path}`;
+			}),
+			cspSource: "test-csp",
+		},
+		onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
+		onDidChangeViewState: vi.fn(() => ({ dispose: vi.fn() })),
+		reveal: vi.fn(),
+		dispose: vi.fn(),
+		visible: true,
+		viewColumn: 1,
+	};
+
 	return {
 		defaultSnapshot,
 		mockDataService: {
@@ -83,6 +103,7 @@ const { mockDataService, defaultSnapshot } = vi.hoisted(() => {
 			recordAIDetection: vi.fn(),
 			dispose: vi.fn(),
 		},
+		mockWebviewPanel,
 	};
 });
 
@@ -106,26 +127,6 @@ vi.mock("../../../src/services/WorkspaceDataService", () => ({
 }));
 
 // Mock vscode module
-const mockWebviewPanel = {
-	webview: {
-		html: "",
-		onDidReceiveMessage: vi.fn(() => ({ dispose: vi.fn() })),
-		postMessage: vi.fn().mockResolvedValue(true),
-		// Return string path for HTML interpolation
-		asWebviewUri: vi.fn((uri: { fsPath?: string; path?: string }) => {
-			const path = uri?.fsPath || uri?.path || "unknown";
-			return `vscode-webview://${path}`;
-		}),
-		cspSource: "test-csp",
-	},
-	onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
-	onDidChangeViewState: vi.fn(() => ({ dispose: vi.fn() })),
-	reveal: vi.fn(),
-	dispose: vi.fn(),
-	visible: true,
-	viewColumn: 1,
-};
-
 vi.mock("vscode", () => {
 	class MockUri {
 		static file(path: string) {
@@ -197,8 +198,15 @@ describe("UnifiedDashboardPanel", () => {
 		// Reset singleton
 		UnifiedDashboardPanel.disposeAll?.();
 
-		// Reset mocks
+		// Reset mocks - use clearAllMocks to preserve implementations
 		vi.clearAllMocks();
+
+		// Re-configure mock implementations (clearAllMocks may affect hoisted mocks)
+		mockDataService.getSnapshot.mockResolvedValue(defaultSnapshot);
+		mockDataService.onDataChange.mockReturnValue({ dispose: vi.fn() });
+		mockWebviewPanel.webview.postMessage.mockResolvedValue(true);
+		mockWebviewPanel.webview.onDidReceiveMessage.mockReturnValue({ dispose: vi.fn() });
+		mockWebviewPanel.onDidDispose.mockReturnValue({ dispose: vi.fn() });
 
 		// Setup mock extension URI
 		mockExtensionUri = { fsPath: "/test/extension" };
@@ -372,15 +380,18 @@ describe("UnifiedDashboardPanel", () => {
 
 	describe("data flow", () => {
 		it("should send data on webviewReady message", async () => {
-			const panel = UnifiedDashboardPanel.createOrShow(
+			UnifiedDashboardPanel.createOrShow(
 				mockExtensionUri as any,
 				mockCoordinator as any,
 			);
 
 			// Simulate webviewReady message
-			const messageHandler = vi.mocked(mockWebviewPanel.webview.onDidReceiveMessage).mock
-				.calls[0][0];
-			await messageHandler({ type: "webviewReady" });
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const messageHandler = (mockWebviewPanel.webview.onDidReceiveMessage as any).mock
+				.calls[0]?.[0] as ((msg: unknown) => Promise<void>) | undefined;
+
+			expect(messageHandler).toBeDefined();
+			await messageHandler!({ type: "webviewReady" });
 
 			// Should have called getSnapshot and sent data
 			expect(mockDataService.getSnapshot).toHaveBeenCalled();
@@ -392,27 +403,30 @@ describe("UnifiedDashboardPanel", () => {
 		});
 
 		it("should include stats in data update", async () => {
-			const panel = UnifiedDashboardPanel.createOrShow(
+			UnifiedDashboardPanel.createOrShow(
 				mockExtensionUri as any,
 				mockCoordinator as any,
 			);
 
-			const messageHandler = vi.mocked(mockWebviewPanel.webview.onDidReceiveMessage).mock
-				.calls[0][0];
-			await messageHandler({ type: "webviewReady" });
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const messageHandler = (mockWebviewPanel.webview.onDidReceiveMessage as any).mock
+				.calls[0]?.[0] as ((msg: unknown) => Promise<void>) | undefined;
+			expect(messageHandler).toBeDefined();
+			await messageHandler!({ type: "webviewReady" });
 
-			const sentMessage = vi.mocked(mockWebviewPanel.webview.postMessage).mock.calls.find(
-				(call) => call[0].type === "update",
-			)?.[0];
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const sentMessage = (mockWebviewPanel.webview.postMessage as any).mock.calls.find(
+				(call: unknown[]) => (call[0] as { type: string }).type === "update",
+			)?.[0] as { stats: { snapshotsToday: number } } | undefined;
 
-			expect(sentMessage.stats).toBeDefined();
-			expect(sentMessage.stats.snapshotsToday).toBe(5);
+			expect(sentMessage?.stats).toBeDefined();
+			expect(sentMessage?.stats.snapshotsToday).toBe(5);
 		});
 
 		it("should include vitals in data update when available", async () => {
 			// Update mock to return vitals
 			mockDataService.getSnapshot.mockResolvedValueOnce({
-				...mockDataService.getSnapshot(),
+				...defaultSnapshot,
 				vitals: {
 					pulse: { changesPerMinute: 10, level: "normal" },
 					temperature: { aiPercentage: 30, level: "warm" },
@@ -422,60 +436,72 @@ describe("UnifiedDashboardPanel", () => {
 				},
 			});
 
-			const panel = UnifiedDashboardPanel.createOrShow(
+			UnifiedDashboardPanel.createOrShow(
 				mockExtensionUri as any,
 				mockCoordinator as any,
 			);
 
-			const messageHandler = vi.mocked(mockWebviewPanel.webview.onDidReceiveMessage).mock
-				.calls[0][0];
-			await messageHandler({ type: "webviewReady" });
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const messageHandler = (mockWebviewPanel.webview.onDidReceiveMessage as any).mock
+				.calls[0]?.[0] as ((msg: unknown) => Promise<void>) | undefined;
+			expect(messageHandler).toBeDefined();
+			await messageHandler!({ type: "webviewReady" });
 
-			const sentMessage = vi.mocked(mockWebviewPanel.webview.postMessage).mock.calls.find(
-				(call) => call[0].type === "update",
-			)?.[0];
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const sentMessage = (mockWebviewPanel.webview.postMessage as any).mock.calls.find(
+				(call: unknown[]) => (call[0] as { type: string }).type === "update",
+			)?.[0] as { vitals: unknown } | undefined;
 
-			expect(sentMessage.vitals).toBeDefined();
+			expect(sentMessage?.vitals).toBeDefined();
 		});
 
 		it("should handle missing vitals gracefully", async () => {
-			const panel = UnifiedDashboardPanel.createOrShow(
+			UnifiedDashboardPanel.createOrShow(
 				mockExtensionUri as any,
 				mockCoordinator as any,
 			);
 
-			const messageHandler = vi.mocked(mockWebviewPanel.webview.onDidReceiveMessage).mock
-				.calls[0][0];
-			await messageHandler({ type: "webviewReady" });
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const messageHandler = (mockWebviewPanel.webview.onDidReceiveMessage as any).mock
+				.calls[0]?.[0] as ((msg: unknown) => Promise<void>) | undefined;
+			expect(messageHandler).toBeDefined();
+			await messageHandler!({ type: "webviewReady" });
 
-			const sentMessage = vi.mocked(mockWebviewPanel.webview.postMessage).mock.calls.find(
-				(call) => call[0].type === "update",
-			)?.[0];
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const sentMessage = (mockWebviewPanel.webview.postMessage as any).mock.calls.find(
+				(call: unknown[]) => (call[0] as { type: string }).type === "update",
+			)?.[0] as { vitals: unknown } | undefined;
 
 			// Should still send data even if vitals is null
 			expect(sentMessage).toBeDefined();
-			expect(sentMessage.vitals).toBeNull();
+			expect(sentMessage?.vitals).toBeNull();
 		});
 
 		it("should update webview when data service fires change event", async () => {
-			const panel = UnifiedDashboardPanel.createOrShow(
+			UnifiedDashboardPanel.createOrShow(
 				mockExtensionUri as any,
 				mockCoordinator as any,
 			);
 
 			// Simulate webviewReady first
-			const messageHandler = vi.mocked(mockWebviewPanel.webview.onDidReceiveMessage).mock
-				.calls[0][0];
-			await messageHandler({ type: "webviewReady" });
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const messageHandler = (mockWebviewPanel.webview.onDidReceiveMessage as any).mock
+				.calls[0]?.[0] as ((msg: unknown) => Promise<void>) | undefined;
+			expect(messageHandler).toBeDefined();
+			await messageHandler!({ type: "webviewReady" });
 
 			// Get the onDataChange callback
-			const onDataChangeCallback = vi.mocked(mockDataService.onDataChange).mock.calls[0][0];
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const onDataChangeCallback = (mockDataService.onDataChange as any).mock.calls[0]?.[0] as
+				| ((event: unknown) => void)
+				| undefined;
+			expect(onDataChangeCallback).toBeDefined();
 
 			// Clear postMessage calls
-			vi.mocked(mockWebviewPanel.webview.postMessage).mockClear();
+			mockWebviewPanel.webview.postMessage.mockClear();
 
 			// Fire data change event
-			onDataChangeCallback({ type: "stats-updated" });
+			onDataChangeCallback!({ type: "stats-updated" });
 
 			// Wait for debounce
 			await new Promise((resolve) => setTimeout(resolve, 100));
@@ -485,15 +511,16 @@ describe("UnifiedDashboardPanel", () => {
 		});
 
 		it("should not send data before webviewReady", () => {
-			const panel = UnifiedDashboardPanel.createOrShow(
+			UnifiedDashboardPanel.createOrShow(
 				mockExtensionUri as any,
 				mockCoordinator as any,
 			);
 
 			// Before webviewReady, no update messages should be sent
-			const updateCalls = vi
-				.mocked(mockWebviewPanel.webview.postMessage)
-				.mock.calls.filter((call) => call[0].type === "update");
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const updateCalls = (mockWebviewPanel.webview.postMessage as any).mock.calls.filter(
+				(call: unknown[]) => (call[0] as { type: string }).type === "update",
+			);
 
 			expect(updateCalls.length).toBe(0);
 		});

@@ -13,10 +13,7 @@
  */
 
 import * as vscode from "vscode";
-import {
-	type SnapshotCoordinator,
-	WorkspaceDataService,
-} from "../services/WorkspaceDataService";
+import { type SnapshotCoordinator, WorkspaceDataService } from "../services/WorkspaceDataService";
 import { logger } from "../utils/logger";
 
 // =============================================================================
@@ -84,11 +81,6 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	 * Flag indicating webview is ready to receive messages
 	 */
 	private isWebviewReady = false;
-
-	/**
-	 * Current active tab
-	 */
-	private currentTab: DashboardTab;
 
 	/**
 	 * Disposables for cleanup
@@ -166,8 +158,6 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		this.panel = panel;
 		this.dataService = dataService;
 		this.extensionUri = extensionUri;
-		this.currentTab = initialTab;
-		this.currentTab = initialTab;
 
 		// Set up message handler FIRST (before setting HTML)
 		this.panel.webview.onDidReceiveMessage(
@@ -201,7 +191,6 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	 * Navigate to a specific tab
 	 */
 	public navigateTo(tab: DashboardTab): void {
-		this.currentTab = tab;
 		this.panel.webview.postMessage({ type: "navigate", tab });
 	}
 

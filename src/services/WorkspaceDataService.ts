@@ -246,7 +246,6 @@ export class WorkspaceDataService implements vscode.Disposable {
 	private static instances: Map<string, WorkspaceDataService> = new Map();
 
 	private readonly workspaceId: string;
-	private readonly workspacePath: string;
 	private readonly coordinator: SnapshotCoordinator;
 	private readonly snapbackDir: string;
 
@@ -308,7 +307,6 @@ export class WorkspaceDataService implements vscode.Disposable {
 
 	constructor(workspaceId: string, workspacePath: string, coordinator: SnapshotCoordinator) {
 		this.workspaceId = workspaceId;
-		this.workspacePath = workspacePath; // Stored for future use (e.g., workspace-relative paths)
 		this.coordinator = coordinator;
 		this.snapbackDir = path.join(workspacePath, ".snapback");
 
@@ -466,9 +464,11 @@ export class WorkspaceDataService implements vscode.Disposable {
 					const key = `${entry.type}:${entry.file}`;
 
 					if (violationMap.has(key)) {
-						const existing = violationMap.get(key)!;
-						existing.count++;
-						existing.date = entry.date || existing.date;
+						const existing = violationMap.get(key);
+						if (existing) {
+							existing.count++;
+							existing.date = entry.date || existing.date;
+						}
 					} else {
 						violationMap.set(key, {
 							type: entry.type,
@@ -1050,4 +1050,24 @@ export class WorkspaceDataService implements vscode.Disposable {
 		this.disposeInternal();
 		WorkspaceDataService.instances.delete(this.workspaceId);
 	}
+}
+
+// =============================================================================
+// FACTORY FUNCTION
+// =============================================================================
+
+/**
+ * Create or retrieve a WorkspaceDataService instance for the given workspace.
+ *
+ * @param workspaceId - Unique identifier for the workspace
+ * @param workspacePath - File system path to the workspace
+ * @param coordinator - Snapshot coordinator for accessing snapshot data
+ * @returns The WorkspaceDataService instance for this workspace
+ */
+export function createWorkspaceDataService(
+	workspaceId: string,
+	workspacePath: string,
+	coordinator: SnapshotCoordinator,
+): WorkspaceDataService {
+	return WorkspaceDataService.for(workspaceId, workspacePath, coordinator);
 }
