@@ -72,6 +72,40 @@ const DAEMON_START_TIMEOUT_MS = 10000;
 /** Delay before considering daemon started */
 const DAEMON_START_WAIT_MS = 500;
 
+// =============================================================================
+// CIRCUIT BREAKER STATE (P1 UX Improvement)
+// =============================================================================
+
+/**
+ * Circuit breaker to prevent retry spam when CLI is not installed.
+ * When spawn fails with ENOENT, we mark this and stop retrying automatically.
+ * User must explicitly trigger "Retry Daemon" or fix CLI path to reset.
+ */
+interface CircuitBreakerState {
+	/** Whether we've attempted spawn and got ENOENT */
+	cliNotFound: boolean;
+	/** The last ENOENT error message */
+	lastError: string | null;
+	/** Whether we've shown the notification for this session */
+	notificationShown: boolean;
+}
+
+const circuitBreaker: CircuitBreakerState = {
+	cliNotFound: false,
+	lastError: null,
+	notificationShown: false,
+};
+
+/**
+ * Reset circuit breaker (called when user explicitly retries or changes settings)
+ */
+export function resetDaemonCircuitBreaker(): void {
+	circuitBreaker.cliNotFound = false;
+	circuitBreaker.lastError = null;
+	circuitBreaker.notificationShown = false;
+	logger.info("Daemon circuit breaker reset - will attempt spawn on next request");
+}
+
 /** Find the snapback CLI executable path */
 function getCliPath(): string | null {
 	try {
@@ -237,6 +271,9 @@ export class DaemonBridge extends vscode.Disposable {
 	 *
 	 * Spawns `snapback daemon start --detach` and waits for it to be ready.
 	 *
+	 * P1 UX: Uses circuit breaker to prevent retry spam when CLI is not installed.
+	 * Shows one clear notification with remediation actions.
+	 *
 	 * @returns true if daemon started successfully or was already running
 	 */
 	private async autoStartDaemon(): Promise<boolean> {
@@ -244,9 +281,16 @@ export class DaemonBridge extends vscode.Disposable {
 			return true;
 		}
 
+		// P1 UX: Check circuit breaker - if CLI was not found, don't retry automatically
+		if (circuitBreaker.cliNotFound) {
+			logger.debug("Daemon auto-start skipped: CLI not found (circuit breaker active)");
+			return false;
+		}
+
 		const cliPath = getCliPath();
 		if (!cliPath) {
 			logger.warn("Cannot auto-start daemon: snapback CLI not found");
+			this.showCliNotFoundNotification("CLI path resolution failed");
 			return false;
 		}
 
@@ -266,9 +310,18 @@ export class DaemonBridge extends vscode.Disposable {
 				child.unref();
 
 				child.on("error", (err) => {
-					logger.warn("Failed to spawn daemon process", {
-						error: err.message,
-					});
+					const errorMsg = err.message;
+
+					// P1 UX: Detect ENOENT and activate circuit breaker
+					if ((err as NodeJS.ErrnoException).code === "ENOENT" || errorMsg.includes("ENOENT")) {
+						circuitBreaker.cliNotFound = true;
+						circuitBreaker.lastError = errorMsg;
+						logger.warn("Daemon spawn failed: CLI not found (ENOENT)", { cliPath });
+						this.showCliNotFoundNotification(errorMsg);
+					} else {
+						logger.warn("Failed to spawn daemon process", { error: errorMsg });
+					}
+
 					resolve(false);
 				});
 
@@ -298,12 +351,60 @@ export class DaemonBridge extends vscode.Disposable {
 				// Start checking after initial delay
 				setTimeout(checkDaemon, DAEMON_START_WAIT_MS);
 			} catch (err) {
-				logger.warn("Exception during daemon auto-start", {
-					error: err instanceof Error ? err.message : String(err),
-				});
+				const errorMsg = err instanceof Error ? err.message : String(err);
+
+				// P1 UX: Detect ENOENT in catch block
+				if (errorMsg.includes("ENOENT")) {
+					circuitBreaker.cliNotFound = true;
+					circuitBreaker.lastError = errorMsg;
+					logger.warn("Daemon spawn exception: CLI not found (ENOENT)", { cliPath });
+					this.showCliNotFoundNotification(errorMsg);
+				} else {
+					logger.warn("Exception during daemon auto-start", { error: errorMsg });
+				}
+
 				resolve(false);
 			}
 		});
+	}
+
+	/**
+	 * P1 UX: Show user-friendly notification when CLI is not found.
+	 * Shows once per session with actionable remediation options.
+	 */
+	private showCliNotFoundNotification(_errorDetails: string): void {
+		// Only show once per session to avoid spam
+		if (circuitBreaker.notificationShown) {
+			return;
+		}
+		circuitBreaker.notificationShown = true;
+
+		logger.info("Showing CLI not found notification to user");
+
+		vscode.window
+			.showWarningMessage(
+				"SnapBack CLI not found. Some features (daemon mode, advanced sync) are unavailable.",
+				"Configure CLI Path",
+				"Install CLI",
+				"Retry",
+			)
+			.then((choice) => {
+				switch (choice) {
+					case "Configure CLI Path":
+						vscode.commands.executeCommand("workbench.action.openSettings", "snapback.cliPath");
+						// Reset circuit breaker when user goes to settings
+						resetDaemonCircuitBreaker();
+						break;
+					case "Install CLI":
+						vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/cli/install"));
+						break;
+					case "Retry":
+						// Reset circuit breaker and try again
+						resetDaemonCircuitBreaker();
+						void this.connect();
+						break;
+				}
+			});
 	}
 
 	/**
