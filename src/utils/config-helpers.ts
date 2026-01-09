@@ -91,8 +91,8 @@ export interface SnapBackConfigSchema {
 	"onboarding.showWelcome": boolean;
 	"onboarding.autoDetectCriticalFiles": boolean;
 
-	// Logging
-	logLevel: "debug" | "info" | "warn" | "error";
+	// Logging (P2: Added trace and silent levels)
+	logLevel: "trace" | "debug" | "info" | "warn" | "error" | "silent";
 
 	// Telemetry
 	"telemetry.endpoint": string;

@@ -961,14 +961,41 @@
 				"snapback.logLevel": {
 					"type": "string",
 					"enum": [
+						"silent",
 						"error",
 						"warn",
 						"info",
-						"debug"
+						"debug",
+						"trace"
 					],
 					"default": "info",
-					"markdownDescription": "**Log Level**\n\nFor troubleshooting. Set to `debug` for verbose output.",
+					"markdownDescription": "**Log Level**\n\nFor troubleshooting. Set to `debug` for verbose output, `trace` for maximum detail, or `silent` to disable all logging.",
 					"order": 7
+				},
+				"snapback.logNamespaces": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"enum": [
+							"activation",
+							"mcp",
+							"snapshot",
+							"protection",
+							"auth",
+							"daemon",
+							"storage",
+							"telemetry"
+						]
+					},
+					"default": [],
+					"markdownDescription": "**Log Namespaces**\n\nFilter debug logs to specific subsystems. Empty means all subsystems log at the configured level. Example: `[\"activation\", \"mcp\"]` to only see debug logs from those modules.",
+					"order": 8
+				},
+				"snapback.logBatchDebug": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "**Batch Debug Logs**\n\nAggregate high-frequency debug logs into batched summaries. Reduces Output channel noise during intensive operations.",
+					"order": 9
 				},
 				"snapback.ui.showTreeView": {
 					"type": "boolean",
