@@ -6,6 +6,15 @@
  * Legacy commands (snapback.createSnapshot) are maintained for backward compatibility.
  * New commands (snapback.snapshot.create) follow the organized structure.
  * This file provides a single source of truth for command IDs used in code.
+ *
+ * STATUS LEGEND:
+ * - No annotation = ACTIVE (registered and functional)
+ * - @planned = NOT YET IMPLEMENTED (defined but not registered)
+ * - @legacy = DEPRECATED but maintained for backward compatibility
+ *
+ * CONSOLIDATION AUDIT (2026-01-08):
+ * Found 19 commands defined but not registered. These are marked @planned below.
+ * Either implement or remove in future cleanup sprint.
  */
 
 export const COMMANDS = {
@@ -13,9 +22,9 @@ export const COMMANDS = {
 	PROTECTION: {
 		// Note: setWatchLevel, setWarnLevel, setBlockLevel commands are registered as legacy commands
 		// The v2 naming pattern (snapback.protection.*) is reserved for future use
-		REMOVE: "snapback.protection.remove",
-		PROTECT_WORKSPACE: "snapback.protection.workspace",
-		PROTECT_FOLDER: "snapback.protection.folder",
+		REMOVE: "snapback.protection.remove", // @planned - not registered
+		PROTECT_WORKSPACE: "snapback.protection.workspace", // @planned - not registered
+		PROTECT_FOLDER: "snapback.protection.folder", // @planned - not registered
 		// Legacy commands (maintain backward compatibility)
 		PROTECT_FILE: "snapback.protectFile",
 		PROTECT_CURRENT_FILE: "snapback.protectCurrentFile",
@@ -31,12 +40,12 @@ export const COMMANDS = {
 
 	// Snapshot Commands
 	SNAPSHOT: {
-		CREATE: "snapback.snapshot.create",
-		LIST: "snapback.snapshot.list",
-		COMPARE: "snapback.snapshot.compare",
-		RESTORE: "snapback.snapshot.restore",
-		DELETE: "snapback.snapshot.delete",
-		// Legacy commands (maintain backward compatibility)
+		CREATE: "snapback.snapshot.create", // @planned - use CREATE_LEGACY instead
+		LIST: "snapback.snapshot.list", // @planned - not registered
+		COMPARE: "snapback.snapshot.compare", // @planned - not registered
+		RESTORE: "snapback.snapshot.restore", // @planned - use RESTORE_LEGACY instead
+		DELETE: "snapback.snapshot.delete", // @planned - not registered
+		// Legacy commands (maintain backward compatibility) - THESE ARE ACTIVE
 		CREATE_LEGACY: "snapback.createSnapshot",
 		RESTORE_LEGACY: "snapback.snapBack",
 		SHOW_ALL: "snapback.showAllSnapshots",
@@ -45,19 +54,19 @@ export const COMMANDS = {
 
 	// Session Commands
 	SESSION: {
-		LIST: "snapback.session.list",
-		RESTORE: "snapback.session.restore",
-		EXPORT: "snapback.session.export",
+		LIST: "snapback.session.list", // @planned - not registered
+		RESTORE: "snapback.session.restore", // @planned - not registered
+		EXPORT: "snapback.session.export", // @planned - not registered
 	},
 
 	// View Commands
 	VIEW: {
-		SHOW_SIDEBAR: "snapback.view.sidebar",
-		SHOW_HISTORY: "snapback.view.history",
-		SHOW_SETTINGS: "snapback.view.settings",
-		REFRESH: "snapback.view.refresh",
+		SHOW_SIDEBAR: "snapback.view.sidebar", // @planned - not registered
+		SHOW_HISTORY: "snapback.view.history", // @planned - not registered
+		SHOW_SETTINGS: "snapback.view.settings", // @planned - not registered
+		REFRESH: "snapback.view.refresh", // @planned - use REFRESH_LEGACY instead
 		OPEN_IN_WEB: "snapback.openSnapshotInWeb",
-		// Legacy commands
+		// Legacy commands - THESE ARE ACTIVE
 		REFRESH_LEGACY: "snapback.refreshViews",
 		REFRESH_DASHBOARD: "snapback.refreshSafetyDashboard",
 		OPEN_WALKTHROUGH: "snapback.openWalkthrough",
@@ -66,15 +75,15 @@ export const COMMANDS = {
 
 	// Account Commands
 	TEST: {
-		GET_SNAPSHOTS: "snapback.test.getSnapshots",
-		RESTORE_SNAPSHOT: "snapback.test.restoreSnapshot",
+		GET_SNAPSHOTS: "snapback.test.getSnapshots", // @planned - not registered
+		RESTORE_SNAPSHOT: "snapback.test.restoreSnapshot", // @planned - not registered
 	},
 	ACCOUNT: {
 		SIGN_IN: "snapback.account.signIn",
-		SIGN_OUT: "snapback.account.signOut",
-		SHOW_STATUS: "snapback.account.status",
+		SIGN_OUT: "snapback.account.signOut", // @planned - use SIGN_OUT_LEGACY instead
+		SHOW_STATUS: "snapback.account.status", // @planned - use SHOW_STATUS_LEGACY instead
 		MANUAL_AUTH: "snapback.account.manualAuth",
-		// Legacy commands
+		// Legacy commands - THESE ARE ACTIVE
 		SIGN_IN_LEGACY: "snapback.signIn",
 		SIGN_OUT_LEGACY: "snapback.signOut",
 
