@@ -18,6 +18,7 @@ import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 import { MCPStatusItem } from "../ui/MCPStatusItem";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
 import { createStatusBarManager, type StatusBarManager } from "../ui/StatusBarManager";
+import { createStatusBarController, type StatusBarController } from "../ui/statusBar/StatusBarController";
 import { createVitalsUIIntegration, registerVitalsCommands, type VitalsUIIntegration } from "../ui/VitalsUIIntegration";
 import { logger } from "../utils/logger";
 import { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
@@ -35,6 +36,7 @@ export interface Phase4Result {
 	protectionDecorationProvider: ProtectionDecorationProvider;
 	protectionCodeLensProvider: ProtectionCodeLensProvider;
 	statusBarManager: StatusBarManager; // Consolidated status bar
+	statusBarController: StatusBarController; // FSM-based status bar controller
 	mcpStatusItem?: MCPStatusItem; // MCP connection status indicator
 	welcomeView: WelcomeView;
 	snapshotDecorations: SnapshotDecorations;
@@ -172,6 +174,13 @@ export async function initializePhase4Providers(
 		context.subscriptions.push(vitalsUIIntegration);
 		logger.debug("VitalsUIIntegration", { ms: Date.now() - t });
 
+		// Initialize StatusBarController - FSM bridge between data service and status bar
+		t = Date.now();
+		const dataService = vitalsUIIntegration.getDataService();
+		const statusBarController = createStatusBarController(dataService, statusBarManager);
+		context.subscriptions.push(statusBarController);
+		logger.debug("StatusBarController", { ms: Date.now() - t });
+
 		// Register new Dashboard commands (3-tab dashboard)
 		t = Date.now();
 		const dashboardDisposables = registerDashboardCommands(context, phase3Result.operationCoordinator);
@@ -190,6 +199,7 @@ export async function initializePhase4Providers(
 			protectionDecorationProvider,
 			protectionCodeLensProvider,
 			statusBarManager,
+			statusBarController,
 			mcpStatusItem,
 			welcomeView,
 			snapshotDecorations,

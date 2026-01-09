@@ -1392,6 +1392,9 @@ export async function activate(context: vscode.ExtensionContext) {
 						vitalsStatusBar.incrementSnapshotCount();
 					}
 
+					// 🆕 Notify StatusBarController for FSM state transition (protected flash)
+					phase4Result.statusBarController.onSnapshotCreated();
+
 					// Show notification only for current workspace
 					vscode.window.showInformationMessage(`🧢 Snapshot created by AI: ${data.id}`);
 				} else {
@@ -1426,6 +1429,30 @@ export async function activate(context: vscode.ExtensionContext) {
 			bus.on(SnapBackEvent.ANALYSIS_COMPLETED, analysisCompletedHandler);
 			context.subscriptions.push({
 				dispose: () => bus.off(SnapBackEvent.ANALYSIS_COMPLETED, analysisCompletedHandler),
+			});
+
+			// 🆕 Wire StatusBarController recovery events for FSM "recovering" state
+			const restoreStartedHandler = (payload: unknown) => {
+				const data = payload as { snapshotId: string };
+				logger.info("Restore started event received", data);
+				phase4Result.statusBarController.onRecoveryStart();
+			};
+			bus.on(SnapBackEvent.RESTORE_STARTED, restoreStartedHandler);
+			context.subscriptions.push({
+				dispose: () => bus.off(SnapBackEvent.RESTORE_STARTED, restoreStartedHandler),
+			});
+
+			const snapshotRestoredHandler = (payload: unknown) => {
+				const data = payload as { snapshotId: string; filesRestored: number };
+				logger.info("Snapshot restored event received", data);
+				// Recovery completed successfully
+				phase4Result.statusBarController.onRecoveryComplete(true);
+				// Refresh views after restore
+				refreshViews();
+			};
+			bus.on(SnapBackEvent.SNAPSHOT_RESTORED, snapshotRestoredHandler);
+			context.subscriptions.push({
+				dispose: () => bus.off(SnapBackEvent.SNAPSHOT_RESTORED, snapshotRestoredHandler),
 			});
 
 			// 🆕 Initialize DaemonBridge for cross-surface snapshot coordination
@@ -1511,7 +1538,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			operationCoordinator: phase3Result.operationCoordinator,
 			snapshotManager: phase3Result.snapshotManager,
 			workflowIntegration: phase3Result.workflowIntegration,
-			// Removed: StatusBarController - protection status shown in Activity Bar only
+			// 🆕 StatusBarController now exists for FSM-based status bar (vitals/risk states)
 			notificationManager: phase3Result.notificationManager,
 			workspaceMemoryManager: phase3Result.workspaceMemoryManager,
 			conflictResolver: phase3Result.conflictResolver,

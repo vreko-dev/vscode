@@ -1028,6 +1028,12 @@ export class OperationCoordinator {
 				throw new Error("No workspace folder found");
 			}
 
+			// 🆕 Emit RESTORE_STARTED for StatusBarController FSM transition
+			this.publishEvent(SnapBackEvent.RESTORE_STARTED, {
+				snapshotId,
+				timestamp: Date.now(),
+			});
+
 			// Phase 1: Validate snapshot exists
 			this.updateOperationProgress(operationId, 10);
 			const snapshot = await this.storage.getSnapshot(snapshotId);

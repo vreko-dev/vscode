@@ -16,8 +16,9 @@ export type StateChangeCallback = (newState: StatusBarState, previousState: Stat
 /**
  * Priority levels for risk states.
  * Higher number = higher priority = more urgent.
+ * EXPORTED for reuse in StatusBarController.isLowerPriority()
  */
-const STATE_PRIORITY: Record<StatusBarState, number> = {
+export const STATE_PRIORITY: Record<StatusBarState, number> = {
 	idle: 1,
 	"ambient-risk": 2,
 	recommend: 3,
@@ -31,8 +32,12 @@ const STATE_PRIORITY: Record<StatusBarState, number> = {
 
 /**
  * States that can always be transitioned TO regardless of current state.
+ * - protected: snapshot just created
+ * - recovering: recovery in progress
+ * - error: something went wrong
+ * - disabled: user disabled notifications
  */
-const SPECIAL_TARGET_STATES: Set<StatusBarState> = new Set(["protected", "error", "disabled"]);
+const SPECIAL_TARGET_STATES: Set<StatusBarState> = new Set(["protected", "recovering", "error", "disabled"]);
 
 /**
  * States that allow transitioning FROM to any other state.
