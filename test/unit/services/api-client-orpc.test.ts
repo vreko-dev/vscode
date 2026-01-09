@@ -1,9 +1,9 @@
 /**
  * GREEN Phase: VS Code API Client oRPC Migration Tests
- * 
+ *
  * Phase 2A: Signals Methods Migration
  * Tests verify @snapback/api-client/vscode with oRPC calls
- * 
+ *
  * Following 2026 best practices:
  * - SecretStorage for Bearer tokens
  * - Type-safe oRPC client
@@ -73,7 +73,7 @@ describe('VS Code API Client - oRPC Migration (Phase 2A: Signals)', () => {
       };
 
       const client = new ApiClientORPC(mockContext);
-      
+
       // GREEN: Verify the client method exists and returns proper type
       expect(client.detectAiServer).toBeDefined();
       expect(typeof client.detectAiServer).toBe('function');
@@ -88,7 +88,7 @@ describe('VS Code API Client - oRPC Migration (Phase 2A: Signals)', () => {
       };
 
       const client = new ApiClientORPC(mockContext);
-      
+
       // GREEN: Verify method exists (actual 403 behavior tested in integration)
       expect(client.detectAiServer).toBeDefined();
     });
@@ -102,7 +102,7 @@ describe('VS Code API Client - oRPC Migration (Phase 2A: Signals)', () => {
       };
 
       const client = new ApiClientORPC(mockContext);
-      
+
       // GREEN: Verify context is stored (SecretStorage access via @snapback/api-client)
       expect(client).toBeDefined();
     });
@@ -197,21 +197,21 @@ describe('VS Code API Client - oRPC Migration (Phase 2A: Signals)', () => {
   describe('GREEN: Better Auth Integration', () => {
     it('should use Bearer token in Authorization header', async () => {
       const client = new ApiClientORPC(mockContext);
-      
+
       // GREEN: Verify client created successfully with context
       expect(client).toBeDefined();
     });
 
     it('should cache client instance per token', async () => {
       const client = new ApiClientORPC(mockContext);
-      
+
       // GREEN: Client uses internal promise caching
       expect(client).toBeDefined();
     });
 
     it('should invalidate cache when token changes', async () => {
       const client = new ApiClientORPC(mockContext);
-      
+
       // GREEN: Cache invalidation handled by @snapback/api-client
       expect(client).toBeDefined();
     });
@@ -220,7 +220,7 @@ describe('VS Code API Client - oRPC Migration (Phase 2A: Signals)', () => {
   describe('GREEN: Type Safety', () => {
     it('should provide full TypeScript autocomplete for signals', async () => {
       const client = new ApiClientORPC(mockContext);
-      
+
       // GREEN: TypeScript compilation verifies all 5 signal methods exist
       expect(client.detectAiServer).toBeDefined();
       expect(client.detectThreatsServer).toBeDefined();
