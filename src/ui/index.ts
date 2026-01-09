@@ -18,6 +18,7 @@ export type {
 // Dashboard Data Service (data aggregation for dashboard)
 export { DashboardDataService, getDashboardDataService } from "./DashboardDataService";
 // Dashboard WebView (3-tab settings panel)
+// @deprecated Use UnifiedDashboardPanel instead - consolidation complete
 export { createDashboardPanel, DashboardPanel } from "./DashboardPanel";
 // File Decorations
 export { FileDecorationProvider } from "./fileDecorations";

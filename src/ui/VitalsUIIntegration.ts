@@ -4,7 +4,7 @@
  * Wires together all vitals-related UI components:
  * - UnifiedDataService (data layer)
  * - StatusBarManager (session health display)
- * - VitalsDashboardPanel (WebView)
+ * - UnifiedDashboardPanel (consolidated WebView with vitals tab)
  * - SnapshotRecommendationUI (notifications)
  *
  * This module handles the event flow and data transformations between components.
@@ -31,7 +31,7 @@ import { logger } from "../utils/logger";
 import { SnapshotRecommendationUI, type SnapshotRecommendation as UIRecommendation } from "./SnapshotRecommendationUI";
 import type { StatusBarManager } from "./StatusBarManager";
 import type { VitalsDisplayData } from "./ux-types";
-import { VitalsDashboardPanel } from "./VitalsDashboardPanel";
+// REMOVED: VitalsDashboardPanel - consolidated into UnifiedDashboardPanel vitals tab
 
 /**
  * Configuration for vitals integration
@@ -179,7 +179,8 @@ export class VitalsUIIntegration implements vscode.Disposable {
 	private statusBarManager: StatusBarManager;
 	private recommendationUI: SnapshotRecommendationUI;
 	private nudgeManager: NudgeManager | null;
-	private extensionUri: vscode.Uri;
+	// CONSOLIDATION: extensionUri no longer needed - dashboard routes via commands
+	private _extensionUri: vscode.Uri;
 	private config: VitalsUIConfig;
 	private disposables: vscode.Disposable[] = [];
 
@@ -203,7 +204,7 @@ export class VitalsUIIntegration implements vscode.Disposable {
 		nudgeManager: NudgeManager | null,
 		config: Partial<VitalsUIConfig> = {},
 	) {
-		this.extensionUri = extensionUri;
+		this._extensionUri = extensionUri;
 		this.statusBarManager = statusBarManager;
 		this.nudgeManager = nudgeManager;
 		this.config = { ...DEFAULT_CONFIG, ...config };
@@ -510,9 +511,10 @@ export class VitalsUIIntegration implements vscode.Disposable {
 
 	/**
 	 * Open the vitals dashboard panel
+	 * CONSOLIDATION: Routes to UnifiedDashboardPanel vitals tab
 	 */
 	openDashboard(): void {
-		VitalsDashboardPanel.createOrShow(this.extensionUri, this.dataService);
+		void vscode.commands.executeCommand("snapback.openDashboard.vitals");
 	}
 
 	/**
