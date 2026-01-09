@@ -1,5 +1,14 @@
 // apps/vscode/src/storage/CooldownCache.ts
 
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side cooldown cache is deprecated.
+ * Cooldown management is now handled by the CLI daemon.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
 import type { CooldownEntry } from "./types";
 
 /**

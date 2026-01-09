@@ -11,6 +11,15 @@ import type { SnapBackRC } from "../types/snapbackrc.types";
 import { logger } from "../utils/logger";
 
 /**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side .snapbackrc loading is deprecated.
+ * RC file loading and protection policy application is now handled by the CLI daemon.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
+/**
  * Loads and applies .snapbackrc configuration to the protected file registry
  * Ensures team-wide protection policies are synchronized via source control
  *

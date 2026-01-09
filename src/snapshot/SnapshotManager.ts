@@ -29,6 +29,27 @@ import { SnapshotIconStrategy } from "./SnapshotIconStrategy";
 /**
  * SnapshotManager - Central orchestrator for snapshot intelligence system
  *
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: This extension-side implementation is deprecated.
+ * Use the CLI daemon via DaemonBridge instead:
+ *
+ * ```typescript
+ * // ❌ OLD (deprecated)
+ * const manager = new SnapshotManager(workspaceRoot, storage, ...);
+ * await manager.createSnapshot(files);
+ *
+ * // ✅ NEW (use DaemonBridge)
+ * const bridge = new DaemonBridge(context);
+ * await bridge.createSnapshot(files, { workspace: workspaceRoot });
+ * ```
+ *
+ * The CLI daemon now owns all snapshot business logic via @snapback/sdk.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ *
+ * ---
+ *
  * This class integrates all snapshot components into a unified API:
  * - SnapshotDeduplicator: Prevents duplicate snapshots
  * - SnapshotNamingStrategy: Generates intelligent names

@@ -3,6 +3,24 @@ import * as path from "node:path";
 import { minimatch } from "minimatch";
 import { logger } from "../utils/logger";
 
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side config management is deprecated.
+ * Configuration file operations are now handled by the CLI daemon via @snapback/sdk.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * ```typescript
+ * // ❌ OLD (deprecated)
+ * const manager = new ConfigFileManager(workspaceRoot);
+ * await manager.readConfig('protected');
+ *
+ * // ✅ NEW (use DaemonBridge)
+ * const bridge = new DaemonBridge(context);
+ * await bridge.send('protection.getConfig', { workspace: workspaceRoot });
+ * ```
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
 export class ConfigFileManager {
 	private static readonly MAX_PATTERN_LENGTH = 512;
 	private static readonly MAX_WILDCARD_COUNT = 32;

@@ -1,5 +1,14 @@
 // apps/vscode/src/storage/BlobStore.ts
 
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side blob storage is deprecated.
+ * Content-addressable storage is now handled by the CLI daemon via @snapback/sdk.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
 import * as vscode from "vscode";
 import { atomicWriteFile, ensureDirectory, fileExists } from "./utils/atomicWrite";
 import { getBlobPath, hashContent } from "./utils/hash";

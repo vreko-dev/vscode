@@ -1,5 +1,24 @@
 // apps/vscode/src/storage/StorageManager.ts
 
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side storage is deprecated.
+ * Storage operations are now handled by the CLI daemon via @snapback/sdk LocalStorage.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * ```typescript
+ * // ❌ OLD (deprecated)
+ * const manager = new StorageManager(context);
+ * await manager.createSnapshot(...);
+ *
+ * // ✅ NEW (use DaemonBridge)
+ * const bridge = new DaemonBridge(context);
+ * await bridge.send('snapshot.create', { ... });
+ * ```
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
 import { SnapBackEvent, type SnapBackEventBus } from "@snapback/contracts";
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";

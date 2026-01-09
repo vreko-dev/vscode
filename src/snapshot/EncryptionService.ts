@@ -3,6 +3,15 @@ import { machineIdSync } from "node-machine-id";
 import type { VSCodeTelemetry } from "../telemetry";
 import { logger } from "../utils/logger";
 
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side encryption is deprecated.
+ * Encryption is now handled by the CLI daemon.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
 export interface EncryptedData {
 	ciphertext: string;
 	iv: string;

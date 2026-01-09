@@ -30,6 +30,10 @@ import * as vscode from "vscode";
 /**
  * VSCode implementation of IFileSearchProvider
  *
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side file search is deprecated.
+ * File operations are now handled by the CLI daemon.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
  * Uses VS Code workspace API for file discovery operations.
  */
 export class VSCodeFileSearchProvider implements IFileSearchProvider {

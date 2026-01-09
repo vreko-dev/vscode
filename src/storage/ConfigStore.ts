@@ -1,3 +1,12 @@
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side config storage is deprecated.
+ * Configuration storage is now handled by the CLI daemon via @snapback/sdk.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
 import * as vscode from "vscode";
 import type { ProtectionLevelCanonical } from "../signage/types";
 import { readJsonFile, writeJsonFile } from "./utils/atomicWrite";

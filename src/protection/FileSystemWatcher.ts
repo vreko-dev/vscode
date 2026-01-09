@@ -2,6 +2,14 @@ import * as vscode from "vscode";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { logger } from "../utils/logger";
 
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side file watching is deprecated.
+ * File system monitoring is now handled by the CLI daemon.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
 export class FileSystemWatcher {
 	private watcher: vscode.FileSystemWatcher;
 	private disposables: vscode.Disposable[] = [];

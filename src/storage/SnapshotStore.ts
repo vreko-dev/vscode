@@ -1,5 +1,14 @@
 // apps/vscode/src/storage/SnapshotStore.ts
 
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side snapshot storage is deprecated.
+ * Snapshot storage is now handled by the CLI daemon via @snapback/sdk LocalStorage.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";
 import type { BlobStore } from "./BlobStore";

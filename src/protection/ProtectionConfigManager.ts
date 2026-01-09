@@ -5,6 +5,14 @@ import { logger } from "../utils/logger";
 import { showStatusBarMessage } from "../utils/notifications";
 import { ConfigFileManager } from "./ConfigFileManager";
 
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side protection config is deprecated.
+ * Protection configuration is now handled by the CLI daemon via @snapback/sdk.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
 export class ProtectionConfigManager {
 	private configManager: ConfigFileManager;
 	private fileWatcher: vscode.FileSystemWatcher | null = null;

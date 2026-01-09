@@ -2,6 +2,15 @@ import type { IStorageManager } from "../storage/types";
 import type { IStorage, Snapshot } from "./SnapshotManager";
 
 /**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: This extension-side adapter is deprecated.
+ * Storage operations are now handled by the CLI daemon via @snapback/sdk.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
+/**
  * SnapshotStorageAdapter - Adapts StorageManager to IStorage interface
  *
  * This adapter bridges the new StorageManager with the SnapshotManager's

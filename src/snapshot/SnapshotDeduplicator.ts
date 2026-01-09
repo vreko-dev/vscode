@@ -1,6 +1,17 @@
 import { createHash } from "node:crypto";
 
 /**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: This extension-side deduplicator is deprecated.
+ * Deduplication is now handled by the CLI daemon via @snapback/sdk SnapshotManager.
+ *
+ * The CLI daemon automatically handles deduplication when creating snapshots.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
+/**
  * Snapshot deduplication service
  *
  * This service helps reduce storage usage by identifying and replacing

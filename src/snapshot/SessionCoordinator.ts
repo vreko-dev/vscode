@@ -1,6 +1,27 @@
 /**
  * VSCode SessionCoordinator - Wrapper around SDK SessionCoordinator
  *
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: This extension-side wrapper is deprecated.
+ * Session management should be handled via CLI daemon instead:
+ *
+ * ```typescript
+ * // ❌ OLD (deprecated)
+ * const coordinator = new SessionCoordinator(storage);
+ * coordinator.addCandidate(uri, snapshotId);
+ *
+ * // ✅ NEW (use DaemonBridge)
+ * const bridge = new DaemonBridge(context);
+ * await bridge.send('session.addCandidate', { uri, snapshotId });
+ * ```
+ *
+ * The CLI daemon now owns session coordination via @snapback/sdk.
+ * This wrapper will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ *
+ * ---
+ *
  * This module provides VSCode-specific integration with the platform-agnostic
  * SessionCoordinator from @snapback/sdk. It handles VSCode-specific concerns:
  * - Event emission via vscode.EventEmitter adapter

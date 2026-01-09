@@ -1,6 +1,15 @@
 import type { IConfirmationService } from "../types/snapshot";
 
 /**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side confirmation service is deprecated.
+ * Confirmation flows are now handled by the CLI daemon.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
+/**
  * VSCodeConfirmationService - Adapts VS Code dialog APIs to IConfirmationService interface
  *
  * This service provides user confirmation dialogs using VS Code's built-in UI,

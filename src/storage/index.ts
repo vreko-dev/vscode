@@ -1,5 +1,14 @@
 // apps/vscode/src/storage/index.ts
 
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side storage is deprecated.
+ * All storage operations are now handled by the CLI daemon via @snapback/sdk.
+ * This module will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
+
 export { AuditLog } from "./AuditLog";
 export { BlobStore } from "./BlobStore";
 // Storage Bridge (unified read access to extension + MCP snapshots)

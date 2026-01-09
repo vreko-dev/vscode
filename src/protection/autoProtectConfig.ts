@@ -3,6 +3,14 @@ import * as vscode from "vscode";
 import type { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 
+/**
+ * @deprecated **ARCHITECTURE_REFACTOR_SPEC.md Phase 3**: Extension-side auto-protect config is deprecated.
+ * Auto-protection configuration is now handled by the CLI daemon.
+ * This class will be removed in Phase 4 of the architecture refactor.
+ *
+ * @see DaemonBridge for the new API
+ * @see ARCHITECTURE_REFACTOR_SPEC.md for migration details
+ */
 export class AutoProtectConfig implements vscode.Disposable {
 	private readonly configFileName = ".snapbackrc";
 	private watcher: vscode.FileSystemWatcher | null = null;
