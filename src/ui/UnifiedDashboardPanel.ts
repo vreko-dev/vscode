@@ -332,15 +332,18 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 					break;
 
 				case "configureMCP":
-					await vscode.commands.executeCommand("snapback.configureMCP");
+					// Route to the actual MCP configure command
+					await vscode.commands.executeCommand("snapback.mcp.configure");
 					break;
 
 				case "detectProviders":
-					await vscode.commands.executeCommand("snapback.detectAIClients");
+					// Use internal detection method (more reliable than command)
+					await this.detectProviders();
 					break;
 
 				case "configureProvider":
-					await vscode.commands.executeCommand("snapback.configureProvider");
+					// Use internal configuration method (more reliable than command)
+					await this.configureProviders();
 					break;
 
 				// Onboarding messages (ported from OnboardingPanelProvider)
