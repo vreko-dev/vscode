@@ -21,22 +21,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // =============================================================================
-// MOCKS - Setup before imports
+// MOCKS - Setup with vi.hoisted for proper mock factory access
 // =============================================================================
 
-// Mock logger
-vi.mock("../../../src/utils/logger", () => ({
-	logger: {
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-	},
-}));
-
-// Mock WorkspaceDataService
-const mockDataService = {
-	getSnapshot: vi.fn().mockResolvedValue({
+// Use vi.hoisted to ensure mock values are available when vi.mock factories run
+const { mockDataService, defaultSnapshot } = vi.hoisted(() => {
+	const defaultSnapshot = {
 		stats: {
 			snapshotsToday: 5,
 			totalSnapshots: 50,
@@ -82,13 +72,31 @@ const mockDataService = {
 		learnings: [],
 		violations: [],
 		patterns: [],
-	}),
-	onDataChange: vi.fn(() => ({ dispose: vi.fn() })),
-	recordRestore: vi.fn(),
-	recordAIDetection: vi.fn(),
-	dispose: vi.fn(),
-};
+	};
 
+	return {
+		defaultSnapshot,
+		mockDataService: {
+			getSnapshot: vi.fn().mockResolvedValue(defaultSnapshot),
+			onDataChange: vi.fn(() => ({ dispose: vi.fn() })),
+			recordRestore: vi.fn(),
+			recordAIDetection: vi.fn(),
+			dispose: vi.fn(),
+		},
+	};
+});
+
+// Mock logger
+vi.mock("../../../src/utils/logger", () => ({
+	logger: {
+		debug: vi.fn(),
+		info: vi.fn(),
+		warn: vi.fn(),
+		error: vi.fn(),
+	},
+}));
+
+// Mock WorkspaceDataService
 vi.mock("../../../src/services/WorkspaceDataService", () => ({
 	WorkspaceDataService: {
 		for: vi.fn(() => mockDataService),
@@ -103,7 +111,11 @@ const mockWebviewPanel = {
 		html: "",
 		onDidReceiveMessage: vi.fn(() => ({ dispose: vi.fn() })),
 		postMessage: vi.fn().mockResolvedValue(true),
-		asWebviewUri: vi.fn((uri) => uri),
+		// Return string path for HTML interpolation
+		asWebviewUri: vi.fn((uri: { fsPath?: string; path?: string }) => {
+			const path = uri?.fsPath || uri?.path || "unknown";
+			return `vscode-webview://${path}`;
+		}),
 		cspSource: "test-csp",
 	},
 	onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
