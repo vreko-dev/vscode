@@ -510,22 +510,34 @@ export async function activate(context: vscode.ExtensionContext) {
 		initializePhase1Services();
 		phaseTimings["Phase 1 (Services)"] = Date.now() - phase1Start;
 
-		// 🆕 Phase 1.5: Start Language Server (heavy packages like @snapback/intelligence)
+		// 🆕 Phase 1.5: Defer Language Server startup for activation performance
 		// The LSP runs in a separate process, keeping extension bundle lightweight (<1MB)
+		// PERF: Deferring to setImmediate saves ~1000ms from activation critical path
+		// LSP features (vitals, intelligence) become available shortly after activation
 		const lspStart = Date.now();
-		try {
-			await activateLanguageServer(context);
-			// Pre-cache vitals for primary workspace to enable sync access in constructors
-			const primaryWorkspaceId = workspaceFolders[0]?.uri.toString() || "default";
-			await preCacheVitals(primaryWorkspaceId);
-			logger.info("Language Server activated and vitals pre-cached", { primaryWorkspaceId });
-		} catch (error) {
-			logger.warn("Language Server failed to start - Intelligence features unavailable", {
-				error: error instanceof Error ? error.message : String(error),
-			});
-			// Non-fatal: extension continues with limited functionality
-		}
-		phaseTimings["Phase 1.5 (LSP)"] = Date.now() - lspStart;
+		const primaryWorkspaceId = workspaceFolders[0]?.uri.toString() || "default";
+
+		// Fire-and-forget LSP initialization - runs after activate() returns
+		setImmediate(() => {
+			activateLanguageServer(context)
+				.then(() => preCacheVitals(primaryWorkspaceId))
+				.then(() => {
+					const lspDuration = Date.now() - lspStart;
+					logger.info("Language Server activated and vitals pre-cached (deferred)", {
+						primaryWorkspaceId,
+						deferredMs: lspDuration,
+					});
+				})
+				.catch((error) => {
+					logger.warn("Language Server failed to start - Intelligence features unavailable", {
+						error: error instanceof Error ? error.message : String(error),
+					});
+					// Non-fatal: extension continues with limited functionality
+				});
+		});
+
+		// Record timing as near-zero since we're deferring
+		phaseTimings["Phase 1.5 (LSP)"] = Date.now() - lspStart; // Should be <10ms now
 
 		// Phase 2: Storage and configuration (fail-fast if unavailable)
 		const phase2Start = Date.now();
@@ -726,7 +738,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Pushes file changes and observations to MCP server for composite tools
 		// Uses workspace-scoped instance to prevent cross-workspace event leakage
 		// Remote endpoint (Fly.dev) is tried first, with local fallback
-		const primaryWorkspaceId = workspaceFolders[0]?.uri.toString() || "default";
+		// Note: primaryWorkspaceId already declared at Phase 1.5 (LSP deferral)
 		mcpBridge = getMCPBridge(primaryWorkspaceId, {
 			remoteEndpoint: "https://snapback-mcp.fly.dev",
 			localEndpoint: "http://127.0.0.1:3100",

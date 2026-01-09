@@ -216,35 +216,45 @@ export async function initializePhase3Managers(
 
 		// 🎯 Initialize PlatformCoordinator for multi-surface coordination
 		// This happens after all managers are created so it can wire up celebrations
+		// PERF: Fire-and-forget initialization saves ~300ms from activation critical path
 		t = Date.now();
 		const platformCoordinator = new PlatformCoordinator(context, workspaceRoot);
 
-		// Initialize with extension surface
-		const packageJson = context.extension?.packageJSON as { version?: string } | undefined;
-		const version = packageJson?.version || "unknown";
-		const initResult = await platformCoordinator.initialize("extension", version);
-
-		if (initResult.celebration) {
-			logger.info("Platform initialized", {
-				firstInit: initResult.firstInit,
-				workspaceId: initResult.workspaceId,
-				celebration: initResult.celebration.message,
-			});
-		}
-
-		// Wire celebration events to notification manager
+		// Wire celebration events to notification manager (sync, fast)
 		platformCoordinator.onCelebration((celebration) => {
 			logger.info("Celebration event", { type: celebration.type, message: celebration.message });
 			// Celebrations are already shown as toasts by PlatformCoordinator
 		});
 
-		// Wire MCPHealthGuardian if available (it may be created later in phase2)
+		// Wire MCPHealthGuardian if available (sync, fast)
 		if (mcpHealthGuardian) {
 			logger.debug("Wiring MCPHealthGuardian to PlatformCoordinator");
 			platformCoordinator.wireHealthGuardian(mcpHealthGuardian);
 		}
 
-		logger.debug("PlatformCoordinator", { ms: Date.now() - t });
+		// Fire-and-forget: Initialize with extension surface (async, deferred)
+		// Celebrations and first-init detection happen in background
+		const packageJson = context.extension?.packageJSON as { version?: string } | undefined;
+		const version = packageJson?.version || "unknown";
+
+		platformCoordinator
+			.initialize("extension", version)
+			.then((initResult) => {
+				if (initResult.celebration) {
+					logger.info("Platform initialized (deferred)", {
+						firstInit: initResult.firstInit,
+						workspaceId: initResult.workspaceId,
+						celebration: initResult.celebration.message,
+					});
+				}
+			})
+			.catch((error) => {
+				logger.warn("PlatformCoordinator initialization failed (non-critical)", {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			});
+
+		logger.debug("PlatformCoordinator (deferred init)", { ms: Date.now() - t });
 
 		return {
 			workspaceMemoryManager,
