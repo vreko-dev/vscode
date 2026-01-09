@@ -189,7 +189,7 @@ export class GitBranchWatcher implements vscode.Disposable {
 			}
 
 			this.currentBranch = newBranch;
-		} catch (error) {
+		} catch (_error) {
 			// Silently ignore polling errors to avoid log spam
 		}
 	}

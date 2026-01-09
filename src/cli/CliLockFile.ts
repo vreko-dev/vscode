@@ -15,7 +15,7 @@
  */
 
 import * as fs from "node:fs/promises";
-import * as path from "path";
+import * as path from "node:path";
 
 /** Helper to check if path exists */
 async function pathExists(filePath: string): Promise<boolean> {

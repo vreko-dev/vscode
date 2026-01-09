@@ -115,7 +115,9 @@ export class WorkspaceSessionManager {
 	 * Get active session
 	 */
 	getActiveSession(): WorkspaceSession | null {
-		if (!this.activeWorkspaceId) return null;
+		if (!this.activeWorkspaceId) {
+			return null;
+		}
 		return this.sessions.get(this.activeWorkspaceId) || null;
 	}
 
@@ -163,7 +165,9 @@ export class WorkspaceSessionManager {
 	 */
 	recordSnapshot(workspaceId: string): boolean {
 		const session = this.sessions.get(workspaceId);
-		if (!session) return false;
+		if (!session) {
+			return false;
+		}
 
 		session.snapshotCount++;
 		session.lastActivity = Date.now();
@@ -193,7 +197,9 @@ export class WorkspaceSessionManager {
 	 */
 	endSession(workspaceId: string): WorkspaceSession | null {
 		const session = this.sessions.get(workspaceId);
-		if (!session) return null;
+		if (!session) {
+			return null;
+		}
 
 		session.isActive = false;
 

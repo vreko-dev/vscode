@@ -17,7 +17,9 @@ class MockEventEmitter {
 			return {
 				dispose: () => {
 					const idx = this._listeners.indexOf(listener);
-					if (idx >= 0) this._listeners.splice(idx, 1);
+					if (idx >= 0) {
+						this._listeners.splice(idx, 1);
+					}
 				},
 			};
 		};

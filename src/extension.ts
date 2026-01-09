@@ -65,10 +65,11 @@ import { initializeCoreEventTracker } from "./telemetry/core-event-tracker";
 import type { ProtectionChangedPayload } from "./types/api";
 import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
 import { DashboardPanel } from "./ui/DashboardPanel"; // 🆕 Import DashboardPanel for daemon wiring
-import { OnboardingPanelProvider } from "./ui/OnboardingPanelProvider"; // 🆕 Onboarding webview
+// REMOVED: OnboardingPanelProvider - consolidated into UnifiedDashboardPanel setup tab
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
 import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
 import type { StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import StatusBarManager type
+import { UnifiedDashboardPanel } from "./ui/UnifiedDashboardPanel"; // 🆕 Import UnifiedDashboardPanel for daemon wiring
 import { VitalsDashboardPanel } from "./ui/VitalsDashboardPanel"; // 🆕 Import VitalsDashboardPanel for daemon wiring
 // REMOVED: VitalsIntegration - consolidated into VitalsUIIntegration to eliminate duplicate status bar updates
 import { isMonitorableDocument } from "./utils/documentFilters";
@@ -1063,21 +1064,14 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 		phaseTimings["Phase 15 (Onboarding)"] = Date.now() - phase15Start;
 
-		// 🆕 Register Onboarding Webview Panel Command
+		// 🆕 Register Onboarding Command - Routes to UnifiedDashboardPanel setup tab
+		// CONSOLIDATION: All dashboard-related commands now route to single UnifiedDashboardPanel
 		try {
-			const mcpBaseUrl = config.get<string>("snapback.mcpBaseUrl", "https://snapback-mcp.fly.dev");
-
-			// Create onboarding panel provider (CLI link manager optional for now)
-			const onboardingProvider = new OnboardingPanelProvider(
-				context,
-				mcpBaseUrl,
-				undefined, // CLI link manager - will be wired later if available
-			);
-
-			// Register command
+			// Register command - routes to UnifiedDashboardPanel's setup tab
 			context.subscriptions.push(
 				vscode.commands.registerCommand("snapback.openOnboarding", async () => {
-					await onboardingProvider.createOrShow();
+					// Route to unified dashboard with setup tab
+					await vscode.commands.executeCommand("snapback.openDashboard.setup");
 				}),
 			);
 
@@ -1095,9 +1089,9 @@ export async function activate(context: vscode.ExtensionContext) {
 				}, 2000);
 			}
 
-			logger.info("Onboarding webview panel registered");
+			logger.info("Onboarding command registered (routes to UnifiedDashboardPanel)");
 		} catch (error) {
-			logger.warn("Failed to register onboarding panel (non-critical)", { error });
+			logger.warn("Failed to register onboarding command (non-critical)", { error });
 		}
 
 		// 🆕 Register Language Model Detection Command (vscode.lm API)
@@ -1477,6 +1471,10 @@ export async function activate(context: vscode.ExtensionContext) {
 					// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into VitalsDashboardPanel
 					// This enables Vitals to refresh when snapshots are created from CLI/MCP
 					VitalsDashboardPanel.wireDaemonBridge(daemonBridge);
+
+					// 🆕 Wire DaemonBridge into UnifiedDashboardPanel
+					// This enables the consolidated dashboard to refresh when snapshots are created from CLI/MCP
+					UnifiedDashboardPanel.wireDaemonBridge(daemonBridge);
 				})
 				.catch((err) => {
 					// Non-fatal: Extension continues without daemon coordination

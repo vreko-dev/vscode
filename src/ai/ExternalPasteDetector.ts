@@ -139,7 +139,9 @@ export class ExternalPasteDetector {
 				return match ? match[1].length : 0;
 			});
 
-		if (indents.length < 2) return 0;
+		if (indents.length < 2) {
+			return 0;
+		}
 
 		// Check if indents follow a consistent pattern (multiples of 2 or 4)
 		const mod2Consistent = indents.every((i) => i % 2 === 0);
@@ -175,7 +177,7 @@ export class ExternalPasteDetector {
 	 */
 	private hasComprehensiveErrorHandling(content: string): boolean {
 		const tryCount = (content.match(/try\s*{/g) || []).length;
-		const catchCount = (content.match(/catch\s*\(/g) || []).length;
+		const _catchCount = (content.match(/catch\s*\(/g) || []).length;
 		const throwCount = (content.match(/throw\s+new\s+\w*Error/g) || []).length;
 
 		// AI often adds try-catch around everything

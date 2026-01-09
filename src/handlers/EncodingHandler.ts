@@ -29,15 +29,6 @@ export interface EncodingInfo {
  * and heuristic-based detection for legacy encodings.
  */
 export class EncodingHandler {
-	// Common BOM (Byte Order Mark) signatures
-	private static readonly BOM_SIGNATURES: Record<string, number[]> = {
-		"utf-8": [0xef, 0xbb, 0xbf],
-		"utf-16-be": [0xfe, 0xff],
-		"utf-16-le": [0xff, 0xfe],
-		"utf-32-be": [0x00, 0x00, 0xfe, 0xff],
-		"utf-32-le": [0xff, 0xfe, 0x00, 0x00],
-	};
-
 	/**
 	 * Detect encoding from buffer
 	 */
@@ -170,8 +161,12 @@ export class EncodingHandler {
 		let nullByteCount = 0;
 
 		for (let i = 0; i < Math.min(buffer.length, 1000); i++) {
-			if (buffer[i] === 0) nullByteCount++;
-			if (buffer[i] > 127) highByteCount++;
+			if (buffer[i] === 0) {
+				nullByteCount++;
+			}
+			if (buffer[i] > 127) {
+				highByteCount++;
+			}
 		}
 
 		// If many null bytes, likely UTF-16

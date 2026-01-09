@@ -244,7 +244,8 @@ export class SnapshotRecommendationUI implements vscode.Disposable {
 				break;
 
 			case ACTIONS.OPEN_DASHBOARD:
-				await vscode.commands.executeCommand("snapback.openVitalsDashboard");
+				// CONSOLIDATION: Routes to UnifiedDashboardPanel vitals tab
+				await vscode.commands.executeCommand("snapback.openDashboard.vitals");
 				break;
 
 			case ACTIONS.SNOOZE_5MIN:

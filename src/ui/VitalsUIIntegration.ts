@@ -551,10 +551,12 @@ export class VitalsUIIntegration implements vscode.Disposable {
  * Register vitals-related commands
  */
 export function registerVitalsCommands(context: vscode.ExtensionContext, integration: VitalsUIIntegration): void {
-	// Command to open vitals dashboard
+	// Command to open vitals dashboard - Routes to UnifiedDashboardPanel vitals tab
+	// CONSOLIDATION: All dashboard-related commands now route to single UnifiedDashboardPanel
 	context.subscriptions.push(
-		vscode.commands.registerCommand("snapback.openVitalsDashboard", () => {
-			integration.openDashboard();
+		vscode.commands.registerCommand("snapback.openVitalsDashboard", async () => {
+			// Route to unified dashboard with vitals tab
+			await vscode.commands.executeCommand("snapback.openDashboard.vitals");
 		}),
 	);
 

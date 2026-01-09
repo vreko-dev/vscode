@@ -27,6 +27,8 @@ export { registerSnapshotQuickPickerCommands, SnapshotQuickPicker } from "./Snap
 export { SnapshotRestoreUI } from "./SnapshotRestoreUI";
 // Status Bar (Single consolidated implementation)
 export { createStatusBarManager, StatusBarManager } from "./StatusBarManager";
+// Unified Dashboard WebView (consolidates Home, Vitals, Setup, Activity tabs)
+export { createUnifiedDashboardPanel, type DashboardTab, UnifiedDashboardPanel } from "./UnifiedDashboardPanel";
 // User Tier Service (progressive disclosure)
 export { createUserTierService, type TierFeatures, type UserTier, UserTierService } from "./UserTierService";
 // Types

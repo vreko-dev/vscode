@@ -291,10 +291,18 @@ export class WorkspaceVitalsProxy {
 	private getCurrentPhase(): string {
 		const cached = vitalsCache.get(this.workspaceId);
 		const branch = cached?.currentBranch ?? "main";
-		if (/hotfix|fix|bugfix/i.test(branch)) return "hotfix";
-		if (/feature|feat/i.test(branch)) return "feature";
-		if (/release/i.test(branch)) return "release";
-		if (/refactor|cleanup/i.test(branch)) return "refactor";
+		if (/hotfix|fix|bugfix/i.test(branch)) {
+			return "hotfix";
+		}
+		if (/feature|feat/i.test(branch)) {
+			return "feature";
+		}
+		if (/release/i.test(branch)) {
+			return "release";
+		}
+		if (/refactor|cleanup/i.test(branch)) {
+			return "refactor";
+		}
 		return "unknown";
 	}
 }

@@ -71,10 +71,8 @@ export class VitalsDashboardPanel {
 	private updateInterval: NodeJS.Timeout | null = null;
 	private useReactWebview = true; // Enable React WebView bundle
 	private isWebviewReady = false; // Track if React has mounted and is ready for messages
-
-	// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: DaemonBridge for cross-surface coordination
-	private daemonBridge?: DaemonBridge;
 	private daemonEventDisposable?: vscode.Disposable;
+	private daemonBridge?: DaemonBridge;
 	private static _pendingDaemonBridge?: DaemonBridge;
 
 	private constructor(panel: vscode.WebviewPanel, dataService: UnifiedDataService, extensionUri: vscode.Uri) {

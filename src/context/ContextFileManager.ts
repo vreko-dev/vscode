@@ -9,8 +9,8 @@
  * 🧢 SnapBack
  */
 
-import * as fs from "fs/promises";
-import * as path from "path";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import type { Disposable } from "vscode";
 import { logger } from "../utils/logger";
 import { CONTEXT_SCHEMA } from "./schema";
@@ -232,19 +232,45 @@ export class ContextFileManager implements Disposable {
 		const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
 		// Order matters - more specific first
-		if (deps.next) return "nextjs";
-		if (deps.nuxt) return "nuxt";
-		if (deps.gatsby) return "gatsby";
-		if (deps.remix) return "remix";
-		if (deps["@sveltejs/kit"]) return "sveltekit";
-		if (deps.svelte) return "svelte";
-		if (deps.vue) return "vue";
-		if (deps["@angular/core"]) return "angular";
-		if (deps["react-native"]) return "react-native";
-		if (deps.react) return "react";
-		if (deps.express || deps.fastify || deps.hono) return "node-api";
-		if (deps.electron) return "electron";
-		if (deps.typescript) return "typescript";
+		if (deps.next) {
+			return "nextjs";
+		}
+		if (deps.nuxt) {
+			return "nuxt";
+		}
+		if (deps.gatsby) {
+			return "gatsby";
+		}
+		if (deps.remix) {
+			return "remix";
+		}
+		if (deps["@sveltejs/kit"]) {
+			return "sveltekit";
+		}
+		if (deps.svelte) {
+			return "svelte";
+		}
+		if (deps.vue) {
+			return "vue";
+		}
+		if (deps["@angular/core"]) {
+			return "angular";
+		}
+		if (deps["react-native"]) {
+			return "react-native";
+		}
+		if (deps.react) {
+			return "react";
+		}
+		if (deps.express || deps.fastify || deps.hono) {
+			return "node-api";
+		}
+		if (deps.electron) {
+			return "electron";
+		}
+		if (deps.typescript) {
+			return "typescript";
+		}
 
 		return "javascript";
 	}
@@ -259,54 +285,97 @@ export class ContextFileManager implements Disposable {
 			const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
 			// Framework
-			if (deps.next) stack.framework = `next${this.majorVersion(deps.next)}`;
-			if (deps.nuxt) stack.framework = `nuxt${this.majorVersion(deps.nuxt)}`;
-			if (deps.vue) stack.vue = this.majorVersion(deps.vue);
-			if (deps.react) stack.react = this.majorVersion(deps.react);
-			if (deps.svelte) stack.svelte = this.majorVersion(deps.svelte);
+			if (deps.next) {
+				stack.framework = `next${this.majorVersion(deps.next)}`;
+			}
+			if (deps.nuxt) {
+				stack.framework = `nuxt${this.majorVersion(deps.nuxt)}`;
+			}
+			if (deps.vue) {
+				stack.vue = this.majorVersion(deps.vue);
+			}
+			if (deps.react) {
+				stack.react = this.majorVersion(deps.react);
+			}
+			if (deps.svelte) {
+				stack.svelte = this.majorVersion(deps.svelte);
+			}
 
 			// TypeScript
-			if (deps.typescript) stack.typescript = this.majorVersion(deps.typescript);
+			if (deps.typescript) {
+				stack.typescript = this.majorVersion(deps.typescript);
+			}
 
 			// Testing
-			if (deps.vitest) stack.testing = "vitest";
-			else if (deps.jest) stack.testing = "jest";
-			else if (deps.mocha) stack.testing = "mocha";
+			if (deps.vitest) {
+				stack.testing = "vitest";
+			} else if (deps.jest) {
+				stack.testing = "jest";
+			} else if (deps.mocha) {
+				stack.testing = "mocha";
+			}
 
 			// Styling
-			if (deps.tailwindcss) stack.styling = "tailwind";
-			else if (deps["styled-components"]) stack.styling = "styled-components";
-			else if (deps["@emotion/react"]) stack.styling = "emotion";
+			if (deps.tailwindcss) {
+				stack.styling = "tailwind";
+			} else if (deps["styled-components"]) {
+				stack.styling = "styled-components";
+			} else if (deps["@emotion/react"]) {
+				stack.styling = "emotion";
+			}
 
 			// ORM / Database
-			if (deps["drizzle-orm"]) stack.orm = "drizzle";
-			else if (deps.prisma || deps["@prisma/client"]) stack.orm = "prisma";
-			else if (deps.typeorm) stack.orm = "typeorm";
+			if (deps["drizzle-orm"]) {
+				stack.orm = "drizzle";
+			} else if (deps.prisma || deps["@prisma/client"]) {
+				stack.orm = "prisma";
+			} else if (deps.typeorm) {
+				stack.orm = "typeorm";
+			}
 
-			if (deps.pg || deps.postgres) stack.database = "postgres";
-			else if (deps.mysql2) stack.database = "mysql";
-			else if (deps["better-sqlite3"]) stack.database = "sqlite";
+			if (deps.pg || deps.postgres) {
+				stack.database = "postgres";
+			} else if (deps.mysql2) {
+				stack.database = "mysql";
+			} else if (deps["better-sqlite3"]) {
+				stack.database = "sqlite";
+			}
 
 			// State management
-			if (deps.zustand) stack.state = "zustand";
-			else if (deps["@reduxjs/toolkit"]) stack.state = "redux";
-			else if (deps.jotai) stack.state = "jotai";
-			else if (deps.recoil) stack.state = "recoil";
+			if (deps.zustand) {
+				stack.state = "zustand";
+			} else if (deps["@reduxjs/toolkit"]) {
+				stack.state = "redux";
+			} else if (deps.jotai) {
+				stack.state = "jotai";
+			} else if (deps.recoil) {
+				stack.state = "recoil";
+			}
 		} catch {
 			// Failed to read package.json, continue with detection
 		}
 
 		// Package manager (check lock files)
-		if (await this.fileExists("pnpm-lock.yaml")) stack.packageManager = "pnpm";
-		else if (await this.fileExists("bun.lockb")) stack.packageManager = "bun";
-		else if (await this.fileExists("yarn.lock")) stack.packageManager = "yarn";
-		else if (await this.fileExists("package-lock.json")) stack.packageManager = "npm";
+		if (await this.fileExists("pnpm-lock.yaml")) {
+			stack.packageManager = "pnpm";
+		} else if (await this.fileExists("bun.lockb")) {
+			stack.packageManager = "bun";
+		} else if (await this.fileExists("yarn.lock")) {
+			stack.packageManager = "yarn";
+		} else if (await this.fileExists("package-lock.json")) {
+			stack.packageManager = "npm";
+		}
 
 		// Monorepo
-		if (await this.fileExists("turbo.json")) stack.monorepo = "turborepo";
-		else if (await this.fileExists("nx.json")) stack.monorepo = "nx";
-		else if (await this.fileExists("lerna.json")) stack.monorepo = "lerna";
-		else if (await this.fileExists("pnpm-workspace.yaml")) stack.monorepo = "pnpm-workspaces";
+		if (await this.fileExists("turbo.json")) {
+			stack.monorepo = "turborepo";
+		} else if (await this.fileExists("nx.json")) {
+			stack.monorepo = "nx";
+		} else if (await this.fileExists("lerna.json")) {
+			stack.monorepo = "lerna";
+		} else if (await this.fileExists("pnpm-workspace.yaml")) {
+			stack.monorepo = "pnpm-workspaces";
+		}
 
 		// Linting
 		if ((await this.fileExists("biome.json")) || (await this.fileExists("biome.jsonc"))) {
@@ -488,7 +557,9 @@ export class ContextFileManager implements Disposable {
 
 	private async updateLiveState(): Promise<void> {
 		// Prevent concurrent updates
-		if (this.isUpdating) return;
+		if (this.isUpdating) {
+			return;
+		}
 		this.isUpdating = true;
 
 		try {

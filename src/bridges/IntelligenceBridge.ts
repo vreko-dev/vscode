@@ -192,7 +192,9 @@ export class IntelligenceBridge implements vscode.Disposable {
 	 * Subscribe to a single event and track handler for cleanup
 	 */
 	private subscribeToEvent(event: string, handler: (...args: unknown[]) => void): void {
-		if (!this.eventBus) return;
+		if (!this.eventBus) {
+			return;
+		}
 
 		this.eventBus.on(event, handler);
 		this.boundHandlers.set(event, handler);
@@ -202,7 +204,9 @@ export class IntelligenceBridge implements vscode.Disposable {
 	 * Unsubscribe from all EventBus events
 	 */
 	private unsubscribeFromEventBus(): void {
-		if (!this.eventBus) return;
+		if (!this.eventBus) {
+			return;
+		}
 
 		for (const [event, handler] of this.boundHandlers) {
 			this.eventBus.off(event, handler);
@@ -242,7 +246,9 @@ export class IntelligenceBridge implements vscode.Disposable {
 	 * Get current vitals snapshot
 	 */
 	getVitalsSnapshot(): VitalsSnapshot | null {
-		if (!this.vitals) return null;
+		if (!this.vitals) {
+			return null;
+		}
 		return this.vitals.current();
 	}
 
@@ -250,7 +256,9 @@ export class IntelligenceBridge implements vscode.Disposable {
 	 * Get threshold multiplier for adaptive decisions
 	 */
 	getThresholdMultiplier(): number {
-		if (!this.vitals) return 1.0;
+		if (!this.vitals) {
+			return 1.0;
+		}
 		return this.vitals.getThresholdMultiplier();
 	}
 
@@ -258,7 +266,9 @@ export class IntelligenceBridge implements vscode.Disposable {
 	 * Get agent guidance for AI tools
 	 */
 	getAgentGuidance(): unknown {
-		if (!this.vitals) return null;
+		if (!this.vitals) {
+			return null;
+		}
 		return this.vitals.getAgentGuidance();
 	}
 
@@ -270,7 +280,9 @@ export class IntelligenceBridge implements vscode.Disposable {
 	 * Record analysis result for learning
 	 */
 	async recordAnalysisResult(result: AnalysisResultInput): Promise<void> {
-		if (!this.intelligenceReady || !this.vitals) return;
+		if (!this.intelligenceReady || !this.vitals) {
+			return;
+		}
 
 		// Record as pseudo-test result for behavioral metadata
 		// Note: recordTest may not be available on proxy - use recordBehavior instead
@@ -325,7 +337,9 @@ export class IntelligenceBridge implements vscode.Disposable {
 	 * Record user behavior for threshold calibration
 	 */
 	recordUserBehavior(event: UserBehaviorInput): void {
-		if (!this.vitals) return;
+		if (!this.vitals) {
+			return;
+		}
 
 		if (event.type === "snapshot_created") {
 			this.vitals.recordBehavior(event.userInitiated);

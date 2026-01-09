@@ -93,16 +93,13 @@ export class DashboardPanel implements vscode.Disposable {
 	private readonly extensionUri: vscode.Uri;
 	private disposables: vscode.Disposable[] = [];
 	private userTier: UserTier = "explorer";
-	private currentTab: DashboardTab = "home";
-	private activityData: unknown[] = [];
 	/** Debounce timer to prevent event cascade loops */
 	private dataRefreshTimer: NodeJS.Timeout | null = null;
 	/** Flag to prevent re-entrant data loading */
 	private isLoadingData = false;
-
-	// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: DaemonBridge for cross-surface coordination
-	private daemonBridge?: DaemonBridge;
 	private daemonEventDisposable?: vscode.Disposable;
+	private currentTab: DashboardTab = "home";
+	private daemonBridge?: DaemonBridge;
 	private stats: DashboardStats = {
 		snapshotsToday: 0,
 		totalSnapshots: 0,

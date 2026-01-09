@@ -69,7 +69,9 @@ export class ActivationFunnelIntegration {
 	 * Called when extension is first installed (not on subsequent activations).
 	 */
 	trackInstalled(): void {
-		if (this.isDisposed) return;
+		if (this.isDisposed) {
+			return;
+		}
 
 		// Start the activation funnel on first install
 		this.funnel.startFunnel(FunnelType.ACTIVATION);
@@ -85,7 +87,9 @@ export class ActivationFunnelIntegration {
 	 * Track welcome screen shown step.
 	 */
 	trackWelcomeShown(): void {
-		if (this.isDisposed) return;
+		if (this.isDisposed) {
+			return;
+		}
 
 		this.funnel.trackStep(FunnelType.ACTIVATION, "welcome_shown");
 		logger.debug("Activation funnel: welcome_shown tracked");
@@ -95,7 +99,9 @@ export class ActivationFunnelIntegration {
 	 * Track auth flow started.
 	 */
 	trackAuthStarted(): void {
-		if (this.isDisposed) return;
+		if (this.isDisposed) {
+			return;
+		}
 
 		this.funnel.trackStep(FunnelType.ACTIVATION, "auth_started");
 		logger.debug("Activation funnel: auth_started tracked");
@@ -105,7 +111,9 @@ export class ActivationFunnelIntegration {
 	 * Track successful authentication.
 	 */
 	trackAuthCompleted(provider?: string): void {
-		if (this.isDisposed) return;
+		if (this.isDisposed) {
+			return;
+		}
 
 		this.funnel.trackStep(FunnelType.ACTIVATION, "auth_completed", {
 			provider: provider ?? "unknown",
@@ -121,7 +129,9 @@ export class ActivationFunnelIntegration {
 	 * Track first file protection.
 	 */
 	trackFirstFileProtected(fileType?: string): void {
-		if (this.isDisposed) return;
+		if (this.isDisposed) {
+			return;
+		}
 
 		this.funnel.trackStep(FunnelType.ACTIVATION, "first_file_protected", {
 			file_type: fileType,
@@ -134,7 +144,9 @@ export class ActivationFunnelIntegration {
 	 * Track first protected save.
 	 */
 	trackFirstProtectedSave(): void {
-		if (this.isDisposed) return;
+		if (this.isDisposed) {
+			return;
+		}
 
 		this.funnel.trackStep(FunnelType.ACTIVATION, "first_protected_save");
 		logger.debug("Activation funnel: first_protected_save tracked");
@@ -144,7 +156,9 @@ export class ActivationFunnelIntegration {
 	 * Track first restore operation - this completes the activation funnel.
 	 */
 	trackFirstRestore(): void {
-		if (this.isDisposed) return;
+		if (this.isDisposed) {
+			return;
+		}
 
 		this.funnel.trackStep(FunnelType.ACTIVATION, "first_restore");
 
@@ -161,7 +175,9 @@ export class ActivationFunnelIntegration {
 	 * Track funnel abandonment with reason.
 	 */
 	trackAbandonment(reason: string): void {
-		if (this.isDisposed) return;
+		if (this.isDisposed) {
+			return;
+		}
 
 		this.funnel.abandon(FunnelType.ACTIVATION, reason);
 		logger.debug("Activation funnel abandoned", { reason });
@@ -185,7 +201,9 @@ export class ActivationFunnelIntegration {
 	 * Track CLI adoption funnel step.
 	 */
 	trackCliStep(step: "cli_detected" | "cli_linked" | "cli_command_used" | "cli_session_started"): void {
-		if (this.isDisposed) return;
+		if (this.isDisposed) {
+			return;
+		}
 
 		this.funnel.trackStep(FunnelType.CLI_ADOPTION, step);
 		logger.debug(`CLI adoption funnel: ${step} tracked`);
@@ -202,7 +220,9 @@ export class ActivationFunnelIntegration {
 	trackRestoreStep(
 		step: "restore_initiated" | "snapshot_selected" | "diff_viewed" | "restore_confirmed" | "restore_completed",
 	): void {
-		if (this.isDisposed) return;
+		if (this.isDisposed) {
+			return;
+		}
 
 		this.funnel.trackStep(FunnelType.RESTORE, step);
 

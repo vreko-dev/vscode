@@ -12,7 +12,9 @@
  * @packageDocumentation
  */
 
+import { detectAIClients, getSnapbackMCPConfig, writeClientConfig } from "@snapback/mcp-config";
 import * as vscode from "vscode";
+import type { DaemonBridge, SnapshotCreatedEvent } from "../services/DaemonBridge";
 import { type SnapshotCoordinator, WorkspaceDataService } from "../services/WorkspaceDataService";
 import { logger } from "../utils/logger";
 
@@ -37,11 +39,16 @@ interface WebviewMessage {
 		| "restoreSnapshot"
 		| "configureMCP"
 		| "detectProviders"
-		| "configureProvider";
+		| "configureProvider"
+		// Onboarding messages (from OnboardingPanel)
+		| "next"
+		| "install-cli"
+		| "close";
 	payload?: {
 		snapshotId?: string;
 		[key: string]: unknown;
 	};
+	step?: string; // For onboarding "next" messages
 }
 
 // =============================================================================
@@ -61,6 +68,11 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	 * Singleton instance
 	 */
 	private static instance: UnifiedDashboardPanel | undefined;
+
+	/**
+	 * Pending daemon bridge for future instances
+	 */
+	private static _pendingDaemonBridge?: DaemonBridge;
 
 	/**
 	 * The webview panel
@@ -87,9 +99,38 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	 */
 	private disposables: vscode.Disposable[] = [];
 
+	/**
+	 * DaemonBridge for cross-surface coordination
+	 */
+	private daemonBridge?: DaemonBridge;
+
+	/**
+	 * Daemon event subscription
+	 */
+	private daemonEventDisposable?: vscode.Disposable;
+
 	// ==========================================================================
 	// STATIC METHODS
 	// ==========================================================================
+
+	/**
+	 * Wire DaemonBridge to the singleton instance.
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into UnifiedDashboardPanel.
+	 *
+	 * Call this during extension activation after DaemonBridge is initialized.
+	 * If no instance exists yet, the bridge will be wired when dashboard is first opened.
+	 *
+	 * @param bridge - DaemonBridge instance from extension activation
+	 */
+	public static wireDaemonBridge(bridge: DaemonBridge): void {
+		// Store for future instances
+		UnifiedDashboardPanel._pendingDaemonBridge = bridge;
+
+		// Wire to existing instance if present
+		if (UnifiedDashboardPanel.instance) {
+			UnifiedDashboardPanel.instance.setDaemonBridge(bridge);
+		}
+	}
 
 	/**
 	 * Create or show the unified dashboard panel
@@ -180,6 +221,11 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		// Set HTML content (React loads and sends webviewReady)
 		this.panel.webview.html = this.getHtmlContent(initialTab);
 
+		// Wire pending daemon bridge if available
+		if (UnifiedDashboardPanel._pendingDaemonBridge) {
+			this.setDaemonBridge(UnifiedDashboardPanel._pendingDaemonBridge);
+		}
+
 		logger.debug("UnifiedDashboardPanel created", { initialTab });
 	}
 
@@ -201,6 +247,34 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		if (this.isWebviewReady) {
 			this.sendDataToWebview();
 		}
+	}
+
+	/**
+	 * Set the DaemonBridge for cross-surface coordination
+	 *
+	 * @param bridge - DaemonBridge instance
+	 */
+	public setDaemonBridge(bridge: DaemonBridge): void {
+		// Clean up existing subscription
+		this.daemonEventDisposable?.dispose();
+
+		this.daemonBridge = bridge;
+
+		// Subscribe to snapshot created events from daemon
+		this.daemonEventDisposable = bridge.onSnapshotCreated((event: SnapshotCreatedEvent) => {
+			logger.debug("UnifiedDashboardPanel received snapshot created event from daemon", {
+				snapshotId: event.snapshotId,
+				source: event.source,
+			});
+
+			// Refresh dashboard data when snapshot is created from CLI/MCP
+			if (this.isWebviewReady) {
+				this.sendDataToWebview();
+			}
+		});
+
+		this.disposables.push(this.daemonEventDisposable);
+		logger.debug("UnifiedDashboardPanel wired to DaemonBridge");
 	}
 
 	/**
@@ -269,6 +343,21 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 					await vscode.commands.executeCommand("snapback.configureProvider");
 					break;
 
+				// Onboarding messages (ported from OnboardingPanelProvider)
+				case "next":
+					if (message.step) {
+						await this.handleOnboardingStep(message.step);
+					}
+					break;
+
+				case "install-cli":
+					await vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/cli/install"));
+					break;
+
+				case "close":
+					this.panel.dispose();
+					break;
+
 				default:
 					// Unknown message type - ignore
 					logger.debug("Unknown webview message type", { type: message.type });
@@ -296,6 +385,147 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		this.disposables = [];
 
 		logger.debug("UnifiedDashboardPanel panel disposed by user");
+	}
+
+	// ==========================================================================
+	// ONBOARDING FLOW (ported from OnboardingPanelProvider)
+	// ==========================================================================
+
+	/**
+	 * Handle onboarding step progression
+	 */
+	private async handleOnboardingStep(step: string): Promise<void> {
+		logger.info("UnifiedDashboardPanel handling onboarding step", { step });
+
+		switch (step) {
+			case "detect":
+				await this.detectProviders();
+				break;
+
+			case "configure":
+				await this.configureProviders();
+				break;
+
+			case "test":
+				await this.testProviders();
+				break;
+
+			case "cli":
+				await this.checkCliStatus();
+				break;
+
+			default:
+				logger.debug("Unknown onboarding step", { step });
+				break;
+		}
+	}
+
+	/**
+	 * Detect AI providers on the system
+	 */
+	private async detectProviders(): Promise<void> {
+		logger.info("UnifiedDashboardPanel starting provider detection");
+		try {
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const detection = detectAIClients({ cwd: workspaceFolder });
+
+			logger.info("UnifiedDashboardPanel detection result", {
+				totalClients: detection.clients.length,
+				detectedCount: detection.detected.length,
+				needsSetupCount: detection.needsSetup.length,
+			});
+
+			const providers = detection.detected.map((client) => ({
+				id: client.name,
+				displayName: client.displayName,
+				source: "user-mcp",
+				mcpStatus: client.hasSnapback ? "configured" : "untested",
+			}));
+
+			await this.panel.webview.postMessage({
+				type: "providersDetected",
+				providers,
+			});
+		} catch (error) {
+			logger.error("UnifiedDashboardPanel provider detection failed", error as Error);
+			await this.panel.webview.postMessage({
+				type: "error",
+				error: "Failed to detect AI providers",
+			});
+		}
+	}
+
+	/**
+	 * Configure detected providers with SnapBack MCP
+	 */
+	private async configureProviders(): Promise<void> {
+		try {
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const detection = detectAIClients({ cwd: workspaceFolder });
+
+			for (const client of detection.detected) {
+				if (!client.hasSnapback) {
+					await this.panel.webview.postMessage({
+						type: "providerConfiguring",
+						providerId: client.name,
+					});
+
+					try {
+						const mcpConfig = getSnapbackMCPConfig({ apiKey: undefined });
+						const result = writeClientConfig(client, mcpConfig);
+
+						if (result.success) {
+							await this.panel.webview.postMessage({
+								type: "providerConfigured",
+								providerId: client.name,
+							});
+						} else {
+							throw new Error(result.error);
+						}
+					} catch (error) {
+						await this.panel.webview.postMessage({
+							type: "providerConfigFailed",
+							providerId: client.name,
+							error: error instanceof Error ? error.message : "Configuration failed",
+						});
+					}
+				}
+			}
+		} catch (error) {
+			logger.error("UnifiedDashboardPanel provider configuration failed", error as Error);
+		}
+	}
+
+	/**
+	 * Test provider connectivity
+	 */
+	private async testProviders(): Promise<void> {
+		try {
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const detection = detectAIClients({ cwd: workspaceFolder });
+
+			for (const client of detection.detected) {
+				await this.panel.webview.postMessage({
+					type: "providerTested",
+					providerId: client.name,
+					success: client.hasSnapback,
+				});
+			}
+		} catch (error) {
+			logger.error("UnifiedDashboardPanel provider testing failed", error as Error);
+		}
+	}
+
+	/**
+	 * Check CLI installation status
+	 */
+	private async checkCliStatus(): Promise<void> {
+		// TODO: Wire up CliLinkManager when available
+		// For now, return false as CLI status check requires CliLinkManager
+		await this.panel.webview.postMessage({
+			type: "cliStatus",
+			installed: false,
+		});
 	}
 
 	// ==========================================================================

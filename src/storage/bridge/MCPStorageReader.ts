@@ -63,7 +63,7 @@ export class MCPStorageReader {
 	private readonly snapshotDir: string;
 	private readonly blobDir: string;
 
-	constructor(private readonly workspaceRoot: string) {
+	constructor(readonly workspaceRoot: string) {
 		this.snapshotDir = path.join(workspaceRoot, ".snapback", "snapshots");
 		this.blobDir = path.join(workspaceRoot, ".snapback", "blobs");
 	}

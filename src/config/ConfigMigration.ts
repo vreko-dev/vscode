@@ -20,7 +20,7 @@
  */
 
 import * as fs from "node:fs/promises";
-import * as path from "path";
+import * as path from "node:path";
 
 /** Helper to check if path exists */
 async function pathExists(filePath: string): Promise<boolean> {
@@ -112,7 +112,9 @@ export class ConfigMigration {
 	async needsMigration(): Promise<boolean> {
 		try {
 			const config = await this.loadConfigSafely();
-			if (!config) return false; // No config = fresh install, no migration needed
+			if (!config) {
+				return false; // No config = fresh install, no migration needed
+			}
 
 			const currentVersion = (config as ConfigData).version || "1.0.0";
 			return this.compareVersions(currentVersion, CURRENT_CONFIG_VERSION) < 0;
@@ -139,9 +141,15 @@ export class ConfigMigration {
 		const va = parseVersion(a);
 		const vb = parseVersion(b);
 
-		if (va.major !== vb.major) return va.major < vb.major ? -1 : 1;
-		if (va.minor !== vb.minor) return va.minor < vb.minor ? -1 : 1;
-		if (va.patch !== vb.patch) return va.patch < vb.patch ? -1 : 1;
+		if (va.major !== vb.major) {
+			return va.major < vb.major ? -1 : 1;
+		}
+		if (va.minor !== vb.minor) {
+			return va.minor < vb.minor ? -1 : 1;
+		}
+		if (va.patch !== vb.patch) {
+			return va.patch < vb.patch ? -1 : 1;
+		}
 		return 0;
 	}
 

@@ -100,8 +100,8 @@ export class PlatformCoordinator implements vscode.Disposable {
 	private manifest: WorkspaceManifest | null = null;
 	private manifestPath: string | null = null;
 	private backupPath: string | null = null;
-	private healthGuardian: MCPHealthGuardian | null = null;
 	private isHealthGuardianWired = false;
+	private healthGuardian?: MCPHealthGuardian;
 	private inMemoryMode = false;
 	private disposables: vscode.Disposable[] = [];
 
