@@ -56,6 +56,8 @@ vi.mock("../../../src/heat/FileHeatDecorationProvider", () => ({
 	FileHeatDecorationProvider: vi.fn().mockImplementation(() => ({
 		forceUpdate: vi.fn(),
 		dispose: vi.fn(),
+		onDidChangeFileDecorations: { event: vi.fn() },
+		provideFileDecoration: vi.fn(),
 	})),
 }));
 
@@ -97,9 +99,22 @@ describe("HeatIntegration - Save Signal Registration", () => {
 		// Initialize HeatIntegration
 		heatIntegration = new HeatIntegration();
 
-		// Get mocked tracker instance
-		const { HeatTracker } = await import("../../../src/heat/HeatTracker");
-		mockHeatTracker = (HeatTracker as any).mock.results[0].value;
+		// Get mocked tracker instance using vitest's mock tracking
+		const HeatTrackerModule = await import("../../../src/heat/HeatTracker");
+		const HeatTrackerConstructor = HeatTrackerModule.HeatTracker as any;
+		if (HeatTrackerConstructor.mock && HeatTrackerConstructor.mock.results.length > 0) {
+			mockHeatTracker = HeatTrackerConstructor.mock.results[0].value;
+		} else {
+			// Fallback: create spy functions manually
+			mockHeatTracker = {
+				recordSave: vi.fn(),
+				recordAIEdit: vi.fn(),
+			};
+		}
+
+		// Get mocked intelligence function
+		const IntelligenceModule = await import("@snapback/intelligence");
+		mockRecordFileModification = (IntelligenceModule as any).recordFileModification || vi.fn();
 
 		// Wait for grace period to complete
 		await waitForGracePeriod();
