@@ -377,6 +377,14 @@ export class MCPBridge {
 	private async handleFileSave(doc: vscode.TextDocument): Promise<void> {
 		const filePath = vscode.workspace.asRelativePath(doc.uri, false);
 
+		// FIX: Skip clean saves (Ctrl+S with no actual changes)
+		// Only queue file changes when document was actually dirty
+		if (!doc.isDirty) {
+			// Still clear AI attribution for clean saves
+			this.aiAttributedFiles.delete(filePath);
+			return;
+		}
+
 		// Count lines (approximate changed lines from document length)
 		const lineCount = doc.lineCount;
 

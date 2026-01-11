@@ -178,6 +178,16 @@ export class HeatIntegration implements vscode.Disposable {
 		const changes = this.recentChanges.get(filePath) || [];
 		const diffSize = changes.reduce((sum, change) => sum + change.text.length, 0);
 
+		// FIX: Skip recording if no actual changes occurred
+		// Prevents false signals on clean saves (Ctrl+S with no edits)
+		if (diffSize === 0) {
+			logger.debug("Skipping heat recording for no-change save", { filePath });
+			// Still clear accumulated state
+			this.recentChanges.delete(filePath);
+			this.recentDocuments.delete(filePath);
+			return;
+		}
+
 		// Record save with diff size
 		this.heatTracker.recordSave(filePath, { diffSize });
 

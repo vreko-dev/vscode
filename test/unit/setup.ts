@@ -81,6 +81,8 @@ export const mockVscodeWorkspace = {
 	onDidChangeWorkspaceFolders: vi.fn(() => ({ dispose: vi.fn() })),
 	onDidOpenTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
 	onDidCloseTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
+	onDidCreateFiles: vi.fn(() => ({ dispose: vi.fn() })),
+	onDidDeleteFiles: vi.fn(() => ({ dispose: vi.fn() })),
 	getConfiguration: vi.fn((section?: string) => {
 		const configMap = new Map<string, unknown>([
 			["mcp.enabled", true],

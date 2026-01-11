@@ -308,6 +308,15 @@ export class AutoDecisionIntegration {
 					return;
 				}
 
+				// FIX: Skip clean saves (Ctrl+S with no actual changes)
+				// Only process saves when document was actually dirty
+				if (!document.isDirty) {
+					logger.debug("Skipping AutoDecision for clean file save", {
+						filePath: document.uri.fsPath,
+					});
+					return;
+				}
+
 				this.onFileChange({
 					type: "save",
 					filePath: document.uri.fsPath,
