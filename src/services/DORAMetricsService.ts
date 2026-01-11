@@ -14,6 +14,7 @@
  * @packageDocumentation
  */
 
+import type { SnapshotOrigin } from "@snapback/contracts";
 import {
 	createDORAMetrics,
 	type DORAMetrics,
@@ -22,11 +23,6 @@ import {
 	type RecoveryEvent,
 } from "@snapback/intelligence/vitals";
 import { logger } from "../utils/logger";
-
-/**
- * Snapshot origin types for DORA tracking
- */
-export type SnapshotOrigin = "manual" | "auto" | "ai-detected" | "recovery";
 
 /**
  * Active recovery tracking for MTTR calculation
@@ -114,7 +110,9 @@ export class DORAMetricsService {
 			timestamp: Date.now(),
 			timeSinceLastChange,
 			isRecoveryTriggered,
-			trigger: origin,
+			// Cast to narrower trigger type expected by DORASnapshotEvent
+			// VSCode only uses the base 4 origins, not INTERACTIVE/AUTOMATED
+			trigger: origin as "manual" | "auto" | "ai-detected" | "recovery",
 		};
 
 		this.metrics.recordSnapshot(event);
@@ -158,20 +156,19 @@ export class DORAMetricsService {
 	 * @param failureReason - Reason for failure (if any)
 	 */
 	recordRecoveryComplete(snapshotId: string, success: boolean, filesRestored: number, failureReason?: string): void {
-		const activeRecovery = this.activeRecoveries.get(snapshotId);
+		let recovery = this.activeRecoveries.get(snapshotId);
 
-		if (!activeRecovery) {
+		if (!recovery) {
 			// Recovery was not tracked - create a synthetic start time
 			logger.warn("DORA: Recovery complete without start tracking", { snapshotId });
 			const syntheticStart = Date.now() - 1000; // Assume 1 second ago
-			this.activeRecoveries.set(snapshotId, {
+			recovery = {
 				snapshotId,
 				requestTime: syntheticStart,
 				filesExpected: filesRestored,
-			});
+			};
+			this.activeRecoveries.set(snapshotId, recovery);
 		}
-
-		const recovery = this.activeRecoveries.get(snapshotId)!;
 		const completionTime = Date.now();
 
 		const event: RecoveryEvent = {

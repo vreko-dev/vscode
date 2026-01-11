@@ -100,11 +100,6 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	private disposables: vscode.Disposable[] = [];
 
 	/**
-	 * DaemonBridge for cross-surface coordination
-	 */
-	private daemonBridge?: DaemonBridge;
-
-	/**
 	 * Daemon event subscription
 	 */
 	private daemonEventDisposable?: vscode.Disposable;
@@ -257,8 +252,6 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	public setDaemonBridge(bridge: DaemonBridge): void {
 		// Clean up existing subscription
 		this.daemonEventDisposable?.dispose();
-
-		this.daemonBridge = bridge;
 
 		// Subscribe to snapshot created events from daemon
 		this.daemonEventDisposable = bridge.onSnapshotCreated((event: SnapshotCreatedEvent) => {
@@ -574,9 +567,13 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		const webview = this.panel.webview;
 		const nonce = this.getNonce();
 
-		// Get URIs for resources
-		const bundleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "webview", "dist", "bundle.js"));
-		const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "webview", "dist", "style.css"));
+		// Get URIs for resources (Vite outputs to dist/webview/assets/)
+		const bundleUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(this.extensionUri, "dist", "webview", "assets", "index.js"),
+		);
+		const styleUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(this.extensionUri, "dist", "webview", "assets", "index.css"),
+		);
 
 		return `<!DOCTYPE html>
 <html lang="en">

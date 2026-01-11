@@ -8,7 +8,13 @@
  * @version 1.0.0
  */
 
-// 🔇 MUST be first: Suppress console.error logs from shared packages (config store, etc.)
+// 🛡️ DEFENSE-IN-DEPTH: Skip environment validation for VS Code extension context
+// The root cause is fixed (env.ts removed from @snapback/config exports), but we keep
+// this as a safety net in case any transitive dependency still triggers validation.
+// This MUST be set before any imports that might use @snapback/config or @snapback/env.
+process.env.SKIP_ENV_VALIDATION = "1";
+
+// 🔇 Suppress console.error logs from shared packages (config store, etc.)
 // These packages check MCP_QUIET at module load time, so this must run before imports.
 // This prevents confusing ERR entries in dev console from MCP-compatible packages.
 process.env.MCP_QUIET = "1";

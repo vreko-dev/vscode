@@ -1128,6 +1128,7 @@
 		"@snapback/contracts": "workspace:*",
 		"@snapback/core": "workspace:*",
 		"@snapback/engine": "workspace:*",
+		"@snapback/env": "workspace:*",
 		"@snapback/infrastructure": "workspace:*",
 		"@snapback/intelligence": "workspace:*",
 		"@snapback/mcp": "workspace:*",

@@ -37,6 +37,7 @@ export class SnapshotService extends EventEmitter {
 		const snapshot: Snapshot = {
 			id,
 			timestamp,
+			version: "1.0",
 			files: files,
 			meta: {
 				description,

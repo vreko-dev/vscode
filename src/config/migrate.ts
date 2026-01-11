@@ -19,14 +19,9 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import {
-	type ConfigStoreV2,
-	isV1Config,
-	type MigrationResult,
-	migrateV1ToV2,
-	type V1ConfigSchema,
-	validateConfig,
-} from "@snapback/config";
+import type { ConfigStoreV2, MigrationResult, V1ConfigSchema } from "@snapback/config";
+import { isV1Config, migrateV1ToV2 } from "@snapback/config/migrations";
+import { validateConfig } from "@snapback/config/schemas";
 import type * as vscode from "vscode";
 import { logger } from "../utils/logger";
 

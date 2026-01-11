@@ -7,13 +7,9 @@
  * This module provides the single point of config access for the VS Code Extension.
  */
 
-import {
-	type ConfigPath,
-	ConfigStore,
-	type ConfigStoreV2 as ConfigStoreV2Type,
-	getConfigStore,
-	type PathValue,
-} from "@snapback/config";
+import type { ConfigPath, PathValue } from "@snapback/config";
+import type { ConfigStoreV2 as ConfigStoreV2Type } from "@snapback/config/schemas";
+import { ConfigStore, getConfigStore } from "@snapback/config/store";
 import { logger } from "../utils/logger";
 
 /**
