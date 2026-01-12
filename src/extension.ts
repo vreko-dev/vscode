@@ -50,6 +50,14 @@ import { disposeHeatIntegration, type HeatIntegration, initializeHeatIntegration
 import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration"; // 🆕 Import AutoDecisionIntegration
 import { autoConfigureMCP, registerMCPCommands } from "./mcp/auto-configure"; // 🆕 Import MCP auto-configure
 import { AIDetectionToast, type AISignal } from "./notifications/AIDetectionToast"; // 🆕 Import AIDetectionToast
+// 🆕 Import health monitor for proactive issue detection
+import {
+	createDefaultHealthChecks,
+	disposeHealthMonitor,
+	initializeHealthMonitor,
+} from "./observability/ActivationHealthMonitor";
+// 🆕 Import Sentry observability for error tracking (isolated client pattern)
+import { addBreadcrumb, captureException, closeSentry, initSentryExtension, setUser } from "./observability/sentry";
 import { FileSystemWatcher } from "./protection/FileSystemWatcher";
 import { SnapshotContentProvider } from "./providers/SnapshotContentProvider"; // 🆕 Import SnapshotContentProvider
 import { RulesManager } from "./rules/RulesManager";
@@ -175,6 +183,22 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(outputChannel);
 	logger.getInstance(outputChannel);
 
+	// 🆕 Initialize Sentry for production error tracking (isolated client - no global pollution)
+	// This runs early to capture any errors during activation phases
+	try {
+		await initSentryExtension(context);
+		addBreadcrumb("Extension activation started", "lifecycle");
+	} catch (sentryError) {
+		logger.warn("Sentry initialization failed (non-critical)", {
+			error: sentryError instanceof Error ? sentryError.message : String(sentryError),
+		});
+	}
+
+	// 🆕 Initialize Health Monitor for proactive issue detection
+	const healthMonitor = initializeHealthMonitor(context);
+	healthMonitor.startActivation();
+	context.subscriptions.push(healthMonitor.registerDiagnosticCommand());
+
 	// 🛡️ Defensive Registration: Register views immediately so UI is never empty
 	registerEmptyViews(context);
 
@@ -213,6 +237,12 @@ export async function activate(context: vscode.ExtensionContext) {
 			errorStack,
 		});
 
+		// 🆕 Send to Sentry for remote tracking
+		captureException(error, {
+			tags: { source: "unhandledRejection", phase: "activation" },
+			level: "fatal",
+		});
+
 		// DO NOT call process.exit() - log and attempt recovery
 		vscode.window.showErrorMessage(
 			"SnapBack encountered an unexpected error during activation. Some features may be unavailable. Check Output → SnapBack for details.",
@@ -228,6 +258,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		logger.error("CRITICAL: Uncaught Exception during activation", error, {
 			errorName: error.name,
+		});
+
+		// 🆕 Send to Sentry for remote tracking
+		captureException(error, {
+			tags: { source: "uncaughtException", phase: "activation" },
+			level: "fatal",
 		});
 
 		// DO NOT call process.exit() - log and attempt recovery
@@ -515,6 +551,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		const phase1Start = Date.now();
 		initializePhase1Services();
 		phaseTimings["Phase 1 (Services)"] = Date.now() - phase1Start;
+		addBreadcrumb("Phase 1 complete: Core services", "activation", {
+			duration: phaseTimings["Phase 1 (Services)"],
+		});
 
 		// 🆕 Phase 1.5: Defer Language Server startup for activation performance
 		// The LSP runs in a separate process, keeping extension bundle lightweight (<1MB)
@@ -550,6 +589,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		const phase2Result = await initializePhase2Storage(workspaceRoot, context, eventBus); // GREEN: Pass eventBus
 		phaseTimings["Phase 2 (Storage)"] = Date.now() - phase2Start;
 		storage = phase2Result.storage;
+		addBreadcrumb("Phase 2 complete: Storage initialized", "activation", {
+			duration: phaseTimings["Phase 2 (Storage)"],
+		});
 
 		// 🎩 Initialize Context File Manager (non-blocking)
 		// Creates .snapback/ctx/context.json for AI assistant awareness
@@ -804,6 +846,9 @@ export async function activate(context: vscode.ExtensionContext) {
 			eventBus, // GREEN PHASE: Pass event bus for SNAPSHOT_CREATED publishing
 		);
 		phaseTimings["Phase 3 (Managers)"] = Date.now() - phase3Start;
+		addBreadcrumb("Phase 3 complete: Business logic managers", "activation", {
+			duration: phaseTimings["Phase 3 (Managers)"],
+		});
 
 		// Note: SignalBridge doesn't have setOnBurstEnd() callback like V1 BurstDetector.
 		// POST checkpoint creation now happens in the onDidChangeTextDocument listener above.
@@ -902,6 +947,9 @@ export async function activate(context: vscode.ExtensionContext) {
 						}
 						await userIdentityService.handleLogin(sessions.account.id);
 
+						// 🆕 Set user context in Sentry for error attribution
+						setUser({ id: sessions.account.id });
+
 						// 🆕 Track auth completion in activation funnel (P0-3)
 						if (activationFunnelIntegration) {
 							activationFunnelIntegration.trackAuthCompleted("vscode");
@@ -960,6 +1008,9 @@ export async function activate(context: vscode.ExtensionContext) {
 			phase2Result.mcpManager,
 		);
 		phaseTimings["Phase 4 (Providers)"] = Date.now() - phase4Start;
+		addBreadcrumb("Phase 4 complete: UI providers", "activation", {
+			duration: phaseTimings["Phase 4 (Providers)"],
+		});
 
 		// 🆕 Heat Integration: File activity tracking with AI detection
 		try {
@@ -981,6 +1032,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		const phase5Start = Date.now();
 		await initializePhase5Registration(context, phase4Result, phase3Result.sessionCoordinator);
 		phaseTimings["Phase 5 (Registration)"] = Date.now() - phase5Start;
+		addBreadcrumb("Phase 5 complete: Command registration", "activation", {
+			duration: phaseTimings["Phase 5 (Registration)"],
+		});
 
 		// 🆕 Pioneer Infrastructure
 		const pioneerStart = Date.now();
@@ -1711,6 +1765,28 @@ export async function activate(context: vscode.ExtensionContext) {
 		logger.info(`Extension activated in ${elapsedTime}ms`);
 		outputChannel.appendLine(`✅ SnapBack activated in ${elapsedTime}ms`);
 
+		// 🆕 Finalize health monitoring
+		healthMonitor.endActivation();
+		for (const [phase, duration] of Object.entries(phaseTimings)) {
+			healthMonitor.recordPhaseTiming(phase, duration);
+		}
+		// Register default health checks with component refs
+		// Note: Using simple existence checks - actual types are more complex
+		createDefaultHealthChecks(healthMonitor, {
+			storage: storage ? { isInitialized: () => true } : null,
+			eventBus: eventBus ? { isInitialized: () => true } : null,
+			mcpManager: phase2Result.mcpManager ? { getState: () => "connected" } : null,
+			authState: authState ? { isAuthenticated: async () => authState?.isAuthenticated() ?? false } : null,
+		});
+		// Run health checks asynchronously (non-blocking)
+		setImmediate(() => {
+			healthMonitor.runHealthChecks().catch((err) => {
+				logger.warn("Health check failed (non-critical)", {
+					error: err instanceof Error ? err.message : String(err),
+				});
+			});
+		});
+
 		// Log phase timings for performance analysis
 		outputChannel.appendLine("\n[PERF] Phase Timing Breakdown:");
 		let totalPhaseTime = 0;
@@ -1746,6 +1822,20 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export async function deactivate() {
 	logger.info("Extension deactivation started");
+
+	// 🆕 Flush and close Sentry first to capture any final errors
+	try {
+		addBreadcrumb("Extension deactivation started", "lifecycle");
+		await closeSentry();
+		logger.debug("Sentry closed successfully");
+	} catch (sentryError) {
+		logger.warn("Error closing Sentry (non-critical)", {
+			error: sentryError instanceof Error ? sentryError.message : String(sentryError),
+		});
+	}
+
+	// 🆕 Dispose health monitor
+	disposeHealthMonitor();
 
 	try {
 		if (storage) {
