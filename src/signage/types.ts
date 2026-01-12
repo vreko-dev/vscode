@@ -40,7 +40,7 @@ export type FileHealthCanonical = (typeof FILE_HEALTH_CANONICAL)[keyof typeof FI
 export type SignageBase = Readonly<{
 	label: string;
 	icon?: string; // Emoji icon for cross-IDE compatibility (VS Code, Cursor, Windsurf)
-	color?: string; // Hex color, e.g. "#10B981"
+	color?: string; // Hex color, e.g. "#4ADE80"
 	themeColor?: string; // VS Code theme color id, e.g. "charts.green"
 	description?: string;
 	tooltip?: string;

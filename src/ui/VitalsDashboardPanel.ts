@@ -72,7 +72,6 @@ export class VitalsDashboardPanel {
 	private useReactWebview = true; // Enable React WebView bundle
 	private isWebviewReady = false; // Track if React has mounted and is ready for messages
 	private daemonEventDisposable?: vscode.Disposable;
-	private daemonBridge?: DaemonBridge;
 	private static _pendingDaemonBridge?: DaemonBridge;
 
 	private constructor(panel: vscode.WebviewPanel, dataService: UnifiedDataService, extensionUri: vscode.Uri) {
@@ -200,8 +199,6 @@ export class VitalsDashboardPanel {
 	 * @param bridge - DaemonBridge instance from extension activation
 	 */
 	public setDaemonBridge(bridge: DaemonBridge): void {
-		this.daemonBridge = bridge;
-
 		// Subscribe to snapshot created events from daemon
 		// This enables vitals to refresh when CLI/MCP creates snapshots
 		this.daemonEventDisposable = bridge.onSnapshotCreated((event: SnapshotCreatedEvent) => {
@@ -902,7 +899,7 @@ export class VitalsDashboardPanel {
 		if (value > 50) {
 			return SESSION_HEALTH_SIGNAGE.warning.color ?? "#FACC15";
 		}
-		return SESSION_HEALTH_SIGNAGE.healthy.color ?? "#10B981";
+		return SESSION_HEALTH_SIGNAGE.healthy.color ?? "#4ADE80";
 	}
 
 	private getOxygenColor(value: number): string {
@@ -913,7 +910,7 @@ export class VitalsDashboardPanel {
 		if (value < 60) {
 			return SESSION_HEALTH_SIGNAGE.warning.color ?? "#FACC15";
 		}
-		return SESSION_HEALTH_SIGNAGE.healthy.color ?? "#10B981";
+		return SESSION_HEALTH_SIGNAGE.healthy.color ?? "#4ADE80";
 	}
 
 	private getTrajectoryArrow(trajectory: string): string {

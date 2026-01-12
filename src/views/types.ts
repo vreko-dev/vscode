@@ -226,7 +226,7 @@ export const PROTECTION_LEVELS: Record<ProtectionLevel, ProtectionLevelMetadata>
 		icon: PROTECTION_LEVEL_SIGNAGE.watch.icon || "🟢",
 		label: PROTECTION_LEVEL_SIGNAGE.watch.label,
 		description: PROTECTION_LEVEL_SIGNAGE.watch.description || "Silent auto-snapshot on save",
-		color: PROTECTION_LEVEL_SIGNAGE.watch.color || "#10B981",
+		color: PROTECTION_LEVEL_SIGNAGE.watch.color || "#4ADE80",
 		themeColor: PROTECTION_LEVEL_SIGNAGE.watch.themeColor || "charts.green",
 	},
 	warn: {

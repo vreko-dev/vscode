@@ -113,7 +113,7 @@ export function getLevelDescription(level: ProtectionLevel): string {
 export function getLevelColor(level: ProtectionLevel): string {
 	const colors: Record<ProtectionLevel, string> = {
 		[ProtectionLevel.Unprotected]: "#94A3B8", // Gray 400
-		[ProtectionLevel.Checkpoint]: "#10B981", // Emerald 500
+		[ProtectionLevel.Checkpoint]: "#4ADE80", // Vibrant green
 		[ProtectionLevel.Guarded]: "#FF6B35", // Safety orange
 		[ProtectionLevel.Strict]: "#EF4444", // Red 500
 	};

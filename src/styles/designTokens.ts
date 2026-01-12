@@ -63,10 +63,10 @@ export const DesignTokens: DesignTokensType & {
 } = {
 	colors: {
 		watch: {
-			primary: PROTECTION_LEVEL_SIGNAGE.watch.color || "#10B981", // From signage module
+			primary: PROTECTION_LEVEL_SIGNAGE.watch.color || "#4ADE80", // From signage module
 			background: "rgba(16, 185, 129, 0.1)",
 			border: "rgba(16, 185, 129, 0.3)",
-			text: "#10B981",
+			text: "#4ADE80",
 		},
 		warn: {
 			primary: PROTECTION_LEVEL_SIGNAGE.warn.color || "#FF6B35", // From signage module
