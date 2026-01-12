@@ -21,7 +21,9 @@ import { getMCPBridge } from "../bridges/MCPBridge";
 import type { HeatTracker } from "../heat/HeatTracker";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { DaemonBridge, SnapshotCreatedEvent } from "../services/DaemonBridge";
+import { getCliStatus, verifyCliInstallation } from "../utils/cli-status";
 import { logger } from "../utils/logger";
+import { detectPackageManager, getInstallCommand } from "../utils/package-manager";
 import { type DashboardDataService, getDashboardDataService } from "./DashboardDataService";
 
 // =============================================================================
@@ -72,12 +74,24 @@ interface DashboardMessage {
 		| "openSettings"
 		| "exportDebugInfo"
 		| "refresh";
-	type?: "webviewReady" | "configureMCP" | "createSnapshot" | "openSettings";
+	type?:
+		| "webviewReady"
+		| "configureMCP"
+		| "createSnapshot"
+		| "openSettings"
+		| "cli:checkStatus"
+		| "cli:install"
+		| "cli:openDocs"
+		| "cli:verifyInstallation";
 	data?: {
 		tab?: DashboardTab;
 		command?: string;
 	};
 }
+
+/** CLI installation polling config */
+const CLI_POLL_INTERVAL = 5000; // 5 seconds
+const CLI_POLL_MAX_ATTEMPTS = 12; // 60 seconds total
 
 // =============================================================================
 // DASHBOARD PANEL
@@ -346,6 +360,18 @@ export class DashboardPanel implements vscode.Disposable {
 				case "openSettings":
 					await vscode.commands.executeCommand("workbench.action.openSettings", "snapback");
 					return;
+				case "cli:checkStatus":
+					await this.handleCliCheckStatus();
+					return;
+				case "cli:install":
+					await this.handleCliInstall();
+					return;
+				case "cli:openDocs":
+					vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/cli"));
+					return;
+				case "cli:verifyInstallation":
+					await this.handleCliVerifyInstallation();
+					return;
 			}
 		}
 
@@ -398,6 +424,92 @@ export class DashboardPanel implements vscode.Disposable {
 				await this.loadStats();
 				this.updateContent();
 				break;
+		}
+	}
+
+	/**
+	 * Handle CLI status check request
+	 */
+	private async handleCliCheckStatus(): Promise<void> {
+		const status = await getCliStatus();
+		const packageManager = detectPackageManager();
+
+		this.panel.webview.postMessage({
+			type: "cli:status",
+			payload: {
+				installed: status.installed,
+				version: status.version,
+				packageManager,
+			},
+		});
+	}
+
+	/**
+	 * Handle CLI installation request - creates terminal with install command
+	 */
+	private async handleCliInstall(): Promise<void> {
+		const packageManager = detectPackageManager();
+		const command = getInstallCommand(packageManager, "@snapback/cli");
+
+		logger.info("Installing CLI via terminal", { packageManager, command });
+
+		// Create terminal with SnapBack branding
+		const terminal = vscode.window.createTerminal({
+			name: "SnapBack CLI",
+			iconPath: new vscode.ThemeIcon("shield"),
+		});
+
+		// Show terminal but don't steal focus from webview
+		terminal.show(false);
+		terminal.sendText(command, true);
+
+		// Notify webview that installation started
+		this.panel.webview.postMessage({ type: "cli:installStarted" });
+
+		// Poll for installation completion
+		this.pollForCliInstallation();
+	}
+
+	/**
+	 * Poll for CLI installation completion
+	 */
+	private async pollForCliInstallation(): Promise<void> {
+		for (let attempt = 0; attempt < CLI_POLL_MAX_ATTEMPTS; attempt++) {
+			await new Promise((resolve) => setTimeout(resolve, CLI_POLL_INTERVAL));
+
+			const status = await getCliStatus();
+
+			if (status.installed) {
+				logger.info("CLI installed successfully", { version: status.version });
+				this.panel.webview.postMessage({
+					type: "cli:installComplete",
+					payload: { version: status.version || "unknown" },
+				});
+				return;
+			}
+		}
+
+		// Polling timed out - don't send error, let user verify manually
+		logger.debug("CLI installation polling timed out");
+	}
+
+	/**
+	 * Handle CLI verification request (manual check after install)
+	 */
+	private async handleCliVerifyInstallation(): Promise<void> {
+		const verification = await verifyCliInstallation();
+
+		if (verification.valid) {
+			const status = await getCliStatus();
+			this.panel.webview.postMessage({
+				type: "cli:installComplete",
+				payload: { version: status.version || "unknown" },
+			});
+		} else {
+			this.panel.webview.postMessage({
+				type: "cli:error",
+				payload: { message: verification.error || "CLI verification failed" },
+			});
 		}
 	}
 

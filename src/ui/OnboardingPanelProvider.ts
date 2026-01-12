@@ -7,6 +7,9 @@
 import { detectAIClients, getSnapbackMCPConfig, writeClientConfig } from "@snapback/mcp-config";
 import * as vscode from "vscode";
 import type { CliLinkManager } from "../cli/CliLinkManager";
+import { executeCLICommand } from "../utils/cli-execution";
+import type { HostEnvironment } from "../utils/host-probe";
+import { clearEnvironmentCache, probeHostEnvironment } from "../utils/host-probe";
 import { logger } from "../utils/logger";
 
 interface DetectedProvider {
@@ -19,6 +22,9 @@ interface DetectedProvider {
 
 export class OnboardingPanelProvider {
 	private panel: vscode.WebviewPanel | undefined;
+	private cachedEnvironment: HostEnvironment | null = null;
+	private cacheTimestamp = 0;
+	private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
@@ -73,7 +79,7 @@ export class OnboardingPanelProvider {
 	/**
 	 * Handle messages from webview
 	 */
-	private async handleMessage(message: { type: string; step?: string; [key: string]: unknown }): Promise<void> {
+	private async handleMessage(message: { type: string; step?: string; payload?: unknown; [key: string]: unknown }): Promise<void> {
 		logger.info("[Onboarding] Message received from webview", { type: message.type, step: message.step });
 		try {
 			switch (message.type) {
@@ -91,6 +97,18 @@ export class OnboardingPanelProvider {
 
 				case "install-cli":
 					await this.handleInstallCli();
+					break;
+
+				case "host:getEnvironment":
+					await this.handleGetEnvironment();
+					break;
+
+				case "host:probe":
+					await this.handleProbeHost();
+					break;
+
+				case "cli:run":
+					await this.handleRunCli(message.payload as { command: string; args?: string[] });
 					break;
 
 				case "close":
@@ -245,6 +263,121 @@ export class OnboardingPanelProvider {
 	 */
 	private async handleInstallCli(): Promise<void> {
 		await vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/cli/install"));
+	}
+
+	/**
+	 * Handle host environment request (use cache if available)
+	 */
+	private async handleGetEnvironment(): Promise<void> {
+		if (!this.panel) return;
+
+		// Check cache
+		if (this.cachedEnvironment && Date.now() - this.cacheTimestamp < this.CACHE_TTL) {
+			logger.info("[Onboarding] Returning cached environment");
+			this.panel.webview.postMessage({
+				type: "host:environment",
+				payload: this.cachedEnvironment,
+			});
+			return;
+		}
+
+		// Otherwise probe
+		await this.handleProbeHost();
+	}
+
+	/**
+	 * Handle host environment probe (force re-probe, ignore cache)
+	 */
+	private async handleProbeHost(): Promise<void> {
+		if (!this.panel) return;
+
+		logger.info("[Onboarding] Probing host environment");
+
+		// Notify webview that probing started
+		this.panel.webview.postMessage({ type: "host:probing" });
+
+		try {
+			// Clear cache and force re-probe
+			clearEnvironmentCache();
+			const environment = await probeHostEnvironment(false);
+
+			// Update cache
+			this.cachedEnvironment = environment;
+			this.cacheTimestamp = Date.now();
+
+			// Send result to webview
+			logger.info("[Onboarding] Probe complete", { strategy: environment.strategy });
+			this.panel.webview.postMessage({
+				type: "host:environment",
+				payload: environment,
+			});
+		} catch (error) {
+			logger.error("[Onboarding] Host probe failed", error as Error);
+			this.panel.webview.postMessage({
+				type: "cli:error",
+				payload: {
+					message: "Failed to probe host environment",
+					code: "EXECUTION_FAILED",
+				},
+			});
+		}
+	}
+
+	/**
+	 * Handle CLI command execution
+	 */
+	private async handleRunCli(payload: { command: string; args?: string[] }): Promise<void> {
+		if (!this.panel) return;
+
+		// Check if environment has been probed
+		if (!this.cachedEnvironment) {
+			logger.warn("[Onboarding] CLI execution requested but environment not probed");
+			this.panel.webview.postMessage({
+				type: "cli:error",
+				payload: {
+					message: "Environment not probed yet. Please wait...",
+					code: "NO_ENVIRONMENT",
+				},
+			});
+			return;
+		}
+
+		// Check if runtime is available
+		if (this.cachedEnvironment.strategy === "unavailable") {
+			logger.warn("[Onboarding] CLI execution requested but no runtime available");
+			this.panel.webview.postMessage({
+				type: "cli:error",
+				payload: {
+					message: "Node.js or Bun required to execute CLI commands",
+					code: "RUNTIME_UNAVAILABLE",
+				},
+			});
+			return;
+		}
+
+		// Execute command
+		const { command, args } = payload;
+		logger.info("[Onboarding] Executing CLI command", { command, args });
+
+		// Notify webview that command is running
+		this.panel.webview.postMessage({
+			type: "cli:running",
+			payload: { command },
+		});
+
+		try {
+			await executeCLICommand(command, this.cachedEnvironment, args);
+			logger.info("[Onboarding] CLI command executed successfully");
+		} catch (error) {
+			logger.error("[Onboarding] CLI execution failed", error as Error);
+			this.panel.webview.postMessage({
+				type: "cli:error",
+				payload: {
+					message: (error as Error).message || "CLI execution failed",
+					code: "EXECUTION_FAILED",
+				},
+			});
+		}
 	}
 
 	/**

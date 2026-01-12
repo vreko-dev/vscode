@@ -1,5 +1,6 @@
 import { Button, Card } from "@snapback/ui";
 import type React from "react";
+import { CliInstallCard } from "../components/CliInstallCard";
 
 // Brand constants will be passed as props from extension
 interface DashboardHomeProps {
@@ -21,6 +22,11 @@ interface DashboardHomeProps {
 	onConfigureMCP: () => void;
 	onCreateSnapshot: () => void;
 	onOpenSettings: () => void;
+	/** CLI installation status (optional - shows card if not installed) */
+	cliStatus?: {
+		installed: boolean;
+		version: string | null;
+	};
 }
 
 // Brand constants (from extension BRANDING export)
@@ -41,6 +47,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 	onConfigureMCP,
 	onCreateSnapshot,
 	onOpenSettings,
+	cliStatus,
 }) => {
 	const {
 		snapshotsToday,
@@ -92,6 +99,14 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 					</Card>
 				</div>
 			</div>
+
+			{/* CLI Installation Card - Show if CLI not installed */}
+			{(!cliStatus || !cliStatus.installed) && (
+				<div className="mb-6">
+					<h3 className="text-sm font-semibold text-zinc-400 mb-3 uppercase tracking-wide">Setup</h3>
+					<CliInstallCard />
+				</div>
+			)}
 
 			{/* MCP Status */}
 			<div className="mb-6">

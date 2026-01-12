@@ -230,11 +230,17 @@ export const OnboardingPanel: React.FC = () => {
 			case "cli":
 				return (
 					<div>
-						<h2 className="text-lg font-bold text-zinc-100 mb-4">📦 (Optional) Install CLI</h2>
+						<h2 className="text-lg font-bold text-zinc-100 mb-4">📦 Execute CLI Commands</h2>
 						<p className="text-sm text-zinc-400 mb-4">
-							The SnapBack CLI enables local file system access while keeping your code on your machine.
+							Run SnapBack CLI commands directly from VS Code. No installation needed - we'll use npx or
+							bunx automatically.
 						</p>
-						<CliCard installed={state.cliInstalled} onInstall={handleInstallCli} />
+						<CliCard
+							autoProbe={true}
+							onCommandExecuted={(command) => {
+								console.log(`[OnboardingPanel] CLI command executed: ${command}`);
+							}}
+						/>
 					</div>
 				);
 
