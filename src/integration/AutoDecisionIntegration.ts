@@ -29,8 +29,10 @@ import { DEFAULT_CONFIG } from "../domain/types";
 import { FeedbackManager } from "../engine/FeedbackManager";
 import type { NotificationManager } from "../notificationManager";
 import { RecoveryUXNotification } from "../notifications/RecoveryUXNotification";
+import type { NudgeManager } from "../nurturing/NudgeManager";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { AIRiskAssessment, AIRiskService, ChangeToAssess } from "../services/aiRiskService";
+import type { CommitRiskBridge } from "../services/CommitRiskBridge";
 import { getWorkspaceVitalsSync } from "../services/IntelligenceService";
 import type { WorkspaceVitalsProxy } from "../services/LanguageClient";
 import { refreshVitalsCache } from "../services/LanguageClient";
@@ -65,6 +67,12 @@ export class AutoDecisionIntegration {
 	/** Workspace Vitals Proxy - provides vitals interface via LSP */
 	private vitals: WorkspaceVitalsProxy;
 
+	/** CommitRiskBridge - research-aligned commit coaching (optional) */
+	private commitRiskBridge: CommitRiskBridge | null = null;
+
+	/** NudgeManager - user education and coaching (optional) */
+	private nudgeManager: NudgeManager | null = null;
+
 	/** Handler for SNAPSHOT_CREATED events - needs to be stored for unsubscription */
 	private snapshotCreatedHandler: ((payload: unknown) => void) | null = null;
 
@@ -73,6 +81,15 @@ export class AutoDecisionIntegration {
 	private isProcessing = false;
 	private disposables: vscode.Disposable[] = [];
 	private isActive = false;
+
+	// 🆕 Track previous line counts for accurate diff calculation
+	// Maps file path -> previous line count
+	// ISSUE FIX: Previously counted total lines in file, now calculates actual change
+	private previousLineCounts: Map<string, number> = new Map();
+
+	// 🆕 Track AI contribution for dynamic fraction calculation
+	// Maps file path -> { aiLines, totalLines } for accurate AI fraction
+	private aiContributions: Map<string, { aiLines: number; totalLines: number }> = new Map();
 	/** Activation grace period flag - prevents false positives during extension startup */
 	private isActivationGracePeriod = true;
 	/** Grace period timeout handle - cleared on deactivation to prevent memory leaks */
@@ -106,6 +123,8 @@ export class AutoDecisionIntegration {
 		aiRiskService?: AIRiskService,
 		operationCoordinator?: OperationCoordinator,
 		eventBus?: SnapBackEventBus,
+		commitRiskBridge?: CommitRiskBridge,
+		nudgeManager?: NudgeManager,
 	) {
 		// Store dependencies
 		this.snapshotManager = snapshotManager;
@@ -113,6 +132,8 @@ export class AutoDecisionIntegration {
 		this.workspaceContextManager = workspaceContextManager;
 		this.aiRiskService = aiRiskService ?? null;
 		this.eventBus = eventBus ?? null;
+		this.commitRiskBridge = commitRiskBridge ?? null;
+		this.nudgeManager = nudgeManager ?? null;
 
 		// Initialize SettingsLoader if context available
 		if (context) {
@@ -374,6 +395,55 @@ export class AutoDecisionIntegration {
 			tool: aiPresence.detectedAssistants[0],
 		});
 
+		// 🆕 Feed event to CommitRiskBridge for commit coaching
+		if (this.commitRiskBridge && event.content) {
+			// 🔧 FIX: Calculate actual line changes using diff from previous state
+			// ISSUE: Previously counted TOTAL lines in file, grossly overestimating risk
+			// Now: Track previous line count and calculate delta
+			const currentLineCount = event.content.split("\n").length;
+			const previousLineCount = this.previousLineCounts.get(event.filePath) ?? 0;
+
+			// Calculate lines changed as absolute difference (handles both additions and deletions)
+			// For new files, use full line count; for edits, use the delta
+			const linesChanged =
+				previousLineCount === 0 ? currentLineCount : Math.abs(currentLineCount - previousLineCount);
+
+			// Update tracking for next change
+			this.previousLineCounts.set(event.filePath, currentLineCount);
+
+			// Only record if there's actual change (avoid noise from saves without edits)
+			if (linesChanged > 0) {
+				this.commitRiskBridge.recordFileChange(event.filePath, linesChanged);
+			}
+
+			// 🔧 FIX: Calculate dynamic AI fraction based on accumulated AI contributions
+			// ISSUE: Previously hardcoded at 40% regardless of actual AI involvement
+			if (aiPresence.hasAI) {
+				// Track AI contribution for this file
+				const contribution = this.aiContributions.get(event.filePath) ?? { aiLines: 0, totalLines: 0 };
+				contribution.aiLines += linesChanged;
+				contribution.totalLines += linesChanged;
+				this.aiContributions.set(event.filePath, contribution);
+			} else if (linesChanged > 0) {
+				// Track non-AI contribution
+				const contribution = this.aiContributions.get(event.filePath) ?? { aiLines: 0, totalLines: 0 };
+				contribution.totalLines += linesChanged;
+				this.aiContributions.set(event.filePath, contribution);
+			}
+
+			// Calculate session-wide AI fraction
+			let totalAiLines = 0;
+			let totalLines = 0;
+			for (const contrib of this.aiContributions.values()) {
+				totalAiLines += contrib.aiLines;
+				totalLines += contrib.totalLines;
+			}
+			const aiFraction = totalLines > 0 ? totalAiLines / totalLines : 0;
+
+			// Update AI state with calculated fraction
+			this.commitRiskBridge.setAIActive(aiFraction > 0, aiFraction);
+		}
+
 		this.fileBuffer.push(event);
 
 		// Reset debounce timer
@@ -481,11 +551,78 @@ export class AutoDecisionIntegration {
 
 			// Step 5: Execute decision with PressureRecommendation for enhanced UX
 			await this.executeDecision(decision, saveContext, pressureRecommendation);
+
+			// Step 6: Evaluate commit coaching (research-aligned)
+			await this.evaluateCommitCoaching();
 		} catch (error) {
 			logger.error("Error processing batch", error as Error);
 		} finally {
 			this.isProcessing = false;
 			this.fileBuffer = [];
+		}
+	}
+
+	/**
+	 * Evaluate commit coaching using CommitRiskBridge
+	 *
+	 * Based on 2025-2026 research:
+	 * - LinearB: PR Size is #1 driver of engineering velocity
+	 * - GitClear: PRs <200 lines correlate with 5x faster review
+	 * - 41% of commits are AI-assisted (validates AI factor)
+	 */
+	private async evaluateCommitCoaching(): Promise<void> {
+		if (!this.commitRiskBridge || !this.nudgeManager) {
+			return;
+		}
+
+		try {
+			// Evaluate current risk
+			const evaluation = this.commitRiskBridge.evaluate();
+
+			logger.debug("CommitRiskBridge evaluation", {
+				score: evaluation.score,
+				action: evaluation.action,
+				escalation: evaluation.escalation,
+			});
+
+			// Check if coaching should be shown
+			if (this.commitRiskBridge.shouldShowCoaching()) {
+				const trigger = this.commitRiskBridge.getCoachingTrigger();
+
+				if (trigger) {
+					// 🔧 FIX: Check NudgeManager state before showing
+					// ISSUE: Previously called showNudge() directly, bypassing:
+					// - User's "Don't show again" preference (isNudgeDisabled)
+					// - Session-level lock (wasShownThisSession)
+					// CommitRiskBridge has its own 10-min cooldown, but we must respect user preferences
+
+					// Check if user disabled this nudge type
+					if (this.nudgeManager.isNudgeDisabled(trigger)) {
+						logger.debug("Commit coaching nudge disabled by user", { trigger });
+						return;
+					}
+
+					// Check session-level flag to avoid spam within same session
+					// Note: CommitRiskBridge 10-min cooldown is for risk-based pacing
+					// NudgeManager session flag is for UX (one nudge per session is less annoying)
+					if (this.nudgeManager.wasShownThisSession()) {
+						logger.debug("Skipping commit coaching - nudge already shown this session", { trigger });
+						return;
+					}
+
+					logger.info("Showing commit coaching nudge", {
+						trigger,
+						riskScore: evaluation.score,
+						reason: evaluation.reason,
+					});
+
+					// Show the nudge and record that prompt was shown
+					await this.nudgeManager.showNudge(trigger);
+					this.commitRiskBridge.recordPromptShown();
+				}
+			}
+		} catch (error) {
+			logger.error("Error evaluating commit coaching", error as Error);
 		}
 	}
 
@@ -896,6 +1033,31 @@ export class AutoDecisionIntegration {
 	getVitals(): WorkspaceVitalsProxy {
 		return this.vitals;
 	}
+
+	/**
+	 * Set CommitRiskBridge for commit coaching integration
+	 * Allows wiring after construction
+	 */
+	setCommitRiskBridge(bridge: CommitRiskBridge): void {
+		this.commitRiskBridge = bridge;
+		logger.debug("CommitRiskBridge wired into AutoDecisionIntegration");
+	}
+
+	/**
+	 * Set NudgeManager for user education
+	 * Allows wiring after construction
+	 */
+	setNudgeManager(manager: NudgeManager): void {
+		this.nudgeManager = manager;
+		logger.debug("NudgeManager wired into AutoDecisionIntegration");
+	}
+
+	/**
+	 * Get CommitRiskBridge (for testing)
+	 */
+	getCommitRiskBridge(): CommitRiskBridge | null {
+		return this.commitRiskBridge;
+	}
 }
 
 /**
@@ -908,6 +1070,8 @@ export function createAutoDecisionIntegration(
 	config?: Partial<AutoDecisionConfig>,
 	operationCoordinator?: OperationCoordinator,
 	eventBus?: SnapBackEventBus,
+	commitRiskBridge?: CommitRiskBridge,
+	nudgeManager?: NudgeManager,
 ): AutoDecisionIntegration {
 	return new AutoDecisionIntegration(
 		snapshotManager,
@@ -918,5 +1082,7 @@ export function createAutoDecisionIntegration(
 		undefined,
 		operationCoordinator,
 		eventBus,
+		commitRiskBridge,
+		nudgeManager,
 	);
 }

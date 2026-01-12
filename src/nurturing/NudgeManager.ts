@@ -4,19 +4,37 @@ import { logger } from "../utils/logger";
 
 /**
  * Nudge Trigger Types
- * Categorized by user activity: authentication, feature discovery, milestones
+ * Categorized by user activity: authentication, feature discovery, milestones, commit coaching
+ *
+ * Commit Coaching (research-aligned):
+ * - commit_suggested: Soft nudge at 0.55 risk threshold
+ * - commit_recommended: Strong nudge at 0.80 risk threshold
+ *
+ * Based on LinearB 2025 benchmarks and GitClear PR size research:
+ * - PRs <200 lines correlate with 5x faster review
+ * - Elite teams: coding times under 1 hour
+ * - 41% of commits are AI-assisted (validates wA factor)
  */
 export type NudgeTrigger =
 	| "auth_failed"
 	| "feature_discovered"
 	| "milestone_reached"
 	| "session_health_warning"
-	| "snapshot_recommended";
+	| "snapshot_recommended"
+	| "commit_suggested"
+	| "commit_recommended";
 
 /**
  * Nudge response actions
  */
-export type NudgeResponse = "create_snapshot" | "authenticate" | "learn_more" | "not_now" | "never" | "dismissed";
+export type NudgeResponse =
+	| "create_snapshot"
+	| "authenticate"
+	| "learn_more"
+	| "not_now"
+	| "never"
+	| "dismissed"
+	| "commit_now";
 
 /**
  * Configuration for nudge messages by trigger type
@@ -98,6 +116,44 @@ const NUDGE_CONFIG: Record<
 		educational: "Regular snapshots reduce recovery time and protect against unexpected issues during development.",
 		whyItMatters:
 			"The cost of a 5-second snapshot is tiny compared to the hours lost debugging a bad AI refactor or accidental deletion.",
+	},
+
+	// =========================================================================
+	// Commit Coaching (Research-Aligned)
+	// Based on LinearB 2025, GitClear PR size research, and AI code generation studies
+	// =========================================================================
+
+	commit_suggested: {
+		title: "Good Time to Commit",
+		message: "Your changes are building up. A commit now would keep your PR reviewable.",
+		icon: "💡",
+		actions: [
+			{ label: "Commit Now", response: "commit_now", command: "workbench.action.git.commit" },
+			{ label: "Create Snapshot", response: "create_snapshot", command: "snapback.createSnapshot" },
+			{ label: "Not Now", response: "not_now" },
+		],
+		educational:
+			"Research shows PRs under 200 lines get reviewed 5x faster. Smaller commits also make bugs easier to isolate and rollback.",
+		whyItMatters:
+			"LinearB's 2025 benchmarks show PR size is the #1 driver of engineering velocity. Elite teams keep commits small and frequent.",
+		learnMoreUrl: "https://linearb.io/blog/2025-engineering-benchmarks-insights",
+	},
+
+	commit_recommended: {
+		title: "Commit Recommended",
+		message:
+			"You have significant uncommitted changes. Committing now protects your work and keeps PRs manageable.",
+		icon: "⚠️",
+		actions: [
+			{ label: "Commit Now", response: "commit_now", command: "workbench.action.git.commit" },
+			{ label: "Create Snapshot First", response: "create_snapshot", command: "snapback.createSnapshot" },
+			{ label: "Later", response: "not_now" },
+		],
+		educational:
+			"Large changesets increase merge conflicts, review fatigue, and bug introduction risk. 41% of commits now involve AI assistance, making frequent commits even more critical.",
+		whyItMatters:
+			"GitClear research shows that PRs over 400 lines have 3x the defect rate. Committing now creates a safe checkpoint before your changes grow further.",
+		learnMoreUrl: "https://www.gitclear.com/blog/ai_code_quality_research",
 	},
 };
 
