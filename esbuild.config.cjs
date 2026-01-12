@@ -28,12 +28,20 @@ async function main() {
 			"onnxruntime-common",
 			"onnxruntime-web",
 			"@huggingface/transformers", // Uses onnxruntime-node for local inference
+			"@xenova/transformers", // Alternative name for Hugging Face Transformers.js
+			"@sentry/node", // Error tracking - must be external to avoid bundling issues
+			"@sentry/core",
+			"@sentry/types",
 			"sql.js", // Uses WASM, optional for SemanticRetriever
+			// CRITICAL: sharp must be external - contains native .node binaries
+			// Bundling sharp causes "No loader configured for .node files" errors
+			"sharp",
 			// Large dependencies externalized (lazy-loaded at runtime)
 			"simple-git", // ~200KB - lazy-loaded via git-lazy.ts
 			"chokidar", // ~400KB - only used in agent watcher
 			// Externalize heavy packages to language server
 			"@snapback/intelligence", // Moved to language server
+			"@snapback/intelligence/*", // All subpaths (vitals, context, etc.)
 			// Heavy workspace packages - dynamically imported for bundle size reduction
 			"@snapback/core", // ~4MB - MCP federation (lazy-loaded via dynamic import)
 			"@snapback/core/*", // All subpaths
@@ -145,6 +153,79 @@ async function main() {
 
 		// Add plugins to handle native modules and problematic dependencies
 		plugins: [
+			// CRITICAL: Externalize workspace packages with native dependencies BEFORE resolution
+			// This plugin intercepts imports BEFORE esbuild tries to resolve them to local paths
+			// Without this, esbuild traverses into @snapback/intelligence -> @xenova/transformers -> sharp -> .node
+			{
+				name: "workspace-externals",
+				setup(build) {
+					// Intercept @sentry/* packages (external for shared environment safety)
+					build.onResolve({ filter: /^@sentry\// }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+
+					// Intercept @snapback/intelligence and all subpaths
+					// Must happen BEFORE resolution to prevent traversing into workspace package
+					build.onResolve({ filter: /^@snapback\/intelligence(\/.*)?$/ }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+
+					// Intercept @snapback/core and all subpaths
+					build.onResolve({ filter: /^@snapback\/core(\/.*)?$/ }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+
+					// Intercept @snapback/infrastructure and all subpaths
+					build.onResolve({ filter: /^@snapback\/infrastructure(\/.*)?$/ }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+
+					// Intercept @xenova/transformers (has sharp as dependency with native .node files)
+					build.onResolve({ filter: /^@xenova\/transformers/ }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+
+					// Intercept sharp directly (native .node binaries)
+					build.onResolve({ filter: /^sharp/ }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+
+					// Intercept better-sqlite3 (native module)
+					build.onResolve({ filter: /^better-sqlite3/ }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+
+					// Intercept all .node files as a fallback safety net
+					build.onResolve({ filter: /\.node$/ }, (args) => {
+						console.warn(`[esbuild] Externalizing native module: ${args.path}`);
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+				},
+			},
 			// esbuild-visualizer for bundle analysis
 			{
 				name: "visualizer",
@@ -229,6 +310,9 @@ async function main() {
 			"onnxruntime-common",
 			"onnxruntime-web",
 			"@huggingface/transformers",
+			"@xenova/transformers", // Has sharp dependency with native .node files
+			"sharp", // Native .node binaries
+			"better-sqlite3", // Native module
 			"sql.js",
 			// Optional template engines from @vue/compiler-sfc's consolidate.js
 			"velocityjs",
@@ -273,6 +357,46 @@ async function main() {
 			"coffee-script",
 			"squirrelly",
 			"twing",
+		],
+
+		// Plugins - same native module handling as extension
+		plugins: [
+			{
+				name: "server-workspace-externals",
+				setup(build) {
+					// Intercept @xenova/transformers (has sharp as dependency with native .node files)
+					build.onResolve({ filter: /^@xenova\/transformers/ }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+
+					// Intercept sharp directly (native .node binaries)
+					build.onResolve({ filter: /^sharp/ }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+
+					// Intercept better-sqlite3 (native module)
+					build.onResolve({ filter: /^better-sqlite3/ }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+
+					// Intercept all .node files as a fallback safety net
+					build.onResolve({ filter: /\.node$/ }, (args) => {
+						return {
+							path: args.path,
+							external: true,
+						};
+					});
+				},
+			},
 		],
 
 		// Minification (production only)

@@ -1159,6 +1159,7 @@
 	},
 	"optionalDependencies": {
 		"@huggingface/transformers": "^3.0.0",
+		"@sentry/node": "^8.0.0",
 		"onnxruntime-node": "^1.21.0",
 		"sql.js": "^1.10.0"
 	},
