@@ -78,9 +78,11 @@ describe("HeatIntegration - Save Signal Registration", () => {
 	let mockHeatTracker: any;
 	let mockRecordFileModification: any;
 	let saveHandlers: Array<(doc: vscode.TextDocument) => void> = [];
+	let changeHandlers: Array<(event: vscode.TextDocumentChangeEvent) => void> = [];
 
 	beforeEach(async () => {
 		saveHandlers = [];
+		changeHandlers = [];
 
 		// Spy on vscode.workspace.onDidSaveTextDocument
 		vi.spyOn(vscode.workspace, "onDidSaveTextDocument").mockImplementation((handler: any) => {
@@ -88,36 +90,31 @@ describe("HeatIntegration - Save Signal Registration", () => {
 			return { dispose: vi.fn() };
 		});
 
-		vi.spyOn(vscode.workspace, "onDidChangeTextDocument").mockImplementation(() => ({
-			dispose: vi.fn(),
-		}));
+		// Spy on vscode.workspace.onDidChangeTextDocument to populate recentChanges
+		vi.spyOn(vscode.workspace, "onDidChangeTextDocument").mockImplementation((handler: any) => {
+			changeHandlers.push(handler);
+			return { dispose: vi.fn() };
+		});
 
 		vi.spyOn(vscode.window, "registerFileDecorationProvider").mockReturnValue({
 			dispose: vi.fn(),
 		});
 
-		// Initialize HeatIntegration
+		// Initialize HeatIntegration FIRST, then get mocks
 		heatIntegration = new HeatIntegration();
 
-		// Get mocked tracker instance using vitest's mock tracking
+		// Access mocks using vi.mocked helper (best practice from Vitest docs)
 		const HeatTrackerModule = await import("../../../src/heat/HeatTracker");
-		const HeatTrackerConstructor = HeatTrackerModule.HeatTracker as any;
-		if (HeatTrackerConstructor.mock && HeatTrackerConstructor.mock.results.length > 0) {
-			mockHeatTracker = HeatTrackerConstructor.mock.results[0].value;
-		} else {
-			// Fallback: create spy functions manually
-			mockHeatTracker = {
-				recordSave: vi.fn(),
-				recordAIEdit: vi.fn(),
-			};
-		}
+		mockHeatTracker = vi.mocked(HeatTrackerModule.HeatTracker).mock.instances[0];
 
-		// Get mocked intelligence function
 		const IntelligenceModule = await import("@snapback/intelligence");
-		mockRecordFileModification = (IntelligenceModule as any).recordFileModification || vi.fn();
+		mockRecordFileModification = vi.mocked(IntelligenceModule as any).recordFileModification;
 
 		// Wait for grace period to complete
 		await waitForGracePeriod();
+
+		// Clear mocks AFTER initialization to get clean state for tests
+		vi.clearAllMocks();
 	});
 
 	afterEach(() => {
@@ -129,6 +126,16 @@ describe("HeatIntegration - Save Signal Registration", () => {
 		for (const handler of saveHandlers) {
 			handler(document);
 		}
+	};
+
+	// Helper to simulate real VSCode lifecycle: change THEN save
+	const triggerChangeAndSave = (document: vscode.TextDocument, contentChanges: any[]) => {
+		// First: trigger change event (populates recentChanges map)
+		for (const handler of changeHandlers) {
+			handler({ document, contentChanges, reason: undefined } as any);
+		}
+		// Then: trigger save event
+		triggerSave(document);
 	};
 
 	describe("No-Change Scenarios", () => {
