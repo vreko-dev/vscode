@@ -1,0 +1,12 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"outputs": ["dist/**"],
+			"dependsOn": ["@snapback/vscode-webview#build", "^build"],
+			"inputs": ["$TURBO_DEFAULT$", "esbuild.config.cjs", "tsconfig.json"],
+			"cache": true
+		}
+	}
+}
