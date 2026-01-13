@@ -18,7 +18,11 @@ import type { DaemonBridge, SnapshotCreatedEvent } from "../services/DaemonBridg
 import { type SnapshotCoordinator, WorkspaceDataService } from "../services/WorkspaceDataService";
 import { getCliStatus } from "../utils/cli-status";
 import { logger } from "../utils/logger";
-import { detectPackageManager } from "../utils/package-manager";
+import { detectPackageManager, getInstallCommand } from "../utils/package-manager";
+
+// CLI installation polling constants
+const CLI_POLL_INTERVAL = 3000; // 3 seconds (faster feedback)
+const CLI_POLL_MAX_ATTEMPTS = 20; // 60 seconds total
 
 // =============================================================================
 // TYPES
@@ -47,7 +51,9 @@ interface WebviewMessage {
 		| "install-cli"
 		| "close"
 		// CLI status messages
-		| "cli:checkStatus";
+		| "cli:checkStatus"
+		| "cli:install"
+		| "cli:openDocs";
 	payload?: {
 		snapshotId?: string;
 		[key: string]: unknown;
@@ -358,6 +364,14 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 					await this.checkCliStatus();
 					break;
 
+				case "cli:install":
+					await this.handleCliInstall();
+					break;
+
+				case "cli:openDocs":
+					await vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/cli"));
+					break;
+
 				case "close":
 					this.panel.dispose();
 					break;
@@ -533,6 +547,62 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 				version: status.version,
 				packageManager,
 			},
+		});
+	}
+
+	/**
+	 * Handle CLI installation request - creates terminal with install command
+	 * Provides visual feedback through webview messages
+	 */
+	private async handleCliInstall(): Promise<void> {
+		const packageManager = detectPackageManager();
+		const command = getInstallCommand(packageManager, "@snapback/cli");
+
+		logger.info("Installing CLI via terminal", { packageManager, command });
+
+		// Notify webview immediately that installation started (instant feedback)
+		await this.panel.webview.postMessage({ type: "cli:installStarted" });
+
+		// Create terminal with SnapBack branding
+		const terminal = vscode.window.createTerminal({
+			name: "🧢 SnapBack CLI Install",
+			iconPath: new vscode.ThemeIcon("package"),
+		});
+
+		// Show terminal to give user visual confirmation
+		terminal.show(true);
+		terminal.sendText(command, true);
+
+		// Poll for installation completion in background
+		this.pollForCliInstallation();
+	}
+
+	/**
+	 * Poll for CLI installation completion
+	 * Sends progress updates to webview for visual feedback
+	 */
+	private async pollForCliInstallation(): Promise<void> {
+		for (let attempt = 0; attempt < CLI_POLL_MAX_ATTEMPTS; attempt++) {
+			await new Promise((resolve) => setTimeout(resolve, CLI_POLL_INTERVAL));
+
+			const status = await getCliStatus();
+
+			if (status.installed) {
+				logger.info("CLI installed successfully", { version: status.version });
+				await this.panel.webview.postMessage({
+					type: "cli:installComplete",
+					payload: { version: status.version || "unknown" },
+				});
+				// Show success notification
+				vscode.window.showInformationMessage(`✅ SnapBack CLI v${status.version} installed successfully!`);
+				return;
+			}
+		}
+
+		// Polling timed out - send timeout message so UI can show "Verify" button
+		logger.debug("CLI installation polling timed out");
+		await this.panel.webview.postMessage({
+			type: "cli:installTimeout",
 		});
 	}
 

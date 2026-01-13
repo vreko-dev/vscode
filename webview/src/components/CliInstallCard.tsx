@@ -35,11 +35,7 @@ interface CliInstallCardProps {
 // Component
 // =============================================================================
 
-export const CliInstallCard: React.FC<CliInstallCardProps> = ({
-	onInstalled,
-	className,
-	autoCheck = true,
-}) => {
+export const CliInstallCard: React.FC<CliInstallCardProps> = ({ onInstalled, className, autoCheck = true }) => {
 	const [state, setState] = useState<CliInstallStatus>({
 		status: "unknown",
 		version: null,
@@ -94,6 +90,15 @@ export const CliInstallCard: React.FC<CliInstallCardProps> = ({
 						error: message.payload.message,
 					}));
 					break;
+
+				case "cli:installTimeout":
+					// Installation took too long - show not-installed so user can retry or verify
+					setState((s) => ({
+						...s,
+						status: "not-installed",
+						error: "Installation timed out. Click 'Check Again' if install completed in terminal.",
+					}));
+					break;
 			}
 		};
 
@@ -143,25 +148,15 @@ export const CliInstallCard: React.FC<CliInstallCardProps> = ({
 
 		if (state.status === "installed") {
 			return (
-				<Badge className="bg-[#4ADE80]/15 text-[#4ADE80] text-xs px-2 py-1 rounded">
-					✓ v{state.version}
-				</Badge>
+				<Badge className="bg-[#4ADE80]/15 text-[#4ADE80] text-xs px-2 py-1 rounded">✓ v{state.version}</Badge>
 			);
 		}
 
 		if (state.status === "installing") {
-			return (
-				<Badge className="bg-yellow-900/30 text-yellow-400 text-xs px-2 py-1 rounded">
-					Installing...
-				</Badge>
-			);
+			return <Badge className="bg-yellow-900/30 text-yellow-400 text-xs px-2 py-1 rounded">Installing...</Badge>;
 		}
 
-		return (
-			<Badge className="bg-zinc-800 text-zinc-400 text-xs px-2 py-1 rounded">
-				Not Installed
-			</Badge>
-		);
+		return <Badge className="bg-zinc-800 text-zinc-400 text-xs px-2 py-1 rounded">Not Installed</Badge>;
 	};
 
 	const renderContent = () => {
@@ -185,7 +180,14 @@ export const CliInstallCard: React.FC<CliInstallCardProps> = ({
 						{state.error}
 					</Alert>
 					<div className="flex gap-2">
-						<Button onClick={() => { clearError(); install(); }} size="sm" className="flex-1">
+						<Button
+							onClick={() => {
+								clearError();
+								install();
+							}}
+							size="sm"
+							className="flex-1"
+						>
 							Retry Install
 						</Button>
 						<Button onClick={checkStatus} variant="outline" size="sm">
@@ -257,9 +259,7 @@ export const CliInstallCard: React.FC<CliInstallCardProps> = ({
 				<div className="flex items-start justify-between mb-3">
 					<div>
 						<h3 className="text-sm font-medium text-zinc-100">📦 SnapBack CLI</h3>
-						<p className="text-xs text-zinc-500 mt-1">
-							Global CLI tool for advanced operations
-						</p>
+						<p className="text-xs text-zinc-500 mt-1">Global CLI tool for advanced operations</p>
 					</div>
 					{renderBadge()}
 				</div>
