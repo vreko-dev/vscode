@@ -452,6 +452,7 @@ export class DashboardDataService implements vscode.Disposable {
 
 	/**
 	 * Check if SnapBack CLI is installed
+	 * Uses 'which' command with timeout to avoid hanging on non-existent packages
 	 */
 	private async checkCLIInstallation(): Promise<{ installed: boolean; version: string | null }> {
 		try {
@@ -459,11 +460,36 @@ export class DashboardDataService implements vscode.Disposable {
 			const { promisify } = await import("node:util");
 			const execAsync = promisify(exec);
 
-			const { stdout } = await execAsync("npx snapback-cli --version 2>/dev/null || echo ''");
-			const version = stdout.trim();
+			// First check if 'snapback' is in PATH (fast check with timeout)
+			const controller = new AbortController();
+			const timeout = setTimeout(() => controller.abort(), 3000);
 
-			if (version && !version.includes("command not found")) {
-				return { installed: true, version };
+			try {
+				const { stdout: whichOut } = await execAsync("which snapback 2>/dev/null || where snapback 2>nul", {
+					signal: controller.signal,
+				});
+				clearTimeout(timeout);
+
+				if (!whichOut.trim()) {
+					return { installed: false, version: null };
+				}
+
+				// CLI found in PATH, get version with timeout
+				const versionController = new AbortController();
+				const versionTimeout = setTimeout(() => versionController.abort(), 3000);
+
+				const { stdout } = await execAsync("snapback --version 2>/dev/null || echo ''", {
+					signal: versionController.signal,
+				});
+				clearTimeout(versionTimeout);
+
+				const version = stdout.trim();
+				if (version && !version.includes("command not found")) {
+					return { installed: true, version };
+				}
+			} catch {
+				clearTimeout(timeout);
+				// CLI not found or timeout
 			}
 		} catch {
 			// CLI not installed

@@ -299,6 +299,7 @@ export class DaemonBridge extends vscode.Disposable {
 
 		return new Promise((resolve) => {
 			const startTime = Date.now();
+			let resolved = false; // Flag to stop polling when error occurs
 
 			try {
 				// Spawn daemon in detached mode
@@ -311,6 +312,11 @@ export class DaemonBridge extends vscode.Disposable {
 				child.unref();
 
 				child.on("error", (err) => {
+					if (resolved) {
+						return;
+					}
+					resolved = true;
+
 					const errorMsg = err.message;
 
 					// P1 UX: Detect ENOENT and activate circuit breaker
@@ -328,15 +334,28 @@ export class DaemonBridge extends vscode.Disposable {
 
 				// Poll for daemon to be ready
 				const checkDaemon = () => {
+					// Stop polling if already resolved (e.g., from error handler)
+					if (resolved) {
+						return;
+					}
+
 					const elapsed = Date.now() - startTime;
 
 					if (elapsed > DAEMON_START_TIMEOUT_MS) {
+						if (resolved) {
+							return;
+						}
+						resolved = true;
 						logger.warn("Daemon auto-start timed out");
 						resolve(false);
 						return;
 					}
 
 					if (this.isDaemonRunning()) {
+						if (resolved) {
+							return;
+						}
+						resolved = true;
 						logger.info("SnapBack daemon auto-started successfully", {
 							elapsedMs: elapsed,
 						});

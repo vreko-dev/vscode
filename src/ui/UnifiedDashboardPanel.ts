@@ -16,7 +16,9 @@ import { detectAIClients, getSnapbackMCPConfig, writeClientConfig } from "@snapb
 import * as vscode from "vscode";
 import type { DaemonBridge, SnapshotCreatedEvent } from "../services/DaemonBridge";
 import { type SnapshotCoordinator, WorkspaceDataService } from "../services/WorkspaceDataService";
+import { getCliStatus } from "../utils/cli-status";
 import { logger } from "../utils/logger";
+import { detectPackageManager } from "../utils/package-manager";
 
 // =============================================================================
 // TYPES
@@ -43,7 +45,9 @@ interface WebviewMessage {
 		// Onboarding messages (from OnboardingPanel)
 		| "next"
 		| "install-cli"
-		| "close";
+		| "close"
+		// CLI status messages
+		| "cli:checkStatus";
 	payload?: {
 		snapshotId?: string;
 		[key: string]: unknown;
@@ -350,6 +354,10 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 					await vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/cli/install"));
 					break;
 
+				case "cli:checkStatus":
+					await this.checkCliStatus();
+					break;
+
 				case "close":
 					this.panel.dispose();
 					break;
@@ -516,11 +524,15 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	 * Check CLI installation status
 	 */
 	private async checkCliStatus(): Promise<void> {
-		// TODO: Wire up CliLinkManager when available
-		// For now, return false as CLI status check requires CliLinkManager
+		const status = await getCliStatus();
+		const packageManager = detectPackageManager();
 		await this.panel.webview.postMessage({
-			type: "cliStatus",
-			installed: false,
+			type: "cli:status",
+			payload: {
+				installed: status.installed,
+				version: status.version,
+				packageManager,
+			},
 		});
 	}
 
