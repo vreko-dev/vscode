@@ -147,23 +147,39 @@ export class FetchNetworkAdapter implements NetworkAdapter {
 	/**
 	 * Check network connectivity
 	 *
-	 * Attempts a lightweight request to a known endpoint to check connectivity.
+	 * Attempts lightweight requests to multiple endpoints for resilience:
+	 * 1. API health endpoint (primary)
+	 * 2. MCP health endpoint (fallback)
+	 *
+	 * Only considers offline if both endpoints fail.
 	 *
 	 * @returns Promise<boolean>
 	 */
 	async isOnline(): Promise<boolean> {
-		try {
-			// Try to fetch a lightweight resource
-			// Using a HEAD request to minimize data transfer
-			const response = await fetch("https://api.snapback.dev/health", {
-				method: "HEAD",
-				// Use a short timeout for connectivity check
-				signal: AbortSignal.timeout(3000),
-			});
-			return response.ok;
-		} catch {
-			// If fetch fails, assume offline
-			return false;
+		// List of health check endpoints in priority order
+		const healthEndpoints = [
+			"https://api.snapback.dev/api/health", // API server (primary)
+			"https://mcp.snapback.dev/health", // MCP server (fallback)
+		];
+
+		// Try each endpoint with a short timeout
+		for (const endpoint of healthEndpoints) {
+			try {
+				// Using HEAD request to minimize data transfer
+				const response = await fetch(endpoint, {
+					method: "HEAD",
+					// Use a short timeout for connectivity check (3s per endpoint)
+					signal: AbortSignal.timeout(3000),
+				});
+
+				if (response.ok) {
+					// At least one endpoint is reachable - we're online
+					return true;
+				}
+			} catch (error) {}
 		}
+
+		// All endpoints failed - assume offline
+		return false;
 	}
 }

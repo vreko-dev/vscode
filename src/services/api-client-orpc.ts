@@ -11,7 +11,11 @@
  * - analyzeComplexityServer → client.signals.analyzeComplexity
  * - analyzeComprehensive → client.signals.comprehensive
  *
- * Phase 2B: Remaining methods require new oRPC procedures (3/10 methods - BLOCKED)
+ * Phase 2B: Attribution Methods (Gap 4 - Attribution Integration)
+ * - transferAttribution → client.attribution.transfer
+ * - getAttribution → client.attribution.get
+ *
+ * Phase 2C: Remaining methods require new oRPC procedures (3/10 methods - BLOCKED)
  * - analyzeFiles → Need client.risk.analyze or equivalent
  * - detectSecrets → Need client.risk.detectSecrets or equivalent
  * - evaluatePolicy → Need client.risk.evaluatePolicy or equivalent
@@ -25,6 +29,7 @@ import { type ApiRouterClient, createVSCodeClient } from "@snapback/api-client/v
 import type {
 	AiDetectionInput,
 	AiDetectionOutput,
+	AttributionRecord,
 	BurstDetectionInput,
 	BurstDetectionOutput,
 	ComplexityAnalysisInput,
@@ -173,7 +178,79 @@ export class ApiClientORPC {
 	}
 
 	// =============================================================================
-	// Phase 2B: Blocked - Awaiting oRPC Procedures
+	// Phase 2B: Attribution Methods (Gap 4 - Attribution Integration)
+	// =============================================================================
+
+	/**
+	 * Transfer web attribution to authenticated user
+	 *
+	 * Used after extension authentication to link marketing attribution
+	 * from the web (captured via fingerprint) to the authenticated user.
+	 *
+	 * @param fingerprint - Device/browser fingerprint from web session
+	 * @param attribution - Marketing attribution data (source, UTM, etc.)
+	 * @returns Transfer result or null on error
+	 */
+	public async transferAttribution(
+		fingerprint: string,
+		attribution: {
+			source: "facebook" | "google" | "twitter" | "linkedin" | "reddit" | "direct" | "referral" | "organic";
+			campaignId?: string;
+			utmParams?: {
+				utm_source?: string;
+				utm_medium?: string;
+				utm_campaign?: string;
+				utm_content?: string;
+				utm_term?: string;
+			};
+			conversionData?: {
+				landingPage?: string;
+				referrer?: string;
+				deviceType?: "mobile" | "tablet" | "desktop";
+			};
+			referralCode?: string;
+		},
+	): Promise<{ success: boolean; attributionId: string; action: "created" | "merged" | "ignored" } | null> {
+		try {
+			const client = await this.clientPromise;
+			const result = await client.attribution.transfer({
+				fingerprint,
+				attribution,
+			});
+			logger.info(`Attribution transferred: ${result.action}`);
+			return result;
+		} catch (error) {
+			if (error instanceof Error && error.message.includes("401")) {
+				logger.debug("Attribution transfer requires authentication");
+				return null;
+			}
+			logger.error("Failed to transfer attribution", error as Error);
+			return null;
+		}
+	}
+
+	/**
+	 * Get attribution data for the current authenticated user
+	 *
+	 * @returns Attribution record or null if not found/not authenticated
+	 */
+	public async getAttribution(): Promise<AttributionRecord | null> {
+		try {
+			const client = await this.clientPromise;
+			const result = await client.attribution.get();
+			return result as AttributionRecord | null;
+		} catch (error) {
+			if (error instanceof Error && error.message.includes("401")) {
+				logger.debug("Attribution get requires authentication");
+				return null;
+			}
+			logger.error("Failed to get attribution", error as Error);
+			return null;
+		}
+	}
+
+	// =============================================================================
+	// Phase 2C: Blocked - Awaiting oRPC Procedures
 	// =============================================================================
 
 	/**
