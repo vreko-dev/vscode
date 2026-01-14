@@ -553,24 +553,43 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	/**
 	 * Handle CLI installation request - creates terminal with install command
 	 * Provides visual feedback through webview messages
+	 *
+	 * Automatically detects if user has admin privileges:
+	 * - If admin: uses global install (npm install -g)
+	 * - If non-admin: uses npx-style command (npx/dlx/bunx)
 	 */
 	private async handleCliInstall(): Promise<void> {
 		const packageManager = detectPackageManager();
 		const command = getInstallCommand(packageManager, "@snapback/cli");
 
-		logger.info("Installing CLI via terminal", { packageManager, command });
+		// Determine if using global install or npx-style
+		const isGlobalInstall = command.includes("-g") || command.includes("global");
+
+		logger.info("Installing CLI via terminal", {
+			packageManager,
+			command,
+			installType: isGlobalInstall ? "global" : "npx-style",
+		});
 
 		// Notify webview immediately that installation started (instant feedback)
 		await this.panel.webview.postMessage({ type: "cli:installStarted" });
 
-		// Create terminal with SnapBack branding
+		// Create terminal with appropriate messaging
+		const terminalName = isGlobalInstall ? "🧢 SnapBack CLI Install" : "🧢 SnapBack CLI (npx mode)";
+
 		const terminal = vscode.window.createTerminal({
-			name: "🧢 SnapBack CLI Install",
+			name: terminalName,
 			iconPath: new vscode.ThemeIcon("package"),
 		});
 
 		// Show terminal to give user visual confirmation
 		terminal.show(true);
+
+		// Add informative message for non-admin users
+		if (!isGlobalInstall) {
+			terminal.sendText(`# Note: Using ${command.split(" ")[0]} (no admin privileges required)`, false);
+		}
+
 		terminal.sendText(command, true);
 
 		// Poll for installation completion in background
