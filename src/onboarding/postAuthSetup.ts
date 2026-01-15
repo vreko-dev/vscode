@@ -3,6 +3,7 @@
  *
  * Automatically generates `.snapbackrc` config after successful OAuth.
  * Detects workspace technology stacks and applies appropriate protection rules.
+ * Initializes `.snapback/` directory structure for learnings, state, and team configs.
  *
  * Runs only on first authentication (skips if .snapbackrc already exists).
  * Non-blocking: failures are logged but don't prevent extension activation.
@@ -10,6 +11,7 @@
 
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { initializeWorkspaceDirectory } from "../auth/workspace-id";
 import { type ConfigStoreV2Type, getInitializedConfigStore } from "../config/configStore";
 import { detectWorkspaceFrameworks } from "../services/IntelligenceService";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
@@ -184,7 +186,14 @@ export async function runPostAuthSetup(workspaceRoot: string, telemetry?: Teleme
 		await configStore.saveSnapbackrc(config);
 		logger.info("Config saved successfully", { rcPath });
 
-		// 5. Notify user
+		// 5. Initialize .snapback directory structure
+		logger.debug("Initializing .snapback directory structure...");
+		const directoryInitialized = initializeWorkspaceDirectory();
+		if (directoryInitialized) {
+			logger.debug(".snapback directory structure initialized");
+		}
+
+		// 6. Notify user
 		const frameworkNames = frameworks.length > 0 ? frameworks.map((f) => f.name).join(", ") : "default";
 		const message = `SnapBack configured for ${frameworkNames} workspace`;
 

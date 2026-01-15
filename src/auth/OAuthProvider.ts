@@ -345,7 +345,8 @@ export class SnapBackOAuthProvider implements vscode.AuthenticationProvider {
 	private async linkWorkspaceToUser(session: SnapBackSession, userId?: string): Promise<void> {
 		try {
 			// Get workspace ID from secret storage
-			const workspaceId = await getOrCreateWorkspaceId(this.context.secrets);
+			const workspaceIdResult = await getOrCreateWorkspaceId(this.context.secrets);
+			const workspaceId = workspaceIdResult.workspaceId;
 
 			if (!workspaceId) {
 				logger.warn("No workspace ID available for linking");

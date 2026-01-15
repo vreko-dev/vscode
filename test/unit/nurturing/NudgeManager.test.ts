@@ -306,7 +306,7 @@ describe("NudgeManager", () => {
 	});
 
 	// =========================================================================
-	// ALL NUDGE TYPES
+	// ALL NUDGE TYPES (including commit coaching)
 	// =========================================================================
 
 	describe("all nudge types", () => {
@@ -316,6 +316,8 @@ describe("NudgeManager", () => {
 			"milestone_reached",
 			"session_health_warning",
 			"snapshot_recommended",
+			"commit_suggested",
+			"commit_recommended",
 		];
 
 		it.each(nudgeTypes)("should handle %s trigger correctly", async (trigger) => {
@@ -325,6 +327,204 @@ describe("NudgeManager", () => {
 
 			expect(vscode.window.showInformationMessage).toHaveBeenCalled();
 			expect(response).toBe("dismissed");
+		});
+	});
+
+	// =========================================================================
+	// ERROR STATES
+	// =========================================================================
+
+	describe("error states", () => {
+		it("should return 'dismissed' for unknown trigger", async () => {
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
+
+			// @ts-expect-error - Testing unknown trigger behavior
+			const response = await nudgeManager.showNudge("unknown_trigger");
+
+			// Should not call showInformationMessage for unknown trigger
+			expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
+			expect(response).toBe("dismissed");
+		});
+
+		it("should handle VS Code API failure gracefully in maybeNudge", async () => {
+			vi.mocked(vscode.window.showInformationMessage).mockRejectedValue(
+				new Error("VS Code API unavailable"),
+			);
+
+			// Should not throw - nudges are best-effort
+			await expect(nudgeManager.maybeNudge("feature_discovered")).resolves.not.toThrow();
+
+			// Session flag should NOT be set on failure
+			expect(nudgeManager.wasShownThisSession()).toBe(false);
+		});
+
+		it("should log warning when command execution fails", async () => {
+			const { logger } = await import("../../../src/utils/logger");
+			(vscode.window.showInformationMessage as any).mockResolvedValue("Create Snapshot");
+			vi.mocked(vscode.commands.executeCommand).mockRejectedValue(
+				new Error("Command not found"),
+			);
+
+			const response = await nudgeManager.showNudge("session_health_warning");
+
+			// Should still return the response even if command fails
+			expect(response).toBe("create_snapshot");
+			expect(logger.warn).toHaveBeenCalledWith(
+				"Nudge action command failed",
+				expect.objectContaining({ command: "snapback.createSnapshot" }),
+			);
+		});
+
+		it("should handle globalState.update failure gracefully", async () => {
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
+			vi.mocked(mockContext.globalState.update).mockRejectedValueOnce(
+				new Error("Storage quota exceeded"),
+			);
+
+			// Should not throw even if globalState update fails
+			await expect(nudgeManager.maybeNudge("feature_discovered")).resolves.not.toThrow();
+		});
+
+		it("should return 'dismissed' for unknown action selection", async () => {
+			// User selects something that doesn't match any action label
+			(vscode.window.showInformationMessage as any).mockResolvedValue("Unknown Action");
+
+			const response = await nudgeManager.showNudge("session_health_warning");
+
+			expect(response).toBe("dismissed");
+		});
+	});
+
+	// =========================================================================
+	// BOUNDARY TESTING
+	// =========================================================================
+
+	describe("boundary testing", () => {
+		it("should throttle at exactly 24 hours minus 1ms", async () => {
+			const now = Date.now();
+			const justUnder24Hours = now - (24 * 60 * 60 * 1000 - 1);
+			globalStateMap.set("snapback.lastAuthNudge", justUnder24Hours);
+
+			await nudgeManager.maybeNudge("feature_discovered");
+
+			// Should be throttled (just under 24 hours)
+			expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
+		});
+
+		it("should allow at exactly 24 hours plus 1ms", async () => {
+			const now = Date.now();
+			const justOver24Hours = now - (24 * 60 * 60 * 1000 + 1);
+			globalStateMap.set("snapback.lastAuthNudge", justOver24Hours);
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
+
+			await nudgeManager.maybeNudge("feature_discovered");
+
+			// Should be allowed (just over 24 hours)
+			expect(vscode.window.showInformationMessage).toHaveBeenCalled();
+		});
+
+		it("should handle first-time user with no prior state", async () => {
+			// globalStateMap is empty - simulating first-time user
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
+
+			await nudgeManager.maybeNudge("feature_discovered");
+
+			// Should show nudge for first-time user
+			expect(vscode.window.showInformationMessage).toHaveBeenCalled();
+			expect(nudgeManager.wasShownThisSession()).toBe(true);
+		});
+
+		it("should handle corrupted timestamp in globalState", async () => {
+			// Simulate corrupted data
+			globalStateMap.set("snapback.lastAuthNudge", "not-a-number");
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
+
+			// NaN arithmetic should result in throttle check passing
+			await nudgeManager.maybeNudge("feature_discovered");
+
+			// Should handle gracefully (NaN comparison returns false, allowing nudge)
+			expect(vscode.window.showInformationMessage).toHaveBeenCalled();
+		});
+	});
+
+	// =========================================================================
+	// DISABLED NUDGE EDGE CASES
+	// =========================================================================
+
+	describe("disabled nudge edge cases", () => {
+		it("should return false for non-existent disabled state", () => {
+			// No disabled state set
+			const isDisabled = nudgeManager.isNudgeDisabled("auth_failed");
+
+			expect(isDisabled).toBe(false);
+		});
+
+		it("should handle multiple enableNudge calls idempotently", async () => {
+			globalStateMap.set("snapback.nudge.snapshot_recommended.disabled", true);
+
+			await nudgeManager.enableNudge("snapshot_recommended");
+			await nudgeManager.enableNudge("snapshot_recommended");
+			await nudgeManager.enableNudge("snapshot_recommended");
+
+			// All calls should succeed without error
+			expect(nudgeManager.isNudgeDisabled("snapshot_recommended")).toBe(false);
+		});
+
+		it("should track disabled state per trigger type", async () => {
+			// Disable one type
+			globalStateMap.set("snapback.nudge.snapshot_recommended.disabled", true);
+
+			// Other types should not be affected
+			expect(nudgeManager.isNudgeDisabled("snapshot_recommended")).toBe(true);
+			expect(nudgeManager.isNudgeDisabled("session_health_warning")).toBe(false);
+			expect(nudgeManager.isNudgeDisabled("commit_suggested")).toBe(false);
+		});
+	});
+
+	// =========================================================================
+	// COMMIT COACHING SPECIFIC
+	// =========================================================================
+
+	describe("commit coaching triggers", () => {
+		it("should execute git commit command for commit_suggested", async () => {
+			(vscode.window.showInformationMessage as any).mockResolvedValue("Commit Now");
+			vi.mocked(vscode.commands.executeCommand).mockResolvedValue(undefined);
+
+			const response = await nudgeManager.showNudge("commit_suggested");
+
+			expect(response).toBe("commit_now");
+			expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
+				"workbench.action.git.commit",
+			);
+		});
+
+		it("should offer snapshot option for commit_recommended", async () => {
+			(vscode.window.showInformationMessage as any).mockResolvedValue("Create Snapshot First");
+			vi.mocked(vscode.commands.executeCommand).mockResolvedValue(undefined);
+
+			const response = await nudgeManager.showNudge("commit_recommended");
+
+			expect(response).toBe("create_snapshot");
+			expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
+				"snapback.createSnapshot",
+			);
+		});
+
+		it("should include research-backed educational content", async () => {
+			vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
+
+			await nudgeManager.showNudge("commit_suggested");
+
+			// Verify educational content about PR size research
+			expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+				expect.stringContaining("Commit"),
+				expect.objectContaining({
+					detail: expect.stringContaining("Research shows"),
+				}),
+				expect.any(String),
+				expect.any(String),
+				expect.any(String),
+			);
 		});
 	});
 

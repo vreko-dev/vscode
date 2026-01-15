@@ -123,8 +123,8 @@ async function _configureClients(clients: AIClientConfig[], context: vscode.Exte
 	// Get API key if user is authenticated
 	const apiKey = await getStoredApiKey(context);
 	// Get workspace ID for MCP tier resolution (always available)
-	const workspaceId = await getOrCreateWorkspaceId(context.secrets);
-	const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId });
+	const workspaceIdResult = await getOrCreateWorkspaceId(context.secrets);
+	const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId: workspaceIdResult.workspaceId });
 
 	await vscode.window.withProgress(
 		{
@@ -182,10 +182,10 @@ async function configureClientsSilently(clients: AIClientConfig[], context: vsco
 	// Get API key if user is authenticated
 	const apiKey = await getStoredApiKey(context);
 	// Get workspace ID for MCP tier resolution (always available)
-	const workspaceId = await getOrCreateWorkspaceId(context.secrets);
+	const workspaceIdResult = await getOrCreateWorkspaceId(context.secrets);
 	// Get workspace root for config
 	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-	const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId, workspaceRoot });
+	const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId: workspaceIdResult.workspaceId, workspaceRoot });
 
 	// Configure each client silently (no progress UI)
 	for (const client of clients) {
@@ -334,8 +334,8 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 			}
 
 			const apiKey = await getStoredApiKey(context);
-			const workspaceId = await getOrCreateWorkspaceId(context.secrets);
-			const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId });
+			const workspaceIdResult = await getOrCreateWorkspaceId(context.secrets);
+			const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId: workspaceIdResult.workspaceId });
 
 			for (const item of selected) {
 				const result = writeClientConfig(item.client, mcpConfig);
@@ -447,10 +447,40 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 			const validationResults: Array<{ client: AIClientConfig; validation: ValidationResult }> = [];
 			let hasErrors = false;
 			let hasWarnings = false;
+			const workspacePathIssues: string[] = [];
 
 			for (const client of configured) {
 				const validation = validateClientConfig(client);
 				validationResults.push({ client, validation });
+
+				// 🛡️ CRITICAL: Check for hardcoded workspace paths in global configs
+				// This prevents cross-workspace MCP server activation (the issue you experienced)
+				if (
+					client.configPath.includes("Library/Application Support") ||
+					client.configPath.includes("AppData")
+				) {
+					// Global config - check if it has workspace-specific paths
+					try {
+						const content = require("node:fs").readFileSync(client.configPath, "utf-8");
+						const config = JSON.parse(content);
+						const snapbackConfig = config.mcpServers?.snapback;
+
+						if (snapbackConfig?.args) {
+							const workspaceArg = snapbackConfig.args.find(
+								(arg: string) => arg.includes("/") && !arg.startsWith("--"),
+							);
+
+							if (workspaceArg && workspaceArg !== workspaceFolder) {
+								workspacePathIssues.push(
+									`⚠️ ${client.displayName}: Global config has workspace path '${workspaceArg}' (current: '${workspaceFolder}')`,
+								);
+								hasWarnings = true;
+							}
+						}
+					} catch {
+						// Ignore parse errors
+					}
+				}
 
 				if (validation.issues.some((i) => i.severity === "error")) {
 					hasErrors = true;
@@ -458,6 +488,30 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 				if (validation.issues.some((i) => i.severity === "warning")) {
 					hasWarnings = true;
 				}
+			}
+
+			// Show workspace path issues first (most critical)
+			if (workspacePathIssues.length > 0) {
+				const message =
+					`🚨 Found ${workspacePathIssues.length} workspace path issue(s) in global MCP configs.\n\n` +
+					"This can cause SnapBack to activate on wrong workspaces.\n\n" +
+					`Issues:\n${workspacePathIssues.join("\n")}`;
+
+				const selection = await vscode.window.showWarningMessage(message, "Fix Now", "Learn More", "Ignore");
+
+				if (selection === "Fix Now") {
+					vscode.commands.executeCommand("snapback.mcp.repair");
+				} else if (selection === "Learn More") {
+					vscode.env.openExternal(
+						vscode.Uri.parse("https://docs.snapback.dev/troubleshooting/mcp-workspace-isolation"),
+					);
+				}
+
+				updateMcpStatusBar("warning", context);
+				trackTelemetry("mcp_validate_workspace_path_issues", {
+					count: workspacePathIssues.length,
+				});
+				return;
 			}
 
 			// Show results

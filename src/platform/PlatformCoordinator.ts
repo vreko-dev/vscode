@@ -101,6 +101,7 @@ export class PlatformCoordinator implements vscode.Disposable {
 	private manifestPath: string | null = null;
 	private backupPath: string | null = null;
 	private isHealthGuardianWired = false;
+	// biome-ignore lint/correctness/noUnusedPrivateClassMembers: stored for reference tracking
 	private healthGuardian?: MCPHealthGuardian;
 	private inMemoryMode = false;
 	private disposables: vscode.Disposable[] = [];
@@ -155,7 +156,8 @@ export class PlatformCoordinator implements vscode.Disposable {
 		this.backupPath = join(snapbackDir, `${MANIFEST_FILENAME}.backup`);
 
 		// Try exclusive file creation for "first to scene" detection (Issue 1.2)
-		const workspaceId = await getOrCreateWorkspaceId(this.context.secrets);
+		const workspaceIdResult = await getOrCreateWorkspaceId(this.context.secrets);
+		const workspaceId = workspaceIdResult.workspaceId;
 		const now = new Date().toISOString();
 
 		const initialManifest: WorkspaceManifest = {

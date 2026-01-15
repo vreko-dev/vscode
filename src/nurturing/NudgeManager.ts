@@ -303,16 +303,6 @@ export class NudgeManager {
 			return "dismissed";
 		}
 
-		// Build the message with icon and educational context
-		// 🆕 Enhanced educational messaging with "why it matters" context
-		let _fullMessage = `${config.icon} ${config.message}`;
-		if (config.educational) {
-			_fullMessage += `\n\n💡 ${config.educational}`;
-		}
-		if (config.whyItMatters) {
-			_fullMessage += `\n\n📊 Why it matters: ${config.whyItMatters}`;
-		}
-
 		// Extract action labels for VS Code API
 		const actionLabels = config.actions.map((a) => a.label);
 
