@@ -627,10 +627,10 @@
 					"icon": "$(shield)"
 				},
 				{
-					"id": "snapback.protectedFiles",
-					"name": "Protected Files",
+					"id": "snapback.intelligence",
+					"name": "Intelligence",
 					"when": "snapback.isActive && config.snapback.ui.showTreeView",
-					"icon": "$(lock)"
+					"icon": "$(warning)"
 				},
 				{
 					"id": "snapback.sessions",

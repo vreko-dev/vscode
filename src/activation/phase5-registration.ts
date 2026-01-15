@@ -17,7 +17,7 @@ export async function initializePhase5Registration(
 ): Promise<Phase5Result> {
 	try {
 		// Register tree data providers
-		vscode.window.registerTreeDataProvider(VIEW_IDS.PROTECTED_FILES, phase4Result.protectedFilesTreeProvider);
+		vscode.window.registerTreeDataProvider(VIEW_IDS.INTELLIGENCE, phase4Result.intelligenceTreeProvider);
 
 		// 🟢 Phase 2: Register SnapBack TreeView (primary dashboard view)
 		// Note: SnapBackTreeProvider already creates and registers its own TreeView
@@ -49,6 +49,13 @@ export async function initializePhase5Registration(
 
 		// 🟢 Phase 2: Register toggle grouping mode command
 		registerToggleGroupingModeCommand(context, phase4Result.snapBackTreeProvider);
+
+		// Register refresh command for Intelligence TreeView
+		context.subscriptions.push(
+			vscode.commands.registerCommand("snapback.refreshIntelligence", () => {
+				phase4Result.intelligenceTreeProvider.refresh();
+			}),
+		);
 
 		// Register file decoration providers
 		vscode.window.registerFileDecorationProvider(phase4Result.protectionDecorationProvider);

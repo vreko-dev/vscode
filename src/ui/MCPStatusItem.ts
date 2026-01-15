@@ -98,7 +98,7 @@ export class MCPStatusItem implements vscode.Disposable {
 				break;
 
 			case "reconnecting":
-				this.notifyReconnecting(event.attempt ?? 1, event.maxAttempts ?? 3);
+				this.notifyReconnecting(event.attempt ?? 1, event.maxAttempts ?? 5);
 				break;
 
 			case "disconnected":
@@ -245,7 +245,7 @@ export class MCPStatusItem implements vscode.Disposable {
 				this.statusBarManager.enqueueMessage({
 					id: this.MESSAGE_ID,
 					priority: "medium",
-					text: `🔄 MCP (${this.reconnectAttempt}/3)`,
+					text: `$(sync~spin) MCP (${this.reconnectAttempt}/5)`,
 					tooltip: "Reconnecting to MCP server...",
 					command: "snapback.mcp.status",
 					duration: 0, // Persistent until state changes

@@ -2,6 +2,16 @@ import type * as vscode from "vscode";
 import { QueuedNetworkAdapter } from "../network/QueuedNetworkAdapter";
 import { logger } from "../utils/logger";
 
+/**
+ * Connection state change callback
+ */
+export type ConnectionStateCallback = (state: RemoteMCPConnectionState, attempt?: number, maxAttempts?: number) => void;
+
+/**
+ * Remote MCP connection states
+ */
+export type RemoteMCPConnectionState = "connected" | "disconnected" | "reconnecting";
+
 export interface RemoteMCPOptions {
 	/**
 	 * The URL of the remote MCP server
@@ -19,7 +29,7 @@ export interface RemoteMCPOptions {
 	timeout?: number;
 
 	/**
-	 * Maximum number of reconnection attempts
+	 * Maximum number of reconnection attempts (default: 5)
 	 */
 	maxRetries?: number;
 
@@ -32,6 +42,11 @@ export interface RemoteMCPOptions {
 	 * API key for API key authentication
 	 */
 	apiKey?: string;
+
+	/**
+	 * Callback for connection state changes
+	 */
+	onStateChange?: ConnectionStateCallback;
 }
 
 export interface MCPStatus {
@@ -40,6 +55,24 @@ export interface MCPStatus {
 	uptime?: number;
 	lastPing?: Date;
 }
+
+/** Heartbeat interval in milliseconds (15 seconds for faster failure detection) */
+const HEARTBEAT_INTERVAL_MS = 15000;
+
+/** Maximum initial retry attempts before switching to background reconnection */
+const MAX_INITIAL_RETRIES = 5;
+
+/** Background reconnection interval in milliseconds (60 seconds) */
+const BACKGROUND_RECONNECT_INTERVAL_MS = 60000;
+
+/** Proactive health check threshold - check health if last ping was more than this long ago */
+const PROACTIVE_HEALTH_CHECK_THRESHOLD_MS = 10000;
+
+/** Maximum retries for individual tool/request calls */
+const MAX_REQUEST_RETRIES = 3;
+
+/** Base delay for request retry backoff (1 second) */
+const REQUEST_RETRY_BASE_DELAY_MS = 1000;
 
 /**
  * Remote MCP Client for connecting to MCP servers deployed on fly.io or other remote hosts
@@ -57,24 +90,45 @@ export class RemoteMCPClient implements vscode.Disposable {
 	private isReady = false;
 	private reconnectAttempts = 0;
 	private heartbeatInterval?: NodeJS.Timeout;
+	private backgroundReconnectInterval?: NodeJS.Timeout;
 	private status: MCPStatus = { ready: false };
 	private authType: "bearer" | "apikey";
 	private apiKey?: string;
+	private onStateChange?: ConnectionStateCallback;
+	private lastHealthCheckTime = 0;
 
 	constructor(options: RemoteMCPOptions) {
 		this.serverUrl = options.serverUrl.replace(/\/$/, ""); // Remove trailing slash
 		this.authToken = options.authToken;
-		this.maxRetries = options.maxRetries || 3;
+		this.maxRetries = options.maxRetries || MAX_INITIAL_RETRIES;
 		this.authType = options.authType || "bearer";
 		this.apiKey = options.apiKey;
+		this.onStateChange = options.onStateChange;
+	}
+
+	/**
+	 * Emit state change to callback
+	 */
+	private emitStateChange(state: RemoteMCPConnectionState, attempt?: number, maxAttempts?: number): void {
+		if (this.onStateChange) {
+			try {
+				this.onStateChange(state, attempt, maxAttempts);
+			} catch (err) {
+				logger.warn("State change callback error", err as Error);
+			}
+		}
 	}
 
 	/**
 	 * Connect to the remote MCP server
 	 */
 	async connect(): Promise<void> {
+		// Stop background reconnection if running
+		this.stopBackgroundReconnection();
+
 		try {
 			logger.info(`Connecting to remote MCP server at ${this.serverUrl}`);
+			this.emitStateChange("reconnecting", this.reconnectAttempts + 1, this.maxRetries);
 
 			// Test connection with health check
 			await this.healthCheck();
@@ -87,22 +141,35 @@ export class RemoteMCPClient implements vscode.Disposable {
 			this.startHeartbeat();
 
 			logger.info("Successfully connected to remote MCP server");
+			this.emitStateChange("connected");
 		} catch (error) {
 			logger.error("Failed to connect to remote MCP server", error as Error);
 
 			// Attempt reconnection if within retry limits
 			if (this.reconnectAttempts < this.maxRetries) {
 				this.reconnectAttempts++;
-				const delay = 2 ** this.reconnectAttempts * 1000; // Exponential backoff
+				// Exponential backoff with jitter to prevent thundering herd
+				const jitter = Math.random() * 1000;
+				const delay = 2 ** this.reconnectAttempts * 1000 + jitter;
 
-				logger.info(`Retrying connection in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxRetries})`);
+				logger.info(
+					`Retrying connection in ${Math.round(delay)}ms (attempt ${this.reconnectAttempts}/${this.maxRetries})`,
+				);
+				this.emitStateChange("reconnecting", this.reconnectAttempts, this.maxRetries);
 
 				await new Promise((resolve) => setTimeout(resolve, delay));
 				return this.connect();
 			}
 
+			// Max retries exhausted - start background reconnection
+			logger.warn(
+				`Initial connection failed after ${this.maxRetries} attempts, starting background reconnection`,
+			);
+			this.emitStateChange("disconnected");
+			this.startBackgroundReconnection();
+
 			throw new Error(
-				`Failed to connect to remote MCP server after ${this.maxRetries} attempts: ${(error as Error).message}`,
+				`MCP connection failed after ${this.maxRetries} attempts. Background reconnection started. Try: 1) Check network connectivity, 2) Run "SnapBack: Diagnose MCP" command, 3) Restart VS Code. Original error: ${(error as Error).message}`,
 			);
 		}
 	}
@@ -139,11 +206,13 @@ export class RemoteMCPClient implements vscode.Disposable {
 			lastPing: new Date(),
 		};
 
+		this.lastHealthCheckTime = Date.now();
 		return this.status;
 	}
 
 	/**
 	 * Start heartbeat monitoring to ensure continuous connection
+	 * Uses 15-second interval for faster failure detection
 	 */
 	private startHeartbeat(): void {
 		// Clear any existing heartbeat
@@ -151,7 +220,7 @@ export class RemoteMCPClient implements vscode.Disposable {
 			clearInterval(this.heartbeatInterval);
 		}
 
-		// Set up periodic health checks
+		// Set up periodic health checks (15 seconds for faster failure detection)
 		this.heartbeatInterval = setInterval(async () => {
 			try {
 				await this.healthCheck();
@@ -159,45 +228,147 @@ export class RemoteMCPClient implements vscode.Disposable {
 				logger.warn("Heartbeat failed, MCP server may be unreachable", error as Error);
 				this.isReady = false;
 				this.status.ready = false;
+				this.emitStateChange("disconnected");
+
+				// Reset reconnect attempts for fresh retry sequence
+				this.reconnectAttempts = 0;
 
 				// Attempt to reconnect
 				try {
 					await this.connect();
 				} catch (reconnectError) {
 					logger.error("Failed to reconnect to MCP server", reconnectError as Error);
+					// Background reconnection will be started by connect()
 				}
 			}
-		}, 30000); // Check every 30 seconds
+		}, HEARTBEAT_INTERVAL_MS);
 	}
 
 	/**
-	 * Send a request to the MCP server
+	 * Start background reconnection with slower interval (60s)
+	 * Called after initial retry attempts are exhausted
+	 */
+	private startBackgroundReconnection(): void {
+		// Clear any existing background reconnection
+		this.stopBackgroundReconnection();
+
+		logger.info("Starting background reconnection (every 60s)");
+
+		this.backgroundReconnectInterval = setInterval(async () => {
+			logger.debug("Background reconnection attempt...");
+			try {
+				// Reset retry counter for fresh attempt
+				this.reconnectAttempts = 0;
+				await this.healthCheck();
+
+				// Success! Stop background reconnection and restore normal operation
+				logger.info("Background reconnection succeeded!");
+				this.stopBackgroundReconnection();
+				this.isReady = true;
+				this.status.ready = true;
+				this.startHeartbeat();
+				this.emitStateChange("connected");
+			} catch (error) {
+				logger.debug("Background reconnection failed, will retry in 60s", error as Error);
+				// Continue trying - don't emit state change to avoid notification spam
+			}
+		}, BACKGROUND_RECONNECT_INTERVAL_MS);
+	}
+
+	/**
+	 * Stop background reconnection
+	 */
+	private stopBackgroundReconnection(): void {
+		if (this.backgroundReconnectInterval) {
+			clearInterval(this.backgroundReconnectInterval);
+			this.backgroundReconnectInterval = undefined;
+		}
+	}
+
+	/**
+	 * Ensure connection is healthy before critical operations
+	 * Performs proactive health check if last check was too long ago
+	 */
+	async ensureConnected(): Promise<void> {
+		const timeSinceLastCheck = Date.now() - this.lastHealthCheckTime;
+
+		if (timeSinceLastCheck > PROACTIVE_HEALTH_CHECK_THRESHOLD_MS || !this.isReady) {
+			logger.debug(`Proactive health check (last check ${timeSinceLastCheck}ms ago)`);
+			try {
+				await this.healthCheck();
+				if (!this.isReady) {
+					this.isReady = true;
+					this.status.ready = true;
+					this.emitStateChange("connected");
+				}
+			} catch (error) {
+				this.isReady = false;
+				this.status.ready = false;
+				throw new Error(`MCP server not reachable: ${(error as Error).message}`);
+			}
+		}
+	}
+
+	/**
+	 * Send a request to the MCP server with retry logic
+	 * Includes proactive health check and automatic retries with exponential backoff
 	 */
 	async sendRequest(endpoint: string, data?: unknown): Promise<unknown> {
-		if (!this.isReady) {
-			throw new Error("MCP client is not connected");
+		let lastError: Error | null = null;
+
+		for (let attempt = 1; attempt <= MAX_REQUEST_RETRIES; attempt++) {
+			try {
+				// Proactive health check before request
+				await this.ensureConnected();
+
+				if (!this.isReady) {
+					throw new Error("MCP client is not connected");
+				}
+
+				const headers: Record<string, string> = {
+					"Content-Type": "application/json",
+				};
+
+				// Add authentication headers based on auth type
+				if (this.authType === "bearer" && this.authToken) {
+					headers.Authorization = `Bearer ${this.authToken}`;
+				} else if (this.authType === "apikey" && this.apiKey) {
+					headers["X-API-Key"] = this.apiKey;
+				}
+
+				// Use queued network adapter for requests
+				const networkAdapter = new QueuedNetworkAdapter();
+				const response = await networkAdapter.post(`${this.serverUrl}${endpoint}`, data, headers);
+
+				if (!response.ok) {
+					throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
+				}
+
+				return response.data;
+			} catch (error) {
+				lastError = error as Error;
+				const isLastAttempt = attempt === MAX_REQUEST_RETRIES;
+
+				if (isLastAttempt) {
+					logger.error(`Request to ${endpoint} failed after ${MAX_REQUEST_RETRIES} attempts`, lastError);
+					break;
+				}
+
+				// Exponential backoff with jitter for retries
+				const jitter = Math.random() * 500;
+				const delay = REQUEST_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1) + jitter;
+				logger.warn(
+					`Request to ${endpoint} failed (attempt ${attempt}/${MAX_REQUEST_RETRIES}), retrying in ${Math.round(delay)}ms`,
+					lastError,
+				);
+
+				await new Promise((resolve) => setTimeout(resolve, delay));
+			}
 		}
 
-		const headers: Record<string, string> = {
-			"Content-Type": "application/json",
-		};
-
-		// Add authentication headers based on auth type
-		if (this.authType === "bearer" && this.authToken) {
-			headers.Authorization = `Bearer ${this.authToken}`;
-		} else if (this.authType === "apikey" && this.apiKey) {
-			headers["X-API-Key"] = this.apiKey;
-		}
-
-		// Use queued network adapter for requests
-		const networkAdapter = new QueuedNetworkAdapter();
-		const response = await networkAdapter.post(`${this.serverUrl}${endpoint}`, data, headers);
-
-		if (!response.ok) {
-			throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
-		}
-
-		return response.data;
+		throw new Error(
+			`MCP request to ${endpoint} failed after ${MAX_REQUEST_RETRIES} retries: ${lastError?.message || "Unknown error"}`,
+		);
 	}
 
 	/**
@@ -226,8 +397,12 @@ export class RemoteMCPClient implements vscode.Disposable {
 			this.heartbeatInterval = undefined;
 		}
 
+		// Clear background reconnection
+		this.stopBackgroundReconnection();
+
 		this.isReady = false;
 		this.status.ready = false;
+		this.emitStateChange("disconnected");
 	}
 
 	/**

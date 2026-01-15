@@ -6,7 +6,7 @@ import { logger } from "../utils/logger";
  * Use these constants instead of hardcoded strings to ensure consistency.
  */
 export const VIEW_IDS = {
-	PROTECTED_FILES: "snapback.protectedFiles",
+	INTELLIGENCE: "snapback.intelligence",
 	DASHBOARD: "snapback.dashboard",
 	SESSIONS: "snapback.sessions",
 } as const;

@@ -1351,7 +1351,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Create refreshViews function and assign to global ref
 		refreshViews = () => {
-			phase4Result.protectedFilesTreeProvider.refresh();
+			phase4Result.intelligenceTreeProvider.refresh();
 			phase4Result.snapshotNavigatorProvider.refresh();
 			phase4Result.snapBackTreeProvider.refresh();
 		};
@@ -1632,7 +1632,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			// Other dependencies
 			saveHandler,
-			protectedFilesTreeProvider: phase4Result.protectedFilesTreeProvider,
+			intelligenceTreeProvider: phase4Result.intelligenceTreeProvider,
 			snapshotNavigatorProvider: phase4Result.snapshotNavigatorProvider,
 			snapshotSummaryProvider: phase3Result.snapshotSummaryProvider,
 			snapBackTreeProvider: phase4Result.snapBackTreeProvider,

@@ -28,7 +28,7 @@ import type { IStorageManager } from "../storage/types";
 import type { CooldownIndicator } from "../ui/cooldownIndicator";
 import type { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
 import type { SnapshotRestoreUI } from "../ui/SnapshotRestoreUI";
-import type { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
+import type { IntelligenceTreeProvider } from "../views/IntelligenceTreeProvider";
 import type { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
 import type { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
 import type { WelcomeView } from "../welcomeView";
@@ -52,7 +52,7 @@ import type { WorkspaceMemoryManager } from "../workspaceMemory";
  * context.subscriptions.push(disposable);
  * ```
  */
-export function registerCommandSafely<T extends (...args: any[]) => any>(
+export function registerCommandSafely<T extends (...args: unknown[]) => unknown>(
 	commandId: string,
 	handler: T,
 ): vscode.Disposable {
@@ -110,8 +110,8 @@ export interface CommandContext {
 	snapshotRestoreUI: SnapshotRestoreUI;
 
 	// Other dependencies
-	/** Provides tree view data for protected files list */
-	protectedFilesTreeProvider: ProtectedFilesTreeProvider;
+	/** Provides tree view data for intelligence insights */
+	intelligenceTreeProvider: IntelligenceTreeProvider;
 	/** Provides tree view data for snapshot navigation */
 	snapshotNavigatorProvider?: SnapshotNavigatorProvider;
 	/** Provides snapshot metadata and summaries */

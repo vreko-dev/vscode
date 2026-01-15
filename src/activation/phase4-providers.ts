@@ -21,7 +21,7 @@ import { createStatusBarManager, type StatusBarManager } from "../ui/StatusBarMa
 import { createStatusBarController, type StatusBarController } from "../ui/statusBar/StatusBarController";
 import { createVitalsUIIntegration, registerVitalsCommands, type VitalsUIIntegration } from "../ui/VitalsUIIntegration";
 import { logger } from "../utils/logger";
-import { ProtectedFilesTreeProvider } from "../views/ProtectedFilesTreeProvider";
+import { IntelligenceTreeProvider } from "../views/IntelligenceTreeProvider";
 import { SessionsTreeProvider } from "../views/SessionsTreeProvider";
 import { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
@@ -31,7 +31,7 @@ import { PhaseLogger } from "./phaseLogger";
 
 export interface Phase4Result {
 	snapBackTreeProvider: SnapBackTreeProvider;
-	protectedFilesTreeProvider: ProtectedFilesTreeProvider;
+	intelligenceTreeProvider: IntelligenceTreeProvider;
 	snapshotDocumentProvider: SnapshotDocumentProvider;
 	protectionDecorationProvider: ProtectionDecorationProvider;
 	protectionCodeLensProvider: ProtectionCodeLensProvider;
@@ -62,6 +62,9 @@ export async function initializePhase4Providers(
 	const phase4Start = Date.now();
 	logger.debug("Phase 4 starting...");
 	try {
+		// Compute workspaceId once for all providers that need it
+		const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? workspaceRoot;
+
 		// Initialize document provider
 		let t = Date.now();
 		const snapshotDocumentProvider = new SnapshotDocumentProvider();
@@ -72,9 +75,10 @@ export async function initializePhase4Providers(
 			throw new Error("ProtectedFileRegistry is required for tree providers");
 		}
 
+		// Initialize Intelligence Tree Provider
 		t = Date.now();
-		const protectedFilesTreeProvider = new ProtectedFilesTreeProvider(protectedFileRegistry);
-		logger.debug("ProtectedFilesTreeProvider", { ms: Date.now() - t });
+		const intelligenceTreeProvider = new IntelligenceTreeProvider(workspaceId, workspaceRoot, context.globalState);
+		logger.debug("IntelligenceTreeProvider", { ms: Date.now() - t });
 
 		// Initialize decoration providers
 		t = Date.now();
@@ -162,7 +166,6 @@ export async function initializePhase4Providers(
 
 		// Initialize VitalsUIIntegration - connects data service to UI components
 		t = Date.now();
-		const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? workspaceRoot;
 		const vitalsUIIntegration = createVitalsUIIntegration(
 			workspaceId,
 			workspaceRoot,
@@ -194,7 +197,7 @@ export async function initializePhase4Providers(
 
 		return {
 			snapBackTreeProvider,
-			protectedFilesTreeProvider,
+			intelligenceTreeProvider,
 			snapshotDocumentProvider,
 			protectionDecorationProvider,
 			protectionCodeLensProvider,
