@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";
+import { getDaemonBridge, type DaemonBridge } from "./DaemonBridge";
 import { getMCPModeManager, MCPMode } from "./MCPModeManager";
 import { getMCPTelemetry } from "./MCPTelemetry";
 import type { RemoteMCPClient } from "./RemoteMCPClient";
@@ -58,6 +59,15 @@ export class MCPLifecycleManager implements vscode.Disposable {
 	/** Event emitter for VS Code integration */
 	private readonly _onStateChange = new vscode.EventEmitter<MCPStateChangeEvent>();
 	readonly onStateChange = this._onStateChange.event;
+
+	/** Current MCP mode */
+	private currentMode: MCPMode = MCPMode.UNCONFIGURED;
+
+	/** DaemonBridge connection subscription */
+	private daemonConnectionSubscription: vscode.Disposable | null = null;
+
+	/** DaemonBridge reference for LOCAL_CLI mode */
+	private daemonBridge: DaemonBridge | null = null;
 
 	constructor(options: MCPStartOptions) {
 		this.remoteServerUrl = options.remoteServerUrl;
@@ -161,9 +171,8 @@ export class MCPLifecycleManager implements vscode.Disposable {
 				// LOCAL_CLI mode: Do NOT start remote MCP client
 				// DaemonBridge handles all MCP communication via local CLI
 				logger.info("LOCAL_CLI mode: Remote MCP disabled, using DaemonBridge");
-				this.emitStateChange("connected", { reason: "Local CLI mode active" });
-				// RemoteMCPClient stays null - DaemonBridge is used instead
-				return;
+				this.currentMode = MCPMode.LOCAL_CLI;
+				return this.startLocalCLIMode();
 
 			case MCPMode.REMOTE_API:
 				// REMOTE_API mode: Connect to remote for auth/licensing only
@@ -175,6 +184,42 @@ export class MCPLifecycleManager implements vscode.Disposable {
 				logger.info("UNCONFIGURED mode: No MCP connection");
 				this.emitStateChange("disconnected", { reason: "MCP not configured" });
 				return;
+		}
+	}
+
+	/**
+	 * Start LOCAL_CLI mode with DaemonBridge
+	 * Tracks daemon connection state and forwards to MCPStatusItem
+	 */
+	private async startLocalCLIMode(): Promise<void> {
+		this.daemonBridge = getDaemonBridge();
+
+		// Subscribe to daemon connection changes
+		this.daemonConnectionSubscription = this.daemonBridge.onConnectionChanged((connected) => {
+			if (connected) {
+				this.emitStateChange("connected", { reason: "Daemon connected" });
+			} else {
+				this.emitStateChange("reconnecting", { reason: "Daemon reconnecting" });
+			}
+		});
+
+		// Initial connection attempt
+		try {
+			const connected = await this.daemonBridge.connect();
+			if (connected) {
+				this.emitStateChange("connected", { reason: "Local CLI mode active" });
+				logger.info("LOCAL_CLI mode: DaemonBridge connected");
+			} else {
+				// Daemon not connected yet - DaemonBridge will auto-reconnect
+				this.emitStateChange("reconnecting", { reason: "Daemon connecting" });
+				logger.debug("LOCAL_CLI mode: DaemonBridge connecting...");
+			}
+		} catch (error) {
+			logger.warn("LOCAL_CLI mode: Initial daemon connection failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			// DaemonBridge will auto-reconnect with exponential backoff
+			this.emitStateChange("reconnecting", { reason: "Daemon connecting" });
 		}
 	}
 
@@ -247,6 +292,12 @@ export class MCPLifecycleManager implements vscode.Disposable {
 			logger.error("Error stopping MCP server", error as Error);
 		});
 
+		// Clean up daemon connection subscription
+		if (this.daemonConnectionSubscription) {
+			this.daemonConnectionSubscription.dispose();
+			this.daemonConnectionSubscription = null;
+		}
+
 		// Clean up event emitter
 		this._onStateChange.dispose();
 
@@ -256,8 +307,15 @@ export class MCPLifecycleManager implements vscode.Disposable {
 
 	/**
 	 * Check if MCP server is ready
+	 * In LOCAL_CLI mode, checks DaemonBridge connection
+	 * In REMOTE_API mode, checks RemoteMCPClient
 	 */
 	isServerReady(): boolean {
+		// LOCAL_CLI mode: check DaemonBridge connection
+		if (this.currentMode === MCPMode.LOCAL_CLI) {
+			return this.daemonBridge?.isConnected() ?? false;
+		}
+		// REMOTE_API mode: check RemoteMCPClient
 		return this.remoteClient ? this.remoteClient.isServerReady() : false;
 	}
 
