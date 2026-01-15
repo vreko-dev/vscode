@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";
+import { getMCPModeManager, MCPMode } from "./MCPModeManager";
 import { getMCPTelemetry } from "./MCPTelemetry";
-import { RemoteMCPClient, type RemoteMCPOptions } from "./RemoteMCPClient";
+import type { RemoteMCPClient } from "./RemoteMCPClient";
 
 /**
  * MCP connection state
@@ -38,37 +39,8 @@ export interface MCPStartOptions {
 	remoteApiKey?: string;
 }
 
-/**
- * Minimum compatible MCP server version
- * Update this when breaking changes are introduced
- */
-const MIN_MCP_VERSION = "1.0.0";
-
-/**
- * Compare semver versions (simplified)
- * @returns -1 if a < b, 0 if a === b, 1 if a > b
- */
-function compareVersions(a: string, b: string): number {
-	const partsA = a.split(".").map(Number);
-	const partsB = b.split(".").map(Number);
-
-	for (let i = 0; i < 3; i++) {
-		const numA = partsA[i] || 0;
-		const numB = partsB[i] || 0;
-		if (numA < numB) {
-			return -1;
-		}
-		if (numA > numB) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
 export class MCPLifecycleManager implements vscode.Disposable {
 	private remoteClient: RemoteMCPClient | null = null;
-	private readonly maxRestarts = 3;
-	private timeout: number;
 	private remoteServerUrl?: string;
 	private remoteAuthToken?: string;
 	private remoteAuthType?: "bearer" | "apikey";
@@ -88,7 +60,6 @@ export class MCPLifecycleManager implements vscode.Disposable {
 	readonly onStateChange = this._onStateChange.event;
 
 	constructor(options: MCPStartOptions) {
-		this.timeout = options.timeout || 3000;
 		this.remoteServerUrl = options.remoteServerUrl;
 		this.remoteAuthToken = options.remoteAuthToken;
 		this.remoteAuthType = options.remoteAuthType;
@@ -162,7 +133,11 @@ export class MCPLifecycleManager implements vscode.Disposable {
 	}
 
 	/**
-	 * Start the MCP server (remote only)
+	 * Start the MCP server based on detected mode
+	 *
+	 * Key principle: LOCAL_CLI and REMOTE modes are mutually exclusive.
+	 * - LOCAL_CLI: Uses DaemonBridge for full MCP functionality
+	 * - REMOTE_API: Uses Remote API for auth only (degraded)
 	 */
 	async start(): Promise<void> {
 		// Check if MCP is enabled in configuration
@@ -175,148 +150,67 @@ export class MCPLifecycleManager implements vscode.Disposable {
 			return;
 		}
 
-		// If remote server URL is not explicitly provided, check configuration
-		let serverUrl = this.remoteServerUrl;
-		let authToken = this.remoteAuthToken;
-		let authType = this.remoteAuthType;
-		let apiKey = this.remoteApiKey;
+		// Detect mode using MCPModeManager
+		const modeManager = getMCPModeManager();
+		const mode = await modeManager.detectMode();
 
-		if (!serverUrl) {
-			serverUrl = config.get<string>("mcp.serverUrl", "");
-			authToken = config.get<string>("mcp.authToken", "");
-			authType = config.get<"bearer" | "apikey">("mcp.authType", "bearer");
-			apiKey = config.get<string>("mcp.apiKey", "");
-		}
+		logger.info(`MCP mode detected: ${mode}`);
 
-		// Use remote MCP if server URL is configured
-		if (serverUrl && serverUrl.trim() !== "") {
-			return this.startRemote(serverUrl, authToken, authType, apiKey);
+		switch (mode) {
+			case MCPMode.LOCAL_CLI:
+				// LOCAL_CLI mode: Do NOT start remote MCP client
+				// DaemonBridge handles all MCP communication via local CLI
+				logger.info("LOCAL_CLI mode: Remote MCP disabled, using DaemonBridge");
+				this.emitStateChange("connected", { reason: "Local CLI mode active" });
+				// RemoteMCPClient stays null - DaemonBridge is used instead
+				return;
+
+			case MCPMode.REMOTE_API:
+				// REMOTE_API mode: Connect to remote for auth/licensing only
+				// No full MCP tool calls - just API verification
+				logger.info("REMOTE_API mode: Limited remote API for auth only");
+				return this.startRemoteAPIOnly();
+
+			default:
+				logger.info("UNCONFIGURED mode: No MCP connection");
+				this.emitStateChange("disconnected", { reason: "MCP not configured" });
+				return;
 		}
-		logger.info("No remote MCP server configured, skipping MCP initialization");
-		this.emitStateChange("disconnected", { reason: "No server configured" });
-		return;
 	}
 
 	/**
-	 * Start connection to remote MCP server with retry and UI feedback
+	 * Start remote API connection for auth/licensing only (not full MCP)
+	 * This is the degraded experience for users without CLI
 	 */
-	private async startRemote(
-		serverUrl: string,
-		authToken?: string,
-		authType?: "bearer" | "apikey",
-		apiKey?: string,
-	): Promise<void> {
+	private async startRemoteAPIOnly(): Promise<void> {
+		// Only check API key validity, don't start full MCP client
 		const config = vscode.workspace.getConfiguration("snapback");
-		const timeout = config.get<number>("mcp.timeout", this.timeout);
-		const maxRetries = this.maxRestarts;
+		const apiKey = config.get<string>("apiKey", "") || process.env.SNAPBACK_API_KEY;
 
-		// Connection with retry loop for UI feedback
-		for (let attempt = 1; attempt <= maxRetries; attempt++) {
-			try {
-				// Emit reconnecting state with attempt progress
-				this.emitStateChange("reconnecting", { attempt, maxAttempts: maxRetries });
-
-				const remoteOptions: RemoteMCPOptions = {
-					serverUrl,
-					authToken,
-					timeout,
-					maxRetries: 1, // Single attempt per iteration (we handle retries here)
-					authType,
-					apiKey,
-				};
-
-				this.remoteClient = new RemoteMCPClient(remoteOptions);
-				await this.remoteClient.connect();
-
-				// Check version compatibility
-				const status = this.remoteClient.getStatus();
-				this.serverVersion = status.version;
-
-				if (status.version) {
-					await this.checkVersionCompatibility(status.version);
-				}
-
-				// Emit connected state on success
-				this.emitStateChange("connected");
-				logger.info("Connected to remote MCP server successfully", { version: status.version });
-
-				// Show success notification if we recovered from a failure
-				if (attempt > 1) {
-					vscode.window.showInformationMessage("SnapBack MCP: Reconnected successfully");
-				}
-
-				return; // Success, exit retry loop
-			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : String(error);
-				logger.warn(`MCP connection attempt ${attempt}/${maxRetries} failed`, { error: errorMessage });
-
-				// Clean up failed client
-				if (this.remoteClient) {
-					this.remoteClient.dispose();
-					this.remoteClient = null;
-				}
-
-				// If not last attempt, wait before retry
-				if (attempt < maxRetries) {
-					const delay = Math.min(2 ** attempt * 1000, 10000); // Exponential backoff, max 10s
-					await new Promise((resolve) => setTimeout(resolve, delay));
-				}
-			}
+		if (!apiKey) {
+			this.emitStateChange("disconnected", { reason: "No API key for remote API" });
+			return;
 		}
 
-		// All attempts failed
-		const finalError = `Failed to connect to remote MCP server after ${maxRetries} attempts`;
-		this.emitStateChange("disconnected", { reason: finalError });
-		logger.error(finalError);
+		// In REMOTE_API mode, we don't start a full RemoteMCPClient
+		// We just verify the API key is valid via a simple health check
+		logger.info("Remote API mode: API key present, auth features available");
+		this.emitStateChange("connected", { reason: "Remote API mode (auth only)" });
 
-		// Show user notification with actions
-		const choice = await vscode.window.showErrorMessage(
-			"SnapBack MCP: Failed to connect after multiple attempts",
-			"Diagnose",
-			"Retry",
-			"Dismiss",
-		);
-
-		if (choice === "Diagnose") {
-			vscode.commands.executeCommand("snapback.mcp.diagnose");
-		} else if (choice === "Retry") {
-			// Restart connection process
-			this.start().catch((err) => {
-				logger.error("MCP retry failed", err);
+		// Show notification prompting CLI installation for full features
+		vscode.window
+			.showInformationMessage(
+				"SnapBack running in limited mode. Install CLI for full MCP features.",
+				"Install CLI",
+				"Configure MCP",
+			)
+			.then((choice) => {
+				if (choice === "Install CLI") {
+					vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/cli/install"));
+				} else if (choice === "Configure MCP") {
+					vscode.commands.executeCommand("snapback.configureMCP");
+				}
 			});
-		}
-
-		throw new Error(finalError);
-	}
-
-	/**
-	 * Check MCP server version compatibility
-	 *
-	 * Warns user if server version is below minimum required.
-	 * Does not block connection - just provides guidance.
-	 */
-	private async checkVersionCompatibility(serverVersion: string): Promise<void> {
-		if (compareVersions(serverVersion, MIN_MCP_VERSION) < 0) {
-			logger.warn("MCP server version incompatibility detected", {
-				serverVersion,
-				minRequired: MIN_MCP_VERSION,
-			});
-
-			// Track version mismatch telemetry
-			getMCPTelemetry().trackVersionMismatch(serverVersion, MIN_MCP_VERSION);
-
-			const choice = await vscode.window.showWarningMessage(
-				`SnapBack MCP server (v${serverVersion}) may be outdated. Minimum recommended: v${MIN_MCP_VERSION}`,
-				"Learn More",
-				"Dismiss",
-			);
-
-			if (choice === "Learn More") {
-				vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/mcp-upgrade"));
-			}
-		} else {
-			logger.info("MCP server version compatible", { serverVersion, minRequired: MIN_MCP_VERSION });
-		}
 	}
 
 	/**

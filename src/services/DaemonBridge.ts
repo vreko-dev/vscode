@@ -58,8 +58,8 @@ function getPidPath(): string {
 /** Connection timeout in ms */
 const CONNECTION_TIMEOUT_MS = 5000;
 
-/** Request timeout in ms */
-const REQUEST_TIMEOUT_MS = 10000;
+/** Request timeout in ms - increased to 60s to accommodate long-running checks (tsc, biome, madge) */
+const REQUEST_TIMEOUT_MS = 60000;
 
 /** Minimum time between reconnection attempts */
 const MIN_RECONNECT_INTERVAL_MS = 1000;
