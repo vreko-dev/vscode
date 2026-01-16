@@ -27,20 +27,38 @@ interface CliInstallCardProps {
 	onInstalled?: (version: string) => void;
 	/** Additional Tailwind class names */
 	className?: string;
-	/** Whether to auto-check status on mount (default: true) */
+	/** Whether to auto-check status on mount (default: true, skipped if initialStatus provided) */
 	autoCheck?: boolean;
+	/** Initial CLI status from parent - skips redundant status check if provided */
+	initialStatus?: { installed: boolean; version: string | null };
 }
 
 // =============================================================================
 // Component
 // =============================================================================
 
-export const CliInstallCard: React.FC<CliInstallCardProps> = ({ onInstalled, className, autoCheck = true }) => {
-	const [state, setState] = useState<CliInstallStatus>({
-		status: "unknown",
-		version: null,
-		packageManager: null,
-		error: null,
+export const CliInstallCard: React.FC<CliInstallCardProps> = ({
+	onInstalled,
+	className,
+	autoCheck = true,
+	initialStatus,
+}) => {
+	// Use initialStatus if provided, otherwise start with unknown
+	const [state, setState] = useState<CliInstallStatus>(() => {
+		if (initialStatus) {
+			return {
+				status: initialStatus.installed ? "installed" : "not-installed",
+				version: initialStatus.version,
+				packageManager: null,
+				error: null,
+			};
+		}
+		return {
+			status: "unknown",
+			version: null,
+			packageManager: null,
+			error: null,
+		};
 	});
 
 	const vscode = getVSCodeAPI();
@@ -132,10 +150,11 @@ export const CliInstallCard: React.FC<CliInstallCardProps> = ({ onInstalled, cla
 	// ==========================================================================
 
 	useEffect(() => {
-		if (autoCheck) {
+		// Skip auto-check if initialStatus was provided (already have status from parent)
+		if (autoCheck && !initialStatus) {
 			checkStatus();
 		}
-	}, [autoCheck, checkStatus]);
+	}, [autoCheck, checkStatus, initialStatus]);
 
 	// ==========================================================================
 	// Render Helpers

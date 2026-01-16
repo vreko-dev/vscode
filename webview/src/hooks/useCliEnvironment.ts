@@ -1,7 +1,7 @@
 /**
  * @module useCliEnvironment
  * @description React hook for managing CLI execution environment state
- * 
+ *
  * This hook manages communication between the webview and extension host for CLI execution.
  * It automatically probes the host environment on mount and provides actions for executing CLI commands.
  */

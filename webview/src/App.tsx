@@ -2,7 +2,7 @@ import { WorkspaceVitals } from "@snapback/ui/vitals";
 import { useEffect, useState } from "react";
 import { ActivityPanel } from "./panels/ActivityPanel";
 import { DashboardHome } from "./panels/DashboardHome";
-import { OnboardingPanel } from "./panels/OnboardingPanel";
+import { SettingsPanel } from "./panels/SettingsPanel";
 import { transformGuidanceToUI, transformVitalsToUI } from "./transforms";
 import type {
 	ActivityData,
@@ -24,9 +24,9 @@ const vscodeAPI = getVSCodeAPI();
 // Tab configuration - matches DashboardTab type
 const TABS: TabConfig[] = [
 	{ id: "home", label: "Dashboard", icon: "🏠" },
+	{ id: "activity", label: "Activity", icon: "📋" },
 	{ id: "vitals", label: "Vitals", icon: "💓" },
-	{ id: "activity", label: "Activity", icon: "📊" },
-	{ id: "setup", label: "Setup", icon: "🚀" },
+	{ id: "settings", label: "Settings", icon: "⚙️" },
 ];
 
 // Default stats for initial state
@@ -81,6 +81,9 @@ export function App() {
 	// Note: mcpStatus is currently static - future: derive from settings/activity
 	const [mcpStatus] = useState<MCPStatus>(DEFAULT_MCP_STATUS);
 
+	// CLI status state
+	const [cliStatus, setCliStatus] = useState<{ installed: boolean; version: string | null } | undefined>(undefined);
+
 	// Derived UI values (transformed for components)
 	const uiVitals: UIVitalsData = transformVitalsToUI(backendVitals, sessionHealth ?? undefined);
 	const uiGuidance: UIGuidance | undefined = transformGuidanceToUI(backendGuidance);
@@ -106,6 +109,13 @@ export function App() {
 				}
 				if (message.guidance) {
 					setBackendGuidance(message.guidance);
+				}
+				// Handle CLI status updates from extension settings
+				if (message.settings?.cliInstalled !== undefined) {
+					setCliStatus({
+						installed: message.settings.cliInstalled,
+						version: message.settings.cliVersion ?? null,
+					});
 				}
 			} else if (message.type === "navigate") {
 				// Handle navigation requests from extension
@@ -146,14 +156,21 @@ export function App() {
 
 			{/* Panel Content */}
 			<div className="flex-1 overflow-auto">
-				{activePanel === "setup" && <OnboardingPanel />}
 				{activePanel === "home" && (
 					<DashboardHome
 						stats={stats}
 						mcpStatus={mcpStatus}
-						onConfigureMCP={() => vscodeAPI?.postMessage({ type: "configureMCP" })}
-						onCreateSnapshot={() => vscodeAPI?.postMessage({ type: "createSnapshot" })}
-						onOpenSettings={() => vscodeAPI?.postMessage({ type: "openSettings" })}
+						cliStatus={cliStatus}
+						onOpenSettings={() => setActivePanel("settings")}
+						onNavigateToActivity={() => setActivePanel("activity")}
+					/>
+				)}
+				{activePanel === "activity" && (
+					<ActivityPanel
+						activity={activity}
+						onRestoreSnapshot={(snapshotId: string) =>
+							vscodeAPI?.postMessage({ type: "restoreSnapshot", payload: { snapshotId } })
+						}
 					/>
 				)}
 				{activePanel === "vitals" && (
@@ -165,12 +182,14 @@ export function App() {
 						/>
 					</div>
 				)}
-				{activePanel === "activity" && (
-					<ActivityPanel
-						activity={activity}
-						onRestoreSnapshot={(snapshotId: string) =>
-							vscodeAPI?.postMessage({ type: "restoreSnapshot", payload: { snapshotId } })
-						}
+				{activePanel === "settings" && (
+					<SettingsPanel
+						mcpStatus={mcpStatus}
+						cliStatus={cliStatus}
+						onConfigureMCP={() => vscodeAPI?.postMessage({ type: "configureMCP" })}
+						onRunDiagnostics={() => vscodeAPI?.postMessage({ type: "runDiagnostics" })}
+						onShowAIStatus={() => vscodeAPI?.postMessage({ type: "showAIStatus" })}
+						onInstallCli={() => vscodeAPI?.postMessage({ type: "cli:install" })}
 					/>
 				)}
 			</div>

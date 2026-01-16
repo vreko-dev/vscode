@@ -1,7 +1,7 @@
 /**
  * @module CliCard
  * @description Enhanced CLI card component with npx-first execution strategy
- * 
+ *
  * Displays CLI execution status and provides one-click command execution.
  * Automatically probes host environment and selects optimal execution strategy.
  */
@@ -66,15 +66,11 @@ export const CliCard: React.FC<CliCardProps> = ({ onCommandExecuted, autoProbe =
 		}
 
 		if (strategy === "global") {
-			return (
-				<Badge className="bg-[#4ADE80]/15 text-[#4ADE80] text-xs px-2 py-1 rounded">✓ Installed</Badge>
-			);
+			return <Badge className="bg-[#4ADE80]/15 text-[#4ADE80] text-xs px-2 py-1 rounded">✓ Installed</Badge>;
 		}
 
 		if (strategy === "bunx") {
-			return (
-				<Badge className="bg-[#6EE7A7]/15 text-[#6EE7A7] text-xs px-2 py-1 rounded">via bunx</Badge>
-			);
+			return <Badge className="bg-[#6EE7A7]/15 text-[#6EE7A7] text-xs px-2 py-1 rounded">via bunx</Badge>;
 		}
 
 		if (strategy === "npx") {
@@ -154,8 +150,8 @@ export const CliCard: React.FC<CliCardProps> = ({ onCommandExecuted, autoProbe =
 			return (
 				<>
 					<p className="text-sm text-zinc-400 mb-3">
-						Ready to execute CLI commands {commandPrefix && `using ${commandPrefix}`}. Run snapback init to get
-						started.
+						Ready to execute CLI commands {commandPrefix && `using ${commandPrefix}`}. Run snapback init to
+						get started.
 					</p>
 					<Button
 						onClick={handleRunInit}

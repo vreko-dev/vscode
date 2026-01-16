@@ -15,6 +15,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { getHeatIntegration } from "../heat";
 import type { HeatTracker } from "../heat/HeatTracker";
+import { getCliStatusSync } from "../utils/cli-status";
 import { logger } from "../utils/logger";
 
 // =============================================================================
@@ -852,10 +853,13 @@ export class WorkspaceDataService implements vscode.Disposable {
 
 		const languagePacks = this.getLanguagePacks();
 
+		// Get actual CLI status instead of hardcoding
+		const cliStatus = getCliStatusSync();
+
 		return {
 			detectedAITool: null, // Would detect from workspace
-			cliInstalled: false,
-			cliVersion: null,
+			cliInstalled: cliStatus.installed,
+			cliVersion: cliStatus.version,
 			protectionThreshold: sensitivity as "low" | "medium" | "high",
 			excludePatterns,
 			languagePacks,

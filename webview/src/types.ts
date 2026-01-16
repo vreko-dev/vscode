@@ -16,7 +16,7 @@
 /**
  * Valid dashboard tabs - matches DashboardTab in UnifiedDashboardPanel.ts
  */
-export type DashboardTab = "home" | "vitals" | "setup" | "activity";
+export type DashboardTab = "home" | "vitals" | "activity" | "settings";
 
 /**
  * Tab configuration item
