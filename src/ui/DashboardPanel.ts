@@ -82,11 +82,15 @@ interface DashboardMessage {
 		| "cli:checkStatus"
 		| "cli:install"
 		| "cli:openDocs"
-		| "cli:verifyInstallation";
+		| "cli:verifyInstallation"
+		| "getProviderStatus"
+		| "diagnoseProvider"
+		| "reconnectProvider";
 	data?: {
 		tab?: DashboardTab;
 		command?: string;
 	};
+	providerId?: string;
 }
 
 /** CLI installation polling config */
@@ -374,6 +378,19 @@ export class DashboardPanel implements vscode.Disposable {
 				case "cli:verifyInstallation":
 					await this.handleCliVerifyInstallation();
 					return;
+				case "getProviderStatus":
+					await this.handleGetProviderStatus();
+					return;
+				case "diagnoseProvider":
+					if (message.providerId) {
+						await this.handleDiagnoseProvider(message.providerId);
+					}
+					return;
+				case "reconnectProvider":
+					if (message.providerId) {
+						await this.handleReconnectProvider(message.providerId);
+					}
+					return;
 			}
 		}
 
@@ -531,6 +548,82 @@ export class DashboardPanel implements vscode.Disposable {
 				type: "cli:error",
 				payload: { message: verification.error || "CLI verification failed" },
 			});
+		}
+	}
+
+	/**
+	 * Handle get provider status request
+	 */
+	private async handleGetProviderStatus(): Promise<void> {
+		try {
+			const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
+			const bridge = getMCPBridge(workspaceId);
+			const status = bridge.getStatus();
+			const circuitState = bridge.getCircuitState();
+
+			// Build provider status from MCP bridge data
+			const providers = [
+				{
+					id: "snapback-mcp",
+					name: "SnapBack MCP",
+					healthState: status.connected ? "healthy" : "unhealthy",
+					latency: {
+						p50: 0,
+						p95: 0,
+						p99: 0,
+					},
+					consecutiveFailures: circuitState.consecutiveFailures,
+					consecutiveSuccesses: 0, // TODO: Track successes in circuit breaker
+					lastCheckTime: Date.now(),
+				},
+			];
+
+			this.panel.webview.postMessage({
+				type: "providerStatus",
+				providers,
+			});
+
+			logger.debug("Provider status sent to webview", {
+				providerCount: providers.length,
+				connected: status.connected,
+			});
+		} catch (error) {
+			logger.error("Failed to get provider status", error as Error);
+		}
+	}
+
+	/**
+	 * Handle diagnose provider request
+	 */
+	private async handleDiagnoseProvider(providerId: string): Promise<void> {
+		logger.info("Diagnosing provider", { providerId });
+		// Execute the existing MCP diagnose command
+		await vscode.commands.executeCommand("snapback.mcp.diagnose");
+	}
+
+	/**
+	 * Handle reconnect provider request
+	 */
+	private async handleReconnectProvider(providerId: string): Promise<void> {
+		logger.info("Reconnecting provider", { providerId });
+		try {
+			const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
+			const bridge = getMCPBridge(workspaceId);
+
+			// Force close circuit breaker to allow retry
+			bridge.forceCloseCircuit("Manual reconnect requested via dashboard");
+
+			// Trigger flush to test connection
+			await bridge.flushToMCP();
+
+			vscode.window.showInformationMessage("✅ Reconnection attempt initiated");
+			logger.info("Provider reconnection successful", { providerId });
+
+			// Refresh provider status
+			await this.handleGetProviderStatus();
+		} catch (error) {
+			logger.error("Failed to reconnect provider", error as Error);
+			vscode.window.showErrorMessage("❌ Reconnection failed");
 		}
 	}
 
