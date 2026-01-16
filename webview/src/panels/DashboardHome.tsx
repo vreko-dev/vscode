@@ -1,5 +1,6 @@
 import { Button, Card } from "@snapback/ui";
 import type React from "react";
+import snapbackIcon from "../assets/snapback-icon.png";
 import { CliInstallCard } from "../components/CliInstallCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatNumber } from "../utils/format";
@@ -68,7 +69,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 			{/* Status Card with MCP/CLI badges */}
 			<Card className="mb-6 border-emerald-900/30 bg-emerald-950/20">
 				<div className="flex items-center gap-4 p-6">
-					<div className="text-5xl">{ICONS.logo}</div>
+					<img src={snapbackIcon} alt="SnapBack" className="w-12 h-12" />
 					<div className="flex-1">
 						<h2 className="text-2xl font-bold text-emerald-400">Protected</h2>
 						<p className="text-zinc-400">

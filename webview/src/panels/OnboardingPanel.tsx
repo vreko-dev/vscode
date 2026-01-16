@@ -1,6 +1,7 @@
 import { Alert, Button, Card } from "@snapback/ui";
 import type React from "react";
 import { useEffect, useState } from "react";
+import snapbackIcon from "../assets/snapback-icon.png";
 import { CliInstallCard } from "../components/CliInstallCard";
 import { getVSCodeAPI } from "../vscode-api";
 
@@ -86,7 +87,7 @@ export const OnboardingPanel: React.FC = () => {
 				<div className="max-w-md w-full">
 					{/* Header */}
 					<div className="text-center mb-8">
-						<div className="text-5xl mb-3">{ICONS.logo}</div>
+						<img src={snapbackIcon} alt="SnapBack" className="w-16 h-16 mx-auto mb-3" />
 						<h1 className="text-2xl font-bold text-zinc-100 mb-2">Welcome to SnapBack</h1>
 						<p className="text-zinc-400">One step to protect your AI coding sessions</p>
 					</div>

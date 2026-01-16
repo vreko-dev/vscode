@@ -12,6 +12,7 @@
 import { Badge, Button, Card } from "@snapback/ui";
 import type React from "react";
 import { useEffect, useState } from "react";
+import snapbackIcon from "../assets/snapback-icon.png";
 
 // Brand constants (aligned with extension BRANDING)
 const BRAND_ICONS = {
@@ -119,7 +120,7 @@ export const ProviderStatusDashboard: React.FC = () => {
 		return (
 			<div className="flex items-center justify-center min-h-screen bg-zinc-950 text-zinc-100">
 				<div className="text-center">
-					<div className="text-4xl mb-4">{BRAND_ICONS.logo}</div>
+					<img src={snapbackIcon} alt="SnapBack" className="w-16 h-16 mx-auto mb-4" />
 					<div className="text-zinc-400">Loading provider status...</div>
 				</div>
 			</div>
@@ -132,7 +133,7 @@ export const ProviderStatusDashboard: React.FC = () => {
 			<div className="mb-6">
 				<div className="flex items-center justify-between mb-2">
 					<h1 className="text-2xl font-bold flex items-center gap-2">
-						<span>{BRAND_ICONS.logo}</span>
+						<img src={snapbackIcon} alt="" className="w-6 h-6 mr-2" />
 						Provider Status Dashboard
 					</h1>
 					<Button onClick={handleConfigure} variant="outline" size="sm">
