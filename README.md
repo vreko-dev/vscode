@@ -1,270 +1,380 @@
-# SnapBack for VS Code
+<p align="center">
+  <img src="https://snapback.dev/logo.png" alt="SnapBack" width="120" />
+</p>
 
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/MarcelleLabs.snapback-vscode)](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
-[![Downloads](https://img.shields.io/visual-studio-marketplace/d/MarcelleLabs.snapback-vscode)](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+<h1 align="center">SnapBack</h1>
 
-> Your AI safety net. SnapBack watches what breaks, remembers the patterns, and catches the next disaster before it ships.
+<p align="center">
+  <strong>The Intelligence Layer for AI-Assisted Development</strong>
+</p>
 
-Every save, SnapBack learns. Day 1: 94% accurate. Day 30: It knows YOUR codebase. Month 3: It catches patterns you didn't know existed.
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode"><img src="https://img.shields.io/visual-studio-marketplace/v/MarcelleLabs.snapback-vscode?style=flat-square&color=4ADE80" alt="Version" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode"><img src="https://img.shields.io/visual-studio-marketplace/d/MarcelleLabs.snapback-vscode?style=flat-square&color=4ADE80" alt="Downloads" /></a>
+  <a href="https://discord.gg/B4BXeYkE2F"><img src="https://img.shields.io/discord/1234567890?style=flat-square&color=5865F2&logo=discord&logoColor=white&label=Discord" alt="Discord" /></a>
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square" alt="License" /></a>
+</p>
 
-## What It Does
+<p align="center">
+  SnapBack watches every AI-assisted change, learns what breaks in YOUR codebase, and catches disasters before they ship. Works with Cursor, Copilot, Claude, Windsurf, Cline, and more.
+</p>
 
-### 🆓 Always Free
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> ·
+  <a href="#-the-snapback-platform">Platform</a> ·
+  <a href="#-mcp-integration">MCP Integration</a> ·
+  <a href="https://docs.snapback.dev">Documentation</a> ·
+  <a href="https://discord.gg/B4BXeYkE2F">Discord</a>
+</p>
 
-- ✅ **Pattern Memory**: Learns what AI tools break in YOUR codebase
-- ✅ **Auto-snapshots**: One-click restore to any point—no commands to remember
-- ✅ **Per-Tool Learning**: Learns that Cursor is reckless with configs but careful with tests
-- ✅ **Secrets Detection**: Prevents committing API keys and passwords
-- ✅ **Works Offline**: 100% local, no account required
+---
 
-### ☁️ Cloud Features (Pro & Team Plans)
+## Why SnapBack?
 
-Upgrade at [snapback.dev](https://snapback.dev) to unlock:
+AI coding assistants are powerful but unpredictable. They can:
+- Overwrite hours of work in a single paste
+- Break configurations that "always worked"
+- Introduce subtle bugs across multiple files
 
-- 🔐 **Learn from Everyone**: Get warnings about patterns that broke in 1,000+ other repos
-- 🔐 **Cross-Device Sync**: Access snapshots on any computer
-- 🔐 **Team Learning**: Share what your team learns about AI safety
-- 🔐 **Cloud Backup**: Snapshots backed up automatically
+**SnapBack is your safety net.** It runs silently in the background, creating restore points and learning patterns. When AI breaks something—and it will—you're one click away from recovery.
 
-## Installation
+> *"Day 1: 94% accurate. Day 30: It knows YOUR codebase. Month 3: It catches patterns you didn't know existed."*
 
-1. **VS Code Marketplace** (Recommended):
-   - [Install from Marketplace](vscode:extension/MarcelleLabs.snapback-vscode)
-   - Or [view on web](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
+---
 
-2. **Command Line:**
-   ```bash
-   code --install-extension MarcelleLabs.snapback-vscode
-   ```
+## The SnapBack Platform
 
-3. **Open VSX** (Alternative marketplace):
-   - [Install from Open VSX](https://open-vsx.org/extension/MarcelleLabs/snapback-vscode)
+This extension is the **visual interface** to the SnapBack intelligence platform. The full platform includes:
 
-2. **That's it!** Extension works immediately - no setup needed.
+| Component | Purpose |
+|-----------|---------|
+| **VS Code Extension** | Real-time protection, instant recovery, status bar dashboard |
+| **CLI** (`@snapback/cli`) | Terminal workflows, CI/CD integration, automation scripts |
+| **MCP Server** | AI assistant coordination, intelligent checkpointing |
+| **Web Dashboard** | Cross-project analytics, team insights, pattern library |
+
+Install the extension to get started—the intelligence layer works immediately. Add the CLI or MCP server when you're ready for advanced workflows.
+
+---
+
+## Key Capabilities
+
+### Instant Recovery
+Restore any file to any point in seconds. No Git archaeology, no lost work.
+
+### AI Detection
+Automatically detects changes from **11 AI assistants**: GitHub Copilot, Cursor, Claude, Windsurf, Cline, Tabnine, Codeium, Amazon Q, JetBrains AI, Sourcegraph Cody, and more.
+
+### Pattern Learning
+SnapBack learns what breaks in your specific codebase and warns you before the same mistakes happen again.
+
+### Status Bar Dashboard
+Click the **SnapBack icon** in your status bar to instantly access:
+- Protection status at a glance
+- Quick actions (snapshot, restore, protect)
+- Jump to your web dashboard
+- Session statistics
+
+### Privacy-First
+100% local by default. Your code never leaves your machine. Cloud sync is optional.
+
+---
 
 ## Quick Start
 
-### Protect Your First File
+### 1. Install
 
-1. Open any file (e.g., `.env`, `database.ts`)
+**VS Code Marketplace** (Recommended)
+```
+ext install MarcelleLabs.snapback-vscode
+```
+
+Or [install from the marketplace](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
+
+### 2. Protect Your First File
+
+1. Open any critical file (`.env`, `auth.ts`, `database.ts`)
 2. Right-click → **SnapBack: Protect This File**
-3. Choose protection level:
-   - **Watched**: Monitor for changes
-   - **Caution**: Warn before risky edits
-   - **Protected**: Require confirmation to edit
+3. Choose a protection level:
 
-### Create Your First Snapshot
+| Level | Icon | Behavior |
+|-------|------|----------|
+| **Watch** | 👁️ | Monitor silently, auto-snapshot on changes |
+| **Warn** | ⚠️ | Show banner before risky edits |
+| **Block** | 🔒 | Require confirmation for any edit |
 
-1. Press `Cmd+Shift+S` (or `Ctrl+Shift+S` on Windows/Linux)
-2. Enter a description (e.g., "Before refactor")
-3. Done! Snapshot saved locally
+### 3. Your First Restore
 
-### Restore from Snapshot
+When AI breaks something:
 
-1. Open Command Palette (`Cmd+Shift+P`)
-2. Type "SnapBack: Restore Snapshot"
-3. Select snapshot from list
-4. Files restored to that point in time
+1. `Cmd+Shift+P` → **SnapBack: Restore Snapshot**
+2. Select the snapshot (timestamped, with AI tool attribution)
+3. Preview the diff → Confirm
+4. Done. File restored.
 
-## How It Works
+**Shortcut**: `Cmd+Shift+S` creates a snapshot, `Cmd+Shift+R` restores.
+
+---
+
+## Status Bar Quick Access
+
+The **SnapBack status bar item** gives you one-click access to everything:
 
 ```
 ┌─────────────────────────────────────┐
-│  Your Workspace                     │
-│  ┌────────────────────────────────┐ │
-│  │ .env          [PROTECTED] 🔒   │ │
-│  │ auth.ts       [CAUTION]    ⚠️  │ │
-│  │ database.ts   [WATCHED]    👁️  │ │
-│  └────────────────────────────────┘ │
-│                                     │
-│  SnapBack monitors edits            │
-│  ├─ Detects secrets                 │
-│  ├─ Warns on risky changes          │
-│  └─ Auto-creates snapshots          │
+│  SnapBack Quick Actions             │
+├─────────────────────────────────────┤
+│  📸  Create Snapshot                │
+│  ↩️   Quick Restore                 │
+│  🛡️   Protect Current File          │
+│  📊  Open Dashboard                 │
+│  ⚙️   Settings                      │
 └─────────────────────────────────────┘
 ```
 
-## Commands
+Click the status bar → select an action → done. No command palette required.
 
-| Command | Shortcut | Description |
-|---------|----------|-------------|
-| Create Snapshot | `Cmd+Shift+S` | Create snapshot of current state |
-| Restore Snapshot | - | View and restore from snapshots |
-| Protect File | - | Add file to protection list |
-| View Protected Files | - | See all protected files |
-| Snapshot Settings | - | Configure auto-snapshot rules |
+---
 
-## Protection Levels
+## MCP Integration
 
-### 🔵 Watched
-- Monitors file for changes
-- Shows badge in file explorer
-- Non-intrusive
+SnapBack includes a **Model Context Protocol (MCP) server** that enables AI assistants to coordinate with your protection system.
 
-**Good for**: Config files, package.json
+### For AI Assistants (Claude, Cursor, etc.)
 
-### 🟡 Caution
-- Shows warning banner when editing
-- Suggests creating snapshot first
-- Can still edit freely
+When configured, AI assistants can:
 
-**Good for**: Auth logic, database schemas
+```
+snap({mode: "start", task: "refactor auth module"})
+→ SnapBack creates checkpoint, returns context
 
-### 🔴 Protected
-- Requires explicit confirmation to edit
-- Auto-creates snapshot before changes
-- Maximum safety
+snap({mode: "check", files: ["auth.ts"]})
+→ Validates changes against learned patterns
 
-**Good for**: .env files, private keys, production configs
+snap_end({ok: 1, learnings: ["Always backup before auth changes"]})
+→ Records session outcome for future learning
+```
 
-## Configuration
+### MCP Tools Available
 
-### Extension Settings
+| Tool | Purpose |
+|------|---------|
+| `snap` | Start task, get context, quick check |
+| `check` | Validate code against patterns |
+| `advise` | Get risk analysis before changes |
+| `pulse` | Health check and session status |
+| `snap_learn` | Record a new pattern |
+| `snap_violation` | Report a mistake for learning |
+| `snap_end` | Complete task with learnings |
+| `snap_fix` | List/restore snapshots |
+| `snap_help` | Get workflow guidance |
+
+### Setup MCP
+
+Add to your AI assistant's MCP configuration:
 
 ```json
 {
-  // Auto-protect common files
-  "snapback.autoProtect": true,
-
-  // Protection patterns (glob)
-  "snapback.protectionPatterns": [
-    "*.env*",
-    "**/*.key",
-    "**/secrets/**"
-  ],
-
-  // Auto-snapshot before risky changes
-  "snapback.autoSnapshot": true,
-
-  // Optional: API key for cloud features
-  "snapback.apiKey": ""
+  "mcpServers": {
+    "snapback": {
+      "command": "npx",
+      "args": ["@snapback/mcp-server"]
+    }
+  }
 }
 ```
 
-### Enable Cloud Sync (Optional)
+[Full MCP documentation →](https://docs.snapback.dev/mcp)
 
-1. Get free API key: [snapback.dev](https://snapback.dev)
-2. Open Settings (`Cmd+,`)
-3. Search "SnapBack API Key"
-4. Paste your key
-5. Cloud features enabled!
+---
 
-## Feature Comparison
+## CLI Integration
 
-| Feature | Free (Local) | With API Key |
-|---------|-------------|--------------|
-| File Protection | ✅ Unlimited | ✅ Unlimited |
-| Local Snapshots | ✅ Unlimited | ✅ Unlimited |
-| Secret Detection | ✅ Basic | ✅ ML-Powered |
-| Works Offline | ✅ Yes | ✅ Yes |
-| Cloud Sync | ❌ | ✅ Yes |
-| Team Sharing | ❌ | ✅ Yes |
-| Cross-Device | ❌ | ✅ Yes |
-| Advanced Analytics | ❌ | ✅ Yes |
+For terminal workflows and automation, install the SnapBack CLI:
 
-## Privacy & Security
+```bash
+npm install -g @snapback/cli
+```
 
-- **No telemetry** without your consent
-- **Local-first**: All data stored in your workspace by default
-- **Open source**: Audit the code yourself
-- **No tracking**: We don't know what files you protect
-- **API key optional**: Full features work offline
+### CLI Commands
 
-## Examples
+```bash
+# Create a snapshot before risky operations
+snapback snap "before refactor"
 
-### Protect Critical Files
+# List recent snapshots
+snapback list
 
-```javascript
-// .snapbackrc in your workspace root
+# Restore a specific snapshot
+snapback restore <snapshot-id>
+
+# Check file against learned patterns
+snapback check src/auth.ts
+
+# View protection status
+snapback status
+```
+
+The CLI shares the same `.snapback/` database as the extension—your snapshots and learnings sync automatically.
+
+[CLI documentation →](https://docs.snapback.dev/cli)
+
+---
+
+## Commands
+
+### Core Commands
+
+| Command | Shortcut | Description |
+|---------|----------|-------------|
+| **Create Snapshot** | `Cmd+Shift+S` | Snapshot current file state |
+| **Quick Restore** | `Cmd+Shift+R` | Restore most recent snapshot |
+| **Undo AI Change** | — | Revert the last AI-detected change |
+| **View All Snapshots** | — | Browse snapshot history with diffs |
+
+### Protection Commands
+
+| Command | Description |
+|---------|-------------|
+| **Protect File** | Add file to protection with level selection |
+| **Protect Entire Repo** | Auto-protect based on patterns |
+| **Change Protection Level** | Adjust Watch/Warn/Block |
+| **View Protected Files** | See all protected files |
+
+### Session Commands
+
+| Command | Description |
+|---------|-------------|
+| **Restore Session** | Restore multiple files from a session |
+| **Compare with Snapshot** | Diff current vs snapshot |
+| **Delete Older Snapshots** | Clean up old snapshots |
+
+Access all commands: `Cmd+Shift+P` → type "SnapBack"
+
+---
+
+## Authentication
+
+SnapBack works **100% offline** with full functionality. Sign in to unlock cloud features.
+
+### Sign In (Optional)
+
+1. `Cmd+Shift+P` → **SnapBack: Sign In**
+2. Browser opens → Sign in with GitHub or Google
+3. Extension auto-connects
+
+### What Cloud Unlocks
+
+| Feature | Local | Cloud |
+|---------|-------|-------|
+| Snapshots | ✅ Unlimited | ✅ + Sync |
+| AI Detection | ✅ 11 tools | ✅ Same |
+| Pattern Learning | ✅ Local patterns | ✅ + Community patterns |
+| Cross-device | ❌ | ✅ Yes |
+| Team sharing | ❌ | ✅ Yes |
+
+### Sign Out
+
+`Cmd+Shift+P` → **SnapBack: Sign Out** — all local data preserved.
+
+---
+
+## Configuration
+
+### Quick Setup (`.snapbackrc`)
+
+Create `.snapbackrc` in your workspace root:
+
+```json
 {
   "protection": {
     "patterns": {
-      "*.env*": "protected",
-      "src/auth/**": "caution",
-      "database/**": "watched"
+      "*.env*": "block",
+      "src/auth/**": "warn",
+      "**/database/**": "watch"
     }
-  }
-}
-```
-
-### Auto-Snapshot Rules
-
-```javascript
-{
+  },
   "snapshots": {
-    "autoCreate": {
-      "beforeGitCommit": true,
-      "beforeRefactor": true,
-      "beforeDeploy": true
-    }
+    "autoCreate": true,
+    "maxAge": "30d"
   }
 }
 ```
+
+### VS Code Settings
+
+```json
+{
+  "snapback.autoProtect": true,
+  "snapback.protectionPatterns": ["*.env*", "**/*.key"],
+  "snapback.telemetry": false
+}
+```
+
+[Full configuration reference →](https://docs.snapback.dev/configuration)
+
+---
+
+## Privacy & Security
+
+- **Local-first**: All data in `.snapback/` in your workspace
+- **No telemetry** without explicit consent
+- **No code upload**: We never see your code
+- **Open source**: Audit at [github.com/snapback-dev](https://github.com/snapback-dev)
+- **Cloud optional**: Full functionality offline
+
+---
 
 ## Troubleshooting
 
-### Extension not activating
+### Extension Not Activating?
 
-1. Check VS Code version (requires 1.80+)
-2. Reload window: `Cmd+Shift+P` → "Reload Window"
-3. Check extension is enabled: Extensions panel
+1. Requires VS Code 1.80+
+2. `Cmd+Shift+P` → "Developer: Reload Window"
+3. Check Output panel → "SnapBack" for errors
 
-### Snapshots not appearing
+### Snapshots Not Appearing?
 
-1. Check storage location: `.snapback/` in workspace
-2. Verify disk space available
-3. Check file permissions
+1. Check `.snapback/` directory exists in workspace
+2. Verify file is protected: look for badge in explorer
+3. Confirm disk space available
 
-### Cloud sync not working
+### MCP Not Connecting?
 
-1. Verify API key in settings
-2. Check internet connection
-3. Look for error notifications
+1. Verify MCP config syntax
+2. Check AI assistant supports MCP
+3. See [MCP troubleshooting →](https://docs.snapback.dev/mcp-troubleshooting)
 
-## Development
+---
 
-### Building from Source
+## Get Help & Give Feedback
 
-```bash
-git clone https://github.com/snapback-dev/vscode.git
-cd vscode
+We're building SnapBack in public and your feedback shapes the product.
 
-pnpm install
-pnpm build
+- **Discord**: [Join our community →](https://discord.gg/B4BXeYkE2F)
+- **GitHub Issues**: [Report bugs →](https://github.com/snapback-dev/snapback/issues)
+- **Feature Requests**: [Discussions →](https://github.com/snapback-dev/snapback/discussions)
+- **Twitter**: [@snapbackdev](https://twitter.com/snapbackdev)
 
-# Package
-pnpm vsce package
-
-# Install locally
-code --install-extension snapback-1.0.0.vsix
-```
-
-### Testing
-
-```bash
-# Run tests
-pnpm test
-
-# Launch extension development host
-pnpm dev
-```
+---
 
 ## Links
 
-- **Documentation**: [docs.snapback.dev](https://docs.snapback.dev)
-- **Get API Key**: [snapback.dev](https://snapback.dev)
-- **Report Issues**: [github.com/snapback-dev/vscode/issues](https://github.com/snapback-dev/vscode/issues)
-- **Main Repository**: [snapback-dev/snapback.dev](https://github.com/snapback-dev/snapback.dev)
+| Resource | Link |
+|----------|------|
+| Documentation | [docs.snapback.dev](https://docs.snapback.dev) |
+| Website | [snapback.dev](https://snapback.dev) |
+| GitHub | [github.com/snapback-dev](https://github.com/snapback-dev) |
+| MCP Server | [@snapback/mcp-server](https://www.npmjs.com/package/@snapback/mcp-server) |
+| CLI | [@snapback/cli](https://www.npmjs.com/package/@snapback/cli) |
+| Changelog | [View releases](https://github.com/snapback-dev/snapback/releases) |
 
-## Related
+---
 
-- [`@snapback/mcp-server`](https://github.com/snapback-dev/mcp-server) - MCP server for AI tools
-- [`@snapback-oss/sdk`](https://github.com/snapback-dev/sdk) - TypeScript SDK
+<p align="center">
+  <sub>Built with 💚 by <a href="https://snapback.dev">Marcelle Labs</a></sub>
+</p>
 
-## License
-
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-
-This extension is licensed under the **GNU General Public License v3.0 (GPLv3)**.
-See [LICENSE](./LICENSE) for details.
+<p align="center">
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square" alt="License" /></a>
+</p>

@@ -1,11 +1,17 @@
 # Source files (excluded since we bundle to dist/)
 src/
 out/
+lib/
+
+# Source maps (not needed in production - saves ~11MB!)
+**/*.map
 
 # Build config files
 esbuild.config.js
 esbuild.config.cjs
 tsconfig*.json
+svgo.config.js
+postcss.config.js
 
 # Proposed API type definitions
 vscode.proposed.*.d.ts
@@ -13,26 +19,49 @@ vscode.proposed.*.d.ts
 # Development files
 .vscode/**
 .github/**
+.turbo/
+.size-limit.json
 
-# Test files
+# Documentation (not needed at runtime)
+docs/
+claudedocs/
+
+# Webview source (compiled to dist/webview/)
+webview/
+
+# Test files and fixtures
 src/test/**
 src/**/*.test.ts
 test/**
+test-fixtures/
+test-workspace/
+test-file.txt
+test-suppressions.ts
 __mocks__/**
 coverage/**
 playwright.config.ts
+playwright.config.js
+playwright-report/
 .vscodetest.mjs
 .vscode-test.mjs
+.vscode-test-packaged.mjs
+.vscode-test-worker.mjs
 *.test.*
 *.spec.*
+actual-e2e-execution.js
+demo-e2e-test.js
+run-e2e-demo.js
+mock-inventory.csv
 
 # Build artifacts
 *.tsbuildinfo
 node_modules/.cache/
+dist/bundle-analysis.html
 
 # Development tools
 biome.json
 vitest.config.ts
+consolidate.sh
 
 # Scripts directory (build scripts)
 # Note: We exclude scripts but need to keep dist/node_modules for native modules
@@ -40,6 +69,25 @@ scripts/
 
 # Spike/experimental code (CRITICAL - contains process.exit())
 spike/
+
+# SnapBack config files (user creates their own)
+.snapbackignore
+.snapbackprotected
+.snapbackrc
+.snapbackrc.example
+
+# Misc dev files
+0
+server/
+production-readiness-assessment.ts
+validation-integration.txt
+untitled:*
+package.json.packaging-backup
+package.json.lint-scripts
+package.base.json
+svgo-config-*.json
+redirects.json
+types/
 
 # IMPORTANT: Include dist/node_modules ONLY for native dependencies like better-sqlite3
 !dist/node_modules/

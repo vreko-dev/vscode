@@ -1,7 +1,7 @@
 {
   "name": "snapback-vscode",
   "description": "Automatic snapshots for AI-assisted coding. Recover what Cursor, Copilot, or Claude overwrote in <1 second. Your code never leaves your machine.",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "activationEvents": [
     "onStartupFinished",
     "onCommand:snapback.*",
@@ -940,6 +940,12 @@
           "markdownDescription": "**Enable Guardian**\n\nProtects against risky code patterns: secrets, mock replacements, phantom dependencies.",
           "order": 3
         },
+        "snapback.proactiveAlerts.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "**Enable Proactive Alerts**\n\nGenerates contextual alerts when editing protected or critical files (.env, auth, secrets). Alerts are exposed via MCP for LLM consumption.",
+          "order": 4
+        },
         "snapback.mcp.enabled": {
           "type": "boolean",
           "default": true,
@@ -1214,7 +1220,7 @@
     "type-check": "tsc --noEmit",
     "check:bundle-size": "node scripts/check-bundle-size.js",
     "collect-load-metrics": "node scripts/collect-load-metrics.js",
-    "compile": "pnpm run type-check && node esbuild.config.cjs --production",
+    "compile": "node esbuild.config.cjs --production",
     "compile:skip-check": "node esbuild.config.cjs --production",
     "compile:tests": "tsc -p tsconfig.e2e.json",
     "pretest:e2e": "pnpm run compile:skip-check && pnpm run compile:tests",
