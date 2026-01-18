@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";
-import { getDaemonBridge, type DaemonBridge } from "./DaemonBridge";
+import { type DaemonBridge, getDaemonBridge } from "./DaemonBridge";
 import { getMCPModeManager, MCPMode } from "./MCPModeManager";
 import { getMCPTelemetry } from "./MCPTelemetry";
 import type { RemoteMCPClient } from "./RemoteMCPClient";
@@ -199,7 +199,21 @@ export class MCPLifecycleManager implements vscode.Disposable {
 			if (connected) {
 				this.emitStateChange("connected", { reason: "Daemon connected" });
 			} else {
-				this.emitStateChange("reconnecting", { reason: "Daemon reconnecting" });
+				// Get reconnection attempt count from DaemonBridge
+				const attempt = this.daemonBridge?.getReconnectAttempt() ?? 0;
+				const maxAttempts = this.daemonBridge?.getMaxReconnectAttempts() ?? 5;
+
+				if (attempt > 0) {
+					// Actively reconnecting
+					this.emitStateChange("reconnecting", {
+						reason: "Daemon reconnecting",
+						attempt,
+						maxAttempts,
+					});
+				} else {
+					// First disconnect (before any reconnect attempts)
+					this.emitStateChange("disconnected", { reason: "Daemon disconnected" });
+				}
 			}
 		});
 
@@ -211,7 +225,7 @@ export class MCPLifecycleManager implements vscode.Disposable {
 				logger.info("LOCAL_CLI mode: DaemonBridge connected");
 			} else {
 				// Daemon not connected yet - DaemonBridge will auto-reconnect
-				this.emitStateChange("reconnecting", { reason: "Daemon connecting" });
+				this.emitStateChange("reconnecting", { reason: "Daemon connecting", attempt: 1, maxAttempts: 5 });
 				logger.debug("LOCAL_CLI mode: DaemonBridge connecting...");
 			}
 		} catch (error) {
@@ -219,7 +233,7 @@ export class MCPLifecycleManager implements vscode.Disposable {
 				error: error instanceof Error ? error.message : String(error),
 			});
 			// DaemonBridge will auto-reconnect with exponential backoff
-			this.emitStateChange("reconnecting", { reason: "Daemon connecting" });
+			this.emitStateChange("reconnecting", { reason: "Daemon connecting", attempt: 1, maxAttempts: 5 });
 		}
 	}
 

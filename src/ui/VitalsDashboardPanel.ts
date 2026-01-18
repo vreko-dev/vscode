@@ -17,6 +17,7 @@
 
 import type { VitalsSnapshot } from "@snapback/intelligence/vitals";
 import * as vscode from "vscode";
+import { PIONEER_DASHBOARD_URL } from "../constants";
 import type { DaemonBridge, SnapshotCreatedEvent } from "../services/DaemonBridge";
 import type {
 	AgentGuidance,
@@ -283,13 +284,12 @@ export class VitalsDashboardPanel {
 				break;
 
 			case "openLearnings":
-				// TODO: Open learnings panel when implemented
-				vscode.window.showInformationMessage("Learnings panel coming soon!");
+				vscode.env.openExternal(vscode.Uri.parse(`${PIONEER_DASHBOARD_URL}/learnings`));
 				break;
 
 			case "openViolations":
-				// TODO: Open violations panel when implemented
-				vscode.window.showInformationMessage("Violations panel coming soon!");
+				// Violations are tracked as learnings with type "violation"
+				vscode.env.openExternal(vscode.Uri.parse(`${PIONEER_DASHBOARD_URL}/learnings?type=violation`));
 				break;
 
 			case "refresh":

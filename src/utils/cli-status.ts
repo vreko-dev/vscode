@@ -51,7 +51,9 @@ function getCliPath(): string | null {
  */
 function getCliVersion(): string | null {
 	const output = execCommand(`${CLI_COMMAND} ${VERSION_FLAG}`);
-	if (!output) return null;
+	if (!output) {
+		return null;
+	}
 
 	// Parse version from output (handles various formats)
 	// e.g., "snapback 1.2.3", "1.2.3", "v1.2.3"

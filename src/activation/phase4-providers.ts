@@ -152,7 +152,6 @@ export async function initializePhase4Providers(
 		if (mcpManager) {
 			t = Date.now();
 			mcpStatusItem = new MCPStatusItem({
-				statusBarManager,
 				mcpManager,
 			});
 			context.subscriptions.push(mcpStatusItem);

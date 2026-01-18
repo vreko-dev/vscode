@@ -1,13 +1,15 @@
 /**
  * MCPStatusItem - MCP connection status indicator
  *
- * Provides visibility into MCP server connection state via the StatusBarManager
- * message queue system. Shows connection status and provides troubleshooting actions.
+ * Displays MCP status in its own status bar item positioned RIGHT NEXT TO
+ * the main SnapBack item (priority 998 vs 999) so they travel together.
  *
  * States:
- * - Connected: 🔌 MCP (green, low priority - hidden when healthy)
- * - Disconnected: 🔌 MCP ⚠ (warning background, high priority)
- * - Reconnecting: 🔄 MCP (medium priority, shows attempt count)
+ * - Connected: SB·MCP ✓ (green text)
+ * - Disconnected: SB·MCP ⚠ (warning background)
+ * - Reconnecting: SB·MCP $(sync~spin) (1/5)
+ *
+ * Branding: Always shows "SB·MCP" prefix for consistency and clarity
  *
  * @packageDocumentation
  */
@@ -15,7 +17,6 @@
 import * as vscode from "vscode";
 import type { MCPLifecycleManager } from "../services/MCPLifecycleManager";
 import { logger } from "../utils/logger";
-import type { StatusBarManager } from "./StatusBarManager";
 
 /**
  * MCP connection states
@@ -26,28 +27,27 @@ export type MCPConnectionState = "connected" | "disconnected" | "reconnecting" |
  * MCPStatusItem configuration
  */
 export interface MCPStatusItemOptions {
-	/** StatusBarManager for message queue integration */
-	statusBarManager: StatusBarManager;
 	/** MCPLifecycleManager to observe */
 	mcpManager: MCPLifecycleManager;
 }
 
 /**
- * MCPStatusItem - Displays MCP connection status in status bar
+ * MCPStatusItem - Displays MCP connection status next to main SnapBack item
  *
  * Design:
- * - Uses StatusBarManager's message queue (no separate status bar item)
- * - Only shows when disconnected or reconnecting (invisible when healthy)
- * - Provides click action to open MCP status/diagnose command
- * - Auto-updates on connection state changes
+ * - Uses its own dedicated status bar item at priority 998
+ * - Main SnapBack item is at priority 999
+ * - They sit side-by-side: "🧢 SnapBack" | "SB·MCP ✓"
+ * - Consistent branding: "SB·MCP" prefix always visible
+ * - Status indicator follows the label (standard UX pattern)
+ * - 30-second auto-give-up timer prevents stuck UI
  */
 export class MCPStatusItem implements vscode.Disposable {
-	private readonly statusBarManager: StatusBarManager;
 	private readonly mcpManager: MCPLifecycleManager;
 	private readonly disposables: vscode.Disposable[] = [];
 
-	/** Message ID for queue management */
-	private readonly MESSAGE_ID = "mcp-status";
+	/** Dedicated status bar item for MCP status (travels with main item) */
+	private readonly statusBarItem: vscode.StatusBarItem;
 
 	/** Current connection state */
 	private state: MCPConnectionState = "disconnected";
@@ -55,12 +55,27 @@ export class MCPStatusItem implements vscode.Disposable {
 	/** Reconnection attempt counter */
 	private reconnectAttempt = 0;
 
+	/** Timer for auto-giving up on reconnection */
+	private reconnectGiveUpTimer?: NodeJS.Timeout;
+
+	/** How long to wait in reconnecting state before giving up (30 seconds) */
+	private readonly reconnectGiveUpTimeoutMs = 30000;
+
 	/** Polling interval for health checks */
 	private healthCheckInterval?: NodeJS.Timeout;
 
 	constructor(options: MCPStatusItemOptions) {
-		this.statusBarManager = options.statusBarManager;
 		this.mcpManager = options.mcpManager;
+
+		// Create dedicated status bar item
+		// Priority 998 positions it right after main SnapBack item (999)
+		this.statusBarItem = vscode.window.createStatusBarItem(
+			"snapback.mcp-status",
+			vscode.StatusBarAlignment.Left,
+			998,
+		);
+		this.statusBarItem.command = "snapback.mcp.status";
+		this.disposables.push(this.statusBarItem);
 
 		// Initial state check
 		this.updateState();
@@ -188,11 +203,50 @@ export class MCPStatusItem implements vscode.Disposable {
 	 */
 	notifyReconnecting(attempt: number, maxAttempts: number): void {
 		this.reconnectAttempt = attempt;
+
+		// If we've exceeded max attempts, give up and show disconnected
+		if (attempt >= maxAttempts) {
+			logger.info(`MCP reconnection gave up after ${attempt} attempts`);
+			this.clearReconnectGiveUpTimer();
+			this.setState("disconnected");
+			return;
+		}
+
 		this.setState("reconnecting");
 		this.updateStatusBar();
 
+		// Start give-up timer if not already running
+		this.startReconnectGiveUpTimer();
+
 		// Log for debugging
 		logger.info(`MCP reconnecting (${attempt}/${maxAttempts})`);
+	}
+
+	/**
+	 * Start a timer to automatically give up on reconnection
+	 * This prevents the UI from being stuck in "reconnecting" state forever
+	 */
+	private startReconnectGiveUpTimer(): void {
+		// Clear any existing timer
+		this.clearReconnectGiveUpTimer();
+
+		this.reconnectGiveUpTimer = setTimeout(() => {
+			if (this.state === "reconnecting") {
+				logger.info("MCP reconnection timed out, showing disconnected state");
+				this.setState("disconnected");
+				// Don't show notification - let the UI speak for itself
+			}
+		}, this.reconnectGiveUpTimeoutMs);
+	}
+
+	/**
+	 * Clear the reconnection give-up timer
+	 */
+	private clearReconnectGiveUpTimer(): void {
+		if (this.reconnectGiveUpTimer) {
+			clearTimeout(this.reconnectGiveUpTimer);
+			this.reconnectGiveUpTimer = undefined;
+		}
 	}
 
 	/**
@@ -200,6 +254,7 @@ export class MCPStatusItem implements vscode.Disposable {
 	 */
 	notifyConnected(): void {
 		this.reconnectAttempt = 0;
+		this.clearReconnectGiveUpTimer();
 		this.setState("connected");
 
 		// Show brief success notification if we were disconnected
@@ -220,40 +275,35 @@ export class MCPStatusItem implements vscode.Disposable {
 	 * Update status bar based on current state
 	 */
 	private updateStatusBar(): void {
-		// First, remove any existing MCP message
-		this.statusBarManager.dequeueMessage(this.MESSAGE_ID);
-
 		switch (this.state) {
 			case "connected":
-				// Don't show anything when connected (invisible success)
-				// Could optionally show a low-priority "connected" message
+				// Show SB·MCP with green checkmark
+				this.statusBarItem.text = "SB·MCP ✓";
+				this.statusBarItem.tooltip = "MCP connected";
+				this.statusBarItem.backgroundColor = undefined;
+				this.statusBarItem.color = new vscode.ThemeColor("testing.iconPassed"); // Green
+				this.statusBarItem.show();
 				break;
 
 			case "disconnected":
-				this.statusBarManager.enqueueMessage({
-					id: this.MESSAGE_ID,
-					priority: "high",
-					text: "🔌 MCP ⚠",
-					tooltip: "MCP server disconnected. Click to diagnose.",
-					backgroundColor: "statusBarItem.warningBackground",
-					command: "snapback.mcp.status",
-					duration: 0, // Persistent until state changes
-				});
+				this.statusBarItem.text = "SB·MCP ⚠";
+				this.statusBarItem.tooltip = "MCP server disconnected. Click to diagnose.";
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+				this.statusBarItem.color = undefined;
+				this.statusBarItem.show();
 				break;
 
 			case "reconnecting":
-				this.statusBarManager.enqueueMessage({
-					id: this.MESSAGE_ID,
-					priority: "medium",
-					text: `$(sync~spin) MCP (${this.reconnectAttempt}/5)`,
-					tooltip: "Reconnecting to MCP server...",
-					command: "snapback.mcp.status",
-					duration: 0, // Persistent until state changes
-				});
+				this.statusBarItem.text = `SB·MCP $(sync~spin) (${this.reconnectAttempt}/5)`;
+				this.statusBarItem.tooltip = "Reconnecting to MCP server...";
+				this.statusBarItem.backgroundColor = undefined;
+				this.statusBarItem.color = undefined;
+				this.statusBarItem.show();
 				break;
 
 			case "disabled":
-				// Don't show anything when disabled (user choice)
+				// Hide when disabled (user choice)
+				this.statusBarItem.hide();
 				break;
 		}
 	}
@@ -300,10 +350,9 @@ export class MCPStatusItem implements vscode.Disposable {
 			clearInterval(this.healthCheckInterval);
 		}
 
-		// Remove status bar message
-		this.statusBarManager.dequeueMessage(this.MESSAGE_ID);
+		this.clearReconnectGiveUpTimer();
 
-		// Dispose all subscriptions
+		// Dispose all subscriptions (includes statusBarItem)
 		for (const disposable of this.disposables) {
 			disposable.dispose();
 		}

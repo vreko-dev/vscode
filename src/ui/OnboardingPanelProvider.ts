@@ -79,7 +79,12 @@ export class OnboardingPanelProvider {
 	/**
 	 * Handle messages from webview
 	 */
-	private async handleMessage(message: { type: string; step?: string; payload?: unknown; [key: string]: unknown }): Promise<void> {
+	private async handleMessage(message: {
+		type: string;
+		step?: string;
+		payload?: unknown;
+		[key: string]: unknown;
+	}): Promise<void> {
 		logger.info("[Onboarding] Message received from webview", { type: message.type, step: message.step });
 		try {
 			switch (message.type) {
@@ -269,7 +274,9 @@ export class OnboardingPanelProvider {
 	 * Handle host environment request (use cache if available)
 	 */
 	private async handleGetEnvironment(): Promise<void> {
-		if (!this.panel) return;
+		if (!this.panel) {
+			return;
+		}
 
 		// Check cache
 		if (this.cachedEnvironment && Date.now() - this.cacheTimestamp < this.CACHE_TTL) {
@@ -289,7 +296,9 @@ export class OnboardingPanelProvider {
 	 * Handle host environment probe (force re-probe, ignore cache)
 	 */
 	private async handleProbeHost(): Promise<void> {
-		if (!this.panel) return;
+		if (!this.panel) {
+			return;
+		}
 
 		logger.info("[Onboarding] Probing host environment");
 
@@ -327,7 +336,9 @@ export class OnboardingPanelProvider {
 	 * Handle CLI command execution
 	 */
 	private async handleRunCli(payload: { command: string; args?: string[] }): Promise<void> {
-		if (!this.panel) return;
+		if (!this.panel) {
+			return;
+		}
 
 		// Check if environment has been probed
 		if (!this.cachedEnvironment) {

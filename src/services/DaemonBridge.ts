@@ -33,6 +33,7 @@ import { createConnection, type Socket } from "node:net";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import * as vscode from "vscode";
+import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
 import { logger } from "../utils/logger";
 import { getNotificationManager } from "./NotificationManager";
 
@@ -47,12 +48,14 @@ function getSocketPath(): string {
 	if (IS_WINDOWS) {
 		return "\\\\.\\pipe\\snapback-daemon";
 	}
-	return join(homedir(), ".snapback", "daemon.sock");
+	// Must match CLI's daemon/platform.ts: ~/.snapback/daemon/daemon.sock
+	return join(homedir(), ".snapback", "daemon", "daemon.sock");
 }
 
 /** PID file path */
 function getPidPath(): string {
-	return join(homedir(), ".snapback", "daemon.pid");
+	// Must match CLI's daemon/platform.ts: ~/.snapback/daemon/daemon.pid
+	return join(homedir(), ".snapback", "daemon", "daemon.pid");
 }
 
 /** Connection timeout in ms */
@@ -107,10 +110,34 @@ export function resetDaemonCircuitBreaker(): void {
 	logger.info("Daemon circuit breaker reset - will attempt spawn on next request");
 }
 
-/** Find the snapback CLI executable path */
+/**
+ * Find the snapback CLI executable path.
+ *
+ * Priority order:
+ * 1. Local development CLI (apps/cli/dist/index.js) - for developers working on SnapBack
+ * 2. Workspace-relative CLI - for mono-repo setups
+ * 3. Global npm/pnpm installs - for production users
+ * 4. PATH resolution - fallback
+ *
+ * This ensures developers working on SnapBack itself use the local dev CLI,
+ * avoiding issues with outdated or broken published versions.
+ */
 function getCliPath(): string | null {
 	try {
-		// Look for snapback in common locations
+		// Priority 1: Check for local development CLI in SnapBack workspace
+		// This is critical for developers working on SnapBack itself
+		const workspaceFolders = vscode.workspace.workspaceFolders;
+		if (workspaceFolders && workspaceFolders.length > 0) {
+			for (const folder of workspaceFolders) {
+				const localCliPath = join(folder.uri.fsPath, "apps", "cli", "dist", "index.js");
+				if (existsSync(localCliPath)) {
+					logger.info("Using local development CLI", { path: localCliPath });
+					return localCliPath;
+				}
+			}
+		}
+
+		// Priority 2: Look for snapback in common global locations
 		const possiblePaths = [
 			// Global npm install
 			join(homedir(), ".npm-global", "bin", IS_WINDOWS ? "snapback.cmd" : "snapback"),
@@ -129,7 +156,7 @@ function getCliPath(): string | null {
 			}
 		}
 
-		// Fall back to PATH resolution (will use shell to find it)
+		// Priority 3: Fall back to PATH resolution (will use shell to find it)
 		return IS_WINDOWS ? "snapback.cmd" : "snapback";
 	} catch {
 		return null;
@@ -209,6 +236,8 @@ export class DaemonBridge extends vscode.Disposable {
 	private isConnecting = false;
 	private reconnectTimer: NodeJS.Timeout | null = null;
 	private reconnectDelay = MIN_RECONNECT_INTERVAL_MS;
+	private reconnectAttempts = 0;
+	private maxReconnectAttempts = 5;
 	private subscriptions: Set<string> = new Set();
 
 	// Event emitters
@@ -267,6 +296,20 @@ export class DaemonBridge extends vscode.Disposable {
 	}
 
 	/**
+	 * Get current reconnection attempt count
+	 */
+	getReconnectAttempt(): number {
+		return this.reconnectAttempts;
+	}
+
+	/**
+	 * Get maximum reconnection attempts
+	 */
+	getMaxReconnectAttempts(): number {
+		return this.maxReconnectAttempts;
+	}
+
+	/**
 	 * Auto-start the daemon if not running.
 	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Verify daemon auto-starts on activation.
 	 *
@@ -302,11 +345,19 @@ export class DaemonBridge extends vscode.Disposable {
 			let resolved = false; // Flag to stop polling when error occurs
 
 			try {
+				// Determine spawn command and args based on CLI path type
+				// If it's a .js file (local dev), run with node; otherwise run directly
+				const isJsFile = cliPath.endsWith(".js");
+				const spawnCommand = isJsFile ? process.execPath : cliPath;
+				const spawnArgs = isJsFile ? [cliPath, "daemon", "start", "--detach"] : ["daemon", "start", "--detach"];
+
+				logger.debug("Spawning daemon", { command: spawnCommand, args: spawnArgs });
+
 				// Spawn daemon in detached mode
-				const child: ChildProcess = spawn(cliPath, ["daemon", "start", "--detach"], {
+				const child: ChildProcess = spawn(spawnCommand, spawnArgs, {
 					detached: true,
 					stdio: "ignore",
-					shell: IS_WINDOWS,
+					shell: IS_WINDOWS && !isJsFile, // Only use shell for non-.js paths on Windows
 				});
 
 				child.unref();
@@ -459,6 +510,7 @@ export class DaemonBridge extends vscode.Disposable {
 		try {
 			await this.establishConnection();
 			this.reconnectDelay = MIN_RECONNECT_INTERVAL_MS;
+			this.reconnectAttempts = 0; // Reset on successful connection
 			this._onConnectionChanged.fire(true);
 			logger.info("Connected to SnapBack daemon");
 			return true;
@@ -637,6 +689,21 @@ export class DaemonBridge extends vscode.Disposable {
 		if (this.reconnectTimer) {
 			return;
 		}
+
+		this.reconnectAttempts++;
+
+		// Give up after max attempts
+		if (this.reconnectAttempts > this.maxReconnectAttempts) {
+			logger.warn("Max reconnection attempts reached, giving up");
+			this._onConnectionChanged.fire(false);
+			return;
+		}
+
+		logger.debug("Scheduling reconnect", {
+			attempt: this.reconnectAttempts,
+			max: this.maxReconnectAttempts,
+			delayMs: this.reconnectDelay,
+		});
 
 		this.reconnectTimer = setTimeout(async () => {
 			this.reconnectTimer = null;
@@ -859,11 +926,20 @@ export class DaemonBridge extends vscode.Disposable {
 			trigger?: "manual" | "mcp" | "ai_assist" | "session_end";
 		},
 	): Promise<{ snapshotId: string; createdAt: string }> {
-		return this.request("snapshot.create", {
+		const result = await this.request<{ snapshotId: string; createdAt: string }>("snapshot.create", {
 			workspace: workspacePath,
 			files,
 			...options,
 		});
+
+		// 🆕 Track first file protected in activation funnel
+		// The funnel tracks this only once per user lifecycle
+		if (result?.snapshotId && files.length > 0) {
+			const fileExt = files[0].split(".").pop() || "unknown";
+			getActivationFunnel()?.trackFirstFileProtected(fileExt);
+		}
+
+		return result;
 	}
 
 	/**

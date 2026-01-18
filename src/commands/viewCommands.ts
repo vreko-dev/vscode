@@ -2,6 +2,8 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
 import { DORAMetricsService } from "../services/DORAMetricsService";
+import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
+import { getCoreEventTracker } from "../telemetry/core-event-tracker";
 import { logger } from "../utils/logger";
 import type { SnapshotFileNode } from "../views/snapshotNavigatorProvider";
 import { WelcomePanel } from "../welcome/WelcomePanel";
@@ -157,6 +159,9 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 						`Snapshot ← ${fileName} → Current`,
 					);
 
+					// 🆕 Track restore viewed in activation funnel
+					getActivationFunnel()?.trackRestoreStep("diff_viewed");
+
 					// Build file list for context
 					const fileList =
 						files.length <= 3
@@ -165,7 +170,8 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 
 					// Get snapshot name if available
 					const snapshotLabel =
-						(snapshot as any).name || `Snapshot from ${new Date(snapshot.timestamp).toLocaleString()}`;
+						("name" in snapshot ? snapshot.name : null) ||
+						`Snapshot from ${new Date(snapshot.timestamp).toLocaleString()}`;
 
 					// Show status bar with restore action (deferred confirmation)
 					const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
@@ -187,6 +193,9 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 					if (answer !== "Restore All") {
 						return;
 					}
+
+					// 🆕 Track restore confirmed in activation funnel
+					getActivationFunnel()?.trackRestoreStep("restore_confirmed");
 
 					// Initialize DORA metrics tracking for this recovery
 					const doraMetrics = DORAMetricsService.for(ctx.workspaceRoot);
@@ -215,6 +224,17 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 							snapshotId,
 							fileCount: files.length,
 							durationMs: recoveryDurationMs,
+						});
+
+						// 🆕 Track restore completed in activation funnel
+						getActivationFunnel()?.trackRestoreStep("restore_completed");
+
+						// 🆕 Track session restored in core event tracker (P0 product event)
+						getCoreEventTracker()?.trackSessionRestored({
+							session_id: snapshotId,
+							files_restored: files, // Already relative paths from snapshot.contents keys
+							time_to_restore_ms: recoveryDurationMs,
+							reason: "user_initiated",
 						});
 
 						vscode.window.showInformationMessage(

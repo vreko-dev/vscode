@@ -1,7 +1,7 @@
 /**
  * @module cli-execution
  * @description CLI command execution utilities for running SnapBack CLI commands via VS Code terminal
- * 
+ *
  * This module handles execution of CLI commands using the optimal strategy determined by host-probe.
  * Commands are executed in a VS Code terminal so users can see progress and output.
  */
@@ -45,17 +45,13 @@ function getCliTerminal(commandName: string): vscode.Terminal {
 
 /**
  * Execute a CLI command using the optimal execution strategy
- * 
+ *
  * @param command - CLI command to execute (e.g., "init", "status", "protect")
  * @param env - Host environment information with execution strategy
  * @param args - Optional command arguments
  * @throws Error if execution strategy is unavailable
  */
-export async function executeCLICommand(
-	command: string,
-	env: HostEnvironment,
-	args: string[] = [],
-): Promise<void> {
+export async function executeCLICommand(command: string, env: HostEnvironment, args: string[] = []): Promise<void> {
 	if (env.strategy === "unavailable") {
 		const error = new Error("Cannot execute CLI: Node.js or Bun required");
 		logger.error("[CliExecution] Execution failed", error);

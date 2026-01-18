@@ -66,6 +66,88 @@ export const mockExtensionContext = {
 	extensionMode: 1, // Development
 };
 
+/**
+ * Factory function to create a fresh mock ExtensionContext for each test.
+ * Use this instead of defining local createMockExtensionContext functions.
+ *
+ * @param overrides - Optional partial overrides for specific properties
+ * @returns A fresh mock ExtensionContext
+ *
+ * @example
+ * ```typescript
+ * import { createMockExtensionContext } from '../unit/setup';
+ *
+ * const context = createMockExtensionContext();
+ * // Or with overrides:
+ * const context = createMockExtensionContext({
+ *   extensionMode: 2, // Test mode
+ *   globalState: { get: vi.fn().mockReturnValue('custom') }
+ * });
+ * ```
+ */
+export function createMockExtensionContext(overrides?: Partial<typeof mockExtensionContext>): typeof mockExtensionContext {
+	// Create fresh Maps for each context instance
+	const contextGlobalState = new Map<string, unknown>();
+	const contextWorkspaceState = new Map<string, unknown>();
+	const contextSecrets = new Map<string, string>();
+
+	const baseContext = {
+		subscriptions: [] as { dispose: () => void }[],
+		globalStorageUri: { fsPath: "/test-global-storage", scheme: "file" },
+		storageUri: { fsPath: "/test-storage", scheme: "file" },
+		extensionUri: { fsPath: "/test-extension", scheme: "file" },
+		extensionPath: "/test-extension",
+		extension: {
+			packageJSON: { version: "1.0.0-test" },
+		},
+		globalState: {
+			get: (key: string, defaultValue?: unknown) => contextGlobalState.get(key) ?? defaultValue,
+			update: vi.fn((key: string, value: unknown) => {
+				contextGlobalState.set(key, value);
+				return Promise.resolve();
+			}),
+			keys: () => Array.from(contextGlobalState.keys()),
+			setKeysForSync: vi.fn(),
+		},
+		workspaceState: {
+			get: (key: string, defaultValue?: unknown) => contextWorkspaceState.get(key) ?? defaultValue,
+			update: vi.fn((key: string, value: unknown) => {
+				contextWorkspaceState.set(key, value);
+				return Promise.resolve();
+			}),
+			keys: () => Array.from(contextWorkspaceState.keys()),
+		},
+		secrets: {
+			get: vi.fn(async (key: string) => contextSecrets.get(key)),
+			store: vi.fn(async (key: string, value: string) => { contextSecrets.set(key, value); }),
+			delete: vi.fn(async (key: string) => { contextSecrets.delete(key); }),
+			onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
+		},
+		environmentVariableCollection: {
+			replace: vi.fn(),
+			append: vi.fn(),
+			prepend: vi.fn(),
+			get: vi.fn(),
+			forEach: vi.fn(),
+			delete: vi.fn(),
+			clear: vi.fn(),
+		},
+		asAbsolutePath: (relativePath: string) => `/test-extension/${relativePath}`,
+		logUri: { fsPath: "/test-logs", scheme: "file" },
+		extensionMode: 1, // Development
+		// Helper methods for tests to access internal state
+		_getGlobalStateMap: () => contextGlobalState,
+		_getWorkspaceStateMap: () => contextWorkspaceState,
+		_getSecretsMap: () => contextSecrets,
+	};
+
+	if (overrides) {
+		return { ...baseContext, ...overrides } as typeof mockExtensionContext;
+	}
+
+	return baseContext as typeof mockExtensionContext;
+}
+
 // ============================================
 // Mock vscode module to prevent import errors in tests
 // CANONICAL MOCK - Do NOT re-mock vscode in individual tests!
@@ -573,6 +655,147 @@ vi.mock("posthog-node", () => ({
 		flush: vi.fn().mockResolvedValue(undefined),
 	})),
 }));
+
+// ============================================
+// Mock vscode-languageclient - Fixes "Cannot find module 'vscode'" errors
+// The real vscode-languageclient requires 'vscode' which doesn't exist in test env
+// ============================================
+vi.mock("vscode-languageclient", () => ({
+	LanguageClient: vi.fn().mockImplementation(() => ({
+		start: vi.fn().mockResolvedValue(undefined),
+		stop: vi.fn().mockResolvedValue(undefined),
+		onReady: vi.fn().mockResolvedValue(undefined),
+		sendRequest: vi.fn().mockResolvedValue({}),
+		sendNotification: vi.fn(),
+		onNotification: vi.fn(() => ({ dispose: vi.fn() })),
+		onRequest: vi.fn(() => ({ dispose: vi.fn() })),
+		state: 2, // Running
+	})),
+	TransportKind: { ipc: 1, stdio: 2, pipe: 3, socket: 4 },
+	State: { Stopped: 1, Running: 2, Starting: 3 },
+}));
+
+vi.mock("vscode-languageclient/node", () => ({
+	LanguageClient: vi.fn().mockImplementation(() => ({
+		start: vi.fn().mockResolvedValue(undefined),
+		stop: vi.fn().mockResolvedValue(undefined),
+		onReady: vi.fn().mockResolvedValue(undefined),
+		sendRequest: vi.fn().mockResolvedValue({}),
+		sendNotification: vi.fn(),
+		onNotification: vi.fn(() => ({ dispose: vi.fn() })),
+		onRequest: vi.fn(() => ({ dispose: vi.fn() })),
+		state: 2,
+	})),
+	TransportKind: { ipc: 1, stdio: 2, pipe: 3, socket: 4 },
+	State: { Stopped: 1, Running: 2, Starting: 3 },
+	ServerOptions: vi.fn(),
+	LanguageClientOptions: vi.fn(),
+}));
+
+// ============================================
+// Mock @snapback/intelligence - Fixes ENOENT mkdir errors
+// The workspace identity module tries to create real directories
+// ============================================
+vi.mock("@snapback/intelligence", () => ({
+	// Workspace identity
+	resolveWorkspaceId: vi.fn().mockResolvedValue("ws_test_mock_id_12345678901234567890"),
+	getOrCreateWorkspaceId: vi.fn().mockResolvedValue("ws_test_mock_id_12345678901234567890"),
+	generateWorkspaceId: vi.fn().mockReturnValue("ws_test_mock_id_12345678901234567890"),
+	// Learning system
+	LearningStore: vi.fn().mockImplementation(() => ({
+		record: vi.fn().mockResolvedValue(undefined),
+		query: vi.fn().mockResolvedValue([]),
+		getAll: vi.fn().mockResolvedValue([]),
+		clear: vi.fn().mockResolvedValue(undefined),
+	})),
+	// Session management
+	SessionManager: vi.fn().mockImplementation(() => ({
+		startSession: vi.fn().mockResolvedValue({ id: "session_test" }),
+		endSession: vi.fn().mockResolvedValue(undefined),
+		getCurrentSession: vi.fn().mockReturnValue(null),
+	})),
+	// Advisory engine
+	AdvisoryEngine: vi.fn().mockImplementation(() => ({
+		advise: vi.fn().mockResolvedValue({ recommendations: [], confidence: 0 }),
+	})),
+	// Context engine
+	ContextEngine: vi.fn().mockImplementation(() => ({
+		buildContext: vi.fn().mockResolvedValue({}),
+	})),
+	// Default export
+	default: {},
+}));
+
+// Also mock the workspace submodule
+vi.mock("@snapback/intelligence/workspace", () => ({
+	resolveWorkspaceId: vi.fn().mockReturnValue({
+		workspaceId: "ws_test_mock_id_12345678901234567890",
+		isTeamStable: false,
+		source: "fallback" as const,
+	}),
+	getOrCreateWorkspaceId: vi.fn().mockResolvedValue("ws_test_mock_id_12345678901234567890"),
+	generateWorkspaceId: vi.fn().mockReturnValue("ws_test_mock_id_12345678901234567890"),
+	writeLocalConfig: vi.fn().mockResolvedValue(undefined),
+	readLocalConfig: vi.fn().mockResolvedValue(null),
+	isValidWorkspaceId: vi.fn().mockReturnValue(true),
+	initializeSnapbackDirectory: vi.fn().mockReturnValue(true),
+}));
+
+// ============================================
+// Global fetch mock with Response.clone() support
+// Fixes "awaitedResult.clone is not a function" errors
+// ============================================
+const createMockResponse = (data: unknown, options: { ok?: boolean; status?: number } = {}) => {
+	const { ok = true, status = 200 } = options;
+	const body = JSON.stringify(data);
+	const response = {
+		ok,
+		status,
+		statusText: ok ? "OK" : "Error",
+		headers: new Headers({ "content-type": "application/json" }),
+		json: vi.fn().mockResolvedValue(data),
+		text: vi.fn().mockResolvedValue(body),
+		blob: vi.fn().mockResolvedValue(new Blob([body])),
+		arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(0)),
+		clone: function() { return { ...this, clone: this.clone }; },
+	};
+	return response;
+};
+
+// Store original fetch for restoration
+const originalFetch = globalThis.fetch;
+
+// Default mock fetch that returns empty success
+globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+	// Default responses for common endpoints
+	if (url.includes("/auth/device-code")) {
+		return createMockResponse({
+			success: true,
+			data: {
+				device_code: "AUTH_TEST_CODE",
+				user_code: "TEST-CODE",
+				verification_uri: "https://snapback.dev/auth/device",
+				expires_in: 900,
+				interval: 1,
+			},
+		});
+	}
+	if (url.includes("/auth/device-token")) {
+		return createMockResponse({
+			success: true,
+			data: {
+				api_key: "sk_test_mock",
+				user_id: "user_test",
+				tier: "free",
+			},
+		});
+	}
+	// Default empty response
+	return createMockResponse({ success: true, data: {} });
+});
+
+// Export for tests that need to customize fetch behavior
+export { createMockResponse, originalFetch };
 
 // ============================================
 // Global Test Hooks

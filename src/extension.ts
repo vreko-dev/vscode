@@ -27,6 +27,7 @@ import { initializeContextFileManager, initializePhase2Storage } from "./activat
 import { initializePhase3Managers } from "./activation/phase3-managers";
 import { initializePhase4Providers } from "./activation/phase4-providers";
 import { initializePhase5Registration } from "./activation/phase5-registration";
+import { logPhaseTimings } from "./activation/phaseTracker";
 import { initializePioneerInfrastructure } from "./activation/pioneer"; // 🆕 Import Pioneer Initialization
 import { autoConfigureAgentRules, registerAgentRulesCommands } from "./ai/config"; // 🆕 Import Agent Rules auto-configure
 import { createAuthedApiClient } from "./api/authedApiClient";
@@ -74,7 +75,11 @@ import { UserIdentityService } from "./services/UserIdentityService";
 import { createWorkspaceContextManager } from "./services/WorkspaceContextManager"; // 🆕 Import WorkspaceContextManager
 import { WorkspaceManager } from "./services/WorkspaceManager"; // 🆕 Import WorkspaceManager
 import type { IStorageManager } from "./storage/types.js";
-import { disposeActivationFunnel, initializeActivationFunnel } from "./telemetry/ActivationFunnelIntegration"; // 🆕 Activation funnel tracking
+import {
+	disposeActivationFunnel,
+	getActivationFunnel,
+	initializeActivationFunnel,
+} from "./telemetry/ActivationFunnelIntegration"; // 🆕 Activation funnel tracking
 import { initializeCoreEventTracker } from "./telemetry/core-event-tracker";
 import type { ProtectionChangedPayload } from "./types/api";
 import { CooldownIndicator } from "./ui/cooldownIndicator"; // 🆕 Import CooldownIndicator
@@ -87,7 +92,10 @@ import type { StatusBarManager } from "./ui/StatusBarManager"; // 🆕 Import St
 import { UnifiedDashboardPanel } from "./ui/UnifiedDashboardPanel"; // 🆕 Consolidated dashboard panel
 // REMOVED: VitalsIntegration - consolidated into VitalsUIIntegration to eliminate duplicate status bar updates
 import { isMonitorableDocument } from "./utils/documentFilters";
+import { isSnapBackError } from "./utils/errorHelpers";
+import { calculateLineDiff } from "./utils/lineDiff";
 import { logger } from "./utils/logger";
+import { installProcessExitGuard } from "./utils/processGuard";
 import { findProjectRoot } from "./utils/projectRoot";
 import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver"; // 🆕 Import WorkspaceFolderResolver
 import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry";
@@ -97,36 +105,7 @@ import { registerEmptyViews, showErrorInViews } from "./views/ViewRegistry";
 let globalUnifiedOnboarding: UnifiedOnboardingService | undefined;
 
 // 🆕 IntelligenceService imported dynamically after process.exit guard (see deactivate function)
-
-/**
- * Calculate line diff from TextDocumentContentChangeEvent
- * Used for Phase 2A behavioral tracking (edit velocity)
- */
-function calculateLineDiff(changes: readonly vscode.TextDocumentContentChangeEvent[]): {
-	linesAdded: number;
-	linesDeleted: number;
-} {
-	let linesAdded = 0;
-	let linesDeleted = 0;
-
-	for (const change of changes) {
-		// Skip empty changes or malformed ranges
-		if (!change.range) {
-			continue;
-		}
-
-		const rangeLength = change.range.end.line - change.range.start.line;
-		const newLineCount = change.text.split("\n").length - 1;
-
-		if (newLineCount > rangeLength) {
-			linesAdded += newLineCount - rangeLength;
-		} else if (rangeLength > newLineCount) {
-			linesDeleted += rangeLength - newLineCount;
-		}
-	}
-
-	return { linesAdded, linesDeleted };
-}
+// Note: calculateLineDiff moved to utils/lineDiff.ts
 
 // Import the new EventBus and feature flag
 
@@ -212,13 +191,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	//
 	// NOTE: These handlers catch ALL errors in the extension host, including from other extensions.
 	// We filter by stack trace to only log/show errors that originate from SnapBack code.
-	const isSnapBackError = (stack: string | undefined): boolean => {
-		if (!stack) {
-			return false;
-		}
-		// Check if error originates from SnapBack extension code
-		return stack.includes("/snapback/") || stack.includes("\\snapback\\") || stack.includes("@snapback");
-	};
+	// Note: isSnapBackError moved to utils/errorHelpers.ts
 
 	process.on("unhandledRejection", (reason, promise) => {
 		const errorMessage = reason instanceof Error ? reason.message : String(reason);
@@ -273,26 +246,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 
 	// 🛡️ CRITICAL: Install process.exit() guard to prevent accidental crashes
-	// This guard prevents the extension from crashing when bundled code (like CLI modules)
-	// attempts to call process.exit(). Instead of exiting or throwing, we silently log and return.
-	// This is necessary because some dependencies may call process.exit() as part of their
-	// normal error handling, but in the VS Code extension context, this would crash the host.
-	function preventProcessExit() {
-		process.exit = ((code?: number) => {
-			const stack = new Error().stack;
-			logger.warn("BLOCKED: process.exit() call prevented", {
-				exitCode: code,
-				stack: stack?.split("\n").slice(0, 3).join("\n"), // First 3 stack frames
-			});
-			// Return without exiting or throwing - just log and continue
-			return undefined as never;
-		}) as typeof process.exit;
-
-		logger.info("process.exit() guard installed - extension is protected from unexpected exits");
-	}
-
-	// Install the guard immediately after error handlers
-	preventProcessExit();
+	// Note: Guard implementation moved to utils/processGuard.ts
+	installProcessExitGuard();
 
 	// 🔐 UNIFIED AUTH PROVIDER (Proxy Pattern)
 	// Registers ONCE with VS Code, delegates to Real or Mock based on test mode.
@@ -431,6 +386,9 @@ export async function activate(context: vscode.ExtensionContext) {
 					false, // Don't open in new editor group
 				);
 				logger.info("Welcome walkthrough opened for first-time user", { extensionId });
+
+				// 🆕 Track welcome shown in activation funnel
+				getActivationFunnel()?.trackWelcomeShown();
 			} catch (error) {
 				// Walkthrough not supported in this VS Code fork - show OnboardingPanel React webview instead
 				logger.warn("Native walkthrough not available, showing OnboardingPanel fallback", {
@@ -439,11 +397,14 @@ export async function activate(context: vscode.ExtensionContext) {
 				});
 
 				// Fallback: Show React-based OnboardingPanel webview
-				void Promise.resolve(vscode.commands.executeCommand("snapback.openOnboarding")).catch(
-					(err: unknown) => {
+				void Promise.resolve(vscode.commands.executeCommand("snapback.openOnboarding"))
+					.then(() => {
+						// 🆕 Track welcome shown in activation funnel (fallback path)
+						getActivationFunnel()?.trackWelcomeShown();
+					})
+					.catch((err: unknown) => {
 						logger.error("Failed to open onboarding panel", { error: err });
-					},
-				);
+					});
 			}
 		}, 1500); // Small delay to let extension fully activate
 	}
@@ -807,6 +768,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		const phase3Start = Date.now();
 		const telemetryProxy = new TelemetryProxy(context); // Ensure telemetryProxy is defined here
 
+		// 🆕 Track extension activation (every activation, not just first install)
+		await telemetryProxy.trackActivation();
+
 		// 🆕 Initialize CoreEventTracker for P0 product events (save_attempt, snapshot_created, session_finalized)
 		initializeCoreEventTracker(telemetryProxy);
 		logger.info("CoreEventTracker initialized for P0 product events");
@@ -891,6 +855,49 @@ export async function activate(context: vscode.ExtensionContext) {
 			logger.warn("Failed to initialize SDK ProtectionDecisionEngine, using legacy decisions", {
 				error: error instanceof Error ? error.message : String(error),
 			});
+		}
+
+		// 🆕 Initialize Proactive Alert System
+		// Generates contextual alerts on file saves for LLM consumption via MCP
+		const proactiveAlertsEnabled = vscode.workspace
+			.getConfiguration("snapback")
+			.get<boolean>("proactiveAlerts.enabled", true);
+
+		if (proactiveAlertsEnabled) {
+			try {
+				// Create adapter services for alert generation
+				const fileProtectionService = {
+					isProtected: (filePath: string) => phase2Result.protectedFileRegistry.isProtected(filePath),
+					getProtectedFiles: () => phase2Result.protectedFileRegistry.getAllProtectedFiles(),
+				};
+
+				const violationReader = {
+					getViolationsForFile: async (_filePath: string) => {
+						// TODO: Wire up violation reading via Intelligence Service
+						// For now, return empty array (alerts will still work for critical files)
+						return [];
+					},
+				};
+
+				const pressureGauge = {
+					getCurrentPressure: async () => {
+						try {
+							const { getVitalsViaLSP } = await import("./services/LanguageClient.js");
+							const vitals = await getVitalsViaLSP();
+							return vitals?.pressure.value || 0;
+						} catch {
+							return 0;
+						}
+					},
+				};
+
+				saveHandler.initializeAlertSystem(workspaceRoot, fileProtectionService, violationReader, pressureGauge);
+				logger.info("Proactive Alert System initialized successfully");
+			} catch (error) {
+				logger.warn("Failed to initialize Proactive Alert System (non-critical)", {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
 		}
 
 		// 🔧 REMOVED: File health decorations registered in Phase 5 (phase5-registration.ts)
@@ -1788,28 +1795,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		});
 
 		// Log phase timings for performance analysis
-		outputChannel.appendLine("\n[PERF] Phase Timing Breakdown:");
-		let totalPhaseTime = 0;
-		for (const [phase, duration] of Object.entries(phaseTimings)) {
-			totalPhaseTime += duration;
-			const barLength = Math.round(duration / 100);
-			const bar = "█".repeat(Math.min(barLength, 50));
-			outputChannel.appendLine(`  ${phase.padEnd(25)} ${bar} ${duration}ms`);
-		}
-		outputChannel.appendLine(`\n  Total (Phase Time):   ${totalPhaseTime}ms`);
-		outputChannel.appendLine(`  Total (Including UI): ${elapsedTime}ms`);
-
-		if (elapsedTime > 500) {
-			outputChannel.appendLine(
-				`\n⚠️ WARNING: Activation time ${elapsedTime}ms exceeds 500ms budget by ${elapsedTime - 500}ms`,
-			);
-			logger.warn("Activation performance degraded", {
-				elapsedTime,
-				budget: 500,
-			});
-		} else {
-			outputChannel.appendLine(`\n✅ Activation time within budget (${elapsedTime}ms < 500ms)`);
-		}
+		// Note: logPhaseTimings moved to activation/phaseTracker.ts
+		logPhaseTimings(outputChannel, phaseTimings, elapsedTime);
 	} catch (error) {
 		logger.error("Activation failed", error as Error);
 		vscode.window.showErrorMessage(

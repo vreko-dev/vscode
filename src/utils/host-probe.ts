@@ -1,10 +1,10 @@
 /**
  * @module host-probe
  * @description Host environment probing utilities for detecting Node.js, Bun, package managers, and CLI installation
- * 
+ *
  * This module probes the host system to determine the optimal execution strategy for the SnapBack CLI.
  * It detects available runtimes (Node.js, Bun), package managers, workspace context, and global CLI installation.
- * 
+ *
  * Strategy priority: global > bunx > npx > unavailable
  */
 
@@ -92,7 +92,7 @@ async function probeNode(): Promise<RuntimeInfo> {
 		const version = output.replace(/^v/, "");
 		logger.info("[HostProbe] Node.js detected", { version });
 		return { available: true, version };
-	} catch (error) {
+	} catch (_error) {
 		logger.info("[HostProbe] Node.js not detected");
 		return { available: false, version: null };
 	}
@@ -113,7 +113,7 @@ async function probeBun(): Promise<RuntimeInfo> {
 		const version = output.replace(/^bun\s+/, "");
 		logger.info("[HostProbe] Bun detected", { version });
 		return { available: true, version };
-	} catch (error) {
+	} catch (_error) {
 		logger.info("[HostProbe] Bun not detected");
 		return { available: false, version: null };
 	}
@@ -134,7 +134,7 @@ async function probeGlobalCli(): Promise<RuntimeInfo & { installed: boolean }> {
 		const version = output.replace(/^(@snapback\/cli\/|snapback\/)/, "");
 		logger.info("[HostProbe] Global CLI detected", { version });
 		return { available: true, installed: true, version };
-	} catch (error) {
+	} catch (_error) {
 		logger.info("[HostProbe] Global CLI not detected");
 		return { available: false, installed: false, version: null };
 	}
@@ -255,7 +255,7 @@ function getCommandPrefix(strategy: ExecutionStrategy): string {
 /**
  * Probe host environment and return complete environment information
  * Results are cached for 5 minutes to avoid repeated probing
- * 
+ *
  * @param useCache - Whether to use cached result if available (default: true)
  * @returns Complete host environment information with execution strategy
  */
@@ -314,15 +314,29 @@ export async function probeHostEnvironment(useCache = true): Promise<HostEnviron
  */
 export function getPreferredPackageManager(env: HostEnvironment): PackageManager {
 	// Priority 1: Lockfile match
-	if (env.workspaceLockfile === "pnpm-lock.yaml" && env.packageManagers.pnpm) return "pnpm";
-	if (env.workspaceLockfile === "yarn.lock" && env.packageManagers.yarn) return "yarn";
-	if (env.workspaceLockfile === "bun.lockb" && env.packageManagers.bun) return "bun";
-	if (env.workspaceLockfile === "package-lock.json" && env.packageManagers.npm) return "npm";
+	if (env.workspaceLockfile === "pnpm-lock.yaml" && env.packageManagers.pnpm) {
+		return "pnpm";
+	}
+	if (env.workspaceLockfile === "yarn.lock" && env.packageManagers.yarn) {
+		return "yarn";
+	}
+	if (env.workspaceLockfile === "bun.lockb" && env.packageManagers.bun) {
+		return "bun";
+	}
+	if (env.workspaceLockfile === "package-lock.json" && env.packageManagers.npm) {
+		return "npm";
+	}
 
 	// Priority 2: Global availability (prefer faster tools)
-	if (env.packageManagers.pnpm) return "pnpm";
-	if (env.packageManagers.yarn) return "yarn";
-	if (env.packageManagers.bun) return "bun";
+	if (env.packageManagers.pnpm) {
+		return "pnpm";
+	}
+	if (env.packageManagers.yarn) {
+		return "yarn";
+	}
+	if (env.packageManagers.bun) {
+		return "bun";
+	}
 
 	// Priority 3: npm fallback (always available with Node.js)
 	return "npm";

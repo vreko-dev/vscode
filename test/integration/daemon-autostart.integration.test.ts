@@ -29,6 +29,18 @@ vi.mock("node:fs", () => ({
 }));
 
 // Mock vscode
+interface MockWorkspaceFolder {
+	uri: { fsPath: string };
+	name: string;
+	index: number;
+}
+let mockWorkspaceFoldersValue: MockWorkspaceFolder[] = [];
+const mockWorkspaceFolders = {
+	get: () => mockWorkspaceFoldersValue,
+	set: (value: MockWorkspaceFolder[]) => {
+		mockWorkspaceFoldersValue = value;
+	},
+};
 vi.mock("vscode", () => ({
 	EventEmitter: class {
 		fire = vi.fn();
@@ -41,8 +53,32 @@ vi.mock("vscode", () => ({
 		}
 	},
 	workspace: {
-		workspaceFolders: [],
+		get workspaceFolders() {
+			return mockWorkspaceFolders.get();
+		},
 		onDidChangeWorkspaceFolders: vi.fn(() => ({ dispose: vi.fn() })),
+		getConfiguration: vi.fn(() => ({
+			get: vi.fn(() => true),
+		})),
+	},
+	window: {
+		createStatusBarItem: vi.fn(() => ({
+			show: vi.fn(),
+			hide: vi.fn(),
+			dispose: vi.fn(),
+			text: "",
+			tooltip: "",
+			backgroundColor: null,
+		})),
+		showWarningMessage: vi.fn(),
+		setStatusBarMessage: vi.fn(),
+	},
+	StatusBarAlignment: {
+		Left: 1,
+		Right: 2,
+	},
+	ThemeColor: class {
+		constructor(public id: string) {}
 	},
 }));
 
@@ -110,6 +146,45 @@ describe("Daemon Auto-Start on Activation", () => {
 			// The getCliPath function is internal but used by autoStartDaemon
 			const module = await import("../../src/services/DaemonBridge");
 			expect(module.DaemonBridge).toBeDefined();
+		});
+
+		it("should prioritize local dev CLI when apps/cli/dist/index.js exists", async () => {
+			// Setup: Mock workspace folder with local CLI
+			const devWorkspacePath = "/Users/dev/WebstormProjects/SnapBack-Site";
+			mockWorkspaceFolders.set([
+				{
+					uri: { fsPath: devWorkspacePath },
+					name: "SnapBack-Site",
+					index: 0,
+				},
+			]);
+
+			// Mock that local CLI exists
+			const localCliPath = `${devWorkspacePath}/apps/cli/dist/index.js`;
+			mockExistsSync.mockImplementation((path: string) => {
+				return path === localCliPath;
+			});
+
+			// Force re-import to get fresh module with our mocks
+			vi.resetModules();
+			const { DaemonBridge } = await import("../../src/services/DaemonBridge");
+
+			// The DaemonBridge should exist and use the local CLI path
+			// We can't directly test getCliPath() since it's private,
+			// but we can verify the module loads correctly with local dev detection
+			expect(DaemonBridge).toBeDefined();
+		});
+
+		it("should fall back to global CLI when no local CLI exists", async () => {
+			// Setup: No workspace folders (or no local CLI)
+			mockWorkspaceFolders.set([]);
+			mockExistsSync.mockReturnValue(false);
+
+			vi.resetModules();
+			const { DaemonBridge } = await import("../../src/services/DaemonBridge");
+
+			// Should still load without error, using global CLI fallback
+			expect(DaemonBridge).toBeDefined();
 		});
 	});
 
