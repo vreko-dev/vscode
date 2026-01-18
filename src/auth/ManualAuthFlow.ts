@@ -26,6 +26,7 @@
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
+import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 import { logger } from "../utils/logger";
 
@@ -83,6 +84,9 @@ export class ManualAuthFlow {
 	async authenticate(): Promise<ManualAuthResult | null> {
 		// Track auth method selection
 		this.diagnosticTracker?.trackAuthProviderSelected("device_flow", "fallback");
+
+		// 🆕 Track auth started in activation funnel
+		getActivationFunnel()?.trackAuthStarted();
 
 		// Show info message with dashboard link
 		const showDashboard = await vscode.window.showInformationMessage(

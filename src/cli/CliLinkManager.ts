@@ -20,6 +20,7 @@
  */
 
 import * as vscode from "vscode";
+import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
 import { logger } from "../utils/logger";
 import type { CliLockData, CliLockFile } from "./CliLockFile";
 
@@ -164,8 +165,9 @@ export class CliLinkManager implements vscode.Disposable {
 			// 7. Show notification to user
 			this.showLinkNotification(data);
 
-			// 8. Track telemetry
-			// telemetry.track('cli_detected', { cli_version: data.version, link_success: true });
+			// 8. Track telemetry - CLI detection and linking in activation funnel
+			getActivationFunnel()?.trackCliStep("cli_detected");
+			getActivationFunnel()?.trackCliStep("cli_linked");
 
 			logger.info("Linked to CLI", { version: data.version, port: data.mcpPort });
 		} catch (error) {

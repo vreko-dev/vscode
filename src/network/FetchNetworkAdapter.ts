@@ -176,7 +176,7 @@ export class FetchNetworkAdapter implements NetworkAdapter {
 					// At least one endpoint is reachable - we're online
 					return true;
 				}
-			} catch (error) {}
+			} catch (_error) {}
 		}
 
 		// All endpoints failed - assume offline

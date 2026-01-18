@@ -8,6 +8,7 @@ import {
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
 import { TelemetryProxy } from "../services/telemetry-proxy";
+import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 import { logger } from "../utils/logger";
 
@@ -59,6 +60,9 @@ export class DeviceAuthFlow {
 
 		// Track: User selected device flow as auth provider
 		this.diagnosticTracker.trackAuthProviderSelected("device_flow", "user_selected");
+
+		// 🆕 Track auth started in activation funnel
+		getActivationFunnel()?.trackAuthStarted();
 
 		// Create a new client for each authentication to reset state
 		this.client = createDeviceAuthClient(this.apiBaseUrl, "vscode-extension");
