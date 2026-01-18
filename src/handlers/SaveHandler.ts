@@ -6,6 +6,9 @@ import { SignalBridge } from "../bridges/SignalBridge";
 import type { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider";
 import { getAIUndoNotification } from "../notifications/AIUndoNotification";
 import type { OperationCoordinator } from "../operationCoordinator";
+import { AlertGenerator } from "../services/AlertGenerator";
+import { AlertRateLimiter } from "../services/AlertRateLimiter";
+import { AlertWriter } from "../services/AlertWriter";
 import type { AIRiskService } from "../services/aiRiskService";
 import { NoopAIRiskService } from "../services/aiRiskService";
 import type { DaemonBridge } from "../services/DaemonBridge";
@@ -94,6 +97,12 @@ export class SaveHandler {
 	private asyncAnalysisTimer: NodeJS.Timeout | null = null;
 	// NOTE: ImportAnalyzer removed - cluster detection disabled until engine provides this
 
+	// Proactive Alert System
+	private alertGenerator: AlertGenerator | null = null;
+	private alertRateLimiter: AlertRateLimiter | null = null;
+	private alertWriter: AlertWriter | null = null;
+	private sessionId: string;
+
 	constructor(
 		private registry: ProtectedFileRegistry,
 		operationCoordinator: OperationCoordinator,
@@ -123,6 +132,9 @@ export class SaveHandler {
 		// Initialize SignalBridge for AI detection (V2 engine)
 		this.signalBridge = new SignalBridge();
 		// NOTE: ImportAnalyzer removed - cluster detection disabled until engine provides this
+
+		// Generate session ID for rate limiting
+		this.sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 	}
 
 	/**
@@ -158,6 +170,36 @@ export class SaveHandler {
 	public setDaemonBridge(bridge: DaemonBridge): void {
 		this.daemonBridge = bridge;
 		logger.info("[SnapBack] DaemonBridge wired into SaveHandler for cross-surface coordination");
+	}
+
+	/**
+	 * Initialize Proactive Alert System.
+	 * Should be called during extension activation to enable contextual alerts on file saves.
+	 *
+	 * @param workspaceRoot - Workspace root directory
+	 * @param fileProtectionService - Service to check if files are protected
+	 * @param violationReader - Service to read violation history
+	 * @param pressureGauge - Service to check workspace pressure
+	 */
+	public initializeAlertSystem(
+		workspaceRoot: string,
+		fileProtectionService: { isProtected: (filePath: string) => boolean; getProtectedFiles: () => string[] },
+		violationReader: {
+			getViolationsForFile: (
+				filePath: string,
+			) => Promise<Array<{ type: string; count: number; lastOccurrence: number }>>;
+		},
+		pressureGauge: { getCurrentPressure: () => Promise<number> },
+	): void {
+		this.alertGenerator = new AlertGenerator({
+			workspaceRoot,
+			fileProtectionService,
+			violationReader,
+			pressureGauge,
+		});
+		this.alertRateLimiter = new AlertRateLimiter();
+		this.alertWriter = new AlertWriter({ workspaceRoot });
+		logger.info("[SnapBack] Proactive Alert System initialized in SaveHandler");
 	}
 
 	/**
@@ -718,6 +760,43 @@ export class SaveHandler {
 				error: err instanceof Error ? err.message : String(err),
 			});
 		});
+
+		// Step 4: Generate proactive alerts (non-blocking)
+		// This is the core feature that provides contextual warnings to LLMs via MCP
+		if (this.alertGenerator && this.alertRateLimiter && this.alertWriter) {
+			// Fire and forget - don't block save completion
+			void (async () => {
+				try {
+					// Generate alerts for this file
+					const alerts = await this.alertGenerator?.checkFile(filePath);
+
+					// Filter through rate limiter
+					for (const alert of alerts ?? []) {
+						if (this.alertRateLimiter?.shouldAllow(alert, this.sessionId)) {
+							// Write alert to JSONL
+							await this.alertWriter?.write(alert);
+							// Record that alert was shown
+							this.alertRateLimiter?.recordShown(alert, this.sessionId);
+
+							logger.debug("Proactive alert generated", {
+								correlationId,
+								filePath,
+								alertId: alert.id,
+								category: alert.category,
+								severity: alert.severity,
+								confidence: alert.confidence,
+							});
+						}
+					}
+				} catch (error) {
+					logger.warn("Failed to generate proactive alerts", {
+						correlationId,
+						filePath,
+						error: error instanceof Error ? error.message : String(error),
+					});
+				}
+			})();
+		}
 	}
 
 	/**
