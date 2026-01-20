@@ -12,7 +12,18 @@
 
 import * as path from "node:path";
 import type { DetectedFramework, PipelineResult } from "@snapback/intelligence";
-import { PRESSURE_THRESHOLDS, type VitalsSnapshot } from "@snapback/intelligence/vitals";
+import type { VitalsSnapshot } from "@snapback/intelligence/vitals";
+
+/**
+ * Pressure thresholds for vitals-based decision making
+ * Inlined from @snapback/intelligence/vitals to avoid bundling the package
+ */
+const PRESSURE_THRESHOLDS = {
+	low: 25,
+	moderate: 50,
+	high: 75,
+	critical: 80,
+} as const;
 import * as vscode from "vscode";
 import {
 	LanguageClient,

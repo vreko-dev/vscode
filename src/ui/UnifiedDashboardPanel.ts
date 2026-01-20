@@ -150,12 +150,17 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		coordinator: SnapshotCoordinator,
 		initialTab: DashboardTab = "home",
 	): UnifiedDashboardPanel {
+		logger.debug("UnifiedDashboardPanel.createOrShow called", { initialTab });
+
 		// If panel exists, reveal and navigate
 		if (UnifiedDashboardPanel.instance) {
+			logger.debug("Revealing existing panel");
 			UnifiedDashboardPanel.instance.panel.reveal(vscode.ViewColumn.One);
 			UnifiedDashboardPanel.instance.navigateTo(initialTab);
 			return UnifiedDashboardPanel.instance;
 		}
+
+		logger.debug("Creating new webview panel");
 
 		// Create new panel
 		const panel = vscode.window.createWebviewPanel(
@@ -169,16 +174,31 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 			},
 		);
 
+		logger.debug("Webview panel created");
+
 		// Get workspace info
 		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
 		const workspaceId = workspaceFolder?.name || "default";
 		const workspacePath = workspaceFolder?.uri.fsPath || "/";
 
+		logger.debug("Workspace info", { workspaceId, workspacePath });
+
 		// Create data service
 		const dataService = WorkspaceDataService.for(workspaceId, workspacePath, coordinator);
 
+		logger.debug("DataService created");
+
 		// Create instance
 		UnifiedDashboardPanel.instance = new UnifiedDashboardPanel(panel, dataService, extensionUri, initialTab);
+
+		// Explicitly reveal the panel to ensure it's visible
+		panel.reveal(vscode.ViewColumn.One);
+
+		logger.info("UnifiedDashboardPanel instance created successfully", {
+			initialTab,
+			viewColumn: panel.viewColumn,
+			visible: panel.visible,
+		});
 
 		return UnifiedDashboardPanel.instance;
 	}
@@ -675,6 +695,12 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		const styleUri = webview.asWebviewUri(
 			vscode.Uri.joinPath(this.extensionUri, "dist", "webview", "assets", "index.css"),
 		);
+
+		logger.debug("Webview resource URIs", {
+			bundleUri: bundleUri.toString(),
+			styleUri: styleUri.toString(),
+			extensionUri: this.extensionUri.toString(),
+		});
 
 		return `<!DOCTYPE html>
 <html lang="en">

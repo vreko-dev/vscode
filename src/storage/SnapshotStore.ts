@@ -242,6 +242,13 @@ export class SnapshotStore {
 		}
 
 		// Validate: anchor file must be in files
+		// 🛡️ DEFENSIVE: Also check for paths that escape workspace (start with '..')
+		// This catches bugs where external file paths slip through
+		if (options.anchorFile.startsWith("..")) {
+			throw new Error(
+				`Anchor file path escapes workspace: ${options.anchorFile}. This usually means a file outside the workspace was passed as the anchor.`,
+			);
+		}
 		if (!options.files.has(options.anchorFile)) {
 			throw new Error(`Anchor file ${options.anchorFile} not found in snapshot files`);
 		}

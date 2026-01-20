@@ -10,6 +10,7 @@
 import * as vscode from "vscode";
 import type { OperationCoordinator } from "../operationCoordinator";
 import { createUnifiedDashboardPanel } from "../ui/UnifiedDashboardPanel";
+import { logger } from "../utils/logger";
 
 /**
  * Register dashboard-related commands
@@ -23,35 +24,71 @@ export function registerDashboardCommands(
 	// Command to open the main dashboard
 	disposables.push(
 		vscode.commands.registerCommand("snapback.openDashboard", () => {
-			createUnifiedDashboardPanel(context.extensionUri, coordinator);
+			try {
+				logger.info("Opening dashboard...");
+				createUnifiedDashboardPanel(context.extensionUri, coordinator);
+			} catch (error) {
+				logger.error("Failed to open dashboard", error as Error);
+				vscode.window.showErrorMessage(
+					`Failed to open dashboard: ${error instanceof Error ? error.message : "unknown error"}`,
+				);
+			}
 		}),
 	);
 
 	// Command to open dashboard to home tab (previously settings)
 	disposables.push(
 		vscode.commands.registerCommand("snapback.openDashboard.settings", () => {
-			// Settings tab removed - open home tab which now has Configure MCP button
-			createUnifiedDashboardPanel(context.extensionUri, coordinator, "home");
+			try {
+				// Settings tab removed - open home tab which now has Configure MCP button
+				createUnifiedDashboardPanel(context.extensionUri, coordinator, "home");
+			} catch (error) {
+				logger.error("Failed to open dashboard settings", error as Error);
+				vscode.window.showErrorMessage(
+					`Failed to open dashboard: ${error instanceof Error ? error.message : "unknown error"}`,
+				);
+			}
 		}),
 	);
 
 	disposables.push(
 		vscode.commands.registerCommand("snapback.openDashboard.activity", () => {
-			createUnifiedDashboardPanel(context.extensionUri, coordinator, "activity");
+			try {
+				createUnifiedDashboardPanel(context.extensionUri, coordinator, "activity");
+			} catch (error) {
+				logger.error("Failed to open dashboard activity", error as Error);
+				vscode.window.showErrorMessage(
+					`Failed to open dashboard: ${error instanceof Error ? error.message : "unknown error"}`,
+				);
+			}
 		}),
 	);
 
 	// Command to open dashboard to vitals tab (consolidates VitalsDashboardPanel)
 	disposables.push(
 		vscode.commands.registerCommand("snapback.openDashboard.vitals", () => {
-			createUnifiedDashboardPanel(context.extensionUri, coordinator, "vitals");
+			try {
+				createUnifiedDashboardPanel(context.extensionUri, coordinator, "vitals");
+			} catch (error) {
+				logger.error("Failed to open dashboard vitals", error as Error);
+				vscode.window.showErrorMessage(
+					`Failed to open dashboard: ${error instanceof Error ? error.message : "unknown error"}`,
+				);
+			}
 		}),
 	);
 
 	// Command to open dashboard to setup tab (consolidates OnboardingPanelProvider)
 	disposables.push(
 		vscode.commands.registerCommand("snapback.openDashboard.setup", () => {
-			createUnifiedDashboardPanel(context.extensionUri, coordinator, "setup");
+			try {
+				createUnifiedDashboardPanel(context.extensionUri, coordinator, "setup");
+			} catch (error) {
+				logger.error("Failed to open dashboard setup", error as Error);
+				vscode.window.showErrorMessage(
+					`Failed to open dashboard: ${error instanceof Error ? error.message : "unknown error"}`,
+				);
+			}
 		}),
 	);
 

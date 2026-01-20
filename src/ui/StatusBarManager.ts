@@ -26,10 +26,21 @@
  * - Clear timeouts before setting new ones (memory leak)
  * - Use ThemeColor for backgrounds, not hardcoded colors
  *
+/**
  * @packageDocumentation
  */
 
-import { PRESSURE_THRESHOLDS } from "@snapback/intelligence/vitals";
+/**
+ * Pressure thresholds for vitals-based decision making
+ * Inlined from @snapback/intelligence/vitals to avoid bundling the package
+ */
+const PRESSURE_THRESHOLDS = {
+	low: 25,
+	moderate: 50,
+	high: 75,
+	critical: 80,
+} as const;
+
 import * as vscode from "vscode";
 import {
 	PULSE_LEVEL_SIGNAGE,
@@ -173,6 +184,15 @@ export class StatusBarManager implements vscode.Disposable {
 	 * Current vitals snapshot for detailed tooltip
 	 */
 	private currentVitals: VitalsDisplayData | undefined;
+
+	/**
+	 * Debounce tracking for sequence triggers
+	 * Prevents abort loops when multiple AI detections fire rapidly
+	 * Best Practice: VS Code recommends debouncing high-frequency events
+	 * @see https://github.com/microsoft/vscode/wiki/Extension-API-guidelines
+	 */
+	private lastSequenceTime = 0;
+	private readonly SEQUENCE_DEBOUNCE_MS = 1500; // 1.5s debounce window
 
 	// ===========================================================================
 	// MESSAGE QUEUE STATE
@@ -469,9 +489,29 @@ export class StatusBarManager implements vscode.Disposable {
 	 * a snapshot. Counter increment is handled separately via incrementSnapshotCount()
 	 * which is called only on actual SNAPSHOT_CREATED events.
 	 *
+	 * DEBOUNCING: Prevents multiple sequences from aborting each other when rapid
+	 * AI detections occur (e.g., VS Code firing multiple change events for one paste).
+	 * Best Practice: Debounce high-frequency events per VS Code Extension API guidelines.
+	 *
 	 * @param tool - Optional AI tool name for context
 	 */
 	async showAIDetectedSequence(tool?: string): Promise<void> {
+		// 🔧 CRITICAL FIX: Add debouncing to prevent sequence abort loops
+		// Issue: Multiple AI detections within <100ms cause each new sequence to abort
+		// the previous one at step 1, resulting in no visual feedback
+		// Solution: Only allow one sequence per SEQUENCE_DEBOUNCE_MS window
+		const now = Date.now();
+		if (now - this.lastSequenceTime < this.SEQUENCE_DEBOUNCE_MS) {
+			logger.debug("[SB:STATUS] AI sequence debounced - too soon after last", {
+				msElapsed: now - this.lastSequenceTime,
+				debounceWindow: this.SEQUENCE_DEBOUNCE_MS,
+			});
+			// Still increment counter to track detection frequency
+			this.stats.aiSessionsToday++;
+			return;
+		}
+		this.lastSequenceTime = now;
+
 		// 🔍 [SB:STATUS] Log AI detection trigger
 		logger.info("[SB:STATUS] AI sequence START", {
 			tool: tool ?? "unknown",

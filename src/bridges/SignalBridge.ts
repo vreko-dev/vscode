@@ -155,8 +155,12 @@ export class SignalBridge {
 		// Get extension IDs
 		const extensionIds = vscode.extensions.all.map((ext) => ext.id);
 
-		// Get velocity from last burst event (if available)
-		const velocity = this.lastBurstEvent?.velocity;
+		// 🔧 CRITICAL FIX: Only use velocity from lastBurstEvent if we have current charCount
+		// Issue: charCount becomes 0 on subsequent detections while velocity persists from
+		// previous burst event, creating impossible charCount=0 + velocity=21922 state
+		// Solution: Clear velocity when charCount is 0 to maintain data consistency
+		// Best Practice: Ensure metric coherence in detection systems
+		const velocity = charCount > 0 ? this.lastBurstEvent?.velocity : undefined;
 
 		// Detect AI using engine AIDetector
 		const result = this.aiDetector.detect({

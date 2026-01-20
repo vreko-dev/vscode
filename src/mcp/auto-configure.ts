@@ -28,7 +28,7 @@ import { logger } from "../utils/logger";
 
 // Module-level instances
 let telemetryProxy: TelemetryProxy | null = null;
-let mcpStatusBarItem: vscode.StatusBarItem | null = null;
+// NOTE: mcpStatusBarItem removed - consolidated into MCPStatusItem.ts
 
 // =============================================================================
 // TYPES
@@ -246,8 +246,7 @@ async function configureClientsSilently(clients: AIClientConfig[], context: vsco
 			});
 		}, 2000); // 2 second delay for better UX
 
-		// Update status bar to healthy
-		updateMcpStatusBar("healthy", context);
+		// Status bar consolidated into MCPStatusItem.ts
 	}
 
 	// Show "Fix Now" toast for failures
@@ -268,8 +267,7 @@ async function configureClientsSilently(clients: AIClientConfig[], context: vsco
 					});
 			}, 3000);
 
-			// Update status bar to error
-			updateMcpStatusBar("error", context);
+			// Status bar consolidated into MCPStatusItem.ts
 		}
 	}
 
@@ -358,7 +356,28 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 			const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 			const detection = detectAIClients({ cwd: workspaceFolder });
 
-			const items = detection.clients.map((client) => {
+			// Deduplicate clients by name, prioritizing project-level configs
+			// This prevents showing "Cursor: Not installed" AND "Cursor: Active" simultaneously
+			const clientsByName = new Map<string, (typeof detection.clients)[0]>();
+			for (const client of detection.clients) {
+				const existing = clientsByName.get(client.name);
+				if (!existing) {
+					// First entry for this client
+					clientsByName.set(client.name, client);
+				} else {
+					// Prefer: exists > not exists, hasSnapback > no snapback
+					// Priority: Active > Needs setup > Not installed
+					const existingScore = (existing.exists ? 2 : 0) + (existing.hasSnapback ? 1 : 0);
+					const clientScore = (client.exists ? 2 : 0) + (client.hasSnapback ? 1 : 0);
+					if (clientScore > existingScore) {
+						clientsByName.set(client.name, client);
+					}
+				}
+			}
+
+			const deduplicatedClients = Array.from(clientsByName.values());
+
+			const items = deduplicatedClients.map((client) => {
 				let status = "⚪ Not installed";
 				if (client.exists && client.hasSnapback) {
 					status = "🟢 Active";
@@ -507,7 +526,7 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 					);
 				}
 
-				updateMcpStatusBar("warning", context);
+				// Status bar consolidated into MCPStatusItem.ts
 				trackTelemetry("mcp_validate_workspace_path_issues", {
 					count: workspacePathIssues.length,
 				});
@@ -517,7 +536,7 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 			// Show results
 			if (!hasErrors && !hasWarnings) {
 				vscode.window.showInformationMessage(`✓ All ${configured.length} MCP configuration(s) are valid!`);
-				updateMcpStatusBar("healthy", context);
+				// Status bar consolidated into MCPStatusItem.ts
 				trackTelemetry("mcp_validate_success", { count: configured.length });
 			} else {
 				// Build details message
@@ -545,7 +564,7 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 					});
 				}
 
-				updateMcpStatusBar(hasErrors ? "error" : "warning", context);
+				// Status bar consolidated into MCPStatusItem.ts
 				trackTelemetry("mcp_validate_issues", {
 					errors: hasErrors,
 					warnings: hasWarnings,
@@ -580,7 +599,7 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 
 			if (clientsWithIssues.length === 0) {
 				vscode.window.showInformationMessage("✓ All MCP configurations are healthy! No repairs needed.");
-				updateMcpStatusBar("healthy", context);
+				// Status bar consolidated into MCPStatusItem.ts
 				return;
 			}
 
@@ -629,17 +648,17 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 						vscode.window.showInformationMessage(
 							`✓ Repaired ${repaired} configuration(s). Restart your AI assistant to apply changes.`,
 						);
-						updateMcpStatusBar("healthy", context);
+						// Status bar consolidated into MCPStatusItem.ts
 					} else if (repaired > 0) {
 						vscode.window.showWarningMessage(
 							`Repaired ${repaired} configuration(s), ${failed} failed. Restart your AI assistant.`,
 						);
-						updateMcpStatusBar("warning", context);
+						// Status bar consolidated into MCPStatusItem.ts
 					} else {
 						vscode.window.showErrorMessage(
 							`Failed to repair configurations. Try 'SnapBack: Configure MCP' instead.`,
 						);
-						updateMcpStatusBar("error", context);
+						// Status bar consolidated into MCPStatusItem.ts
 					}
 
 					trackTelemetry("mcp_repair_complete", { repaired, failed });
@@ -648,105 +667,13 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 		}),
 	);
 
-	// Initialize status bar
-	initMcpStatusBar(context);
+	// NOTE: MCP status bar is now handled by MCPStatusItem.ts (consolidated)
+	// Remove duplicate status bar initialization
 }
 
-// =============================================================================
-// STATUS BAR
-// =============================================================================
-
-/**
- * Initialize MCP status bar item
- */
-function initMcpStatusBar(context: vscode.ExtensionContext): void {
-	mcpStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-	mcpStatusBarItem.command = "snapback.mcp.validate";
-	context.subscriptions.push(mcpStatusBarItem);
-
-	// Check initial status (fire-and-forget with error logging)
-	checkMcpHealthAndUpdateStatusBar(context).catch((err) => {
-		logger.debug("[MCP] Initial health check failed", err);
-	});
-}
-
-/**
- * Check MCP health and update status bar
- */
-async function checkMcpHealthAndUpdateStatusBar(context: vscode.ExtensionContext): Promise<void> {
-	const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-	const detection = detectAIClients({ cwd: workspaceFolder });
-	const configured = detection.detected.filter((c) => c.hasSnapback);
-
-	if (configured.length === 0) {
-		// No MCP configured - hide status bar
-		if (mcpStatusBarItem) {
-			mcpStatusBarItem.hide();
-		}
-		return;
-	}
-
-	// Validate all configured clients
-	let hasErrors = false;
-	let hasWarnings = false;
-
-	for (const client of configured) {
-		const validation = validateClientConfig(client);
-		if (validation.issues.some((i) => i.severity === "error")) {
-			hasErrors = true;
-		}
-		if (validation.issues.some((i) => i.severity === "warning")) {
-			hasWarnings = true;
-		}
-	}
-
-	if (hasErrors) {
-		updateMcpStatusBar("error", context);
-	} else if (hasWarnings) {
-		updateMcpStatusBar("warning", context);
-	} else {
-		updateMcpStatusBar("healthy", context);
-	}
-}
-
-/**
- * Update MCP status bar appearance
- */
-function updateMcpStatusBar(
-	status: "healthy" | "warning" | "error" | "hidden",
-	_context: vscode.ExtensionContext,
-): void {
-	if (!mcpStatusBarItem) {
-		return;
-	}
-
-	switch (status) {
-		case "healthy":
-			mcpStatusBarItem.text = "$(check) MCP";
-			mcpStatusBarItem.tooltip = "SnapBack MCP: All configurations healthy\nClick to validate";
-			mcpStatusBarItem.backgroundColor = undefined;
-			mcpStatusBarItem.show();
-			break;
-
-		case "warning":
-			mcpStatusBarItem.text = "$(warning) MCP";
-			mcpStatusBarItem.tooltip = "SnapBack MCP: Configuration warnings detected\nClick to validate";
-			mcpStatusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
-			mcpStatusBarItem.show();
-			break;
-
-		case "error":
-			mcpStatusBarItem.text = "$(error) MCP";
-			mcpStatusBarItem.tooltip = "SnapBack MCP: Configuration errors detected\nClick to fix";
-			mcpStatusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
-			mcpStatusBarItem.show();
-			break;
-
-		case "hidden":
-			mcpStatusBarItem.hide();
-			break;
-	}
-}
+// NOTE: MCP Status Bar has been consolidated into MCPStatusItem.ts
+// The following functions are kept for reference but the status bar initialization
+// has been removed to eliminate duplicate status bar items.
 
 // =============================================================================
 // TELEMETRY

@@ -151,6 +151,12 @@ let heatIntegration: HeatIntegration | null = null;
 // 🆕 Global reference to refresh views function
 let refreshViews = () => {};
 
+// 🔧 CRITICAL FIX: Deduplication state for AI detections
+// Best Practice: Debounce high-frequency events per VS Code Extension API guidelines
+// @see https://github.com/microsoft/vscode/wiki/Extension-API-guidelines
+let lastDetection = { time: 0, tool: "", file: "" };
+const DETECTION_DEDUP_MS = 100; // 100ms deduplication window
+
 // (Removed unused credentialsManagerGetter)
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -697,6 +703,32 @@ export async function activate(context: vscode.ExtensionContext) {
 				// Detect AI tool usage
 				const aiResult = signalBridge.detectAI(e.document, e.contentChanges);
 				if (aiResult.tool) {
+					// 🔧 CRITICAL FIX: Deduplicate rapid-fire AI detections
+					// Issue: VS Code can fire multiple onDidChangeTextDocument events for single paste
+					// Result: 8-9 detections in <100ms causing sequence abort loops
+					// Solution: Deduplicate same tool+file within 100ms window
+					// Best Practice: Per VS Code Extension API guidelines, debounce high-frequency events
+					const now = Date.now();
+					const detectionKey = `${aiResult.tool}-${e.document.fileName}`;
+					const lastKey = `${lastDetection.tool}-${lastDetection.file}`;
+
+					if (detectionKey === lastKey && now - lastDetection.time < DETECTION_DEDUP_MS) {
+						logger.debug("[SB_STATUS] Duplicate AI detection within 100ms, skipping sequence", {
+							tool: aiResult.tool,
+							file: e.document.fileName,
+							timeSinceLastMs: now - lastDetection.time,
+						});
+						// Skip duplicate detection - don't trigger UI sequences or telemetry
+						return;
+					}
+
+					// Update deduplication state for next detection
+					lastDetection = {
+						time: now,
+						tool: aiResult.tool,
+						file: e.document.fileName,
+					};
+
 					// 🔍 [SB_STATUS] Log AI detection from SignalBridge
 					logger.info("[SB_STATUS] AI tool detected by SignalBridge", {
 						tool: aiResult.tool,

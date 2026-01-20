@@ -49,11 +49,13 @@ export class PolicyManager {
 			const content = await fs.readFile(this.policyPath, "utf8");
 			const parsed = JSON.parse(content) as PolicyConfig;
 
-			// Validate policy structure
-			if (!parsed.version || parsed.version !== "1.0") {
+			// Validate policy structure - Support both v1.0 and v2.0
+			const supportedVersions = ["1.0", "2.0"];
+			if (!parsed.version || !supportedVersions.includes(parsed.version)) {
 				logger.warn("Invalid policy version, using defaults", {
 					path: this.policyPath,
 					version: parsed.version,
+					supportedVersions,
 				});
 				this.policy = this.getDefaultPolicy();
 				return;

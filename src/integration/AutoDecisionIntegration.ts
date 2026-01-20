@@ -894,15 +894,33 @@ export class AutoDecisionIntegration {
 							? path.relative(workspaceFolder, absolutePath)
 							: absolutePath;
 
+						// 🛡️ CRITICAL GUARD: Skip files outside workspace
+						// When path.relative() produces a path starting with '..',
+						// the file is OUTSIDE the workspace (e.g., VS Code extension files)
+						// Creating a snapshot with such paths causes "Anchor file not found" errors
+						if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+							logger.debug("Skipping snapshot for file outside workspace", {
+								absolutePath,
+								relativePath,
+								workspaceFolder,
+							});
+							return;
+						}
+
 						const fileContents: Record<string, string> = {
 							[relativePath]: content,
 						};
 
+						// 🐛 CRITICAL FIX: Use relativePath for specificFiles to match fileContents keys
+						// This ensures anchorFile validation in SnapshotStore.createPOST() passes
+						// Previous bug: specificFiles=[absolutePath] but filesMap keys were relativePath
+						// Result: "Anchor file not found in snapshot files" error
+						//
 						// Create snapshot through OperationCoordinator
 						// This ensures SNAPSHOT_CREATED event is emitted on the global eventBus
 						snapshotId = await this.operationCoordinator.coordinateSnapshotCreation(
 							false, // showNotification - we show our own notification
-							[absolutePath], // specificFiles
+							[relativePath], // specificFiles - MUST match fileContents keys (workspace-relative)
 							fileContents, // providedFileContents
 							`AI-detected: ${path.basename(absolutePath)}`, // customSnapshotName
 						);

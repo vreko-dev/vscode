@@ -531,7 +531,9 @@ export class OperationCoordinator {
 				},
 				async (progress) => {
 					if (isIncremental) {
-						// For incremental snapshots, convert relative paths to absolute if needed
+						// 🐛 CRITICAL FIX: Handle both absolute and relative paths in specificFiles
+						// When called from AutoDecisionIntegration, specificFiles contains workspace-relative paths
+						// We need to convert them to absolute paths for file I/O operations
 						const absoluteFiles = files.map((f) => {
 							if (path.isAbsolute(f)) {
 								return f;
@@ -722,9 +724,12 @@ export class OperationCoordinator {
 					}
 
 					// Determine anchor file: first from specificFiles if incremental, otherwise first from filesMap
+					// CRITICAL FIX: Convert absolute paths back to workspace-relative for consistency
+					// Issue: Lines 537-543 converted relative→absolute, but filesMap has relative keys
+					// Result: Anchor validation fails with "Anchor file not found in snapshot files"
 					const anchorFile =
 						isIncremental && specificFiles && specificFiles.length > 0
-							? specificFiles[0]
+							? path.relative(workspaceRoot, specificFiles[0])
 							: Array.from(filesMap.keys())[0] || workspaceRoot;
 
 					const snapshotManifest = await this.storage.createSnapshot(filesMap, {
