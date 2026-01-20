@@ -540,7 +540,66 @@ export class OperationCoordinator {
 							}
 							return path.join(workspaceRoot, f);
 						});
-						files = absoluteFiles;
+
+						// 🛡️ WORKSPACE BOUNDARY GUARD: Filter out files outside workspace
+						// Regression Prevention: 2026-01-20 bug where .qoder/extensions/* files
+						// caused "Anchor file not found" errors during snapshot creation.
+						//
+						// This guard catches files from:
+						// - .qoder/extensions/* (VS Code extension files)
+						// - .vscode/extensions/* (VS Code extension files)
+						// - /tmp/* (temporary files)
+						// - Any other paths outside the workspace
+						//
+						// Files outside workspace cannot be included in snapshots because:
+						// 1. They're not part of the project being protected
+						// 2. They create relative paths starting with ".." which fail validation
+						// 3. They can cause Phase 3 activation to hang for 56+ seconds
+						const validFiles: string[] = [];
+						let filteredCount = 0;
+
+						for (const absPath of absoluteFiles) {
+							const relativePath = path.relative(workspaceRoot, absPath);
+
+							// Check if file is outside workspace
+							if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+								filteredCount++;
+								logger.debug("Filtering out file outside workspace during snapshot creation", {
+									file: absPath,
+									relativePath,
+									workspaceRoot,
+								});
+								continue;
+							}
+
+							validFiles.push(absPath);
+						}
+
+						// Log summary if any files were filtered
+						if (filteredCount > 0) {
+							logger.warn("Files outside workspace were filtered from snapshot", {
+								totalFiles: absoluteFiles.length,
+								validFiles: validFiles.length,
+								filteredCount,
+								workspaceRoot,
+							});
+						}
+
+						// Use only valid files
+						files = validFiles;
+
+						// If all files were filtered, abort snapshot creation
+						if (files.length === 0) {
+							logger.warn("Snapshot creation aborted: all files were outside workspace", {
+								originalFileCount: absoluteFiles.length,
+								workspaceRoot,
+							});
+							throw new Error(
+								"Cannot create snapshot: all specified files are outside the workspace. " +
+									"Only files within the workspace can be included in snapshots.",
+							);
+						}
+
 						progress.report({
 							message: `Snapshotting ${files.length} file(s)...`,
 						});

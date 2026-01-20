@@ -53,6 +53,10 @@ export async function initializePhase3Managers(
 	mcpHealthGuardian?: import("../services/MCPHealthGuardian").MCPHealthGuardian,
 ): Promise<Phase3Result> {
 	const phase3Start = Date.now();
+	logger.info("Phase 3 (Managers) starting - tracking file operations", {
+		workspaceRoot,
+		timestamp: Date.now(),
+	});
 	logger.debug("Phase 3 starting...");
 	try {
 		// Initialize notification manager
@@ -211,7 +215,13 @@ export async function initializePhase3Managers(
 			logger.debug("MCPToolsService skipped (no registry)");
 		}
 
-		logger.debug("Phase 3 completed", { ms: Date.now() - phase3Start });
+		const phase3Duration = Date.now() - phase3Start;
+		logger.info("Phase 3 (Managers) completed successfully", {
+			duration: phase3Duration,
+			workspaceRoot,
+			timestamp: Date.now(),
+		});
+		logger.debug("Phase 3 completed", { ms: phase3Duration });
 		PhaseLogger.logPhase("3: Business Logic Managers");
 
 		// 🎯 Initialize PlatformCoordinator for multi-surface coordination
