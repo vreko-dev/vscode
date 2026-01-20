@@ -14,6 +14,7 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { detectAIClients, detectWorkspaceConfig } from "@snapback/mcp-config";
 import * as vscode from "vscode";
 import { logger } from "../utils/logger";
 
@@ -60,6 +61,13 @@ export class MCPModeManager implements vscode.Disposable {
 	private currentMode: MCPMode = MCPMode.UNCONFIGURED;
 	private readonly _onModeChange = new vscode.EventEmitter<MCPModeChangeEvent>();
 	readonly onModeChange = this._onModeChange.event;
+
+	/** Cached process check result for synchronous access */
+	private lastProcessCheck: {
+		running: boolean;
+		processCount: number;
+		lastChecked: Date;
+	} | null = null;
 
 	private constructor() {}
 
@@ -169,6 +177,7 @@ export class MCPModeManager implements vscode.Disposable {
 
 	/**
 	 * Check if CLI daemon socket exists (daemon is running)
+	 * Must match CLI's daemon/platform.ts socket path
 	 */
 	private isCLIDaemonAvailable(): boolean {
 		const IS_WINDOWS = process.platform === "win32";
@@ -179,41 +188,38 @@ export class MCPModeManager implements vscode.Disposable {
 			return false;
 		}
 
-		// Unix socket path
-		const socketPath = join(homedir(), ".snapback", "daemon.sock");
+		// Unix socket path - must match daemon/platform.ts: ~/.snapback/daemon/daemon.sock
+		const socketPath = join(homedir(), ".snapback", "daemon", "daemon.sock");
 		return existsSync(socketPath);
 	}
 
 	/**
 	 * Check if CLI is configured in user's MCP client config
-	 * Looks for snapback entry in common MCP config locations
+	 * Uses centralized detection from @snapback/mcp-config to check ALL supported clients
+	 * including workspace-level configs (e.g., .qoder-mcp-config.json, .cursor/mcp.json)
 	 */
 	private isCLIConfigured(): boolean {
-		const configLocations = [
-			// Cursor
-			join(homedir(), ".cursor", "mcp.json"),
-			// Claude Desktop
-			join(homedir(), "Library", "Application Support", "Claude", "claude_desktop_config.json"),
-			// VS Code settings (workspace or user)
-		];
-
-		for (const configPath of configLocations) {
-			if (existsSync(configPath)) {
-				try {
-					const fs = require("node:fs");
-					const content = fs.readFileSync(configPath, "utf8");
-					// Check if snapback is mentioned in the config
-					if (content.includes("snapback") || content.includes("@snapback/cli")) {
-						logger.debug(`CLI configured in ${configPath}`);
-						return true;
-					}
-				} catch {
-					// Ignore read errors
-				}
+		// Check workspace-level configs first (project-specific)
+		const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+		if (workspaceRoot) {
+			const workspaceConfig = detectWorkspaceConfig(workspaceRoot);
+			if (workspaceConfig) {
+				logger.debug(`CLI configured in workspace: ${workspaceConfig.path} (${workspaceConfig.type})`);
+				return true;
 			}
 		}
 
-		// Also check VS Code configuration
+		// Check global configs for all supported AI clients
+		const detection = detectAIClients({ cwd: workspaceRoot });
+		const configuredClients = detection.detected.filter((c) => c.hasSnapback);
+
+		if (configuredClients.length > 0) {
+			const clientNames = configuredClients.map((c) => c.displayName).join(", ");
+			logger.debug(`CLI configured in: ${clientNames}`);
+			return true;
+		}
+
+		// Also check VS Code configuration for explicit CLI path
 		const config = vscode.workspace.getConfiguration("snapback");
 		const cliPath = config.get<string>("cliPath", "");
 		if (cliPath && cliPath.trim() !== "") {
@@ -221,6 +227,75 @@ export class MCPModeManager implements vscode.Disposable {
 		}
 
 		return false;
+	}
+
+	// =========================================================================
+	// PUBLIC CONFIGURATION CHECK API
+	// =========================================================================
+
+	/**
+	 * Public API to check if SnapBack MCP is configured in any AI client
+	 * Used by health check systems to verify configuration readiness
+	 *
+	 * @returns Object with daemon status, configuration status, and process status
+	 */
+	checkConfigurationStatus(): {
+		daemonRunning: boolean;
+		configured: boolean;
+		configuredClients: string[];
+		workspaceConfig: { path: string; type: string } | null;
+		processRunning: boolean;
+	} {
+		const daemonRunning = this.isCLIDaemonAvailable();
+		const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+		const workspaceConfig = workspaceRoot ? detectWorkspaceConfig(workspaceRoot) : null;
+		const detection = detectAIClients({ cwd: workspaceRoot });
+		const configuredClients = detection.detected.filter((c) => c.hasSnapback).map((c) => c.displayName);
+		const configured = configuredClients.length > 0 || workspaceConfig !== null;
+
+		// Include cached process status (updated asynchronously by checkProcessStatus())
+		const processRunning = this.lastProcessCheck?.running ?? false;
+
+		return {
+			daemonRunning,
+			configured,
+			configuredClients,
+			workspaceConfig,
+			processRunning,
+		};
+	}
+
+	/**
+	 * Check if SnapBack MCP stdio process is actually running
+	 * This is the REAL functional test - not just config existence
+	 *
+	 * Called asynchronously by health checks to verify MCP is truly operational
+	 */
+	async checkProcessStatus(): Promise<{
+		running: boolean;
+		processCount: number;
+		lastChecked: Date;
+	}> {
+		try {
+			const { detectMCPProcesses } = await import("@snapback/mcp-config");
+			const health = await detectMCPProcesses();
+
+			// Cache result for synchronous access
+			this.lastProcessCheck = {
+				running: health.snapbackRunning,
+				processCount: health.snapbackProcesses.length,
+				lastChecked: new Date(),
+			};
+
+			return this.lastProcessCheck;
+		} catch (error) {
+			logger.warn("Failed to check MCP process status", { error });
+			return {
+				running: false,
+				processCount: 0,
+				lastChecked: new Date(),
+			};
+		}
 	}
 
 	// =========================================================================

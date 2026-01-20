@@ -16,12 +16,18 @@
 
 import * as vscode from "vscode";
 import type { MCPLifecycleManager } from "../services/MCPLifecycleManager";
+import { getMCPModeManager } from "../services/MCPModeManager";
 import { logger } from "../utils/logger";
 
 /**
  * MCP connection states
+ * - connected: Daemon running AND SnapBack configured in AI client
+ * - degraded: Daemon running BUT SnapBack NOT configured (needs setup)
+ * - disconnected: Daemon not running
+ * - reconnecting: Attempting to reconnect
+ * - disabled: MCP disabled in settings
  */
-export type MCPConnectionState = "connected" | "disconnected" | "reconnecting" | "disabled";
+export type MCPConnectionState = "connected" | "degraded" | "disconnected" | "reconnecting" | "disabled";
 
 /**
  * MCPStatusItem configuration
@@ -144,8 +150,9 @@ export class MCPStatusItem implements vscode.Disposable {
 
 	/**
 	 * Check MCP health and update state
+	 * Now includes configuration verification (liveness + readiness + functional check)
 	 */
-	private checkHealth(): void {
+	private async checkHealth(): Promise<void> {
 		const wasReady = this.state === "connected";
 		const isReady = this.mcpManager.isServerReady();
 
@@ -158,8 +165,31 @@ export class MCPStatusItem implements vscode.Disposable {
 			return;
 		}
 
-		if (isReady) {
+		// Get configuration status from MCPModeManager
+		const modeManager = getMCPModeManager();
+
+		// Trigger async process check (non-blocking, updates cache)
+		modeManager.checkProcessStatus().catch(() => {
+			// Ignore errors - we'll use cached result
+		});
+
+		const configStatus = modeManager.checkConfigurationStatus();
+
+		// Aggregate health logic (liveness + readiness + functional):
+		// - Green/Connected: Daemon running AND configured AND process running
+		// - Yellow/Degraded: Daemon running AND configured BUT process NOT running
+		// - Red/Disconnected: Daemon not running OR not configured
+		if (isReady && configStatus.configured && configStatus.processRunning) {
+			// Healthy: Daemon, configuration, AND stdio process are all good
 			this.setState("connected");
+			this.reconnectAttempt = 0;
+		} else if (isReady && configStatus.configured && !configStatus.processRunning) {
+			// Degraded: Daemon running, configured, but stdio process NOT spawned
+			this.setState("degraded");
+			this.reconnectAttempt = 0;
+		} else if (isReady && !configStatus.configured) {
+			// Degraded: Daemon running but not configured
+			this.setState("degraded");
 			this.reconnectAttempt = 0;
 		} else if (wasReady) {
 			// Was connected, now disconnected - trigger reconnecting state briefly
@@ -258,7 +288,28 @@ export class MCPStatusItem implements vscode.Disposable {
 		this.setState("connected");
 
 		// Show brief success notification if we were disconnected
-		vscode.window.setStatusBarMessage("✅ MCP connected", 3000);
+		vscode.window.setStatusBarMessage("✅ MCP connected and configured", 3000);
+	}
+
+	/**
+	 * Notify that MCP is in degraded state (daemon running but not configured)
+	 */
+	notifyDegraded(): void {
+		this.setState("degraded");
+
+		// Show configuration prompt with detailed info
+		const modeManager = getMCPModeManager();
+		const configStatus = modeManager.checkConfigurationStatus();
+
+		const message = configStatus.configuredClients.length > 0
+			? `SnapBack MCP: Daemon running but not configured in this workspace. Configured in: ${configStatus.configuredClients.join(", ")}`
+			: "SnapBack MCP: Daemon running but not configured in any AI client. Configure now to enable protection features.";
+
+		vscode.window.showWarningMessage(message, "Configure MCP", "Dismiss").then((choice) => {
+			if (choice === "Configure MCP") {
+				vscode.commands.executeCommand("snapback.mcp.configure");
+			}
+		});
 	}
 
 	/**
@@ -279,17 +330,29 @@ export class MCPStatusItem implements vscode.Disposable {
 			case "connected":
 				// Show SB·MCP with green checkmark
 				this.statusBarItem.text = "SB·MCP ✓";
-				this.statusBarItem.tooltip = "MCP connected";
+				this.statusBarItem.tooltip = "MCP functional: Daemon running, configured, and stdio process active";
 				this.statusBarItem.backgroundColor = undefined;
 				this.statusBarItem.color = new vscode.ThemeColor("testing.iconPassed"); // Green
 				this.statusBarItem.show();
 				break;
 
-			case "disconnected":
+			case "degraded":
+				// Show SB·MCP with warning - daemon running but stdio process not spawned
 				this.statusBarItem.text = "SB·MCP ⚠";
-				this.statusBarItem.tooltip = "MCP server disconnected. Click to diagnose.";
+				this.statusBarItem.tooltip =
+					"MCP degraded: Daemon running and configured, but stdio process not spawned by AI client. Try restarting your AI client (Qoder/Cursor/Claude).";
 				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 				this.statusBarItem.color = undefined;
+				this.statusBarItem.command = "snapback.mcp.status"; // Show diagnostics
+				this.statusBarItem.show();
+				break;
+
+			case "disconnected":
+				this.statusBarItem.text = "SB·MCP ⚠";
+				this.statusBarItem.tooltip = "MCP disconnected: Daemon not running. Click to diagnose.";
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+				this.statusBarItem.color = undefined;
+				this.statusBarItem.command = "snapback.mcp.status"; // Diagnosis
 				this.statusBarItem.show();
 				break;
 
