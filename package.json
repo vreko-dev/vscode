@@ -1217,7 +1217,7 @@
   "repository": "snapback-dev/vscode.git",
   "scripts": {
     "audit-deps": "node scripts/audit-dependencies.js",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit --project tsconfig.json",
     "check:bundle-size": "node scripts/check-bundle-size.js",
     "collect-load-metrics": "node scripts/collect-load-metrics.js",
     "compile": "node esbuild.config.cjs --production",

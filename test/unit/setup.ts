@@ -472,7 +472,18 @@ vi.mock("vscode", () => ({
 		openExternal: vi.fn().mockResolvedValue(true),
 	},
 	extensions: {
-		all: [],
+		all: [
+			// Mock GitHub Copilot extension for AI detection tests
+			{
+				id: "github.copilot",
+				extensionUri: { fsPath: "/test/extensions/github.copilot" },
+				extensionPath: "/test/extensions/github.copilot",
+				isActive: true,
+				packageJSON: { name: "copilot", version: "1.0.0" },
+				exports: {},
+				extensionKind: 1, // ExtensionKind.UI
+			},
+		],
 		getExtension: vi.fn(() => ({
 			packageJSON: { version: "1.0.0-test" },
 			extensionPath: "/test/extension",
@@ -641,6 +652,59 @@ vi.mock("@snapback/engine", () => {
 		orchestrator: {},
 		Orchestrator: vi.fn(),
 		VERSION: "2.0.0-alpha.1",
+	};
+});
+
+// Mock @snapback/engine/signals submodule
+// SignalBridge imports from this submodule path
+vi.mock("@snapback/engine/signals", () => {
+	// Mock BurstDetector class
+	class MockBurstDetector {
+		constructor(_config: any) {}
+		processChange(filePath: string, charCount: number, timestamp: number) {
+			// Return burst event for large changes
+			if (charCount > 400) {
+				return {
+					detected: true,
+					filePath,
+					charCount,
+					velocity: charCount / 100, // Mock velocity calculation
+					timestamp,
+				};
+			}
+			return null;
+		}
+		updateThreshold() {}
+		clear() {}
+		cleanup() {}
+	}
+
+	// Mock AIDetector class
+	class MockAIDetector {
+		constructor(_config: any) {}
+		detect(input: any) {
+			// Detect GitHub Copilot from extension IDs
+			if (input.extensionIds && input.extensionIds.includes("github.copilot")) {
+				return {
+					tool: "GitHub Copilot",
+					confidence: 0.95,
+					method: "extension",
+					indicators: ["GitHub Copilot extension active"],
+				};
+			}
+			return {
+				tool: null,
+				confidence: 0,
+				method: null,
+			};
+		}
+		reset() {}
+		cleanup() {}
+	}
+
+	return {
+		BurstDetector: MockBurstDetector,
+		AIDetector: MockAIDetector,
 	};
 });
 
