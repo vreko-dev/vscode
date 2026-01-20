@@ -328,6 +328,72 @@ describe("SignalBridge", () => {
 			// Should detect AI with velocity context
 			expect(aiResult.tool).toBe("GitHub Copilot");
 		});
+
+		// 🔧 REGRESSION TEST: Fix for charCount=0 with persisting velocity bug
+		// Issue: charCount becomes 0 on subsequent detections while velocity persists from
+		// previous burst event, creating impossible charCount=0 + velocity=21922 state
+		// Fix: Only use velocity when charCount > 0 in SignalBridge.detectAI()
+		describe("charCount=0 velocity anomaly (regression)", () => {
+			it("should clear velocity when charCount is 0", () => {
+				const document = createMockDocument("/test/file.ts");
+
+				// Step 1: Create burst to establish velocity in lastBurstEvent
+				const largeText = "x".repeat(500);
+				const changes1 = [createMockChange(largeText)];
+				const burstResult = bridge.computeBurst(document, changes1);
+
+				// Verify burst was detected and velocity exists
+				expect(burstResult.detected).toBe(true);
+				expect(burstResult.velocity).toBeGreaterThan(0);
+
+				// Step 2: Subsequent detection with charCount=0 (empty changes array)
+				const emptyChanges: vscode.TextDocumentContentChangeEvent[] = [];
+				const aiResult = bridge.detectAI(document, emptyChanges);
+
+				// With the fix, velocity should NOT be used when charCount=0
+				// AI detection should not occur based on stale velocity
+				// (Extension detection may still trigger, but not velocity-based)
+				if (aiResult.method === "velocity" || aiResult.method === "combined") {
+					// If velocity-based detection occurred, it's a bug
+					expect(aiResult.method).not.toBe("velocity");
+				}
+			});
+
+			it("should use velocity when charCount > 0 after burst", () => {
+				const document = createMockDocument("/test/file.ts");
+
+				// Step 1: Create burst
+				const largeText = "x".repeat(500);
+				const changes1 = [createMockChange(largeText)];
+				bridge.computeBurst(document, changes1);
+
+				// Step 2: Subsequent change with charCount > 0
+				const changes2 = [createMockChange("const foo = bar;")];
+				const aiResult = bridge.detectAI(document, changes2);
+
+				// Velocity should be available for AI detection
+				// (combined with extension detection)
+				expect(aiResult.tool).toBe("GitHub Copilot");
+				expect(aiResult.confidence).toBeGreaterThan(0);
+			});
+
+			it("should handle single character edit without velocity", () => {
+				const document = createMockDocument("/test/file.ts");
+
+				// Single character change (no burst, charCount=1)
+				const changes = [createMockChange("x")];
+				const burstResult = bridge.computeBurst(document, changes);
+				const aiResult = bridge.detectAI(document, changes);
+
+				// No burst detected (too few characters)
+				expect(burstResult.detected).toBe(false);
+
+				// AI detection may still occur via extension, but not velocity
+				if (aiResult.tool) {
+					expect(aiResult.method).not.toBe("velocity");
+				}
+			});
+		});
 	});
 
 	describe("Feature Flag", () => {

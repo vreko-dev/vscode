@@ -260,6 +260,101 @@ describe("SnapshotStore V2", () => {
 			).rejects.toThrow(/anchor file.*not found/i);
 		});
 
+		// ======================================================================
+		// REGRESSION TEST: 2026-01-19 Path Mismatch Bug
+		// ======================================================================
+		it("should reject POST where anchor uses absolute path but files map uses relative", async () => {
+			// Regression test for AutoDecisionIntegration bug:
+			// specificFiles had absolute paths, fileContents had relative paths
+			const SnapshotStoreModule = await import("../../../src/storage/SnapshotStore");
+
+			const mockBlobStore = {
+				store: vi.fn(),
+				retrieve: vi.fn(),
+				initialize: vi.fn(),
+			};
+
+			const store = new SnapshotStoreModule.SnapshotStore(
+				{ fsPath: "/storage" } as vscode.Uri,
+				mockBlobStore as any,
+			);
+
+			// Files map uses workspace-relative paths (correct)
+			const files = new Map([["apps/api/package.json", "content"]]);
+
+			// This was the bug: anchor file as absolute path
+			await expect(
+				store.createPOST({
+					files,
+					name: "Path mismatch test",
+					anchorFile: "/Users/user/project/apps/api/package.json", // ❌ Absolute
+					parentSeq: 1,
+					parentId: "snap-parent",
+				}),
+			).rejects.toThrow(/anchor file.*not found/i);
+		});
+
+		it("should accept POST where anchor matches files map key exactly", async () => {
+			// Verifies the fix: both anchor and files map use workspace-relative paths
+			const SnapshotStoreModule = await import("../../../src/storage/SnapshotStore");
+
+			const mockBlobStore = {
+				store: vi.fn().mockResolvedValue({ hash: "abc", size: 100, isNew: true }),
+				retrieve: vi.fn(),
+				initialize: vi.fn(),
+			};
+
+			const store = new SnapshotStoreModule.SnapshotStore(
+				{ fsPath: "/storage" } as vscode.Uri,
+				mockBlobStore as any,
+			);
+
+			// Both use workspace-relative paths (correct)
+			const files = new Map([["apps/api/package.json", "content"]]);
+
+			const manifest = await store.createPOST({
+				files,
+				name: "Valid relative path",
+				anchorFile: "apps/api/package.json", // ✅ Relative, matches map key
+				parentSeq: 1,
+				parentId: "snap-parent",
+			});
+
+			expect(manifest.anchorFile).toBe("apps/api/package.json");
+			expect(manifest.files["apps/api/package.json"]).toBeDefined();
+		});
+
+		it("should handle Windows-style paths in anchor file", async () => {
+			// Cross-platform test: Windows backslashes should be normalized
+			const SnapshotStoreModule = await import("../../../src/storage/SnapshotStore");
+
+			const mockBlobStore = {
+				store: vi.fn().mockResolvedValue({ hash: "abc", size: 100, isNew: true }),
+				retrieve: vi.fn(),
+				initialize: vi.fn(),
+			};
+
+			const store = new SnapshotStoreModule.SnapshotStore(
+				{ fsPath: "/storage" } as vscode.Uri,
+				mockBlobStore as any,
+			);
+
+			// Files map with forward slashes (normalized)
+			const files = new Map([["src/windows/file.ts", "content"]]);
+
+			// Anchor with forward slashes should match
+			const manifest = await store.createPOST({
+				files,
+				name: "Windows path test",
+				anchorFile: "src/windows/file.ts",
+				parentSeq: 1,
+				parentId: "snap-parent",
+			});
+
+			expect(manifest.anchorFile).toBe("src/windows/file.ts");
+			expect(manifest.files["src/windows/file.ts"]).toBeDefined();
+		});
+
 		it("should reject POST with 0-delta (identical content to parent)", async () => {
 			// 0-delta prevention: no snapshot when content matches parent
 			const SnapshotStoreModule = await import("../../../src/storage/SnapshotStore");

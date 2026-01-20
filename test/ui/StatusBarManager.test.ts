@@ -1117,5 +1117,87 @@ describe('StatusBarManager', () => {
         expect(statusBar.getSnapshotCount()).toBe(2);
       });
     });
+
+    // 🔧 REGRESSION TEST: Fix for sequence abort loop bug
+    // Issue: Multiple AI detections within <100ms caused each new sequence to abort
+    // the previous one at step 1, resulting in no visual feedback
+    // Fix: Added 1.5s debounce window in StatusBarManager.showAIDetectedSequence()
+    describe('debouncing (regression: sequence abort loops)', () => {
+      it('should debounce rapid AI detections to prevent abort loops', async () => {
+        // Simulate 8 rapid AI detections within 120ms (real-world bug scenario)
+        // This mimics VS Code firing multiple change events for a single paste operation
+        const detections: Promise<void>[] = [];
+        for (let i = 0; i < 8; i++) {
+          detections.push(statusBar.showAIDetectedSequence('Codeium'));
+          await vi.advanceTimersByTimeAsync(15); // 15ms between each detection
+        }
+
+        // First detection should proceed, rest should be debounced
+        // After 120ms (8 * 15ms), we're still within the 1500ms debounce window
+
+        // But only ONE sequence should have actually run
+        // The first sequence should complete all 3 steps without being aborted
+        // Step 1: "✨ Codeium detected" (1200ms)
+        await vi.advanceTimersByTimeAsync(1200);
+        expect(mockStatusBarItem.text).toBe('$(sync~spin) Capturing...');
+
+        // Step 2: "🔄 Capturing..." (800ms)
+        await vi.advanceTimersByTimeAsync(800);
+        expect(mockStatusBarItem.text).toBe('$(check) Snapshot saved');
+
+        // Step 3: "✅ Snapshot saved" (1500ms)
+        await vi.advanceTimersByTimeAsync(1500);
+
+        // Sequence should complete and return to idle
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+
+        // Wait for all promises to resolve
+        await Promise.all(detections);
+      });
+
+      it('should allow new sequence after debounce window expires', async () => {
+        // First detection
+        const seq1 = statusBar.showAIDetectedSequence('Copilot');
+        expect(mockStatusBarItem.text).toBe('$(sparkle) Copilot detected');
+
+        // Complete first sequence
+        await vi.advanceTimersByTimeAsync(3500); // Total sequence duration
+        await seq1;
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+
+        // Wait for debounce window to expire (1500ms)
+        await vi.advanceTimersByTimeAsync(1500);
+
+        // Second detection after debounce window should proceed
+        const seq2 = statusBar.showAIDetectedSequence('Cursor');
+        expect(mockStatusBarItem.text).toBe('$(sparkle) Cursor detected');
+
+        await vi.advanceTimersByTimeAsync(3500);
+        await seq2;
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+      });
+
+      it('should prevent sequence abort when detections fire during sequence', async () => {
+        // Start first sequence
+        const seq1 = statusBar.showAIDetectedSequence('Copilot');
+        expect(mockStatusBarItem.text).toBe('$(sparkle) Copilot detected');
+
+        // Advance to middle of sequence (step 2)
+        await vi.advanceTimersByTimeAsync(1200);
+        expect(mockStatusBarItem.text).toBe('$(sync~spin) Capturing...');
+
+        // Fire another detection during sequence (should be debounced)
+        const seq2 = statusBar.showAIDetectedSequence('Cursor');
+
+        // First sequence should continue uninterrupted
+        await vi.advanceTimersByTimeAsync(800);
+        expect(mockStatusBarItem.text).toBe('$(check) Snapshot saved');
+
+        // Complete both sequences
+        await vi.advanceTimersByTimeAsync(1500);
+        await Promise.all([seq1, seq2]);
+        expect(mockStatusBarItem.text).toBe('$(shield) SnapBack');
+      });
+    });
   });
 });
