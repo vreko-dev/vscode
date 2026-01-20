@@ -1,6 +1,11 @@
 {
+	"$schema": "https://json.schemastore.org/tsconfig",
 	"extends": "@snapback/tsconfig/extension",
 	"compilerOptions": {
+		// CRITICAL: composite must be false to prevent type-checking sibling projects
+		// When composite: true, TypeScript follows project references from root tsconfig.json
+		// This causes VS Code type-check to validate API files, which have unresolved path aliases
+		// See: https://www.typescriptlang.org/docs/handbook/project-references.html
 		"composite": false,
 		"types": ["vscode", "mocha"],
 		"emitDeclarationOnly": false,
@@ -22,5 +27,8 @@
 		"../api/**/*",
 		"../**/node_modules"
 	],
+	// CRITICAL: Empty references array prevents following root project references
+	// This ensures VS Code type-check only validates VS Code source files
+	// DO NOT add references to sibling projects (api, web, cli, etc.)
 	"references": []
 }
