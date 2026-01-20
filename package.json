@@ -1,7 +1,7 @@
 {
   "name": "snapback-vscode",
   "description": "Automatic snapshots for AI-assisted coding. Recover what Cursor, Copilot, or Claude overwrote in <1 second. Your code never leaves your machine.",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "activationEvents": [
     "onStartupFinished",
     "onCommand:snapback.*",

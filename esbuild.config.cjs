@@ -16,100 +16,45 @@ async function main() {
 		target: "node20",
 		outfile: "dist/extension.js",
 
-		// External dependencies - only vscode API is truly external
-		// All other dependencies are bundled into extension.js
+		// External dependencies - ONLY vscode API and native modules
+		// Per VS Code best practices: bundle everything except vscode and native .node modules
 		external: [
 			"vscode",
-			// NOTE: sql.js and better-sqlite3 are no longer used (file-based storage now)
-			// Native modules from @snapback/intelligence (semantic search)
-			// These are optional peer deps that use native .node modules
-			// They MUST be installed in the extension's node_modules at runtime
+			// Native modules that contain .node binaries - CANNOT be bundled
 			"onnxruntime-node",
 			"onnxruntime-common",
 			"onnxruntime-web",
 			"@huggingface/transformers", // Uses onnxruntime-node for local inference
 			"@xenova/transformers", // Alternative name for Hugging Face Transformers.js
-			"@sentry/node", // Error tracking - must be external to avoid bundling issues
+			"sharp", // Native .node binaries
+			"sql.js", // Uses WASM
+			"@sentry/node", // Error tracking - external for shared environment safety
 			"@sentry/core",
 			"@sentry/types",
-			"sql.js", // Uses WASM, optional for SemanticRetriever
-			// CRITICAL: sharp must be external - contains native .node binaries
-			// Bundling sharp causes "No loader configured for .node files" errors
-			"sharp",
-			// Large dependencies externalized (lazy-loaded at runtime)
-			"simple-git", // ~200KB - lazy-loaded via git-lazy.ts
-			"chokidar", // ~400KB - only used in agent watcher
-			// Externalize heavy packages to language server
-			"@snapback/intelligence", // Moved to language server
-			"@snapback/intelligence/*", // All subpaths (vitals, context, etc.)
-			// Heavy workspace packages - dynamically imported for bundle size reduction
-			"@snapback/core", // ~4MB - MCP federation (lazy-loaded via dynamic import)
-			"@snapback/core/*", // All subpaths
-			// "@snapback/engine",        // Must be bundled - ESM-only package, Node CJS can't resolve it
-			// Heavy third-party packages - not needed for extension runtime
-			"@aws-sdk/*", // AWS S3 client from SDK - not needed for local extension
-			"pino", // Logging from infrastructure - using local logger
-			"pino-pretty",
+			// Heavy third-party packages NOT needed for extension runtime
 			"posthog-node", // Using local telemetry client
 			"@typescript-eslint/*", // From SDK/contracts if pulled in
-			// madge and its heavy deps - only used for static analysis, not runtime
-			"madge", // ~10MB with deps - dependency graph analyzer
-			"typescript", // 8.9MB - pulled by madge's dependency-tree
-			"dependency-tree", // Pulls in typescript, requirejs
-			"precinct", // Pulls in gonzales-pe, babel parser
-			"filing-cabinet", // Pulls in requirejs
-			"requirejs", // 1.2MB - AMD module loader
-			"gonzales-pe", // 548KB - CSS parser
-			"detective-*", // Various language detectives
-			"@snapback/infrastructure", // No longer needed - using local logger/telemetry
-			"@snapback/infrastructure/*", // All subpaths
 			"drizzle-orm", // Database ORM from platform - not needed locally
 			"drizzle-orm/*",
-			"@vue/compiler-sfc", // Template engine not needed
-			"esprima", // AST parser - not needed in extension (engine uses it)
-			// Optional template engines from @vue/compiler-sfc's consolidate.js
-			"velocityjs",
-			"dustjs-linkedin",
-			"atpl",
-			"liquor",
-			"twig",
-			"ejs",
-			"eco",
-			"jazz",
-			"jqtpl",
-			"hamljs",
-			"hamlet",
-			"whiskers",
-			"haml-coffee",
-			"hogan.js",
-			"templayed",
-			"handlebars",
-			"underscore",
-			"lodash",
-			"walrus",
-			"mustache",
-			"just",
-			"ect",
-			"mote",
-			"toffee",
-			"dot",
-			"bracket-template",
-			"ractive",
-			"nunjucks",
-			"htmling",
-			"babel-core",
-			"plates",
-			"react-dom/server",
-			"react",
-			"arc-templates",
-			"vash",
-			"slm",
-			"marko",
-			"teacup/lib/express",
-			"teacup",
-			"coffee-script",
-			"squirrelly",
-			"twing",
+			"@aws-sdk/*", // AWS S3 client - not needed for local extension
+			// Static analysis tools - not needed at runtime
+			"madge",
+			"typescript",
+			"dependency-tree",
+			"precinct",
+			"filing-cabinet",
+			"requirejs",
+			"gonzales-pe",
+			"detective-*",
+			"esprima",
+			// Template engines (optional deps from consolidate.js)
+			"velocityjs", "dustjs-linkedin", "atpl", "liquor", "twig", "ejs", "eco",
+			"jazz", "jqtpl", "hamljs", "hamlet", "whiskers", "haml-coffee", "hogan.js",
+			"templayed", "handlebars", "underscore", "lodash", "walrus", "mustache",
+			"just", "ect", "mote", "toffee", "dot", "bracket-template", "ractive",
+			"nunjucks", "htmling", "babel-core", "plates", "react-dom/server", "react",
+			"arc-templates", "vash", "slm", "marko", "teacup/lib/express", "teacup",
+			"coffee-script", "squirrelly", "twing", "@vue/compiler-sfc",
 		],
 
 		// Minification (production only)
@@ -153,76 +98,34 @@ async function main() {
 
 		// Add plugins to handle native modules and problematic dependencies
 		plugins: [
-			// CRITICAL: Externalize workspace packages with native dependencies BEFORE resolution
-			// This plugin intercepts imports BEFORE esbuild tries to resolve them to local paths
-			// Without this, esbuild traverses into @snapback/intelligence -> @xenova/transformers -> sharp -> .node
+			// Externalize native modules that contain .node binaries
 			{
-				name: "workspace-externals",
+				name: "native-module-externals",
 				setup(build) {
 					// Intercept @sentry/* packages (external for shared environment safety)
 					build.onResolve({ filter: /^@sentry\// }, (args) => {
-						return {
-							path: args.path,
-							external: true,
-						};
-					});
-
-					// Intercept @snapback/intelligence and all subpaths
-					// Must happen BEFORE resolution to prevent traversing into workspace package
-					build.onResolve({ filter: /^@snapback\/intelligence(\/.*)?$/ }, (args) => {
-						return {
-							path: args.path,
-							external: true,
-						};
-					});
-
-					// Intercept @snapback/core and all subpaths
-					build.onResolve({ filter: /^@snapback\/core(\/.*)?$/ }, (args) => {
-						return {
-							path: args.path,
-							external: true,
-						};
-					});
-
-					// Intercept @snapback/infrastructure and all subpaths
-					build.onResolve({ filter: /^@snapback\/infrastructure(\/.*)?$/ }, (args) => {
-						return {
-							path: args.path,
-							external: true,
-						};
+						return { path: args.path, external: true };
 					});
 
 					// Intercept @xenova/transformers (has sharp as dependency with native .node files)
 					build.onResolve({ filter: /^@xenova\/transformers/ }, (args) => {
-						return {
-							path: args.path,
-							external: true,
-						};
+						return { path: args.path, external: true };
 					});
 
 					// Intercept sharp directly (native .node binaries)
 					build.onResolve({ filter: /^sharp/ }, (args) => {
-						return {
-							path: args.path,
-							external: true,
-						};
+						return { path: args.path, external: true };
 					});
 
 					// Intercept better-sqlite3 (native module)
 					build.onResolve({ filter: /^better-sqlite3/ }, (args) => {
-						return {
-							path: args.path,
-							external: true,
-						};
+						return { path: args.path, external: true };
 					});
 
 					// Intercept all .node files as a fallback safety net
 					build.onResolve({ filter: /\.node$/ }, (args) => {
 						console.warn(`[esbuild] Externalizing native module: ${args.path}`);
-						return {
-							path: args.path,
-							external: true,
-						};
+						return { path: args.path, external: true };
 					});
 				},
 			},
@@ -252,15 +155,6 @@ async function main() {
 				setup(build) {
 					// NOTE: better-sqlite3 and bindings are no longer used
 					// (Extension now uses file-based storage instead of SQLite)
-
-					// Handle pino-pretty (pino transport that won't be used in extension)
-					// This prevents "unable to determine transport target" errors
-					build.onResolve({ filter: /^pino-pretty$/ }, (args) => {
-						return {
-							path: args.path,
-							namespace: "worker-stub",
-						};
-					});
 
 					// Handle piscina (worker thread pool, not used in extension)
 					build.onResolve({ filter: /^piscina$/ }, (args) => {
