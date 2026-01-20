@@ -1,13 +1,26 @@
 {
 	"extends": "@snapback/tsconfig/extension",
 	"compilerOptions": {
+		"composite": false,
 		"types": ["vscode", "mocha"],
 		"emitDeclarationOnly": false,
 		"rootDir": "src",
+		"skipLibCheck": true,
 		"paths": {
 			"@vscode/*": ["./src/*"]
 		}
 	},
 	"include": ["src/**/*.ts", "vscode.proposed.timeline.d.ts", "types/**/*.d.ts"],
-	"exclude": ["node_modules", "dist", "out", "**/*.backup.js", "**/*.corrupted.js", "src/**/*.js", "src/**/*.d.ts"]
+	"exclude": [
+		"node_modules",
+		"dist",
+		"out",
+		"**/*.backup.js",
+		"**/*.corrupted.js",
+		"src/**/*.js",
+		"src/**/*.d.ts",
+		"../api/**/*",
+		"../**/node_modules"
+	],
+	"references": []
 }
