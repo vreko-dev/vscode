@@ -1,5 +1,9 @@
 import { logger } from "../utils/logger";
 
+/**
+ * Test-local Snapshot interface
+ * NOTE: For production usage, use Snapshot from @snapback/contracts
+ */
 interface Snapshot {
 	id: string;
 	timestamp: number;

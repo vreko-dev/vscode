@@ -24,36 +24,42 @@
 export type Result<T, E = Error> = { success: true; value: T } | { success: false; error: E };
 
 /**
- * Creates a successful result
+ * Creates a successful result (lowercase convention)
  *
  * @param value - The successful value to wrap
  * @returns A successful Result containing the value
  *
  * @example
  * ```typescript
- * const result = Ok(42);
+ * const result = ok(42);
  * // result: { success: true, value: 42 }
  * ```
  */
-export function Ok<T>(value: T): Result<T, never> {
+export function ok<T>(value: T): Result<T, never> {
 	return { success: true, value };
 }
 
 /**
- * Creates a failed result
+ * Creates a failed result (lowercase convention)
  *
  * @param error - The error to wrap
  * @returns A failed Result containing the error
  *
  * @example
  * ```typescript
- * const result = Err(new Error('Something went wrong'));
+ * const result = err(new Error('Something went wrong'));
  * // result: { success: false, error: Error('Something went wrong') }
  * ```
  */
-export function Err<E = Error>(error: E): Result<never, E> {
+export function err<E = Error>(error: E): Result<never, E> {
 	return { success: false, error };
 }
+
+// Uppercase aliases for backward compatibility (deprecated)
+/** @deprecated Use lowercase ok() instead */
+export const Ok = ok;
+/** @deprecated Use lowercase err() instead */
+export const Err = err;
 
 /**
  * Type guard for successful results
@@ -181,7 +187,7 @@ export function unwrapOrElse<T, E>(result: Result<T, E>, fn: (error: E) => T): T
  */
 export function map<T, U, E>(result: Result<T, E>, fn: (value: T) => U): Result<U, E> {
 	if (isOk(result)) {
-		return Ok(fn(result.value));
+		return ok(fn(result.value));
 	}
 	return result;
 }
@@ -201,7 +207,7 @@ export function map<T, U, E>(result: Result<T, E>, fn: (value: T) => U): Result<
  */
 export function mapErr<T, E, F>(result: Result<T, E>, fn: (error: E) => F): Result<T, F> {
 	if (isErr(result)) {
-		return Err(fn(result.error));
+		return err(fn(result.error));
 	}
 	return result;
 }
@@ -246,9 +252,9 @@ export function andThen<T, U, E>(result: Result<T, E>, fn: (value: T) => Result<
 export async function fromPromise<T>(promise: Promise<T>): Promise<Result<T, Error>> {
 	try {
 		const value = await promise;
-		return Ok(value);
+		return ok(value);
 	} catch (error) {
-		return Err(error instanceof Error ? error : new Error(String(error)));
+		return err(error instanceof Error ? error : new Error(String(error)));
 	}
 }
 
@@ -303,7 +309,7 @@ export function all<T, E>(results: Result<T, E>[]): Result<T[], E> {
 		}
 		values.push(result.value);
 	}
-	return Ok(values);
+	return ok(values);
 }
 
 /**
@@ -336,9 +342,9 @@ export function allOrErrors<T, E>(results: Result<T, E>[]): Result<T[], E[]> {
 	}
 
 	if (errors.length > 0) {
-		return Err(errors);
+		return err(errors);
 	}
-	return Ok(values);
+	return ok(values);
 }
 
 /**
@@ -362,9 +368,9 @@ export function allOrErrors<T, E>(results: Result<T, E>[]): Result<T[], E[]> {
 export function tryCatch<T, Args extends unknown[]>(fn: (...args: Args) => T): (...args: Args) => Result<T, Error> {
 	return (...args: Args): Result<T, Error> => {
 		try {
-			return Ok(fn(...args));
+			return ok(fn(...args));
 		} catch (error) {
-			return Err(error instanceof Error ? error : new Error(String(error)));
+			return err(error instanceof Error ? error : new Error(String(error)));
 		}
 	};
 }
@@ -391,9 +397,9 @@ export function tryCatchAsync<T, Args extends unknown[]>(
 	return async (...args: Args): Promise<Result<T, Error>> => {
 		try {
 			const value = await fn(...args);
-			return Ok(value);
+			return ok(value);
 		} catch (error) {
-			return Err(error instanceof Error ? error : new Error(String(error)));
+			return err(error instanceof Error ? error : new Error(String(error)));
 		}
 	};
 }
