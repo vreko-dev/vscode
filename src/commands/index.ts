@@ -123,5 +123,6 @@ export function registerAllCommands(
 		// 🆕 Register SnapshotQuickPicker commands (status bar → QuickPick restore flow)
 		...registerSnapshotQuickPickerCommands(context, commandContext.storage, commandContext.workspaceRoot),
 		// NOTE: snapback.createSnapshot is registered in registerSnapshotCreationCommands above
+		// NOTE: Dashboard commands are registered in phase4-providers.ts to avoid duplicate registration
 	];
 }

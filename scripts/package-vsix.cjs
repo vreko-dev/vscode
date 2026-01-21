@@ -51,6 +51,58 @@ class VSIXPackager {
 		);
 	}
 
+	/**
+	 * Build the webview React application
+	 * This must be done before packaging to ensure the dashboard works
+	 */
+	async buildWebview() {
+		log("🌐 Building webview React application...", "blue");
+
+		const webviewDir = path.join(this.extensionRoot, "webview");
+		const webviewDistDir = path.join(this.extensionRoot, "dist", "webview", "assets");
+
+		// Check if webview source exists
+		if (!fs.existsSync(webviewDir)) {
+			log("  ⚠ Webview directory not found, skipping webview build", "yellow");
+			return;
+		}
+
+		try {
+			// Run the webview build
+			execCommand("pnpm build", { cwd: webviewDir });
+
+			// Verify the build output exists
+			const requiredFiles = ["index.js", "index.css"];
+			const missingFiles = [];
+
+			for (const file of requiredFiles) {
+				const filePath = path.join(webviewDistDir, file);
+				if (!fs.existsSync(filePath)) {
+					missingFiles.push(file);
+				}
+			}
+
+			if (missingFiles.length > 0) {
+				throw new Error(
+					`Webview build incomplete. Missing files: ${missingFiles.join(", ")}`
+				);
+			}
+
+			// Report success with file sizes
+			log("  ✓ Webview build completed successfully!", "green");
+			for (const file of requiredFiles) {
+				const filePath = path.join(webviewDistDir, file);
+				const stats = fs.statSync(filePath);
+				const sizeKB = (stats.size / 1024).toFixed(1);
+				log(`    • ${file}: ${sizeKB} KB`, "cyan");
+			}
+		} catch (error) {
+			log(`❌ Webview build failed: ${error.message}`, "red");
+			log("  The dashboard will not work without the webview bundle.", "yellow");
+			throw error;
+		}
+	}
+
 	resolveVersionFromPnpm(depName) {
 		try {
 			const result = execSync(`pnpm list ${depName} --depth 0 --json`, {
@@ -262,6 +314,9 @@ class VSIXPackager {
 
 			// Clean old VSIX files first
 			await this.cleanOldVSIXFiles();
+
+			// Build webview BEFORE resolving dependencies (ensures dashboard works)
+			await this.buildWebview();
 
 			// Resolve dependencies and create backup
 			await this.resolveWorkspaceDependencies();

@@ -330,8 +330,11 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	 */
 	private async handleMessage(message: WebviewMessage): Promise<void> {
 		try {
+			logger.debug("Webview message received", { type: message.type });
+
 			switch (message.type) {
 				case "webviewReady":
+					logger.info("Webview ready - sending initial data");
 					this.isWebviewReady = true;
 					await this.sendDataToWebview();
 					break;
@@ -733,13 +736,34 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 			font-size: 14px;
 			color: var(--vscode-descriptionForeground);
 		}
+		.error {
+			display: none;
+			color: var(--vscode-errorForeground);
+			padding: 20px;
+		}
 	</style>
 	<link rel="stylesheet" href="${styleUri}">
 </head>
 <body>
 	<div id="root" data-panel="${initialTab}">
 		<div class="loading">Loading SnapBack Dashboard...</div>
+		<div class="error" id="error"></div>
 	</div>
+	<script nonce="${nonce}">
+		// Global error handler to catch loading issues
+		window.addEventListener('error', function(e) {
+			console.error('Dashboard loading error:', e);
+			document.querySelector('.loading').style.display = 'none';
+			var errorDiv = document.getElementById('error');
+			errorDiv.style.display = 'block';
+			errorDiv.textContent = 'Failed to load dashboard: ' + e.message;
+		});
+		
+		// Log successful load
+		window.addEventListener('load', function() {
+			console.log('Dashboard HTML loaded successfully');
+		});
+	</script>
 	<script nonce="${nonce}" src="${bundleUri}"></script>
 </body>
 </html>`;

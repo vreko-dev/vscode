@@ -298,6 +298,7 @@ export class SnapshotManager {
 			id: newState.id,
 			name,
 			timestamp: newState.timestamp,
+			version: "1.0", // Required by contracts Snapshot schema
 			files: fileStates.map((state) => state.path),
 			fileStates: fileStates,
 			isProtected: options.protected || false,

@@ -66,6 +66,7 @@ export class SnapshotStorageAdapter implements IStorage {
 			id: snapshot.id,
 			name: snapshot.name || `Snapshot ${new Date(snapshot.timestamp).toLocaleString()}`,
 			timestamp: snapshot.timestamp,
+			version: "1.0", // Required by contracts Snapshot schema
 			files: Object.keys(snapshot.contents || {}),
 			isProtected: false,
 			icon: "circle",
@@ -82,6 +83,7 @@ export class SnapshotStorageAdapter implements IStorage {
 			id: snapshot.id,
 			name: snapshot.name || `Snapshot ${new Date(snapshot.timestamp).toLocaleString()}`,
 			timestamp: snapshot.timestamp,
+			version: "1.0", // Required by contracts Snapshot schema
 			files: Object.keys(snapshot.files || {}),
 			isProtected: false,
 			icon: "circle",

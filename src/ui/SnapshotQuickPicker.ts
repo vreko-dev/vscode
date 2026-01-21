@@ -289,8 +289,8 @@ export class SnapshotQuickPicker implements vscode.Disposable {
 
 			case "protection":
 				try {
-					// Show protection status Quick Pick
-					await vscode.commands.executeCommand("snapback.showProtectionStatus");
+					// Show protection status Quick Pick (uses the registered showStatus command)
+					await vscode.commands.executeCommand("snapback.showStatus");
 				} catch (error) {
 					logger.error("Failed to show protection status", error as Error);
 					vscode.window.showErrorMessage(

@@ -263,7 +263,7 @@ export function registerSessionCommands(
 					snapshots: selected.snapshots.map((snap) => ({
 						id: snap.id,
 						timestamp: snap.timestamp,
-						metadata: snap.metadata,
+						meta: snap.meta, // Aligned with contracts Snapshot field naming
 					})),
 				};
 
