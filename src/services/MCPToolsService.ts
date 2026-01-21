@@ -16,6 +16,8 @@
 
 import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
 import type { IStorageManager } from "../storage/types";
+import { logger } from "../utils/logger";
+import { getDaemonBridge } from "./DaemonBridge";
 import type { ProtectedFileRegistry } from "./protectedFileRegistry";
 
 // =============================================================================
@@ -218,6 +220,24 @@ export class MCPToolsService {
 		this._activeTaskId = taskId;
 		this._taskStartTime = Date.now();
 
+		// Sync session start with daemon (best-effort, non-blocking)
+		const bridge = getDaemonBridge();
+		if (bridge.isConnected()) {
+			try {
+				await bridge.beginSession(
+					this._workspaceRoot,
+					params.task || "MCP task",
+					params.files,
+					params.keywords,
+				);
+				logger.debug("Session start synced with daemon", { taskId });
+			} catch (error) {
+				logger.debug("Daemon session sync failed (non-critical)", {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
+
 		// Get protection levels for files
 		const protection: Record<string, string> = {};
 		const warnings: Warning[] = [];
@@ -357,6 +377,24 @@ export class MCPToolsService {
 			await this._sessionCoordinator.finalizeSession("task");
 		}
 
+		// Sync session end with daemon (best-effort, non-blocking)
+		const bridge = getDaemonBridge();
+		if (bridge.isConnected()) {
+			try {
+				await bridge.endSession(
+					this._workspaceRoot,
+					outcome,
+					true, // createSnapshot
+					params.notes,
+				);
+				logger.debug("Session end synced with daemon", { outcome });
+			} catch (error) {
+				logger.debug("Daemon session sync failed (non-critical)", {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
+
 		// Calculate token savings estimate
 		const duration = this._taskStartTime ? Date.now() - this._taskStartTime : 0;
 		const tokensSaved = `~${Math.round(duration / 100)}K`; // Rough estimate
@@ -385,6 +423,24 @@ export class MCPToolsService {
 			action: params.action,
 			type,
 		});
+
+		// Sync learning with daemon (best-effort, non-blocking)
+		const bridge = getDaemonBridge();
+		if (bridge.isConnected()) {
+			try {
+				await bridge.addLearning(this._workspaceRoot, {
+					trigger: params.trigger,
+					action: params.action,
+					type,
+					source: params.source || "mcp-extension",
+				});
+				logger.debug("Learning synced with daemon", { id, type });
+			} catch (error) {
+				logger.debug("Daemon learning sync failed (non-critical)", {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
 
 		return { id, type };
 	}
