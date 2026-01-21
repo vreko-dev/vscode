@@ -1018,6 +1018,176 @@ export class DaemonBridge extends vscode.Disposable {
 	}
 
 	// =========================================================================
+	// SESSION OPERATIONS
+	// =========================================================================
+
+	/**
+	 * Begin a new session in the daemon
+	 * @param workspacePath Workspace root path
+	 * @param task Task description/summary
+	 * @param files Optional array of initial files
+	 * @param keywords Optional keywords for context
+	 * @returns Session information with task ID, patterns, and learnings
+	 */
+	async beginSession(
+		workspacePath: string,
+		task: string,
+		files?: string[],
+		keywords?: string[],
+	): Promise<{
+		taskId: string;
+		patterns: Array<{ name: string; description: string }>;
+		constraints: Array<{ domain: string; name: string; value: string | number; description: string }>;
+		learnings: Array<{ type: string; trigger: string; action: string; relevanceScore: number }>;
+		risk: { level: string; factors: string[] };
+		nextActions: string[];
+	}> {
+		return this.request("session.begin", {
+			workspace: workspacePath,
+			task,
+			files,
+			keywords,
+		});
+	}
+
+	/**
+	 * End the current session in the daemon
+	 * @param workspacePath Workspace root path
+	 * @param outcome Session outcome: 'completed', 'abandoned', 'blocked'
+	 * @param createSnapshot Whether to create a final snapshot
+	 * @param notes Optional notes about session completion
+	 * @returns Session finalization result
+	 */
+	async endSession(
+		workspacePath: string,
+		outcome: "completed" | "abandoned" | "blocked",
+		createSnapshot = true,
+		notes?: string,
+	): Promise<{
+		finalized: boolean;
+		sessionId: string;
+		filesModified: number;
+		snapshotId?: string;
+	}> {
+		return this.request("session.end", {
+			workspace: workspacePath,
+			outcome,
+			createSnapshot,
+			notes,
+		});
+	}
+
+	/**
+	 * Get changes from the current session
+	 * @param workspacePath Workspace root path
+	 * @param includeDiff Whether to include full diff
+	 * @returns Session changes with file list and optional diffs
+	 */
+	async getSessionChanges(
+		workspacePath: string,
+		includeDiff = false,
+	): Promise<{
+		files: Array<{ path: string; action: "add" | "change" | "delete"; linesChanged?: number }>;
+		diff?: string;
+	}> {
+		return this.request("session.changes", {
+			workspace: workspacePath,
+			includeDiff,
+		});
+	}
+
+	// =========================================================================
+	// LEARNING OPERATIONS
+	// =========================================================================
+
+	/**
+	 * Add a learning to the daemon's knowledge base
+	 * @param workspacePath Workspace root path
+	 * @param learning Learning object with trigger, action, and type
+	 * @returns Confirmation with learning ID
+	 */
+	async addLearning(
+		workspacePath: string,
+		learning: {
+			trigger: string;
+			action: string;
+			type?: "pattern" | "pitfall" | "efficiency" | "discovery" | "workflow";
+			source?: string;
+		},
+	): Promise<{ id: string; recorded: boolean }> {
+		return this.request("learning.add", {
+			workspace: workspacePath,
+			...learning,
+		});
+	}
+
+	/**
+	 * Search learnings by keywords
+	 * @param workspacePath Workspace root path
+	 * @param keywords Keywords to search for
+	 * @param limit Maximum number of results (default: 10)
+	 * @returns Array of relevant learnings
+	 */
+	async searchLearnings(
+		workspacePath: string,
+		keywords: string[],
+		limit = 10,
+	): Promise<Array<{ type: string; trigger: string; action: string; usageCount: number; relevanceScore: number }>> {
+		return this.request("learning.search", {
+			workspace: workspacePath,
+			keywords,
+			limit,
+		});
+	}
+
+	// =========================================================================
+	// CONTEXT & VALIDATION OPERATIONS
+	// =========================================================================
+
+	/**
+	 * Get context from the daemon (patterns, constraints, learnings)
+	 * @param workspacePath Workspace root path
+	 * @param task Optional task description for context filtering
+	 * @param keywords Optional keywords for context filtering
+	 * @returns Context object with patterns and learnings
+	 */
+	async getContext(
+		workspacePath: string,
+		task?: string,
+		keywords?: string[],
+	): Promise<{
+		patterns: string;
+		constraints: Array<{ domain: string; name: string; value: string | number; description: string }>;
+		learnings: Array<{ type: string; trigger: string; action: string }>;
+	}> {
+		return this.request("context.get", {
+			workspace: workspacePath,
+			task,
+			keywords,
+		});
+	}
+
+	/**
+	 * Run quick validation (TypeScript + Biome)
+	 * @param workspacePath Workspace root path
+	 * @param files Optional array of files to validate (defaults to changed files)
+	 * @returns Validation result with errors and warnings
+	 */
+	async validateQuick(
+		workspacePath: string,
+		files?: string[],
+	): Promise<{
+		passed: boolean;
+		errors: Array<{ file: string; line: number; message: string }>;
+		warnings: Array<{ file: string; line: number; message: string }>;
+	}> {
+		return this.request("validate.quick", {
+			workspace: workspacePath,
+			files,
+		});
+	}
+
+	// =========================================================================
 	// LIFECYCLE
 	// =========================================================================
 
