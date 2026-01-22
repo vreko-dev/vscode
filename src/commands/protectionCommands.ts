@@ -22,6 +22,7 @@ import { ProtectionNotifications } from "../notifications/protectionNotification
 import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
 import type { DaemonBridge } from "../services/DaemonBridge";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
+import type { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
 import { logger } from "../utils/logger";
 import type { ProtectionLevel } from "../views/types";
 import { PROTECTION_LEVELS } from "../views/types";
@@ -309,12 +310,58 @@ export function registerProtectionCommands(
 				}
 
 				try {
+					// ARCHITECTURE_REFACTOR_SPEC.md: Try daemon first for cross-surface coordination
+					if (daemonBridge && workspaceRoot) {
+						try {
+							logger.debug("Attempting daemon delegation for protectCurrentFile", {
+								filePath: fileUri.fsPath,
+								workspaceRoot,
+							});
+
+							const result = await daemonBridge.setProtectionLevel(
+								workspaceRoot,
+								fileUri.fsPath,
+								"watch", // Default protection level
+								"Protected via VS Code command",
+							);
+
+							if (result.success) {
+								logger.info("Daemon delegation succeeded for protectCurrentFile", {
+									filePath: fileUri.fsPath,
+								});
+
+								// Show notification through infrastructure
+								if (protectionNotifications) {
+									await protectionNotifications.showProtectionLevelNotification(
+										fileUri.fsPath,
+										"watch",
+										true, // isNewProtection
+									);
+								} else {
+									vscode.window.showInformationMessage(
+										`Protected: ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
+									);
+								}
+
+								// Invalidate audit cache and refresh
+								if (ctx.protectionService) {
+									ctx.protectionService.invalidateAuditCache();
+									await ctx.protectionService.auditRepo(true);
+								}
+
+								return; // Success via daemon
+							}
+						} catch (daemonError) {
+							logger.warn("Daemon delegation failed for protectCurrentFile, falling back to local", {
+								filePath: fileUri.fsPath,
+								error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+							});
+							// Fall through to local implementation
+						}
+					}
+
+					// Fallback: Local protection via snapbackrc or registry
 					if (snapbackrcLoader) {
-						// Add rule to .snapbackrc (source of truth) - defaults to Watched if not specified,
-						// but here we want to be explicit about the default behavior if needed,
-						// though addProtectionRule might need a level.
-						// Let's check the registry.add behavior - it defaulted to Watched?
-						// Registry.add defaults to Watched. We should do the same.
 						await snapbackrcLoader.addProtectionRule(fileUri.fsPath, "watch");
 					} else {
 						await protectedFileRegistry.add(fileUri.fsPath);
@@ -438,6 +485,56 @@ export function registerProtectionCommands(
 
 				if (selected) {
 					try {
+						// ARCHITECTURE_REFACTOR_SPEC.md: Try daemon first for cross-surface coordination
+						if (daemonBridge && workspaceRoot) {
+							try {
+								logger.debug("Attempting daemon delegation for setProtectionLevel", {
+									filePath: fileUri.fsPath,
+									level: selected.level,
+									workspaceRoot,
+								});
+
+								const result = await daemonBridge.setProtectionLevel(
+									workspaceRoot,
+									fileUri.fsPath,
+									selected.level,
+									"Protection level set via VS Code command",
+								);
+
+								if (result.success) {
+									logger.info("Daemon delegation succeeded for setProtectionLevel", {
+										filePath: fileUri.fsPath,
+										level: selected.level,
+									});
+
+									const levelMetadata = PROTECTION_LEVELS[selected.level];
+									if (protectionNotifications) {
+										await protectionNotifications.showProtectionLevelNotification(
+											fileUri.fsPath,
+											selected.level,
+											false, // isProtectionLevelChange for existing file
+										);
+									} else {
+										vscode.window.showInformationMessage(
+											`Protection level set to ${levelMetadata.label} ${
+												levelMetadata.icon
+											} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
+										);
+									}
+
+									return; // Success via daemon
+								}
+							} catch (daemonError) {
+								logger.warn("Daemon delegation failed for setProtectionLevel, falling back to local", {
+									filePath: fileUri.fsPath,
+									level: selected.level,
+									error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+								});
+								// Fall through to local implementation
+							}
+						}
+
+						// Fallback: Local protection via snapbackrc or registry
 						if (snapbackrcLoader) {
 							// Update rule in .snapbackrc
 							await snapbackrcLoader.addProtectionRule(fileUri.fsPath, selected.level);
@@ -558,6 +655,59 @@ export function registerProtectionCommands(
 
 				if (selected) {
 					try {
+						// ARCHITECTURE_REFACTOR_SPEC.md: Try daemon first for cross-surface coordination
+						if (daemonBridge && workspaceRoot) {
+							try {
+								logger.debug("Attempting daemon delegation for changeProtectionLevel", {
+									filePath: fileUri.fsPath,
+									level: selected.level,
+									workspaceRoot,
+								});
+
+								const result = await daemonBridge.setProtectionLevel(
+									workspaceRoot,
+									fileUri.fsPath,
+									selected.level,
+									"Protection level changed via VS Code command",
+								);
+
+								if (result.success) {
+									logger.info("Daemon delegation succeeded for changeProtectionLevel", {
+										filePath: fileUri.fsPath,
+										level: selected.level,
+									});
+
+									const levelMetadata = PROTECTION_LEVELS[selected.level];
+									if (protectionNotifications) {
+										await protectionNotifications.showProtectionLevelNotification(
+											fileUri.fsPath,
+											selected.level,
+											true, // isProtectionLevelChange
+										);
+									} else {
+										vscode.window.showInformationMessage(
+											`Protection level changed to ${levelMetadata.label} ${
+												levelMetadata.icon
+											} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
+										);
+									}
+
+									return; // Success via daemon
+								}
+							} catch (daemonError) {
+								logger.warn(
+									"Daemon delegation failed for changeProtectionLevel, falling back to local",
+									{
+										filePath: fileUri.fsPath,
+										level: selected.level,
+										error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+									},
+								);
+								// Fall through to local implementation
+							}
+						}
+
+						// Fallback: Local protection via snapbackrc or registry
 						if (snapbackrcLoader) {
 							// Update rule in .snapbackrc
 							await snapbackrcLoader.addProtectionRule(fileUri.fsPath, selected.level);
@@ -810,7 +960,7 @@ async function setProtectionLevelQuick(
 	protectedFileRegistry: ProtectedFileRegistry,
 	refreshViews: () => void,
 	snapbackrcLoader?: SnapBackRCLoader,
-	protectionDecorationProvider?: any,
+	protectionDecorationProvider?: ProtectionDecorationProvider,
 	daemonBridge?: DaemonBridge,
 	workspaceRoot?: string,
 ) {
