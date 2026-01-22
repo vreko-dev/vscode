@@ -18,6 +18,7 @@ import type { ConfigFileManager } from "../protection/ConfigFileManager";
 import type { FileSystemWatcher } from "../protection/FileSystemWatcher";
 import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
 import type { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
+import type { DaemonBridge } from "../services/DaemonBridge";
 import type { FeatureFlagService } from "../services/feature-flag-service";
 import type { MCPLifecycleManager } from "../services/MCPLifecycleManager";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
@@ -136,6 +137,10 @@ export interface CommandContext {
 	// MCP Manager
 	/** 🆕 Manages MCP server lifecycle */
 	mcpManager?: MCPLifecycleManager;
+
+	// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Daemon Bridge for thin extension
+	/** Daemon bridge for cross-surface coordination (Extension ↔ CLI ↔ MCP) */
+	daemonBridge?: DaemonBridge;
 
 	// Utility functions
 	/** Refreshes all tree views to reflect state changes */

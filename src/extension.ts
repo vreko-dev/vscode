@@ -65,7 +65,7 @@ import { RulesManager } from "./rules/RulesManager";
 import { initializeSecureConfig } from "./security/SecureConfigService"; // 🆕 Import SecureConfigService
 import { NoopAIRiskService, RemoteAIRiskService } from "./services/aiRiskService";
 import { ApiClient } from "./services/api-client";
-import { disposeDaemonBridge, getDaemonBridge, type SnapshotCreatedEvent } from "./services/DaemonBridge";
+import { disposeDaemonBridge, getDaemonBridge } from "./services/DaemonBridge";
 import { FeatureFlagService } from "./services/feature-flag-service"; // 🆕 Import FeatureFlagService
 import { getWorkspaceVitalsSync } from "./services/IntelligenceService"; // 🆕 Import for Phase 2A
 import { activateLanguageServer, deactivateLanguageServer, preCacheVitals } from "./services/LanguageClient";
@@ -1561,59 +1561,36 @@ export async function activate(context: vscode.ExtensionContext) {
 			context.subscriptions.push({
 				dispose: () => bus.off(SnapBackEvent.SNAPSHOT_RESTORED, snapshotRestoredHandler),
 			});
-
-			// 🆕 Initialize DaemonBridge for cross-surface snapshot coordination
-			// When MCP or CLI creates a snapshot, the daemon notifies us, and we forward to EventBus
-			// This enables vitals pressure reset regardless of snapshot source
-			const daemonBridge = getDaemonBridge();
-			void daemonBridge
-				.initialize()
-				.then(() => {
-					logger.info("DaemonBridge initialized for cross-surface coordination");
-
-					// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into SaveHandler
-					// This enables SaveHandler to notify daemon of file modifications
-					saveHandler.setDaemonBridge(daemonBridge);
-
-					// 🆕 Wire DaemonBridge into UnifiedDashboardPanel (consolidated dashboard)
-					// This enables the dashboard to refresh when snapshots are created from CLI/MCP
-					// CONSOLIDATION: DashboardPanel and VitalsDashboardPanel wiring removed - all routes through UnifiedDashboardPanel
-					UnifiedDashboardPanel.wireDaemonBridge(daemonBridge);
-				})
-				.catch((err) => {
-					// Non-fatal: Extension continues without daemon coordination
-					// Extension-only snapshots still work, just MCP/CLI won't reset vitals
-					logger.warn("DaemonBridge initialization failed - cross-surface events unavailable", {
-						error: err instanceof Error ? err.message : String(err),
-					});
-				});
-
-			// Forward daemon snapshot.created notifications to EventBus
-			const daemonSnapshotHandler = (event: SnapshotCreatedEvent) => {
-				logger.info("Snapshot created via daemon (MCP/CLI) - forwarding to EventBus", {
-					snapshotId: event.snapshotId,
-					source: event.source,
-					trigger: event.trigger,
-					workspaceId: currentWorkspaceId,
-				});
-
-				// Forward to EventBus so AutoDecisionIntegration can reset vitals pressure
-				// Include workspaceId for proper scope isolation
-				bus.publish(SnapBackEvent.SNAPSHOT_CREATED, {
-					id: event.snapshotId,
-					filePath: event.filePath,
-					source: event.source,
-					trigger: event.trigger,
-					workspaceId: currentWorkspaceId, // 🆕 Add workspace scope
-				});
-
-				// Note: refreshViews is handled by snapshotCreatedHandler which filters by workspace
-			};
-			daemonBridge.onSnapshotCreated(daemonSnapshotHandler);
-			context.subscriptions.push({
-				dispose: () => disposeDaemonBridge(),
-			});
 		}
+
+		// 🆕 Initialize DaemonBridge for cross-surface snapshot coordination (outside eventBus block)
+		// When MCP or CLI creates a snapshot, the daemon notifies us, and we forward to EventBus
+		// This enables vitals pressure reset regardless of snapshot source
+		const daemonBridge = getDaemonBridge();
+		void daemonBridge
+			.initialize()
+			.then(() => {
+				logger.info("DaemonBridge initialized for cross-surface coordination");
+
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Wire DaemonBridge into SaveHandler
+				// This enables SaveHandler to notify daemon of file modifications
+				saveHandler.setDaemonBridge(daemonBridge);
+
+				// 🆕 Wire DaemonBridge into UnifiedDashboardPanel (consolidated dashboard)
+				// This enables the dashboard to refresh when snapshots are created from CLI/MCP
+				// CONSOLIDATION: DashboardPanel and VitalsDashboardPanel wiring removed - all routes through UnifiedDashboardPanel
+				UnifiedDashboardPanel.wireDaemonBridge(daemonBridge);
+			})
+			.catch((err) => {
+				// Non-fatal: Extension continues without daemon coordination
+				// Extension-only snapshots still work, just MCP/CLI won't reset vitals
+				logger.warn("DaemonBridge initialization failed - cross-surface events unavailable", {
+					error: err instanceof Error ? err.message : String(err),
+				});
+			});
+		context.subscriptions.push({
+			dispose: () => disposeDaemonBridge(),
+		});
 
 		// Create updateFileProtectionContext function
 		const updateFileProtectionContext = async (uri: vscode.Uri) => {
@@ -1687,6 +1664,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			// MCP Manager
 			mcpManager: phase2Result.mcpManager,
+
+			// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Daemon Bridge for thin extension
+			daemonBridge: daemonBridge, // Wire daemon bridge for command delegation
 
 			// Utility functions
 			refreshViews,
