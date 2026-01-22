@@ -18,6 +18,7 @@ import * as vscode from "vscode";
 import type { SnapshotManager } from "../snapshot/SnapshotManager";
 import { logger } from "../utils/logger";
 import { extractSnapshotId } from "../utils/treeItemUtils";
+import type { CommandContext } from "./types";
 
 /**
  * Snapshot tree item interface (matches the tree view item structure)
@@ -34,12 +35,15 @@ interface SnapshotTreeItem {
  * Register all snapshot management commands.
  *
  * Provides command handlers for snapshot CRUD operations including creation, deletion,
- * restoration, renaming, and protection management. All operations integrate with
- * the SnapshotManager for business logic and refresh UI views on completion.
+ * restoration, renaming, and protection management. Integrates with both local SnapshotManager
+ * and optional DaemonBridge for CLI delegation (ARCHITECTURE_REFACTOR_SPEC.md Phase 1).
  *
  * @param context - VS Code extension context for managing extension lifecycle
- * @param snapshotManager - SnapshotManager instance for all snapshot operations
- * @param refreshViews - Callback function to refresh tree views after operations
+ * @param commandContext - Shared context containing all required services including:
+ *   - snapshotManager: Local snapshot operations
+ *   - refreshViews: Callback to refresh tree views
+ *   - daemonBridge: Optional CLI daemon for command delegation
+ *   - workspaceRoot: Workspace path for daemon calls
  *
  * @returns Array of disposables for all registered commands
  *
@@ -47,18 +51,20 @@ interface SnapshotTreeItem {
  *
  * @example
  * ```typescript
- * const disposables = registerSnapshotCommands(context, snapshotManager, refreshViews);
+ * const disposables = registerSnapshotCommands(context, commandContext);
  * // disposables are pushed to context.subscriptions for automatic cleanup
  * ```
  *
  * @see {@link SnapshotManager} for snapshot operations
- * @see {@link SnapshotTreeItem} for tree view item structure
+ * @see {@link DaemonBridge} for daemon delegation
+ * @see {@link CommandContext} for context structure
  */
 export function registerSnapshotCommands(
 	_context: vscode.ExtensionContext,
-	snapshotManager: SnapshotManager,
-	refreshViews: () => void,
+	commandContext: CommandContext,
 ): vscode.Disposable[] {
+	// Destructure needed services from CommandContext
+	const { snapshotManager, refreshViews, daemonBridge, workspaceRoot } = commandContext;
 	const disposables: vscode.Disposable[] = [];
 
 	/**
@@ -66,6 +72,11 @@ export function registerSnapshotCommands(
 	 *
 	 * Deletes a single snapshot from storage with error handling.
 	 * Protected snapshots cannot be deleted without explicitly unprotecting first.
+	 *
+	 * ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Thin Extension Pattern
+	 * - Attempts delegation to CLI daemon if available and connected
+	 * - Falls back to local SnapshotManager if daemon unavailable or fails
+	 * - Maintains backward compatibility with existing behavior
 	 *
 	 * @command snapback.deleteSnapshot
 	 *
@@ -85,7 +96,8 @@ export function registerSnapshotCommands(
 	 * // User right-clicks on snapshot and selects "Delete Snapshot"
 	 * ```
 	 *
-	 * @see {@link SnapshotManager.deleteSnapshot} for implementation
+	 * @see {@link SnapshotManager.deleteSnapshot} for local implementation
+	 * @see {@link DaemonBridge.deleteSnapshot} for daemon delegation
 	 */
 	disposables.push(
 		vscode.commands.registerCommand("snapback.deleteSnapshot", async (item?: SnapshotTreeItem) => {
@@ -98,7 +110,33 @@ export function registerSnapshotCommands(
 				// Extract actual snapshot ID using utility function
 				const snapshotId = extractSnapshotId(item);
 
-				// Delete with confirmation (handled by SnapshotManager)
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Try daemon delegation first
+				// Only delegate if daemon is connected AND workspace path is available
+				if (daemonBridge?.isConnected() && workspaceRoot) {
+					try {
+						logger.debug("Attempting daemon delegation for deleteSnapshot", {
+							snapshotId,
+							workspaceRoot,
+						});
+
+						// Delegate to CLI daemon
+						await daemonBridge.deleteSnapshot(workspaceRoot, snapshotId);
+
+						logger.info("Daemon delegation succeeded for deleteSnapshot", { snapshotId });
+						vscode.window.showInformationMessage(`Snapshot "${item.label}" deleted successfully`);
+						refreshViews();
+						return; // Success via daemon
+					} catch (daemonError) {
+						// Daemon delegation failed, fall back to local
+						logger.warn("Daemon delegation failed for deleteSnapshot, falling back to local", {
+							snapshotId,
+							error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+						});
+						// Fall through to local implementation
+					}
+				}
+
+				// Local implementation (either daemon unavailable or delegation failed)
 				const result = await snapshotManager.deleteSnapshot(snapshotId);
 
 				if (result.success) {

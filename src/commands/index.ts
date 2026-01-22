@@ -103,7 +103,7 @@ export function registerAllCommands(
 	return [
 		...registerAuthCommands(context),
 		...registerProtectionCommands(context, commandContext),
-		...registerSnapshotCommands(context, commandContext.snapshotManager, commandContext.refreshViews),
+		...registerSnapshotCommands(context, commandContext), // 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Pass full CommandContext for daemon delegation
 		...registerSessionCommands(context, commandContext),
 		...registerViewCommands(context, commandContext),
 		...registerWorkflowCommands(context, commandContext),
