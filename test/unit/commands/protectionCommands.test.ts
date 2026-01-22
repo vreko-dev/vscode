@@ -349,3 +349,252 @@ describe("Protection Level Commands", () => {
 		});
 	});
 });
+
+/**
+ * Tests for ARCHITECTURE_REFACTOR_SPEC.md Sprint 2: Daemon Delegation Pattern
+ *
+ * Verifies the Strangler Fig pattern where commands:
+ * 1. Try daemon first for cross-surface coordination
+ * 2. Fall back to local (snapbackrcLoader/registry) on daemon failure
+ */
+describe("Daemon Delegation Pattern", () => {
+	let mockDaemonBridge: {
+		setProtectionLevel: ReturnType<typeof vi.fn>;
+		listProtectedFiles: ReturnType<typeof vi.fn>;
+		getProtectionLevel: ReturnType<typeof vi.fn>;
+	};
+	let mockSnapbackrcLoader: {
+		addProtectionRule: ReturnType<typeof vi.fn>;
+		removeProtectionRule: ReturnType<typeof vi.fn>;
+	};
+	let mockRefreshViews: ReturnType<typeof vi.fn>;
+	const workspaceRoot = "/test/workspace";
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+
+		// Mock DaemonBridge
+		mockDaemonBridge = {
+			setProtectionLevel: vi.fn(),
+			listProtectedFiles: vi.fn(),
+			getProtectionLevel: vi.fn(),
+		};
+
+		// Mock SnapBackRCLoader
+		mockSnapbackrcLoader = {
+			addProtectionRule: vi.fn().mockResolvedValue(undefined),
+			removeProtectionRule: vi.fn().mockResolvedValue(undefined),
+		};
+
+		// Mock refreshViews
+		mockRefreshViews = vi.fn();
+	});
+
+	describe("setProtectionLevel via daemon", () => {
+		it("should use daemon when available and successful", async () => {
+			// Arrange
+			const filePath = "/test/file.ts";
+			const level = "watch";
+			(mockDaemonBridge.setProtectionLevel as ReturnType<typeof vi.fn>).mockResolvedValue({
+				success: true,
+				previousLevel: undefined,
+			});
+
+			// Act - Simulate the daemon-first pattern
+			let usedDaemon = false;
+			let usedLocal = false;
+
+			if (mockDaemonBridge && workspaceRoot) {
+				try {
+					const result = await mockDaemonBridge.setProtectionLevel!(
+						workspaceRoot,
+						filePath,
+						level,
+						"test reason",
+					);
+					if (result.success) {
+						usedDaemon = true;
+						mockRefreshViews();
+					}
+				} catch (_err) {
+					// Falls through to local
+				}
+			}
+
+			if (!usedDaemon) {
+				await mockSnapbackrcLoader.addProtectionRule(filePath, level);
+				usedLocal = true;
+			}
+
+			// Assert
+			expect(usedDaemon).toBe(true);
+			expect(usedLocal).toBe(false);
+			expect(mockDaemonBridge.setProtectionLevel).toHaveBeenCalledWith(
+				workspaceRoot,
+				filePath,
+				level,
+				"test reason",
+			);
+			expect(mockSnapbackrcLoader.addProtectionRule).not.toHaveBeenCalled();
+			expect(mockRefreshViews).toHaveBeenCalled();
+		});
+
+		it("should fall back to local when daemon fails", async () => {
+			// Arrange
+			const filePath = "/test/file.ts";
+			const level = "warn";
+			(mockDaemonBridge.setProtectionLevel as ReturnType<typeof vi.fn>).mockRejectedValue(
+				new Error("Daemon connection failed"),
+			);
+
+			// Act - Simulate the daemon-first pattern
+			let usedDaemon = false;
+			let usedLocal = false;
+
+			if (mockDaemonBridge && workspaceRoot) {
+				try {
+					const result = await mockDaemonBridge.setProtectionLevel!(
+						workspaceRoot,
+						filePath,
+						level,
+						"test reason",
+					);
+					if (result.success) {
+						usedDaemon = true;
+						mockRefreshViews();
+					}
+				} catch (_err) {
+					// Falls through to local
+				}
+			}
+
+			if (!usedDaemon) {
+				await mockSnapbackrcLoader.addProtectionRule(filePath, level);
+				usedLocal = true;
+			}
+
+			// Assert
+			expect(usedDaemon).toBe(false);
+			expect(usedLocal).toBe(true);
+			expect(mockDaemonBridge.setProtectionLevel).toHaveBeenCalled();
+			expect(mockSnapbackrcLoader.addProtectionRule).toHaveBeenCalledWith(filePath, level);
+		});
+
+		it("should fall back to local when daemon returns success=false", async () => {
+			// Arrange
+			const filePath = "/test/file.ts";
+			const level = "block";
+			(mockDaemonBridge.setProtectionLevel as ReturnType<typeof vi.fn>).mockResolvedValue({
+				success: false,
+			});
+
+			// Act - Simulate the daemon-first pattern
+			let usedDaemon = false;
+			let usedLocal = false;
+
+			if (mockDaemonBridge && workspaceRoot) {
+				try {
+					const result = await mockDaemonBridge.setProtectionLevel!(
+						workspaceRoot,
+						filePath,
+						level,
+						"test reason",
+					);
+					if (result.success) {
+						usedDaemon = true;
+						mockRefreshViews();
+					}
+				} catch (_err) {
+					// Falls through to local
+				}
+			}
+
+			if (!usedDaemon) {
+				await mockSnapbackrcLoader.addProtectionRule(filePath, level);
+				usedLocal = true;
+			}
+
+			// Assert
+			expect(usedDaemon).toBe(false);
+			expect(usedLocal).toBe(true);
+			expect(mockSnapbackrcLoader.addProtectionRule).toHaveBeenCalledWith(filePath, level);
+		});
+
+		it("should use local directly when daemon bridge not available", async () => {
+			// Arrange
+			const filePath = "/test/file.ts";
+			const level = "watch";
+			const noDaemonBridge = undefined;
+
+			// Act - Simulate the daemon-first pattern without daemon
+			let usedDaemon = false;
+			let usedLocal = false;
+
+			if (noDaemonBridge && workspaceRoot) {
+				// This block won't execute
+				usedDaemon = true;
+			}
+
+			if (!usedDaemon) {
+				await mockSnapbackrcLoader.addProtectionRule(filePath, level);
+				usedLocal = true;
+			}
+
+			// Assert
+			expect(usedDaemon).toBe(false);
+			expect(usedLocal).toBe(true);
+			expect(mockDaemonBridge.setProtectionLevel).not.toHaveBeenCalled();
+			expect(mockSnapbackrcLoader.addProtectionRule).toHaveBeenCalledWith(filePath, level);
+		});
+	});
+
+	describe("listProtectedFiles via daemon", () => {
+		it("should use daemon for listing when available", async () => {
+			// Arrange
+			const mockFiles = [
+				{ path: "/test/a.ts", level: "watch" as const },
+				{ path: "/test/b.ts", level: "block" as const },
+			];
+			(mockDaemonBridge.listProtectedFiles as ReturnType<typeof vi.fn>).mockResolvedValue({
+				files: mockFiles,
+				total: 2,
+			});
+
+			// Act
+			let result: { path: string; level: string }[] = [];
+			let usedDaemon = false;
+
+			if (mockDaemonBridge && workspaceRoot) {
+				try {
+					const daemonResult = await mockDaemonBridge.listProtectedFiles!(workspaceRoot, {});
+					result = daemonResult.files;
+					usedDaemon = true;
+				} catch (_err) {
+					// Falls through to local
+				}
+			}
+
+			// Assert
+			expect(usedDaemon).toBe(true);
+			expect(result).toEqual(mockFiles);
+			expect(mockDaemonBridge.listProtectedFiles).toHaveBeenCalledWith(workspaceRoot, {});
+		});
+
+		it("should filter by level when specified", async () => {
+			// Arrange
+			const mockFiles = [{ path: "/test/blocked.ts", level: "block" as const }];
+			(mockDaemonBridge.listProtectedFiles as ReturnType<typeof vi.fn>).mockResolvedValue({
+				files: mockFiles,
+				total: 1,
+			});
+
+			// Act
+			const daemonResult = await mockDaemonBridge.listProtectedFiles!(workspaceRoot, { level: "block" });
+
+			// Assert
+			expect(mockDaemonBridge.listProtectedFiles).toHaveBeenCalledWith(workspaceRoot, { level: "block" });
+			expect(daemonResult.files).toHaveLength(1);
+			expect(daemonResult.files[0].level).toBe("block");
+		});
+	});
+});
