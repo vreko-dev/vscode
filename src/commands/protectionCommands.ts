@@ -20,6 +20,7 @@
 import * as vscode from "vscode";
 import { ProtectionNotifications } from "../notifications/protectionNotifications";
 import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
+import type { DaemonBridge } from "../services/DaemonBridge";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { logger } from "../utils/logger";
 import type { ProtectionLevel } from "../views/types";
@@ -74,7 +75,14 @@ export function registerProtectionCommands(
 	const disposables: vscode.Disposable[] = [];
 
 	// Extract needed services from context
-	const { protectedFileRegistry, refreshViews, snapbackrcLoader, protectionDecorationProvider } = ctx;
+	const {
+		protectedFileRegistry,
+		refreshViews,
+		snapbackrcLoader,
+		protectionDecorationProvider,
+		daemonBridge,
+		workspaceRoot,
+	} = ctx;
 
 	/**
 	 * Extract URI from VS Code command arguments.
@@ -180,6 +188,37 @@ export function registerProtectionCommands(
 
 				if (selected) {
 					try {
+						// ARCHITECTURE_REFACTOR_SPEC.md: Try daemon first for cross-surface coordination
+						if (daemonBridge && workspaceRoot) {
+							try {
+								const result = await daemonBridge.setProtectionLevel(
+									workspaceRoot,
+									fileUri.fsPath,
+									selected.level,
+									"Protected via VS Code command",
+								);
+								if (result.success) {
+									refreshViews();
+									const levelMetadata = PROTECTION_LEVELS[selected.level];
+									if (protectionNotifications) {
+										await protectionNotifications.showProtectionLevelNotification(
+											fileUri.fsPath,
+											selected.level,
+											true,
+										);
+									} else {
+										vscode.window.showInformationMessage(
+											`Protection level set to ${levelMetadata.label} ${levelMetadata.icon} for ${vscode.workspace.asRelativePath(fileUri.fsPath)}`,
+										);
+									}
+									return;
+								}
+							} catch (daemonErr) {
+								logger.warn("Daemon protection unavailable, falling back to local", daemonErr as Error);
+							}
+						}
+
+						// Fallback: Local protection via snapbackrc or registry
 						if (snapbackrcLoader) {
 							// Add rule to .snapbackrc (source of truth)
 							await snapbackrcLoader.addProtectionRule(fileUri.fsPath, selected.level);
@@ -446,6 +485,8 @@ export function registerProtectionCommands(
 				refreshViews,
 				snapbackrcLoader,
 				protectionDecorationProvider,
+				daemonBridge,
+				workspaceRoot,
 			);
 		}),
 	);
@@ -460,6 +501,8 @@ export function registerProtectionCommands(
 				refreshViews,
 				snapbackrcLoader,
 				protectionDecorationProvider,
+				daemonBridge,
+				workspaceRoot,
 			);
 		}),
 	);
@@ -474,6 +517,8 @@ export function registerProtectionCommands(
 				refreshViews,
 				snapbackrcLoader,
 				protectionDecorationProvider,
+				daemonBridge,
+				workspaceRoot,
 			);
 		}),
 	);
@@ -550,7 +595,27 @@ export function registerProtectionCommands(
 	// Command: Show All Protected Files (optionally filtered by level)
 	disposables.push(
 		vscode.commands.registerCommand("snapback.showAllProtectedFiles", async (filterLevel?: string) => {
-			const allEntries = await protectedFileRegistry.list();
+			// ARCHITECTURE_REFACTOR_SPEC.md: Try daemon first for cross-surface coordination
+			let allEntries: Awaited<ReturnType<typeof protectedFileRegistry.list>>;
+			if (daemonBridge && workspaceRoot) {
+				try {
+					const daemonResult = await daemonBridge.listProtectedFiles(workspaceRoot, {
+						level: filterLevel as "watch" | "warn" | "block" | undefined,
+					});
+					// Map daemon result to registry format
+					allEntries = daemonResult.files.map((f) => ({
+						id: f.path, // Use path as ID for daemon-sourced entries
+						path: f.path,
+						label: f.path.split("/").pop() || f.path,
+						protectionLevel: f.level,
+					}));
+				} catch (daemonErr) {
+					logger.warn("Daemon listProtectedFiles unavailable, falling back to local", daemonErr as Error);
+					allEntries = await protectedFileRegistry.list();
+				}
+			} else {
+				allEntries = await protectedFileRegistry.list();
+			}
 			if (allEntries.length === 0) {
 				vscode.window.setStatusBarMessage("No protected files yet", 3000);
 				return;
@@ -746,6 +811,8 @@ async function setProtectionLevelQuick(
 	refreshViews: () => void,
 	snapbackrcLoader?: SnapBackRCLoader,
 	protectionDecorationProvider?: any,
+	daemonBridge?: DaemonBridge,
+	workspaceRoot?: string,
 ) {
 	const fileUri = uri || vscode.window.activeTextEditor?.document.uri;
 	if (!fileUri) {
@@ -757,6 +824,37 @@ async function setProtectionLevelQuick(
 	const isProtected = protectedFileRegistry.isProtected(fileUri.fsPath);
 
 	try {
+		// ARCHITECTURE_REFACTOR_SPEC.md: Try daemon first for cross-surface coordination
+		if (daemonBridge && workspaceRoot) {
+			try {
+				const result = await daemonBridge.setProtectionLevel(
+					workspaceRoot,
+					fileUri.fsPath,
+					level,
+					"Protected via VS Code command",
+				);
+				if (result.success) {
+					refreshViews();
+					const levelMetadata = PROTECTION_LEVELS[level];
+					if (protectionNotifications) {
+						await protectionNotifications.showProtectionLevelNotification(
+							fileUri.fsPath,
+							level,
+							!isProtected,
+						);
+					} else {
+						vscode.window.showInformationMessage(
+							`Protection level set to ${levelMetadata.label} ${levelMetadata.icon}`,
+						);
+					}
+					return;
+				}
+			} catch (daemonErr) {
+				logger.warn("Daemon protection unavailable, falling back to local", daemonErr as Error);
+			}
+		}
+
+		// Fallback: Local protection via snapbackrc or registry
 		if (snapbackrcLoader) {
 			// Add/Update rule in .snapbackrc
 			await snapbackrcLoader.addProtectionRule(fileUri.fsPath, level);
