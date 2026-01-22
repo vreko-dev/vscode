@@ -14,6 +14,7 @@ import * as vscode from "vscode";
 import { getHeatIntegration } from "../heat";
 import type { HeatTracker } from "../heat/HeatTracker";
 import type { OperationCoordinator } from "../operationCoordinator";
+import type { DaemonBridge } from "../services/DaemonBridge";
 import { MCPStorageReader, SnapshotBridge, type UnifiedSnapshot, type UnifiedSnapshotFile } from "../storage/bridge";
 import { logger } from "../utils/logger";
 import { formatAnchorFile, formatRelativeTime, getFileTypeIcon } from "./snapshot-display/formatting";
@@ -134,6 +135,12 @@ export class DashboardDataService implements vscode.Disposable {
 	/** Bridge for unified snapshot access (extension + MCP) */
 	private snapshotBridge: SnapshotBridge | null = null;
 
+	/** DaemonBridge for CLI coordination (ARCHITECTURE_REFACTOR_SPEC.md UX Wiring) */
+	private daemonBridge: DaemonBridge | null = null;
+
+	/** Workspace root path for daemon calls */
+	private workspaceRoot: string | null = null;
+
 	private readonly _onDataChange = new vscode.EventEmitter<void>();
 	readonly onDataChange = this._onDataChange.event;
 
@@ -146,6 +153,7 @@ export class DashboardDataService implements vscode.Disposable {
 		private readonly coordinator: OperationCoordinator,
 		private readonly _injectedHeatTracker?: HeatTracker,
 		readonly _injectedSnapshotBridge?: SnapshotBridge,
+		daemonBridge?: DaemonBridge,
 	) {
 		// Wire heat tracker if injected
 		this.wireHeatTracker(this._injectedHeatTracker);
@@ -153,6 +161,17 @@ export class DashboardDataService implements vscode.Disposable {
 		// Use injected bridge (for testing) or create lazily
 		if (_injectedSnapshotBridge) {
 			this.snapshotBridge = _injectedSnapshotBridge;
+		}
+
+		// Wire daemon bridge if provided
+		if (daemonBridge) {
+			this.daemonBridge = daemonBridge;
+		}
+
+		// Get workspace root for daemon calls
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+		if (workspaceFolder) {
+			this.workspaceRoot = workspaceFolder.uri.fsPath;
 		}
 
 		logger.debug("DashboardDataService initialized");
@@ -204,9 +223,15 @@ export class DashboardDataService implements vscode.Disposable {
 		coordinator: OperationCoordinator,
 		heatTracker?: HeatTracker,
 		snapshotBridge?: SnapshotBridge,
+		daemonBridge?: DaemonBridge,
 	): DashboardDataService {
 		if (!DashboardDataService.instance) {
-			DashboardDataService.instance = new DashboardDataService(coordinator, heatTracker, snapshotBridge);
+			DashboardDataService.instance = new DashboardDataService(
+				coordinator,
+				heatTracker,
+				snapshotBridge,
+				daemonBridge,
+			);
 		}
 		return DashboardDataService.instance;
 	}
@@ -313,9 +338,68 @@ export class DashboardDataService implements vscode.Disposable {
 	/**
 	 * Get dashboard stats for Home tab
 	 *
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md UX Wiring: Try daemon first for fresh stats.
 	 * Now includes snapshots from BOTH extension storage AND MCP storage.
 	 */
 	async getStats(): Promise<DashboardStats> {
+		// ARCHITECTURE_REFACTOR_SPEC.md: Try daemon first for cross-surface coordination
+		if (this.daemonBridge && this.workspaceRoot) {
+			try {
+				logger.debug("Attempting daemon delegation for dashboard stats", {
+					workspaceRoot: this.workspaceRoot,
+				});
+
+				// Get snapshot count from daemon
+				const daemonSnapshots = await this.daemonBridge.listSnapshots(this.workspaceRoot);
+				const now = Date.now();
+				const todayStart = new Date().setHours(0, 0, 0, 0);
+				const weekStart = now - 7 * 24 * 60 * 60 * 1000;
+
+				// Parse ISO timestamp strings to milliseconds for comparison
+				const todaySnapshots = daemonSnapshots.filter((s) => new Date(s.createdAt).getTime() >= todayStart);
+
+				// Get restores from our tracking (no daemon endpoint yet)
+				const todayRestores = this.restoreEvents.filter((r) => r.timestamp >= todayStart);
+				const weekRestores = this.restoreEvents.filter((r) => r.timestamp >= weekStart);
+
+				// Calculate token savings
+				const tokensSaved = weekRestores.reduce((sum, r) => sum + r.tokensEstimate, 0);
+
+				// Lines protected estimate (use file count from daemon snapshots)
+				const linesProtected = todaySnapshots.reduce((sum, s) => sum + (s.files?.length || 0) * 50, 0);
+
+				// Efficiency percentile (simple formula for now)
+				const efficiencyPercentile = Math.min(20 + daemonSnapshots.length + weekRestores.length * 5, 95);
+
+				logger.info("Daemon delegation succeeded for dashboard stats", {
+					totalSnapshots: daemonSnapshots.length,
+					todaySnapshots: todaySnapshots.length,
+				});
+
+				return {
+					snapshotsToday: todaySnapshots.length,
+					restoresToday: todayRestores.length,
+					linesProtected,
+					tokensSaved: tokensSaved || weekRestores.length * TOKENS_PER_RESTORE,
+					restoresThisWeek: weekRestores.length,
+					efficiencyPercentile,
+					totalSnapshots: daemonSnapshots.length,
+				};
+			} catch (daemonError) {
+				// Daemon delegation failed, fall back to local
+				logger.warn("Daemon delegation failed for dashboard stats, falling back to local", {
+					error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+				});
+				// Fall through to local implementation
+			}
+		}
+
+		// Local implementation (daemon unavailable or delegation failed)
+		logger.debug("Using local dashboard stats", {
+			daemonAvailable: Boolean(this.daemonBridge),
+			workspaceAvailable: Boolean(this.workspaceRoot),
+		});
+
 		try {
 			// Use unified snapshots from both sources (extension + MCP)
 			const snapshots = await this.getUnifiedSnapshots();
@@ -608,6 +692,7 @@ export class DashboardDataService implements vscode.Disposable {
 					anchorFile,
 					files: Object.fromEntries(filePaths.map((p) => [p, { hash: "", size: 0 }])),
 				};
+				// biome-ignore lint/suspicious/noExplicitAny: formatAnchorFile expects full SnapshotManifest, we provide minimal data
 				const fileDisplay = formatAnchorFile(manifestLike as any);
 
 				// Get relative time
@@ -823,6 +908,7 @@ export class DashboardDataService implements vscode.Disposable {
 export function getDashboardDataService(
 	coordinator: OperationCoordinator,
 	heatTracker?: HeatTracker,
+	daemonBridge?: DaemonBridge,
 ): DashboardDataService {
-	return DashboardDataService.getInstance(coordinator, heatTracker);
+	return DashboardDataService.getInstance(coordinator, heatTracker, undefined, daemonBridge);
 }

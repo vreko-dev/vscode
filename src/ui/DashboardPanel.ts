@@ -139,7 +139,10 @@ export class DashboardPanel implements vscode.Disposable {
 		this.panel = panel;
 		this.extensionUri = extensionUri;
 		this.coordinator = coordinator;
-		this.dataService = getDashboardDataService(coordinator, heatTracker);
+
+		// Pass daemonBridge to DashboardDataService if available
+		const daemonBridge = DashboardPanel._pendingDaemonBridge;
+		this.dataService = getDashboardDataService(coordinator, heatTracker, daemonBridge);
 
 		// Handle messages from webview FIRST (before loading data)
 		this.panel.webview.onDidReceiveMessage(
