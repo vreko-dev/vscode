@@ -347,4 +347,137 @@ describe("Protection Commands - Daemon Delegation", () => {
 			expect(vscode.window.showInformationMessage).toHaveBeenCalled();
 		});
 	});
+
+	describe("Quick-Set Commands - Daemon Delegation", () => {
+		describe("setWatchLevel", () => {
+			it("should delegate to daemon when available", async () => {
+				// Arrange
+				const testUri = vscode.Uri.file("/test/workspace/src/test.ts");
+				Object.defineProperty(vscode.window, "activeTextEditor", {
+					value: {
+						document: { uri: testUri },
+					},
+					writable: true,
+					configurable: true,
+				});
+
+				const _disposables = registerProtectionCommands({} as any, commandContext);
+				const watchCommand = vi
+					.mocked(vscode.commands.registerCommand)
+					.mock.calls.find((call) => call[0] === "snapback.setWatchLevel")?.[1];
+
+				// Act
+				await watchCommand?.();
+
+				// Assert - Daemon should be called with "watch" level
+				expect(mockDaemonBridge.setProtectionLevel).toHaveBeenCalledWith(
+					"/test/workspace",
+					"/test/workspace/src/test.ts",
+					"watch",
+					"Protected via VS Code command",
+				);
+
+				// Assert - Local not called (daemon succeeded)
+				expect(mockSnapbackrcLoader.addProtectionRule).not.toHaveBeenCalled();
+			});
+
+			it("should fall back to local when daemon fails", async () => {
+				// Arrange
+				const testUri = vscode.Uri.file("/test/workspace/src/test.ts");
+				Object.defineProperty(vscode.window, "activeTextEditor", {
+					value: {
+						document: { uri: testUri },
+					},
+					writable: true,
+					configurable: true,
+				});
+
+				// Configure daemon to fail
+				vi.mocked(mockDaemonBridge.setProtectionLevel).mockRejectedValueOnce(new Error("Daemon error"));
+
+				const _disposables = registerProtectionCommands({} as any, commandContext);
+				const watchCommand = vi
+					.mocked(vscode.commands.registerCommand)
+					.mock.calls.find((call) => call[0] === "snapback.setWatchLevel")?.[1];
+
+				// Act
+				await watchCommand?.();
+
+				// Assert - Daemon tried first
+				expect(mockDaemonBridge.setProtectionLevel).toHaveBeenCalled();
+
+				// Assert - Local fallback used
+				expect(mockSnapbackrcLoader.addProtectionRule).toHaveBeenCalledWith(
+					"/test/workspace/src/test.ts",
+					"watch",
+				);
+			});
+		});
+
+		describe("setWarnLevel", () => {
+			it("should delegate to daemon when available", async () => {
+				// Arrange
+				const testUri = vscode.Uri.file("/test/workspace/src/test.ts");
+				Object.defineProperty(vscode.window, "activeTextEditor", {
+					value: {
+						document: { uri: testUri },
+					},
+					writable: true,
+					configurable: true,
+				});
+
+				const _disposables = registerProtectionCommands({} as any, commandContext);
+				const warnCommand = vi
+					.mocked(vscode.commands.registerCommand)
+					.mock.calls.find((call) => call[0] === "snapback.setWarnLevel")?.[1];
+
+				// Act
+				await warnCommand?.();
+
+				// Assert - Daemon should be called with "warn" level
+				expect(mockDaemonBridge.setProtectionLevel).toHaveBeenCalledWith(
+					"/test/workspace",
+					"/test/workspace/src/test.ts",
+					"warn",
+					"Protected via VS Code command",
+				);
+
+				// Assert - Local not called (daemon succeeded)
+				expect(mockSnapbackrcLoader.addProtectionRule).not.toHaveBeenCalled();
+			});
+		});
+
+		describe("setBlockLevel", () => {
+			it("should delegate to daemon when available", async () => {
+				// Arrange
+				const testUri = vscode.Uri.file("/test/workspace/src/test.ts");
+				Object.defineProperty(vscode.window, "activeTextEditor", {
+					value: {
+						document: { uri: testUri },
+					},
+					writable: true,
+					configurable: true,
+				});
+
+				const _disposables = registerProtectionCommands({} as any, commandContext);
+				const blockCommand = vi
+					.mocked(vscode.commands.registerCommand)
+					.mock.calls.find((call) => call[0] === "snapback.setBlockLevel")?.[1];
+
+				// Act
+				await blockCommand?.();
+
+				// Assert - Daemon should be called with "block" level
+				expect(mockDaemonBridge.setProtectionLevel).toHaveBeenCalledWith(
+					"/test/workspace",
+					"/test/workspace/src/test.ts",
+					"block",
+					"Protected via VS Code command",
+				);
+
+				// Assert - Local not called (daemon succeeded)
+				expect(mockSnapbackrcLoader.addProtectionRule).not.toHaveBeenCalled();
+			});
+		});
+	});
 });
