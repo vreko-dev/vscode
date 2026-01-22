@@ -427,17 +427,37 @@ export function registerSnapshotCommands(
 	disposables.push(
 		vscode.commands.registerCommand("snapback.restoreLastSnapshot", async () => {
 			try {
-				// Fetch all snapshots sorted by timestamp (newest first)
-				const allSnapshots = await snapshotManager.getAll();
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Try daemon delegation first
+				let latestSnapshot: { id: string; files?: unknown[]; fileStates?: unknown[] } | null = null;
 
-				if (allSnapshots.length === 0) {
-					vscode.window.showInformationMessage("No snapshots found for this workspace");
-					return;
+				if (daemonBridge?.isConnected() && workspaceRoot) {
+					try {
+						logger.debug("Attempting daemon delegation for restoreLastSnapshot", { workspaceRoot });
+						const daemonSnapshots = await daemonBridge.listSnapshots(workspaceRoot, { limit: 1 });
+						if (daemonSnapshots.length > 0) {
+							latestSnapshot = { id: daemonSnapshots[0].snapshotId };
+							logger.info("Daemon delegation succeeded for listSnapshots", {
+								snapshotId: latestSnapshot.id,
+							});
+						}
+					} catch (daemonError) {
+						logger.warn("Daemon delegation failed for listSnapshots, falling back to local", {
+							error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+						});
+					}
 				}
 
-				// Select the most recent snapshot (first in sorted array)
-				const latestSnapshot = allSnapshots[0];
-				const fileCount = (latestSnapshot.files || []).length;
+				// Fallback to local if daemon didn't provide snapshot
+				if (!latestSnapshot) {
+					const allSnapshots = await snapshotManager.getAll();
+					if (allSnapshots.length === 0) {
+						vscode.window.showInformationMessage("No snapshots found for this workspace");
+						return;
+					}
+					latestSnapshot = allSnapshots[0];
+				}
+
+				const fileCount = ((latestSnapshot.files || latestSnapshot.fileStates || []) as unknown[]).length;
 
 				logger.info("Opening restore preview for last snapshot", {
 					snapshotId: latestSnapshot.id,
