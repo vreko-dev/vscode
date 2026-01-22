@@ -13,6 +13,7 @@
 import * as vscode from "vscode";
 import { COMMANDS } from "../constants/index";
 import { NoChangeError } from "../storage/SnapshotStore";
+import { logger } from "../utils/logger";
 import type { CommandContext } from "./types";
 
 /**
@@ -29,7 +30,8 @@ export function registerSnapshotCreationCommands(
 	const disposables: vscode.Disposable[] = [];
 
 	// Extract needed services from context
-	const { operationCoordinator, protectedFileRegistry, refreshViews, snapshotManager } = commandContext;
+	const { operationCoordinator, protectedFileRegistry, refreshViews, snapshotManager, daemonBridge, workspaceRoot } =
+		commandContext;
 
 	// Command: Create Snapshot
 	// UX: Tell what you did, not what you're doing (no premature "Creating..." message)
@@ -43,8 +45,58 @@ export function registerSnapshotCreationCommands(
 				// This ensures the anchor file is set correctly for manual snapshots
 				const specificFiles = uri ? [uri.fsPath] : undefined;
 
+				let snapshotId: string | undefined;
+
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Try daemon delegation first
+				if (daemonBridge?.isConnected() && workspaceRoot) {
+					try {
+						logger.debug("Attempting daemon delegation for createSnapshot", {
+							workspaceRoot,
+							specificFiles,
+						});
+
+						// Delegate to CLI daemon
+						const result = await daemonBridge.createSnapshot(workspaceRoot, specificFiles || [], {
+							trigger: "manual",
+							reason: "Manual snapshot via VS Code command",
+						});
+
+						if (result.snapshotId) {
+							snapshotId = result.snapshotId;
+							logger.info("Daemon delegation succeeded for createSnapshot", { snapshotId });
+
+							// Get the snapshot to display its semantic name
+							const snapshot = await snapshotManager.get(snapshotId);
+							const displayName = snapshot?.name || snapshotId;
+
+							// Aligned with MCP branding style (🧢 prefix)
+							vscode.window.showInformationMessage(`🧢 SnapBack: Snapshot "${displayName}" created.`);
+
+							const protectedEntries = await protectedFileRegistry.list();
+							await protectedFileRegistry.markSnapshot(
+								snapshotId,
+								protectedEntries.map((entry) => entry.path),
+							);
+
+							// Refresh tree views
+							refreshViews();
+
+							// Notify Safety Dashboard if available
+							vscode.commands.executeCommand("snapback.refreshSafetyDashboard");
+							return;
+						}
+					} catch (daemonError) {
+						// Daemon delegation failed, fall back to local
+						logger.warn("Daemon delegation failed for createSnapshot, falling back to local", {
+							error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+						});
+						// Fall through to local implementation
+					}
+				}
+
+				// Local implementation (daemon unavailable or delegation failed)
 				// Silent operation - only notify on completion
-				const snapshotId = await operationCoordinator.coordinateSnapshotCreation(
+				snapshotId = await operationCoordinator.coordinateSnapshotCreation(
 					true, // showNotification
 					specificFiles,
 				);

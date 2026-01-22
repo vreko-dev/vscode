@@ -1064,7 +1064,10 @@ export class DaemonBridge extends vscode.Disposable {
 	 * await bridge.protectSnapshot('/workspace/path', 'snapshot-123');
 	 * ```
 	 */
-	async protectSnapshot(workspacePath: string, snapshotId: string): Promise<{ success: boolean; snapshotId: string }> {
+	async protectSnapshot(
+		workspacePath: string,
+		snapshotId: string,
+	): Promise<{ success: boolean; snapshotId: string }> {
 		return this.request("snapshot.protect", {
 			workspace: workspacePath,
 			snapshotId,
@@ -1241,6 +1244,33 @@ export class DaemonBridge extends vscode.Disposable {
 		return this.request("learning.search", {
 			workspace: workspacePath,
 			keywords,
+			limit,
+		});
+	}
+
+	/**
+	 * List all learnings in the workspace.
+	 * ARCHITECTURE_REFACTOR_SPEC.md Sprint 1: Learning operations delegation
+	 *
+	 * @param workspacePath Workspace root path
+	 * @param limit Maximum number of results (default: 50)
+	 * @returns Array of learnings with metadata
+	 */
+	async listLearnings(
+		workspacePath: string,
+		limit = 50,
+	): Promise<{
+		learnings: Array<{
+			type: string;
+			trigger: string;
+			action: string;
+			source?: string;
+			timestamp?: string;
+		}>;
+		total: number;
+	}> {
+		return this.request("learning.list", {
+			workspace: workspacePath,
 			limit,
 		});
 	}

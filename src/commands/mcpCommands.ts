@@ -20,6 +20,7 @@ import type { ServiceFederation } from "@snapback/core";
 import * as vscode from "vscode";
 import { getMCPBridge } from "../bridges/MCPBridge";
 import type { OperationCoordinator } from "../operationCoordinator";
+import { getDaemonBridge } from "../services/DaemonBridge";
 import type { MCPLifecycleManager } from "../services/MCPLifecycleManager";
 import { getMCPTelemetry } from "../services/MCPTelemetry";
 import type { MCPToolsService } from "../services/MCPToolsService";
@@ -98,14 +99,42 @@ export function registerMcpCommands(
 	// Command: Check patterns in current file
 	disposables.push(
 		vscode.commands.registerCommand("snapback.mcp.checkPatterns", async () => {
-			if (!mcpToolsService) {
-				vscode.window.showWarningMessage("MCP Tools not available");
-				return;
-			}
-
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
 				vscode.window.showWarningMessage("No active editor");
+				return;
+			}
+
+			const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const daemonBridge = getDaemonBridge();
+
+			// Try daemon delegation first (ARCHITECTURE_REFACTOR_SPEC.md pattern)
+			if (daemonBridge?.isConnected() && workspaceRoot) {
+				try {
+					const code = editor.document.getText();
+					const result = await daemonBridge.checkPatterns(workspaceRoot, code, editor.document.fileName);
+
+					if (result.violations && result.violations.length > 0) {
+						const items = result.violations.map((v) => `${v.pattern}: ${v.message}`);
+						vscode.window.showQuickPick(items, {
+							title: `Found ${result.violations.length} pattern violations`,
+							canPickMany: false,
+						});
+					} else {
+						vscode.window.showInformationMessage("✓ No pattern violations found");
+					}
+					return; // Success via daemon
+				} catch (daemonError) {
+					logger.warn("Daemon delegation failed for checkPatterns, falling back to local", {
+						error: daemonError,
+					});
+					// Fall through to local implementation
+				}
+			}
+
+			// Local fallback via MCPToolsService
+			if (!mcpToolsService) {
+				vscode.window.showWarningMessage("MCP Tools not available");
 				return;
 			}
 
@@ -135,11 +164,6 @@ export function registerMcpCommands(
 	// Command: Start development task
 	disposables.push(
 		vscode.commands.registerCommand("snapback.mcp.startTask", async () => {
-			if (!mcpToolsService) {
-				vscode.window.showWarningMessage("MCP Tools not available");
-				return;
-			}
-
 			const taskDescription = await vscode.window.showInputBox({
 				prompt: "What are you working on?",
 				placeHolder: "e.g., Implementing user authentication",
@@ -149,10 +173,40 @@ export function registerMcpCommands(
 				return;
 			}
 
-			try {
-				const editor = vscode.window.activeTextEditor;
-				const files = editor ? [editor.document.fileName] : [];
+			const editor = vscode.window.activeTextEditor;
+			const files = editor ? [editor.document.fileName] : [];
+			const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const daemonBridge = getDaemonBridge();
 
+			// Try daemon delegation first (ARCHITECTURE_REFACTOR_SPEC.md pattern)
+			if (daemonBridge?.isConnected() && workspaceRoot) {
+				try {
+					const result = await daemonBridge.beginSession(workspaceRoot, taskDescription, files);
+
+					vscode.window.showInformationMessage(`Task started: ${result.taskId}`);
+
+					// Show risk assessment if available
+					if (result.risk && result.risk.factors.length > 0) {
+						for (const factor of result.risk.factors) {
+							vscode.window.showWarningMessage(`⚠️ Risk factor: ${factor}`);
+						}
+					}
+					return; // Success via daemon
+				} catch (daemonError) {
+					logger.warn("Daemon delegation failed for startTask, falling back to local", {
+						error: daemonError,
+					});
+					// Fall through to local implementation
+				}
+			}
+
+			// Local fallback via MCPToolsService
+			if (!mcpToolsService) {
+				vscode.window.showWarningMessage("MCP Tools not available");
+				return;
+			}
+
+			try {
 				const result = await mcpToolsService.startTask({
 					task: taskDescription,
 					files,
@@ -175,6 +229,39 @@ export function registerMcpCommands(
 	// Command: End current task
 	disposables.push(
 		vscode.commands.registerCommand("snapback.mcp.endTask", async () => {
+			const success = await vscode.window.showQuickPick(["Yes, task completed", "No, task blocked/abandoned"], {
+				title: "Did you complete the task successfully?",
+			});
+
+			if (!success) {
+				return;
+			}
+
+			const ok = success.startsWith("Yes");
+			const outcome = ok ? "completed" : "abandoned";
+			const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			const daemonBridge = getDaemonBridge();
+
+			// Try daemon delegation first (ARCHITECTURE_REFACTOR_SPEC.md pattern)
+			if (daemonBridge?.isConnected() && workspaceRoot) {
+				try {
+					const result = await daemonBridge.endSession(
+						workspaceRoot,
+						outcome,
+						true, // createSnapshot
+					);
+
+					vscode.window.showInformationMessage(
+						`Task ${outcome}: ${result.filesModified} files modified${result.snapshotId ? ", snapshot created" : ""}`,
+					);
+					return; // Success via daemon
+				} catch (daemonError) {
+					logger.warn("Daemon delegation failed for endTask, falling back to local", { error: daemonError });
+					// Fall through to local implementation
+				}
+			}
+
+			// Local fallback via MCPToolsService
 			if (!mcpToolsService) {
 				vscode.window.showWarningMessage("MCP Tools not available");
 				return;
@@ -185,16 +272,7 @@ export function registerMcpCommands(
 				return;
 			}
 
-			const success = await vscode.window.showQuickPick(["Yes, task completed", "No, task blocked/abandoned"], {
-				title: "Did you complete the task successfully?",
-			});
-
-			if (!success) {
-				return;
-			}
-
 			try {
-				const ok = success.startsWith("Yes");
 				const result = await mcpToolsService.endTask({ ok });
 
 				vscode.window.showInformationMessage(

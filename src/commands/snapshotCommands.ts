@@ -311,7 +311,9 @@ export function registerSnapshotCommands(
 
 						logger.info("Daemon delegation succeeded for unprotectAndDeleteSnapshot", { snapshotId });
 
-						vscode.window.showInformationMessage(`Protected snapshot "${item.label}" unprotected and deleted`);
+						vscode.window.showInformationMessage(
+							`Protected snapshot "${item.label}" unprotected and deleted`,
+						);
 						refreshViews();
 						return; // Success via daemon
 					} catch (daemonError) {
@@ -599,6 +601,10 @@ export function registerSnapshotCommands(
 	 * Restores a file to its state before an AI tool made changes.
 	 * This command is invoked from the AIUndoNotification toast.
 	 *
+	 * ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Snapshot domain delegation
+	 * - Attempts to restore via daemon if available
+	 * - Falls back to local file restoration
+	 *
 	 * @command snapback.undoLastAIChange
 	 *
 	 * @param snapshotId - The snapshot ID to restore (from AI detection)
@@ -618,6 +624,44 @@ export function registerSnapshotCommands(
 
 				logger.info("Undoing AI change", { snapshotId, filePath });
 
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Try daemon delegation first
+				if (daemonBridge?.isConnected() && workspaceRoot) {
+					try {
+						logger.debug("Attempting daemon delegation for undoLastAIChange", {
+							snapshotId,
+							filePath,
+							workspaceRoot,
+						});
+
+						// Try to restore via daemon - use specific file if provided
+						const filesToRestore = filePath ? [filePath] : undefined;
+						const result = await daemonBridge.restoreSnapshot(workspaceRoot, snapshotId, {
+							files: filesToRestore,
+							dryRun: false,
+						});
+
+						if (result.restored && result.restored.length > 0) {
+							logger.info("Daemon delegation succeeded for undoLastAIChange", {
+								snapshotId,
+								filesRestored: result.restored.length,
+							});
+
+							const fileName = filePath?.split(/[\\/]/).pop() || "file";
+							vscode.window.showInformationMessage(`Reverted "${fileName}" to pre-AI state`);
+							refreshViews();
+							return; // Success via daemon
+						}
+					} catch (daemonError) {
+						// Daemon delegation failed, fall back to local
+						logger.warn("Daemon delegation failed for undoLastAIChange, falling back to local", {
+							snapshotId,
+							error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+						});
+						// Fall through to local implementation
+					}
+				}
+
+				// Local implementation (daemon unavailable or delegation failed)
 				// Get the snapshot
 				const snapshot = await snapshotManager.get(snapshotId);
 				if (!snapshot) {
