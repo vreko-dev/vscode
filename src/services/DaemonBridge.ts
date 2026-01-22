@@ -1017,6 +1017,111 @@ export class DaemonBridge extends vscode.Disposable {
 		});
 	}
 
+	/**
+	 * Bulk delete snapshots by age via the daemon.
+	 * ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Remaining snapshot operations
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param options - Deletion options
+	 * @param options.olderThanDays - Delete snapshots older than N days (default: 30)
+	 * @param options.keepProtected - Skip protected snapshots (default: true)
+	 * @returns Bulk delete result with count
+	 *
+	 * @example
+	 * ```typescript
+	 * const bridge = getDaemonBridge();
+	 * const result = await bridge.bulkDeleteSnapshots('/workspace/path', {
+	 *   olderThanDays: 30,
+	 *   keepProtected: true
+	 * });
+	 * console.log(`Deleted ${result.deletedCount} snapshots`);
+	 * ```
+	 */
+	async bulkDeleteSnapshots(
+		workspacePath: string,
+		options: {
+			olderThanDays?: number;
+			keepProtected?: boolean;
+		},
+	): Promise<{ success: boolean; deletedCount: number }> {
+		return this.request("snapshot.bulkDelete", {
+			workspace: workspacePath,
+			...options,
+		});
+	}
+
+	/**
+	 * Protect a snapshot from deletion via the daemon.
+	 * ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Remaining snapshot operations
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param snapshotId - Snapshot ID to protect
+	 * @returns Success result
+	 *
+	 * @example
+	 * ```typescript
+	 * const bridge = getDaemonBridge();
+	 * await bridge.protectSnapshot('/workspace/path', 'snapshot-123');
+	 * ```
+	 */
+	async protectSnapshot(workspacePath: string, snapshotId: string): Promise<{ success: boolean; snapshotId: string }> {
+		return this.request("snapshot.protect", {
+			workspace: workspacePath,
+			snapshotId,
+		});
+	}
+
+	/**
+	 * Unprotect a snapshot allowing deletion via the daemon.
+	 * ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Remaining snapshot operations
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param snapshotId - Snapshot ID to unprotect
+	 * @returns Success result
+	 *
+	 * @example
+	 * ```typescript
+	 * const bridge = getDaemonBridge();
+	 * await bridge.unprotectSnapshot('/workspace/path', 'snapshot-123');
+	 * ```
+	 */
+	async unprotectSnapshot(
+		workspacePath: string,
+		snapshotId: string,
+	): Promise<{ success: boolean; snapshotId: string }> {
+		return this.request("snapshot.unprotect", {
+			workspace: workspacePath,
+			snapshotId,
+		});
+	}
+
+	/**
+	 * Rename a snapshot via the daemon.
+	 * ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Remaining snapshot operations
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param snapshotId - Snapshot ID to rename
+	 * @param newName - New name for the snapshot
+	 * @returns Success result with new name
+	 *
+	 * @example
+	 * ```typescript
+	 * const bridge = getDaemonBridge();
+	 * await bridge.renameSnapshot('/workspace/path', 'snapshot-123', 'New Name');
+	 * ```
+	 */
+	async renameSnapshot(
+		workspacePath: string,
+		snapshotId: string,
+		newName: string,
+	): Promise<{ success: boolean; snapshotId: string; newName: string }> {
+		return this.request("snapshot.rename", {
+			workspace: workspacePath,
+			snapshotId,
+			newName,
+		});
+	}
+
 	// =========================================================================
 	// SESSION OPERATIONS
 	// =========================================================================

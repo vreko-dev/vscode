@@ -385,4 +385,108 @@ describe("Snapshot Commands - Daemon Delegation", () => {
 			expect(vscode.window.showErrorMessage).toHaveBeenCalledWith("Failed to delete snapshot: Storage error");
 		});
 	});
+
+	describe("deleteOlderSnapshots - Daemon Delegation", () => {
+		beforeEach(() => {
+			// Add bulkDeleteSnapshots mock to daemon bridge
+			(mockDaemonBridge as any).bulkDeleteSnapshots = vi.fn().mockResolvedValue({
+				deletedCount: 3,
+				success: true,
+			});
+
+			// Add deleteOlderThan mock to snapshot manager for fallback
+			(mockSnapshotManager as any).deleteOlderThan = vi.fn().mockResolvedValue({
+				success: true,
+				deletedCount: 3,
+			});
+		});
+
+		it("should delegate to daemon when connected and workspace available", async () => {
+			// Arrange
+			const _disposables = registerSnapshotCommands({} as any, commandContext);
+			const deleteOlderCommand = vi
+				.mocked(vscode.commands.registerCommand)
+				.mock.calls.find((call) => call[0] === "snapback.deleteOlderSnapshots")?.[1];
+
+			// Mock user inputs
+			vi.mocked(vscode.window.showInputBox).mockResolvedValueOnce("30"); // days
+			(vscode.window.showQuickPick as any).mockResolvedValueOnce("Yes"); // keep protected
+
+			// Act
+			await deleteOlderCommand?.();
+
+			// Assert - Daemon should be called
+			expect(mockDaemonBridge.isConnected).toHaveBeenCalled();
+			expect((mockDaemonBridge as any).bulkDeleteSnapshots).toHaveBeenCalledWith(
+				"/test/workspace",
+				expect.objectContaining({
+					olderThanDays: 30,
+					keepProtected: true,
+				}),
+			);
+
+			// Assert - Local should NOT be called (daemon succeeded)
+			expect((mockSnapshotManager as any).deleteOlderThan).not.toHaveBeenCalled();
+
+			// Assert - Success message shown
+			expect(vscode.window.showInformationMessage).toHaveBeenCalledWith("Deleted 3 snapshot(s) older than 30 days");
+
+			// Assert - Views refreshed
+			expect(commandContext.refreshViews).toHaveBeenCalled();
+		});
+
+		it("should fall back to local when daemon fails", async () => {
+			// Arrange
+			vi.mocked((mockDaemonBridge as any).bulkDeleteSnapshots).mockRejectedValueOnce(
+				new Error("Daemon connection lost"),
+			);
+
+			const _disposables = registerSnapshotCommands({} as any, commandContext);
+			const deleteOlderCommand = vi
+				.mocked(vscode.commands.registerCommand)
+				.mock.calls.find((call) => call[0] === "snapback.deleteOlderSnapshots")?.[1];
+
+			// Mock user inputs
+			vi.mocked(vscode.window.showInputBox).mockResolvedValueOnce("30");
+			(vscode.window.showQuickPick as any).mockResolvedValueOnce("Yes");
+
+			// Act
+			await deleteOlderCommand?.();
+
+			// Assert - Daemon should be tried first
+			expect((mockDaemonBridge as any).bulkDeleteSnapshots).toHaveBeenCalled();
+
+			// Assert - Local should be called as fallback
+			expect((mockSnapshotManager as any).deleteOlderThan).toHaveBeenCalled();
+
+			// Assert - Success message shown (from local fallback)
+			expect(vscode.window.showInformationMessage).toHaveBeenCalledWith("Deleted 3 snapshot(s) older than 30 days");
+		});
+
+		it("should use local when daemon is disconnected", async () => {
+			// Arrange
+			vi.mocked(mockDaemonBridge.isConnected).mockReturnValue(false);
+
+			const _disposables = registerSnapshotCommands({} as any, commandContext);
+			const deleteOlderCommand = vi
+				.mocked(vscode.commands.registerCommand)
+				.mock.calls.find((call) => call[0] === "snapback.deleteOlderSnapshots")?.[1];
+
+			// Mock user inputs
+			vi.mocked(vscode.window.showInputBox).mockResolvedValueOnce("30");
+			(vscode.window.showQuickPick as any).mockResolvedValueOnce("No"); // Don't keep protected
+
+			// Act
+			await deleteOlderCommand?.();
+
+			// Assert - Daemon should NOT be called (disconnected)
+			expect((mockDaemonBridge as any).bulkDeleteSnapshots).not.toHaveBeenCalled();
+
+			// Assert - Local should be called directly
+			expect((mockSnapshotManager as any).deleteOlderThan).toHaveBeenCalledWith(
+				expect.any(Number), // cutoff timestamp
+				false, // keepProtected = false (user selected "No")
+			);
+		});
+	});
 });

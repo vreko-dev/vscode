@@ -200,7 +200,6 @@ export function registerSnapshotCommands(
 				}
 
 				const days = Number.parseInt(daysInput, 10);
-				const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
 				// Ask about keeping protected snapshots
 				const keepProtected = await vscode.window.showQuickPick(["Yes", "No"], {
@@ -211,6 +210,41 @@ export function registerSnapshotCommands(
 					return; // User cancelled
 				}
 
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Try daemon delegation first
+				if (daemonBridge?.isConnected() && workspaceRoot) {
+					try {
+						logger.debug("Attempting daemon delegation for deleteOlderSnapshots", {
+							days,
+							keepProtected: keepProtected === "Yes",
+							workspaceRoot,
+						});
+
+						// Delegate to CLI daemon
+						const result = await daemonBridge.bulkDeleteSnapshots(workspaceRoot, {
+							olderThanDays: days,
+							keepProtected: keepProtected === "Yes",
+						});
+
+						logger.info("Daemon delegation succeeded for deleteOlderSnapshots", {
+							deletedCount: result.deletedCount,
+						});
+
+						vscode.window.showInformationMessage(
+							`Deleted ${result.deletedCount} snapshot(s) older than ${days} days`,
+						);
+						refreshViews();
+						return; // Success via daemon
+					} catch (daemonError) {
+						// Daemon delegation failed, fall back to local
+						logger.warn("Daemon delegation failed for deleteOlderSnapshots, falling back to local", {
+							error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+						});
+						// Fall through to local implementation
+					}
+				}
+
+				// Local implementation (either daemon unavailable or delegation failed)
+				const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 				const result = await snapshotManager.deleteOlderThan(cutoffTime, keepProtected === "Yes");
 
 				vscode.window.showInformationMessage(
@@ -263,6 +297,34 @@ export function registerSnapshotCommands(
 				// Extract actual snapshot ID using utility function
 				const snapshotId = extractSnapshotId(item);
 
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Try daemon delegation first
+				if (daemonBridge?.isConnected() && workspaceRoot) {
+					try {
+						logger.debug("Attempting daemon delegation for unprotectAndDeleteSnapshot", {
+							snapshotId,
+							workspaceRoot,
+						});
+
+						// Delegate to CLI daemon (unprotect then delete)
+						await daemonBridge.unprotectSnapshot(workspaceRoot, snapshotId);
+						await daemonBridge.deleteSnapshot(workspaceRoot, snapshotId);
+
+						logger.info("Daemon delegation succeeded for unprotectAndDeleteSnapshot", { snapshotId });
+
+						vscode.window.showInformationMessage(`Protected snapshot "${item.label}" unprotected and deleted`);
+						refreshViews();
+						return; // Success via daemon
+					} catch (daemonError) {
+						// Daemon delegation failed, fall back to local
+						logger.warn("Daemon delegation failed for unprotectAndDeleteSnapshot, falling back to local", {
+							snapshotId,
+							error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+						});
+						// Fall through to local implementation
+					}
+				}
+
+				// Local implementation (either daemon unavailable or delegation failed)
 				// Delete with unprotectFirst flag
 				const result = await snapshotManager.deleteSnapshot(snapshotId, {
 					unprotectFirst: true,
@@ -338,6 +400,34 @@ export function registerSnapshotCommands(
 					return; // User cancelled
 				}
 
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Try daemon delegation first
+				if (daemonBridge?.isConnected() && workspaceRoot) {
+					try {
+						logger.debug("Attempting daemon delegation for renameSnapshot", {
+							snapshotId,
+							newName,
+							workspaceRoot,
+						});
+
+						// Delegate to CLI daemon
+						await daemonBridge.renameSnapshot(workspaceRoot, snapshotId, newName.trim());
+
+						logger.info("Daemon delegation succeeded for renameSnapshot", { snapshotId });
+
+						vscode.window.showInformationMessage(`Snapshot renamed to "${newName}"`);
+						refreshViews();
+						return; // Success via daemon
+					} catch (daemonError) {
+						// Daemon delegation failed, fall back to local
+						logger.warn("Daemon delegation failed for renameSnapshot, falling back to local", {
+							snapshotId,
+							error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+						});
+						// Fall through to local implementation
+					}
+				}
+
+				// Local implementation (either daemon unavailable or delegation failed)
 				await snapshotManager.rename(snapshotId, newName.trim());
 
 				vscode.window.showInformationMessage(`Snapshot renamed to "${newName}"`);
@@ -387,6 +477,33 @@ export function registerSnapshotCommands(
 				// Extract actual snapshot ID using utility function
 				const snapshotId = extractSnapshotId(item);
 
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Sprint 3: Try daemon delegation first
+				if (daemonBridge?.isConnected() && workspaceRoot) {
+					try {
+						logger.debug("Attempting daemon delegation for protectSnapshot", {
+							snapshotId,
+							workspaceRoot,
+						});
+
+						// Delegate to CLI daemon
+						await daemonBridge.protectSnapshot(workspaceRoot, snapshotId);
+
+						logger.info("Daemon delegation succeeded for protectSnapshot", { snapshotId });
+
+						vscode.window.showInformationMessage(`Snapshot "${item.label}" is now protected`);
+						refreshViews();
+						return; // Success via daemon
+					} catch (daemonError) {
+						// Daemon delegation failed, fall back to local
+						logger.warn("Daemon delegation failed for protectSnapshot, falling back to local", {
+							snapshotId,
+							error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+						});
+						// Fall through to local implementation
+					}
+				}
+
+				// Local implementation (either daemon unavailable or delegation failed)
 				await snapshotManager.protect(snapshotId);
 
 				vscode.window.showInformationMessage(`Snapshot "${item.label}" is now protected`);
