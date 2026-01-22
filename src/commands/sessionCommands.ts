@@ -16,6 +16,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type { SessionManifest } from "../snapshot/sessionTypes";
+import type { RichSnapshot as Snapshot } from "../types/snapshot";
 import { logger } from "../utils/logger";
 import type { CommandContext } from "./types";
 
@@ -61,7 +62,78 @@ export function registerSessionCommands(
 	const disposables: vscode.Disposable[] = [];
 
 	// Extract needed services from context
-	const { snapshotManager, snapshotDocumentProvider } = commandContext;
+	const { snapshotManager, snapshotDocumentProvider, daemonBridge, workspaceRoot } = commandContext;
+
+	/**
+	 * 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 2: Daemon Delegation Helper
+	 *
+	 * Chain of Responsibility Fallback Pattern:
+	 * 1. Try daemon first (fast, fresh data from CLI)
+	 * 2. Fall back to local on failure (reliable, cached)
+	 * 3. Graceful degradation throughout
+	 *
+	 * Best Practices Applied:
+	 * - Type-safe format transformation (daemon → local)
+	 * - Comprehensive error handling
+	 * - Structured logging for observability
+	 * - Backward compatibility (daemon optional)
+	 *
+	 * @see https://nobuti.com/thoughts/resilience-patterns-fallback
+	 * @see ARCHITECTURE_REFACTOR_SPEC.md Phase 2
+	 */
+	async function getSnapshotsWithDelegation(): Promise<Snapshot[]> {
+		// Try daemon first if available
+		if (daemonBridge?.isConnected() && workspaceRoot) {
+			try {
+				logger.debug("Attempting daemon delegation for snapshot list", {
+					workspaceRoot,
+				});
+
+				// Delegate to CLI daemon
+				const daemonSnapshots = await daemonBridge.listSnapshots(workspaceRoot);
+
+				logger.info("Daemon delegation succeeded for snapshot list", {
+					count: daemonSnapshots.length,
+				});
+
+				// Transform daemon format to local Snapshot format
+				// Daemon provides lightweight items, hydrate with full data if needed
+				const snapshots = await Promise.all(
+					daemonSnapshots.map(async (item) => {
+						// Try to get full snapshot from local cache
+						const fullSnapshot = await snapshotManager.get(item.snapshotId);
+						if (fullSnapshot) {
+							return fullSnapshot;
+						}
+
+						// Fallback: construct minimal snapshot from daemon data
+						return {
+							id: item.snapshotId,
+							timestamp: new Date(item.createdAt).getTime(),
+							files: item.files,
+							meta: {},
+						} as Snapshot;
+					}),
+				);
+
+				return snapshots; // Success via daemon
+			} catch (daemonError) {
+				// Daemon delegation failed, fall back to local
+				logger.warn("Daemon delegation failed for snapshot list, falling back to local", {
+					error: daemonError instanceof Error ? daemonError.message : String(daemonError),
+				});
+				// Fall through to local implementation
+			}
+		}
+
+		// Local implementation (daemon unavailable or delegation failed)
+		logger.debug("Using local snapshot list", {
+			daemonAvailable: Boolean(daemonBridge?.isConnected()),
+			workspaceAvailable: Boolean(workspaceRoot),
+		});
+
+		return await snapshotManager.getAll();
+	}
 
 	// ============================================================================
 	// NEW: Register commands matching constants/commands.ts SESSION constants
@@ -76,8 +148,8 @@ export function registerSessionCommands(
 			try {
 				logger.info("Executing snapback.session.list");
 
-				// Get all snapshots grouped by session
-				const snapshots = await snapshotManager.getAll();
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 2: Use daemon delegation
+				const snapshots = await getSnapshotsWithDelegation();
 
 				if (!snapshots || snapshots.length === 0) {
 					vscode.window.showInformationMessage("No sessions found. Create a snapshot to start a session.");
@@ -132,8 +204,8 @@ export function registerSessionCommands(
 			try {
 				logger.info("Executing snapback.session.restore");
 
-				// Get all snapshots grouped by session
-				const snapshots = await snapshotManager.getAll();
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 2: Use daemon delegation
+				const snapshots = await getSnapshotsWithDelegation();
 
 				if (!snapshots || snapshots.length === 0) {
 					vscode.window.showInformationMessage("No sessions to restore.");
@@ -205,8 +277,8 @@ export function registerSessionCommands(
 			try {
 				logger.info("Executing snapback.session.export");
 
-				// Get all snapshots grouped by session
-				const snapshots = await snapshotManager.getAll();
+				// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 2: Use daemon delegation
+				const snapshots = await getSnapshotsWithDelegation();
 
 				if (!snapshots || snapshots.length === 0) {
 					vscode.window.showInformationMessage("No sessions to export.");
