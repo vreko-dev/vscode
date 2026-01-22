@@ -1188,6 +1188,192 @@ export class DaemonBridge extends vscode.Disposable {
 	}
 
 	// =========================================================================
+	// PROTECTION OPERATIONS (ARCHITECTURE_REFACTOR_SPEC.md Sprint 1)
+	// =========================================================================
+
+	/**
+	 * Get protection level for a file via the daemon.
+	 *
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 3: Protection decisions should
+	 * route through the CLI daemon which uses @snapback/sdk ProtectionManager.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param filePath - Absolute or relative file path
+	 * @returns Protection level or null if not protected
+	 */
+	async getProtectionLevel(
+		workspacePath: string,
+		filePath: string,
+	): Promise<{ level: "watch" | "warn" | "block" | null; reason?: string; pattern?: string }> {
+		return this.request("protection.getLevel", {
+			workspace: workspacePath,
+			filePath,
+		});
+	}
+
+	/**
+	 * Set protection level for a file via the daemon.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param filePath - Absolute or relative file path
+	 * @param level - Protection level to set
+	 * @param reason - Optional reason for the protection
+	 * @returns Success status and previous level
+	 */
+	async setProtectionLevel(
+		workspacePath: string,
+		filePath: string,
+		level: "watch" | "warn" | "block",
+		reason?: string,
+	): Promise<{ success: boolean; previousLevel?: "watch" | "warn" | "block" }> {
+		return this.request("protection.setLevel", {
+			workspace: workspacePath,
+			filePath,
+			level,
+			reason,
+		});
+	}
+
+	/**
+	 * List all protected files in a workspace via the daemon.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param options - Optional filters (level, limit)
+	 * @returns Array of protected files with metadata
+	 */
+	async listProtectedFiles(
+		workspacePath: string,
+		options?: {
+			level?: "watch" | "warn" | "block";
+			limit?: number;
+		},
+	): Promise<{
+		files: Array<{
+			path: string;
+			level: "watch" | "warn" | "block";
+			pattern?: string;
+			reason?: string;
+			protectedAt?: string;
+		}>;
+		total: number;
+	}> {
+		return this.request("protection.list", {
+			workspace: workspacePath,
+			...options,
+		});
+	}
+
+	// =========================================================================
+	// VALIDATION OPERATIONS (Extended)
+	// =========================================================================
+
+	/**
+	 * Run comprehensive validation via the daemon.
+	 * Includes TypeScript, linting, and pattern checking.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param code - Code content to validate
+	 * @param filePath - File path for context
+	 * @returns Comprehensive validation result
+	 */
+	async validateComprehensive(
+		workspacePath: string,
+		code: string,
+		filePath: string,
+	): Promise<{
+		passed: boolean;
+		patternViolations: Array<{ pattern: string; file: string; line?: number; message: string }>;
+		typescriptErrors: Array<{ file: string; line: number; message: string }>;
+		lintErrors: Array<{ file: string; line: number; message: string; rule?: string }>;
+	}> {
+		return this.request("validate.comprehensive", {
+			workspace: workspacePath,
+			code,
+			filePath,
+		});
+	}
+
+	/**
+	 * Check code patterns via the daemon.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param code - Code content to check
+	 * @param filePath - File path for context
+	 * @returns Pattern check result with violations and suggestions
+	 */
+	async checkPatterns(
+		workspacePath: string,
+		code: string,
+		filePath: string,
+	): Promise<{
+		passed: boolean;
+		violations: Array<{ pattern: string; line?: number; message: string }>;
+		suggestions: string[];
+	}> {
+		return this.request("context.check_patterns", {
+			workspace: workspacePath,
+			code,
+			filePath,
+		});
+	}
+
+	// =========================================================================
+	// VIOLATION OPERATIONS
+	// =========================================================================
+
+	/**
+	 * Report a violation to the daemon for tracking.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @param violation - Violation details
+	 * @returns Violation tracking result
+	 */
+	async reportViolation(
+		workspacePath: string,
+		violation: {
+			type: string;
+			file: string;
+			whatHappened: string;
+			whyItHappened: string;
+			prevention: string;
+		},
+	): Promise<{
+		violationId: string;
+		count: number;
+		promoted: boolean;
+		promotedTo?: "pattern" | "automation";
+	}> {
+		return this.request("violation.report", {
+			workspace: workspacePath,
+			...violation,
+		});
+	}
+
+	/**
+	 * List tracked violations from the daemon.
+	 *
+	 * @param workspacePath - Workspace root path
+	 * @returns Array of tracked violations
+	 */
+	async listViolations(workspacePath: string): Promise<{
+		violations: Array<{
+			id: string;
+			type: string;
+			file: string;
+			whatHappened: string;
+			whyItHappened: string;
+			prevention: string;
+			occurrences: number;
+			createdAt: string;
+		}>;
+		total: number;
+	}> {
+		return this.request("violation.list", {
+			workspace: workspacePath,
+		});
+	}
+
+	// =========================================================================
 	// LIFECYCLE
 	// =========================================================================
 
