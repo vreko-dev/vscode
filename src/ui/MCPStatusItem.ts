@@ -1,13 +1,19 @@
 /**
- * MCPStatusItem - MCP connection status indicator
+ * MCPStatusItem - MCP connection status indicator (Simplified)
  *
  * Displays MCP status in its own status bar item positioned RIGHT NEXT TO
  * the main SnapBack item (priority 998 vs 999) so they travel together.
  *
+ * ## Simplified Architecture (MCP Architecture Simplification)
+ *
+ * This component subscribes directly to DaemonBridge.onStateChange for
+ * real-time UI updates. No polling. No caching. Just renders what it's told.
+ *
  * States:
  * - Connected: SB·MCP ✓ (green text)
- * - Disconnected: SB·MCP ⚠ (warning background)
+ * - Disconnected: SB·MCP ✗ (error background)
  * - Reconnecting: SB·MCP $(sync~spin) (1/5)
+ * - CLI Missing: SB·MCP ⚠ (warning background)
  *
  * Branding: Always shows "SB·MCP" prefix for consistency and clarity
  *
@@ -15,30 +21,21 @@
  */
 
 import * as vscode from "vscode";
-import type { MCPLifecycleManager } from "../services/MCPLifecycleManager";
-import { getMCPModeManager } from "../services/MCPModeManager";
+import type { ConnectionState, DaemonBridge, StateChangeEvent } from "../services/DaemonBridge";
 import { logger } from "../utils/logger";
-
-/**
- * MCP connection states
- * - connected: Daemon running AND SnapBack configured in AI client
- * - degraded: Daemon running BUT SnapBack NOT configured (needs setup)
- * - disconnected: Daemon not running
- * - reconnecting: Attempting to reconnect
- * - disabled: MCP disabled in settings
- */
-export type MCPConnectionState = "connected" | "degraded" | "disconnected" | "reconnecting" | "disabled";
 
 /**
  * MCPStatusItem configuration
  */
 export interface MCPStatusItemOptions {
-	/** MCPLifecycleManager to observe */
-	mcpManager: MCPLifecycleManager;
+	/** DaemonBridge instance to observe for state changes */
+	bridge: DaemonBridge;
 }
 
 /**
  * MCPStatusItem - Displays MCP connection status next to main SnapBack item
+ *
+ * SIMPLIFIED: No polling. No caching. Just renders what DaemonBridge tells it.
  *
  * Design:
  * - Uses its own dedicated status bar item at priority 998
@@ -46,32 +43,16 @@ export interface MCPStatusItemOptions {
  * - They sit side-by-side: "🧢 SnapBack" | "SB·MCP ✓"
  * - Consistent branding: "SB·MCP" prefix always visible
  * - Status indicator follows the label (standard UX pattern)
- * - 30-second auto-give-up timer prevents stuck UI
  */
 export class MCPStatusItem implements vscode.Disposable {
-	private readonly mcpManager: MCPLifecycleManager;
+	private readonly bridge: DaemonBridge;
 	private readonly disposables: vscode.Disposable[] = [];
 
 	/** Dedicated status bar item for MCP status (travels with main item) */
 	private readonly statusBarItem: vscode.StatusBarItem;
 
-	/** Current connection state */
-	private state: MCPConnectionState = "disconnected";
-
-	/** Reconnection attempt counter */
-	private reconnectAttempt = 0;
-
-	/** Timer for auto-giving up on reconnection */
-	private reconnectGiveUpTimer?: NodeJS.Timeout;
-
-	/** How long to wait in reconnecting state before giving up (30 seconds) */
-	private readonly reconnectGiveUpTimeoutMs = 30000;
-
-	/** Polling interval for health checks */
-	private healthCheckInterval?: NodeJS.Timeout;
-
 	constructor(options: MCPStatusItemOptions) {
-		this.mcpManager = options.mcpManager;
+		this.bridge = options.bridge;
 
 		// Create dedicated status bar item
 		// Priority 998 positions it right after main SnapBack item (999)
@@ -83,341 +64,83 @@ export class MCPStatusItem implements vscode.Disposable {
 		this.statusBarItem.command = "snapback.mcp.status";
 		this.disposables.push(this.statusBarItem);
 
-		// Initial state check
-		this.updateState();
+		// Subscribe to state changes - THE ONLY DATA SOURCE
+		this.disposables.push(this.bridge.onStateChange((event) => this.render(event)));
 
-		// Subscribe to MCPLifecycleManager state changes for real-time updates
-		this.disposables.push(
-			this.mcpManager.onStateChange((event) => {
-				this.handleStateChange(event);
-			}),
-		);
-
-		// Start health monitoring (backup polling)
-		this.startHealthMonitoring();
-
-		logger.debug("MCPStatusItem initialized");
-	}
-
-	/**
-	 * Handle state change events from MCPLifecycleManager
-	 *
-	 * Provides real-time UI updates when connection state changes.
-	 */
-	private handleStateChange(event: {
-		state: MCPConnectionState;
-		previousState: MCPConnectionState;
-		reason?: string;
-		attempt?: number;
-		maxAttempts?: number;
-	}): void {
-		logger.debug("MCP state change event received", event);
-
-		switch (event.state) {
-			case "connected":
-				this.notifyConnected();
-				break;
-
-			case "reconnecting":
-				this.notifyReconnecting(event.attempt ?? 1, event.maxAttempts ?? 5);
-				break;
-
-			case "disconnected":
-				this.notifyDisconnected(event.reason);
-				break;
-
-			case "disabled":
-				this.setState("disabled");
-				break;
-		}
-	}
-
-	/**
-	 * Start periodic health monitoring
-	 *
-	 * Polls MCPLifecycleManager every 10 seconds to detect state changes.
-	 * This is in addition to any event-based updates.
-	 */
-	private startHealthMonitoring(): void {
-		// Initial check
-		this.checkHealth();
-
-		// Periodic check every 10 seconds
-		this.healthCheckInterval = setInterval(() => {
-			this.checkHealth();
-		}, 10000);
-	}
-
-	/**
-	 * Check MCP health and update state
-	 * Now includes configuration verification (liveness + readiness + functional check)
-	 */
-	private async checkHealth(): Promise<void> {
-		const wasReady = this.state === "connected";
-		const isReady = this.mcpManager.isServerReady();
-
-		// Check if MCP is disabled in config
-		const config = vscode.workspace.getConfiguration("snapback");
-		const mcpEnabled = config.get<boolean>("mcp.enabled", true);
-
-		if (!mcpEnabled) {
-			this.setState("disabled");
-			return;
-		}
-
-		// Get configuration status from MCPModeManager
-		const modeManager = getMCPModeManager();
-
-		// Trigger async process check (non-blocking, updates cache)
-		modeManager.checkProcessStatus().catch(() => {
-			// Ignore errors - we'll use cached result
+		// Initial render based on current state
+		this.render({
+			state: this.bridge.getState(),
+			previousState: "disconnected",
+			daemonVersion: this.bridge.getDaemonVersion(),
 		});
 
-		const configStatus = modeManager.checkConfigurationStatus();
-
-		// Aggregate health logic (liveness + readiness + functional):
-		// - Green/Connected: Daemon running AND configured AND process running
-		// - Yellow/Degraded: Daemon running AND configured BUT process NOT running
-		// - Red/Disconnected: Daemon not running OR not configured
-		if (isReady && configStatus.configured && configStatus.processRunning) {
-			// Healthy: Daemon, configuration, AND stdio process are all good
-			this.setState("connected");
-			this.reconnectAttempt = 0;
-		} else if (isReady && configStatus.configured && !configStatus.processRunning) {
-			// Degraded: Daemon running, configured, but stdio process NOT spawned
-			this.setState("degraded");
-			this.reconnectAttempt = 0;
-		} else if (isReady && !configStatus.configured) {
-			// Degraded: Daemon running but not configured
-			this.setState("degraded");
-			this.reconnectAttempt = 0;
-		} else if (wasReady) {
-			// Was connected, now disconnected - trigger reconnecting state briefly
-			this.setState("reconnecting");
-		} else if (this.state !== "reconnecting") {
-			// Was already disconnected
-			this.setState("disconnected");
-		}
+		logger.debug("MCPStatusItem initialized (simplified)");
 	}
 
 	/**
-	 * Update connection state and status bar display
+	 * Render status bar based on state
+	 * Pure function: state in → UI out
 	 */
-	private setState(newState: MCPConnectionState): void {
-		if (this.state === newState) {
-			return;
-		}
+	private render(event: StateChangeEvent): void {
+		const { state, attempt, maxAttempts, reason, daemonVersion } = event;
 
-		const previousState = this.state;
-		this.state = newState;
-
-		logger.debug("MCP status changed", { from: previousState, to: newState });
-
-		this.updateStatusBar();
-	}
-
-	/**
-	 * Update state from external notification
-	 *
-	 * Called by MCPLifecycleManager when connection state changes.
-	 */
-	updateState(): void {
-		this.checkHealth();
-	}
-
-	/**
-	 * Notify that reconnection is in progress
-	 *
-	 * @param attempt - Current attempt number
-	 * @param maxAttempts - Maximum attempts before giving up
-	 */
-	notifyReconnecting(attempt: number, maxAttempts: number): void {
-		this.reconnectAttempt = attempt;
-
-		// If we've exceeded max attempts, give up and show disconnected
-		if (attempt >= maxAttempts) {
-			logger.info(`MCP reconnection gave up after ${attempt} attempts`);
-			this.clearReconnectGiveUpTimer();
-			this.setState("disconnected");
-			return;
-		}
-
-		this.setState("reconnecting");
-		this.updateStatusBar();
-
-		// Start give-up timer if not already running
-		this.startReconnectGiveUpTimer();
-
-		// Log for debugging
-		logger.info(`MCP reconnecting (${attempt}/${maxAttempts})`);
-	}
-
-	/**
-	 * Start a timer to automatically give up on reconnection
-	 * This prevents the UI from being stuck in "reconnecting" state forever
-	 */
-	private startReconnectGiveUpTimer(): void {
-		// Clear any existing timer
-		this.clearReconnectGiveUpTimer();
-
-		this.reconnectGiveUpTimer = setTimeout(() => {
-			if (this.state === "reconnecting") {
-				logger.info("MCP reconnection timed out, showing disconnected state");
-				this.setState("disconnected");
-				// Don't show notification - let the UI speak for itself
-			}
-		}, this.reconnectGiveUpTimeoutMs);
-	}
-
-	/**
-	 * Clear the reconnection give-up timer
-	 */
-	private clearReconnectGiveUpTimer(): void {
-		if (this.reconnectGiveUpTimer) {
-			clearTimeout(this.reconnectGiveUpTimer);
-			this.reconnectGiveUpTimer = undefined;
-		}
-	}
-
-	/**
-	 * Notify that connection succeeded
-	 */
-	notifyConnected(): void {
-		this.reconnectAttempt = 0;
-		this.clearReconnectGiveUpTimer();
-		this.setState("connected");
-
-		// Show brief success notification if we were disconnected
-		vscode.window.setStatusBarMessage("✅ MCP connected and configured", 3000);
-	}
-
-	/**
-	 * Notify that MCP is in degraded state (daemon running but not configured)
-	 */
-	notifyDegraded(): void {
-		this.setState("degraded");
-
-		// Show configuration prompt with detailed info
-		const modeManager = getMCPModeManager();
-		const configStatus = modeManager.checkConfigurationStatus();
-
-		const message = configStatus.configuredClients.length > 0
-			? `SnapBack MCP: Daemon running but not configured in this workspace. Configured in: ${configStatus.configuredClients.join(", ")}`
-			: "SnapBack MCP: Daemon running but not configured in any AI client. Configure now to enable protection features.";
-
-		vscode.window.showWarningMessage(message, "Configure MCP", "Dismiss").then((choice) => {
-			if (choice === "Configure MCP") {
-				vscode.commands.executeCommand("snapback.mcp.configure");
-			}
-		});
-	}
-
-	/**
-	 * Notify that connection failed
-	 */
-	notifyDisconnected(reason?: string): void {
-		this.setState("disconnected");
-
-		// Show user notification with action
-		this.showDisconnectedNotification(reason);
-	}
-
-	/**
-	 * Update status bar based on current state
-	 */
-	private updateStatusBar(): void {
-		switch (this.state) {
+		switch (state) {
 			case "connected":
-				// Show SB·MCP with green checkmark
 				this.statusBarItem.text = "SB·MCP ✓";
-				this.statusBarItem.tooltip = "MCP functional: Daemon running, configured, and stdio process active";
+				this.statusBarItem.tooltip = daemonVersion ? `MCP connected (v${daemonVersion})` : "MCP connected";
 				this.statusBarItem.backgroundColor = undefined;
-				this.statusBarItem.color = new vscode.ThemeColor("testing.iconPassed"); // Green
-				this.statusBarItem.show();
-				break;
-
-			case "degraded":
-				// Show SB·MCP with warning - daemon running but stdio process not spawned
-				this.statusBarItem.text = "SB·MCP ⚠";
-				this.statusBarItem.tooltip =
-					"MCP degraded: Daemon running and configured, but stdio process not spawned by AI client. Try restarting your AI client (Qoder/Cursor/Claude).";
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
-				this.statusBarItem.color = undefined;
-				this.statusBarItem.command = "snapback.mcp.status"; // Show diagnostics
-				this.statusBarItem.show();
-				break;
-
-			case "disconnected":
-				this.statusBarItem.text = "SB·MCP ⚠";
-				this.statusBarItem.tooltip = "MCP disconnected: Daemon not running. Click to diagnose.";
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
-				this.statusBarItem.color = undefined;
-				this.statusBarItem.command = "snapback.mcp.status"; // Diagnosis
+				this.statusBarItem.color = new vscode.ThemeColor("testing.iconPassed");
 				this.statusBarItem.show();
 				break;
 
 			case "reconnecting":
-				this.statusBarItem.text = `SB·MCP $(sync~spin) (${this.reconnectAttempt}/5)`;
+				this.statusBarItem.text = `SB·MCP $(sync~spin) (${attempt ?? 1}/${maxAttempts ?? 5})`;
 				this.statusBarItem.tooltip = "Reconnecting to MCP server...";
 				this.statusBarItem.backgroundColor = undefined;
 				this.statusBarItem.color = undefined;
 				this.statusBarItem.show();
 				break;
 
-			case "disabled":
-				// Hide when disabled (user choice)
-				this.statusBarItem.hide();
+			case "disconnected":
+				this.statusBarItem.text = "SB·MCP ✗";
+				this.statusBarItem.tooltip = reason
+					? `Disconnected: ${reason}`
+					: "Daemon not connected. Click to diagnose.";
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+				this.statusBarItem.color = undefined;
+				this.statusBarItem.show();
+				break;
+
+			case "cli_missing":
+				this.statusBarItem.text = "SB·MCP ⚠";
+				this.statusBarItem.tooltip = "CLI not installed. Click to install.";
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+				this.statusBarItem.color = undefined;
+				this.statusBarItem.show();
 				break;
 		}
 	}
 
 	/**
-	 * Show user notification when MCP disconnects
+	 * Get current state (for external queries)
 	 */
-	private showDisconnectedNotification(reason?: string): void {
-		const message = reason
-			? `SnapBack MCP: Connection lost - ${reason}`
-			: "SnapBack MCP: Connection lost - AI assistant features limited";
-
-		vscode.window.showWarningMessage(message, "Diagnose", "Retry", "Dismiss").then((choice) => {
-			if (choice === "Diagnose") {
-				vscode.commands.executeCommand("snapback.mcp.status");
-			} else if (choice === "Retry") {
-				// Trigger reconnection
-				this.mcpManager.start().catch((err) => {
-					logger.error("MCP retry failed", err);
-				});
-			}
-		});
+	getState(): ConnectionState {
+		return this.bridge.getState();
 	}
 
 	/**
-	 * Get current connection state
-	 */
-	getState(): MCPConnectionState {
-		return this.state;
-	}
-
-	/**
-	 * Check if MCP is currently connected
+	 * Check if connected
 	 */
 	isConnected(): boolean {
-		return this.state === "connected";
+		return this.bridge.isConnected();
 	}
 
 	/**
 	 * Dispose resources
 	 */
 	dispose(): void {
-		if (this.healthCheckInterval) {
-			clearInterval(this.healthCheckInterval);
-		}
-
-		this.clearReconnectGiveUpTimer();
-
-		// Dispose all subscriptions (includes statusBarItem)
-		for (const disposable of this.disposables) {
-			disposable.dispose();
+		for (const d of this.disposables) {
+			d.dispose();
 		}
 	}
 }
