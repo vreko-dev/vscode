@@ -42,15 +42,15 @@ export async function initializePhase2Storage(
 	eventBus?: SnapBackEventBus,
 ): Promise<Phase2Result> {
 	const phase2Start = Date.now();
+	const componentTimings: Record<string, number> = {};
 	logger.info("[PERF] Phase 2 starting...");
 
 	// Note: SQLite diagnostic checks removed - extension uses file-based storage
 	// Previous diagnostic checks are dead code and not needed for activation performance
 
 	try {
-		const storageStart = Date.now();
-
-		// 🆕 Use StorageBridge to route to V1 or V2 based on feature flag
+		// Component 1: StorageBridge creation
+		let componentStart = Date.now();
 		const useV2Engine = vscode.workspace.getConfiguration("snapback").get<boolean>("useV2Engine", false);
 		const v1Storage = new StorageManager(context, eventBus); // V1 storage instance
 
@@ -60,15 +60,17 @@ export async function initializePhase2Storage(
 			v1Storage,
 			useV2Engine,
 		});
-
-		logger.debug("StorageBridge created", {
-			ms: Date.now() - storageStart,
+		componentTimings["StorageBridge.create"] = Date.now() - componentStart;
+		logger.info("StorageBridge created", {
+			ms: componentTimings["StorageBridge.create"],
 			useV2: useV2Engine,
 		});
 
-		const initStart = Date.now();
+		// Component 2: Storage initialization
+		componentStart = Date.now();
 		await storage.initialize();
-		logger.debug("Storage initialized", { ms: Date.now() - initStart });
+		componentTimings["StorageBridge.initialize"] = Date.now() - componentStart;
+		logger.info("StorageBridge initialized", { ms: componentTimings["StorageBridge.initialize"] });
 
 		// Migrate existing plaintext snapshots to encrypted format
 		// DEFERRED: Run this after activation completes
@@ -102,11 +104,12 @@ export async function initializePhase2Storage(
 			})();
 		}, 200); // Start after context updates
 
-		// Initialize protected file registry
-		const regStart = Date.now();
+		// Component 3: ProtectedFileRegistry creation
+		componentStart = Date.now();
 		const protectedFileRegistry = new ProtectedFileRegistry(context.workspaceState, eventBus); // GREEN: Pass eventBus
-		logger.debug("ProtectedFileRegistry created", {
-			ms: Date.now() - regStart,
+		componentTimings["ProtectedFileRegistry.create"] = Date.now() - componentStart;
+		logger.info("ProtectedFileRegistry created", {
+			ms: componentTimings["ProtectedFileRegistry.create"],
 		});
 
 		/**
@@ -114,7 +117,8 @@ export async function initializePhase2Storage(
 		 * Per arch_remediation.md Task 1.2: SDK owns the "whether" decisions.
 		 * VSCode's ProtectedFileRegistry delegates isProtected() and getProtectionLevel() to SDK.
 		 */
-		const sdkStart = Date.now();
+		// Component 4: SDK ProtectionManager initialization
+		componentStart = Date.now();
 		const defaultProtectionConfig: ProtectionConfig = {
 			patterns: [],
 			defaultLevel: "watch",
@@ -123,54 +127,58 @@ export async function initializePhase2Storage(
 		};
 		const sdkProtectionManager = new SDKProtectionManager(defaultProtectionConfig);
 		protectedFileRegistry.initializeSDKProtectionManager(sdkProtectionManager);
-		logger.debug("SDK ProtectionManager initialized", {
-			ms: Date.now() - sdkStart,
+		componentTimings["SDKProtectionManager.init"] = Date.now() - componentStart;
+		logger.info("SDK ProtectionManager initialized", {
+			ms: componentTimings["SDKProtectionManager.init"],
 		});
 
-		// 🆕 Initialize StorageManager for ProtectedFileRegistry
-		// Per arch_remediation.md Task 2.3: CooldownCache is single source for cooldowns
-		// StorageBridge routes to V1 or V2 transparently
+		// Component 5: StorageManager wiring
+		componentStart = Date.now();
 		try {
 			protectedFileRegistry.initializeStorageManager(storage);
-			logger.info("StorageBridge wired to ProtectedFileRegistry (cooldowns, audit)");
+			componentTimings["ProtectedFileRegistry.wireStorage"] = Date.now() - componentStart;
+			logger.info("StorageBridge wired to ProtectedFileRegistry", {
+				ms: componentTimings["ProtectedFileRegistry.wireStorage"],
+			});
 		} catch (cooldownError) {
+			componentTimings["ProtectedFileRegistry.wireStorage"] = Date.now() - componentStart;
 			const err = cooldownError instanceof Error ? cooldownError : new Error(String(cooldownError));
 			logger.error("[StorageManager] Failed to wire to ProtectedFileRegistry", err);
 			// CooldownCache is optional - don't show user error, just warn
 			logger.warn("[WARN] Cooldown features not available");
 		}
 
-		const cfgStart = Date.now();
+		// Component 6: ConfigFileManager creation
+		componentStart = Date.now();
 		const configManager = new ConfigFileManager(workspaceRoot);
-		logger.debug("ConfigFileManager created", {
-			ms: Date.now() - cfgStart,
+		componentTimings["ConfigFileManager.create"] = Date.now() - componentStart;
+		logger.info("ConfigFileManager created", {
+			ms: componentTimings["ConfigFileManager.create"],
 		});
 
-		const decStart = Date.now();
+		// Component 7: SnapBackRCDecorator creation
+		componentStart = Date.now();
 		const snapbackrcDecorator = new SnapBackRCDecorator();
-		logger.debug("SnapBackRCDecorator created", {
-			ms: Date.now() - decStart,
+		componentTimings["SnapBackRCDecorator.create"] = Date.now() - componentStart;
+		logger.info("SnapBackRCDecorator created", {
+			ms: componentTimings["SnapBackRCDecorator.create"],
 		});
 
-		// ⚡ Initialize AutoProtectConfig with minimal work
-		// Heavy initialization (file watching) deferred to background
-		const autoStart = Date.now();
+		// Component 8: AutoProtectConfig creation (async init deferred)
+		componentStart = Date.now();
 		const autoProtectConfig = new AutoProtectConfig(
 			protectedFileRegistry,
 			workspaceRoot,
 			context,
 			snapbackrcDecorator,
 		);
-		logger.debug("AutoProtectConfig created", {
-			ms: Date.now() - autoStart,
+		componentTimings["AutoProtectConfig.create"] = Date.now() - componentStart;
+		logger.info("AutoProtectConfig created", {
+			ms: componentTimings["AutoProtectConfig.create"],
 		});
 		// Run async initialization without awaiting
-		const autoInitStart = Date.now();
 		autoProtectConfig.initialize().catch((err) => {
 			logger.error("[WARN] AutoProtectConfig initialization failed", err as Error);
-		});
-		logger.debug("AutoProtectConfig.initialize() started", {
-			ms: Date.now() - autoInitStart,
 		});
 
 		// ⚡ Initialize ConfigStore asynchronously
@@ -216,22 +224,17 @@ export async function initializePhase2Storage(
 			logger.error("Migration service failed", err as Error);
 		});
 
-		logger.info("Storage and configuration components initialized (async ops deferred)");
-		logger.debug("Phase 2 completed", { ms: Date.now() - phase2Start });
-		PhaseLogger.logPhase("2: Storage & Configuration");
-
-		// Start bundled MCP server in background (non-blocking):
-		logger.debug("Before MCP initialization...");
-		const t = Date.now();
+		// Component 9: MCPLifecycleManager creation
+		componentStart = Date.now();
 		const mcpManager = new MCPLifecycleManager({
 			extensionPath: context.extensionPath,
 			dbPath: path.join(workspaceRoot, ".snapback", "snapback.db"),
 			timeout: 3000,
 		});
-		logger.debug("MCPLifecycleManager created", { ms: Date.now() - t });
+		componentTimings["MCPLifecycleManager.create"] = Date.now() - componentStart;
+		logger.info("MCPLifecycleManager created", { ms: componentTimings["MCPLifecycleManager.create"] });
 
 		// Start MCP asynchronously (don't block extension activation):
-		const startT = Date.now();
 		mcpManager.start().catch((err) => {
 			logger.error("MCP server failed to start", err);
 
@@ -253,11 +256,20 @@ export async function initializePhase2Storage(
 					}
 				});
 		});
-		logger.debug("MCPLifecycleManager.start() called", {
-			ms: Date.now() - startT,
+
+		// Component 10: SnapBackRCLoader creation
+		componentStart = Date.now();
+		const snapbackrcLoader = new SnapBackRCLoader(protectedFileRegistry, workspaceRoot);
+		// Don't await - load config asynchronously
+		snapbackrcLoader.loadConfig().catch((err) => {
+			logger.warn("Failed to load .snapbackrc in background", err as Error);
+		});
+		componentTimings["SnapBackRCLoader.create"] = Date.now() - componentStart;
+		logger.info("SnapBackRCLoader created", {
+			ms: componentTimings["SnapBackRCLoader.create"],
 		});
 
-		// 🩺 Initialize MCPHealthGuardian for proactive health monitoring
+		// 🩺 Initialize MCPHealthGuardian for proactive health monitoring (deferred to background)
 		// This runs independently of the connection - starts when connection succeeds
 		let healthGuardian: MCPHealthGuardian | null = null;
 
@@ -335,16 +347,25 @@ export async function initializePhase2Storage(
 		// Register for cleanup:
 		context.subscriptions.push(mcpManager);
 
-		// ⚡ Initialize SnapBackRCLoader for loading .snapbackrc configuration
-		const loaderStart = Date.now();
-		const snapbackrcLoader = new SnapBackRCLoader(protectedFileRegistry, workspaceRoot);
-		// Don't await - load config asynchronously
-		snapbackrcLoader.loadConfig().catch((err) => {
-			logger.warn("Failed to load .snapbackrc in background", err as Error);
+		// 🆕 Phase 2 component timing breakdown
+		const phase2Duration = Date.now() - phase2Start;
+		const sortedComponents = Object.entries(componentTimings)
+			.sort(([, a], [, b]) => b - a)
+			.map(([name, ms]) => ({ name, ms }));
+
+		logger.info("Phase 2 component timing breakdown", {
+			total: phase2Duration,
+			components: sortedComponents,
+			slowest: sortedComponents[0]?.name,
+			slowestMs: sortedComponents[0]?.ms,
 		});
-		logger.debug("SnapBackRCLoader created", {
-			ms: Date.now() - loaderStart,
+
+		logger.info("Phase 2 (Storage) completed successfully", {
+			duration: phase2Duration,
+			workspaceRoot,
+			timestamp: Date.now(),
 		});
+		PhaseLogger.logPhase("2: Storage & Configuration");
 
 		return {
 			storage,

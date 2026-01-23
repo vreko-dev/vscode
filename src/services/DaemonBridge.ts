@@ -31,7 +31,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { createConnection, type Socket } from "node:net";
 import { homedir, platform } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 import * as vscode from "vscode";
 import { getActivationFunnel } from "../telemetry/ActivationFunnelIntegration";
 import { logger } from "../utils/logger";
@@ -362,6 +362,16 @@ export class DaemonBridge extends vscode.Disposable {
 
 				child.unref();
 
+				// 🆕 P0 FIX: Log daemon startup details for transparency
+				const daemonPid = child.pid;
+				logger.info("Daemon process spawned", {
+					pid: daemonPid,
+					command: spawnCommand,
+					args: spawnArgs,
+					socketPath: getSocketPath(),
+					detached: true,
+				});
+
 				child.on("error", (err) => {
 					if (resolved) {
 						return;
@@ -508,11 +518,36 @@ export class DaemonBridge extends vscode.Disposable {
 		this.isConnecting = true;
 
 		try {
+			const connectionStart = Date.now();
 			await this.establishConnection();
 			this.reconnectDelay = MIN_RECONNECT_INTERVAL_MS;
 			this.reconnectAttempts = 0; // Reset on successful connection
 			this._onConnectionChanged.fire(true);
-			logger.info("Connected to SnapBack daemon");
+
+			// 🆕 P0 FIX: Verify daemon health immediately after connection
+			try {
+				const healthStart = Date.now();
+				const pingResult = await this.ping();
+				const healthLatency = Date.now() - healthStart;
+
+				logger.info("Connected to SnapBack daemon", {
+					socketPath: getSocketPath(),
+					connectionLatency: Date.now() - connectionStart,
+					daemonVersion: pingResult.version,
+					daemonUptime: pingResult.uptime,
+					healthCheckLatency: healthLatency,
+					healthy: true,
+				});
+			} catch (pingError) {
+				// Connection succeeded but ping failed - log warning but continue
+				logger.warn("Daemon connection succeeded but health check failed", {
+					error: pingError instanceof Error ? pingError.message : String(pingError),
+				});
+				logger.info("Connected to SnapBack daemon (health check failed)", {
+					socketPath: getSocketPath(),
+				});
+			}
+
 			return true;
 		} catch (error) {
 			logger.debug("Failed to connect to daemon", {
@@ -728,8 +763,37 @@ export class DaemonBridge extends vscode.Disposable {
 	// JSON-RPC REQUESTS
 	// =========================================================================
 
+	/** Performance telemetry: Track average daemon response time */
+	private responseTimeSamples: number[] = [];
+	private readonly MAX_SAMPLES = 100;
+
 	/**
-	 * Send a request to the daemon
+	 * Get average daemon response time (for performance monitoring)
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 5: Performance validation target < 100ms
+	 */
+	getAverageDaemonResponseTime(): { averageMs: number; samples: number; p95Ms: number } {
+		if (this.responseTimeSamples.length === 0) {
+			return { averageMs: 0, samples: 0, p95Ms: 0 };
+		}
+
+		const sorted = [...this.responseTimeSamples].sort((a, b) => a - b);
+		const sum = sorted.reduce((a, b) => a + b, 0);
+		const average = sum / sorted.length;
+
+		// Calculate P95 (95th percentile)
+		const p95Index = Math.floor(sorted.length * 0.95);
+		const p95 = sorted[p95Index] || sorted[sorted.length - 1];
+
+		return {
+			averageMs: Math.round(average),
+			samples: sorted.length,
+			p95Ms: Math.round(p95),
+		};
+	}
+
+	/**
+	 * Send a request to the daemon with performance telemetry
+	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 5: Performance validation
 	 */
 	async request<T>(method: string, params: Record<string, unknown>): Promise<T> {
 		if (!this.isConnected()) {
@@ -739,6 +803,7 @@ export class DaemonBridge extends vscode.Disposable {
 			}
 		}
 
+		const requestStartTime = Date.now();
 		const id = ++this.requestId;
 		const request: JsonRpcRequest = {
 			jsonrpc: "2.0",
@@ -754,7 +819,26 @@ export class DaemonBridge extends vscode.Disposable {
 			}, REQUEST_TIMEOUT_MS);
 
 			this.pendingRequests.set(id, {
-				resolve: resolve as (value: unknown) => void,
+				resolve: ((value: unknown) => {
+					// Record response time for performance telemetry
+					const responseTime = Date.now() - requestStartTime;
+					this.responseTimeSamples.push(responseTime);
+
+					// Keep only last MAX_SAMPLES samples
+					if (this.responseTimeSamples.length > this.MAX_SAMPLES) {
+						this.responseTimeSamples.shift();
+					}
+
+					// Log slow requests (> 100ms target)
+					if (responseTime > 100) {
+						logger.debug(`Slow daemon request: ${method} took ${responseTime}ms`, {
+							method,
+							responseTime,
+						});
+					}
+
+					resolve(value as T);
+				}) as (value: unknown) => void,
 				reject,
 				timeout,
 			});
@@ -765,6 +849,40 @@ export class DaemonBridge extends vscode.Disposable {
 
 	// =========================================================================
 	// DAEMON API
+	// =========================================================================
+
+	// =========================================================================
+	// PATH CONVERSION UTILITIES (P0 Fix: Absolute paths not allowed)
+	// =========================================================================
+
+	/**
+	 * Convert absolute file path to workspace-relative path for daemon protocol.
+	 * The daemon expects workspace-relative paths to prevent path traversal attacks.
+	 *
+	 * @param workspacePath - Absolute workspace root path
+	 * @param filePath - File path (can be absolute or already relative)
+	 * @returns Workspace-relative path
+	 */
+	private toRelativePath(workspacePath: string, filePath: string): string {
+		if (isAbsolute(filePath) && filePath.startsWith(workspacePath)) {
+			return relative(workspacePath, filePath);
+		}
+		return filePath;
+	}
+
+	/**
+	 * Convert array of absolute file paths to workspace-relative paths.
+	 *
+	 * @param workspacePath - Absolute workspace root path
+	 * @param filePaths - Array of file paths (can be absolute or already relative)
+	 * @returns Array of workspace-relative paths
+	 */
+	private toRelativePaths(workspacePath: string, filePaths: string[]): string[] {
+		return filePaths.map((fp) => this.toRelativePath(workspacePath, fp));
+	}
+
+	// =========================================================================
+	// DAEMON OPERATIONS
 	// =========================================================================
 
 	/**
@@ -820,12 +938,20 @@ export class DaemonBridge extends vscode.Disposable {
 	}
 
 	/**
-	 * Subscribe to file watching for a workspace
+	 * Subscribe to file watching for a workspace.
+	 *
+	 * If daemon file watching fails, the extension falls back to VS Code's built-in
+	 * FileSystemWatcher API (see UnifiedDataService, WorkspaceDataService).
 	 */
 	async subscribeToFileWatching(workspacePath: string): Promise<boolean> {
 		if (!this.isConnected()) {
 			const connected = await this.connect();
 			if (!connected) {
+				logger.warn("File watching fallback", {
+					reason: "daemon not connected",
+					fallback: "VS Code FileSystemWatcher",
+					impact: "file changes detected via VS Code API polling",
+				});
 				return false;
 			}
 		}
@@ -835,12 +961,18 @@ export class DaemonBridge extends vscode.Disposable {
 				workspace: workspacePath,
 			});
 			this.subscriptions.add(workspacePath);
-			logger.debug("Subscribed to file watching", { workspace: workspacePath });
+			logger.info("File watching setup", {
+				workspace: workspacePath,
+				watcher: "daemon",
+				subscribed: true,
+			});
 			return true;
 		} catch (error) {
-			logger.warn("Failed to subscribe to file watching", {
+			logger.warn("File watching fallback", {
 				workspace: workspacePath,
-				error: error instanceof Error ? error.message : String(error),
+				reason: error instanceof Error ? error.message : String(error),
+				fallback: "VS Code FileSystemWatcher",
+				impact: "file changes detected via VS Code API polling",
 			});
 			return false;
 		}
@@ -880,9 +1012,12 @@ export class DaemonBridge extends vscode.Disposable {
 		}
 
 		try {
+			// P0 FIX: Convert absolute path to workspace-relative
+			const relativePath = this.toRelativePath(workspacePath, filePath);
+
 			await this.request("file.modified", {
 				workspace: workspacePath,
-				path: filePath,
+				path: relativePath,
 				linesChanged,
 				aiAttributed,
 			});
@@ -902,8 +1037,8 @@ export class DaemonBridge extends vscode.Disposable {
 	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 3: Extension should route snapshot
 	 * operations through the CLI daemon which uses @snapback/sdk SnapshotManager.
 	 *
-	 * @param workspacePath - Workspace root path
-	 * @param files - Array of file paths to snapshot
+	 * @param workspacePath - Workspace root path (absolute)
+	 * @param files - Array of file paths to snapshot (can be absolute or relative)
 	 * @param options - Snapshot creation options
 	 * @returns Snapshot creation result with snapshotId
 	 *
@@ -926,9 +1061,20 @@ export class DaemonBridge extends vscode.Disposable {
 			trigger?: "manual" | "mcp" | "ai_assist" | "session_end";
 		},
 	): Promise<{ snapshotId: string; createdAt: string }> {
+		// 🐛 P0 FIX: Convert absolute file paths to workspace-relative
+		// The daemon expects workspace-relative paths, but extension commands provide absolute paths
+		// This was causing "Absolute paths not allowed" errors in createSnapshot, file watching, etc.
+		const relativePaths = this.toRelativePaths(workspacePath, files);
+
+		logger.debug("Creating snapshot via daemon", {
+			workspace: workspacePath,
+			filesCount: files.length,
+			pathsConverted: files.some((f, i) => f !== relativePaths[i]),
+		});
+
 		const result = await this.request<{ snapshotId: string; createdAt: string }>("snapshot.create", {
 			workspace: workspacePath,
-			files,
+			files: relativePaths,
 			...options,
 		});
 
@@ -1010,10 +1156,13 @@ export class DaemonBridge extends vscode.Disposable {
 			dryRun?: boolean;
 		},
 	): Promise<{ restored: string[]; skipped: string[] }> {
+		// P0 FIX: Convert absolute file paths to workspace-relative
+		const relativeFiles = options?.files ? this.toRelativePaths(workspacePath, options.files) : undefined;
+
 		return this.request("snapshot.restore", {
 			workspace: workspacePath,
 			snapshotId,
-			...options,
+			...(relativeFiles ? { files: relativeFiles, dryRun: options?.dryRun } : options),
 		});
 	}
 
@@ -1150,10 +1299,13 @@ export class DaemonBridge extends vscode.Disposable {
 		risk: { level: string; factors: string[] };
 		nextActions: string[];
 	}> {
+		// P0 FIX: Convert absolute file paths to workspace-relative
+		const relativeFiles = files ? this.toRelativePaths(workspacePath, files) : undefined;
+
 		return this.request("session.begin", {
 			workspace: workspacePath,
 			task,
-			files,
+			files: relativeFiles,
 			keywords,
 		});
 	}
@@ -1316,9 +1468,12 @@ export class DaemonBridge extends vscode.Disposable {
 		errors: Array<{ file: string; line: number; message: string }>;
 		warnings: Array<{ file: string; line: number; message: string }>;
 	}> {
+		// P0 FIX: Convert absolute file paths to workspace-relative
+		const relativeFiles = files ? this.toRelativePaths(workspacePath, files) : undefined;
+
 		return this.request("validate.quick", {
 			workspace: workspacePath,
-			files,
+			files: relativeFiles,
 		});
 	}
 
@@ -1340,9 +1495,12 @@ export class DaemonBridge extends vscode.Disposable {
 		workspacePath: string,
 		filePath: string,
 	): Promise<{ level: "watch" | "warn" | "block" | null; reason?: string; pattern?: string }> {
+		// P0 FIX: Convert absolute path to workspace-relative
+		const relativePath = this.toRelativePath(workspacePath, filePath);
+
 		return this.request("protection.getLevel", {
 			workspace: workspacePath,
-			filePath,
+			filePath: relativePath,
 		});
 	}
 
@@ -1361,9 +1519,12 @@ export class DaemonBridge extends vscode.Disposable {
 		level: "watch" | "warn" | "block",
 		reason?: string,
 	): Promise<{ success: boolean; previousLevel?: "watch" | "warn" | "block" }> {
+		// P0 FIX: Convert absolute path to workspace-relative
+		const relativePath = this.toRelativePath(workspacePath, filePath);
+
 		return this.request("protection.setLevel", {
 			workspace: workspacePath,
-			filePath,
+			filePath: relativePath,
 			level,
 			reason,
 		});
@@ -1421,10 +1582,13 @@ export class DaemonBridge extends vscode.Disposable {
 		typescriptErrors: Array<{ file: string; line: number; message: string }>;
 		lintErrors: Array<{ file: string; line: number; message: string; rule?: string }>;
 	}> {
+		// P0 FIX: Convert absolute path to workspace-relative
+		const relativePath = this.toRelativePath(workspacePath, filePath);
+
 		return this.request("validate.comprehensive", {
 			workspace: workspacePath,
 			code,
-			filePath,
+			filePath: relativePath,
 		});
 	}
 
@@ -1445,10 +1609,13 @@ export class DaemonBridge extends vscode.Disposable {
 		violations: Array<{ pattern: string; line?: number; message: string }>;
 		suggestions: string[];
 	}> {
+		// P0 FIX: Convert absolute path to workspace-relative
+		const relativePath = this.toRelativePath(workspacePath, filePath);
+
 		return this.request("context.check_patterns", {
 			workspace: workspacePath,
 			code,
-			filePath,
+			filePath: relativePath,
 		});
 	}
 

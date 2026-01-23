@@ -58,30 +58,38 @@ export async function initializePhase3Managers(
 		timestamp: Date.now(),
 	});
 	logger.debug("Phase 3 starting...");
+
+	// Component timings for performance analysis (sync operations only)
+	const componentTimings: Record<string, number> = {};
+
 	try {
 		// Initialize notification manager
-		let t = Date.now();
+		let componentStart = Date.now();
 		const notificationManager = new NotificationManager();
-		logger.debug("NotificationManager", { ms: Date.now() - t });
+		componentTimings.NotificationManager = Date.now() - componentStart;
+		logger.debug("NotificationManager", { ms: componentTimings.NotificationManager });
 
 		// Initialize workspace memory manager
-		t = Date.now();
+		componentStart = Date.now();
 		const workspaceMemoryManager = new WorkspaceMemoryManager(storage);
-		logger.debug("WorkspaceMemoryManager", { ms: Date.now() - t });
+		componentTimings.WorkspaceMemoryManager = Date.now() - componentStart;
+		logger.debug("WorkspaceMemoryManager", { ms: componentTimings.WorkspaceMemoryManager });
 
 		// Initialize conflict resolver
-		t = Date.now();
+		componentStart = Date.now();
 		const conflictResolver = new ConflictResolver();
-		logger.debug("ConflictResolver", { ms: Date.now() - t });
+		componentTimings.ConflictResolver = Date.now() - componentStart;
+		logger.debug("ConflictResolver", { ms: componentTimings.ConflictResolver });
 
 		// Initialize smart context detector
-		t = Date.now();
+		componentStart = Date.now();
 		const smartContextDetector = new SmartContextDetector(workspaceMemoryManager);
-		logger.debug("SmartContextDetector", { ms: Date.now() - t });
+		componentTimings.SmartContextDetector = Date.now() - componentStart;
+		logger.debug("SmartContextDetector", { ms: componentTimings.SmartContextDetector });
 
 		// SnapBack Unified Onboarding is initialized here (replaces MilestoneService)
 		// This must happen in Phase 3 because OperationCoordinator depends on it
-		t = Date.now();
+		componentStart = Date.now();
 		const { UnifiedOnboardingService } = await import("../services/UnifiedOnboardingService");
 		const unifiedOnboarding = new UnifiedOnboardingService(
 			context.globalState,
@@ -89,15 +97,19 @@ export async function initializePhase3Managers(
 			notificationManager,
 		);
 		// Note: initialize() will be called in Phase 15 to avoid blocking Phase 3
-		logger.debug("UnifiedOnboardingService created", { ms: Date.now() - t });
+		componentTimings.UnifiedOnboardingService = Date.now() - componentStart;
+		logger.debug("UnifiedOnboardingService created", {
+			ms: componentTimings.UnifiedOnboardingService,
+		});
 
 		// Initialize SessionCoordinator (needed by OperationCoordinator for snapshot file tracking)
-		t = Date.now();
+		componentStart = Date.now();
 		const sessionCoordinator = new SessionCoordinator(storage);
-		logger.debug("SessionCoordinator", { ms: Date.now() - t });
+		componentTimings.SessionCoordinator = Date.now() - componentStart;
+		logger.debug("SessionCoordinator", { ms: componentTimings.SessionCoordinator });
 
 		// Initialize operation coordinator
-		t = Date.now();
+		componentStart = Date.now();
 		const operationCoordinator = new OperationCoordinator(
 			workspaceMemoryManager,
 			notificationManager,
@@ -108,15 +120,17 @@ export async function initializePhase3Managers(
 			sessionCoordinator, // BUG FIX: Wire in SessionCoordinator for snapshot file tracking
 			eventBus, // Wire in event bus
 		);
-		logger.debug("OperationCoordinator", { ms: Date.now() - t });
+		componentTimings.OperationCoordinator = Date.now() - componentStart;
+		logger.debug("OperationCoordinator", { ms: componentTimings.OperationCoordinator });
 
 		// Initialize confirmation service
-		t = Date.now();
+		componentStart = Date.now();
 		const confirmationService = new VSCodeConfirmationService();
-		logger.debug("VSCodeConfirmationService", { ms: Date.now() - t });
+		componentTimings.VSCodeConfirmationService = Date.now() - componentStart;
+		logger.debug("VSCodeConfirmationService", { ms: componentTimings.VSCodeConfirmationService });
 
 		// Initialize event emitter for snapshot manager
-		t = Date.now();
+		componentStart = Date.now();
 		const vsEventEmitter = new vscode.EventEmitter();
 
 		// Create adapter that implements IEventEmitter interface
@@ -125,10 +139,11 @@ export async function initializePhase3Managers(
 				vsEventEmitter.fire({ type, data });
 			},
 		};
-		logger.debug("EventEmitter setup", { ms: Date.now() - t });
+		componentTimings.EventEmitter = Date.now() - componentStart;
+		logger.debug("EventEmitter setup", { ms: componentTimings.EventEmitter });
 
 		// Initialize SnapshotManager with SessionCoordinator
-		t = Date.now();
+		componentStart = Date.now();
 		const snapshotManager = new SnapshotManager(
 			workspaceRoot,
 			new SnapshotStorageAdapter(storage),
@@ -136,28 +151,32 @@ export async function initializePhase3Managers(
 			eventEmitter,
 			sessionCoordinator,
 		);
-		logger.debug("SnapshotManager", { ms: Date.now() - t });
+		componentTimings.SnapshotManager = Date.now() - componentStart;
+		logger.debug("SnapshotManager", { ms: componentTimings.SnapshotManager });
 
 		// Initialize SnapshotSummaryProvider
-		t = Date.now();
+		componentStart = Date.now();
 		const snapshotSummaryProvider = new StorageSnapshotSummaryProvider(storage);
+		componentTimings.SnapshotSummaryProvider = Date.now() - componentStart;
 		logger.debug("StorageSnapshotSummaryProvider", {
-			ms: Date.now() - t,
+			ms: componentTimings.SnapshotSummaryProvider,
 		});
 
 		// Initialize SnapshotNavigatorProvider
-		t = Date.now();
+		componentStart = Date.now();
 		const snapshotNavigatorProvider = new SnapshotNavigatorProvider(storage);
-		logger.debug("SnapshotNavigatorProvider", { ms: Date.now() - t });
+		componentTimings.SnapshotNavigatorProvider = Date.now() - componentStart;
+		logger.debug("SnapshotNavigatorProvider", { ms: componentTimings.SnapshotNavigatorProvider });
 
 		// Initialize WorkflowIntegration
-		t = Date.now();
+		componentStart = Date.now();
 		const workflowIntegration = new WorkflowIntegration(smartContextDetector, notificationManager);
-		logger.debug("WorkflowIntegration", { ms: Date.now() - t });
+		componentTimings.WorkflowIntegration = Date.now() - componentStart;
+		logger.debug("WorkflowIntegration", { ms: componentTimings.WorkflowIntegration });
 
 		// 🟢 TDD GREEN: Initialize ProtectionService for repo audit
 		// Only create if protectedFileRegistry is available
-		t = Date.now();
+		componentStart = Date.now();
 		let protectionService: ProtectionService;
 		if (protectedFileRegistry) {
 			const protectionManager = new ProtectionManager(
@@ -176,8 +195,9 @@ export async function initializePhase3Managers(
 					return Promise.resolve();
 				},
 			);
+			componentTimings["ProtectionManager+ProtectionService"] = Date.now() - componentStart;
 			logger.debug("ProtectionManager + ProtectionService", {
-				ms: Date.now() - t,
+				ms: componentTimings["ProtectionManager+ProtectionService"],
 			});
 
 			// ⚡ DEFER AUDIT: Run audit asynchronously after activation
@@ -195,13 +215,14 @@ export async function initializePhase3Managers(
 			protectionService = new ProtectionService(noopRegistry, noopManager, new NoopAIRiskService(), () =>
 				Promise.resolve(),
 			);
+			componentTimings["ProtectionService(fallback)"] = Date.now() - componentStart;
 			logger.debug("ProtectionService (fallback)", {
-				ms: Date.now() - t,
+				ms: componentTimings["ProtectionService(fallback)"],
 			});
 		}
 
 		// 🔧 Initialize MCPToolsService for direct MCP tool access
-		t = Date.now();
+		componentStart = Date.now();
 		let mcpToolsService: MCPToolsService | null = null;
 		if (protectedFileRegistry) {
 			mcpToolsService = new MCPToolsService({
@@ -210,12 +231,27 @@ export async function initializePhase3Managers(
 				protectedFileRegistry,
 				storage,
 			});
-			logger.debug("MCPToolsService", { ms: Date.now() - t });
+			componentTimings.MCPToolsService = Date.now() - componentStart;
+			logger.debug("MCPToolsService", { ms: componentTimings.MCPToolsService });
 		} else {
 			logger.debug("MCPToolsService skipped (no registry)");
 		}
 
 		const phase3Duration = Date.now() - phase3Start;
+
+		// Sort components by duration to identify bottlenecks
+		const sortedComponents = Object.entries(componentTimings)
+			.sort(([, a], [, b]) => b - a)
+			.map(([name, ms]) => ({ name, ms }));
+
+		logger.info("Phase 3 component timing breakdown", {
+			total: phase3Duration,
+			components: sortedComponents,
+			slowest: sortedComponents[0]?.name,
+			slowestMs: sortedComponents[0]?.ms,
+			note: "Async operations (LSP, telemetry, onboarding) tracked separately",
+		});
+
 		logger.info("Phase 3 (Managers) completed successfully", {
 			duration: phase3Duration,
 			workspaceRoot,
@@ -227,7 +263,7 @@ export async function initializePhase3Managers(
 		// 🎯 Initialize PlatformCoordinator for multi-surface coordination
 		// This happens after all managers are created so it can wire up celebrations
 		// PERF: Fire-and-forget initialization saves ~300ms from activation critical path
-		t = Date.now();
+		componentStart = Date.now();
 		const platformCoordinator = new PlatformCoordinator(context, workspaceRoot);
 
 		// Wire celebration events to notification manager (sync, fast)
@@ -264,7 +300,8 @@ export async function initializePhase3Managers(
 				});
 			});
 
-		logger.debug("PlatformCoordinator (deferred init)", { ms: Date.now() - t });
+		componentTimings.PlatformCoordinator = Date.now() - componentStart;
+		logger.debug("PlatformCoordinator (deferred init)", { ms: componentTimings.PlatformCoordinator });
 
 		return {
 			workspaceMemoryManager,

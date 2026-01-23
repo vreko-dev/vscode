@@ -283,11 +283,20 @@ export class SnapBackRCLoader implements vscode.Disposable {
 
 		const locationInfo = line > 0 ? ` (line ${line}, col ${column})` : "";
 
-		logger.warn("Config parse error", {
-			path: configPath,
+		// 🆕 P0 FIX: Extract problematic content snippet (10-char window) for debugging
+		// This helps users understand exactly what's wrong without exposing entire file
+		const problemSnippet = this.extractProblemSnippet(content, line, column);
+
+		// Enhanced error logging with all requested fields
+		logger.error("Config error - user config unusable", {
+			userConfigPath: configPath,
+			reason: `JSON syntax error at line ${line}`,
+			fallback: "using default rules",
+			userNotified: true,
+			suggestedFix: this.getSuggestedFix(error.message, problemSnippet),
+			snippet: problemSnippet,
 			line,
 			column,
-			error: error.message,
 		});
 
 		// Log policy precedence for clarity
@@ -346,6 +355,72 @@ export class SnapBackRCLoader implements vscode.Disposable {
 		const line = lines.length;
 		const column = (lines[lines.length - 1]?.length ?? 0) + 1;
 		return { line, column };
+	}
+
+	/**
+	 * Suggest a fix based on the error message and problematic snippet
+	 */
+	private getSuggestedFix(errorMessage: string, snippet: string): string {
+		// Common JSON errors
+		if (errorMessage.includes("Unexpected token") || errorMessage.includes("Expected")) {
+			if (snippet.includes('"') && !snippet.includes(":")) {
+				return "Add colon after property name";
+			}
+			if (snippet.includes(":") && snippet.endsWith(",")) {
+				return "Remove trailing comma";
+			}
+			if (snippet.includes("{") || snippet.includes("[")) {
+				return "Check for missing closing bracket";
+			}
+		}
+		if (errorMessage.includes("Unterminated string")) {
+			return "Add closing quote for string";
+		}
+		return "Check JSON syntax";
+	}
+
+	/**
+	 * Extract a snippet of problematic content around the error location.
+	 * Shows ~10 characters before and after the error position for context.
+	 *
+	 * @param content - Full file content
+	 * @param line - Error line number (1-based)
+	 * @param column - Error column number (1-based)
+	 * @returns Formatted snippet with error indicator
+	 */
+	private extractProblemSnippet(content: string, line: number, column: number): string {
+		if (line < 1 || column < 1) {
+			return "<location unknown>";
+		}
+
+		try {
+			const lines = content.split("\n");
+			if (line > lines.length) {
+				return "<line out of bounds>";
+			}
+
+			const errorLine = lines[line - 1] || "";
+			const errorPos = Math.max(0, column - 1);
+
+			// Extract 10 chars before and after error position
+			const snippetStart = Math.max(0, errorPos - 10);
+			const snippetEnd = Math.min(errorLine.length, errorPos + 10);
+			const snippet = errorLine.substring(snippetStart, snippetEnd);
+
+			// Calculate caret position within the snippet
+			const caretPos = errorPos - snippetStart;
+
+			// Format with indicator: "...some content^here..."
+			const before = snippet.substring(0, caretPos);
+			const after = snippet.substring(caretPos);
+
+			// Escape special characters for logging
+			const escaped = `${before}^${after}`.replace(/\t/g, "\\t").replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+
+			return escaped;
+		} catch (_err) {
+			return "<snippet extraction failed>";
+		}
 	}
 
 	/**

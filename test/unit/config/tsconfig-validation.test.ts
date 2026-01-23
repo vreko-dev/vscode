@@ -5,22 +5,22 @@ import ts from "typescript";
 
 /**
  * Critical tests for TypeScript configuration isolation
- * 
+ *
  * These tests prevent regressions where VS Code extension's type-check
  * inadvertently validates sibling projects (API, web, etc.) causing
  * type errors from unresolved path aliases.
- * 
+ *
  * Context:
  * In monorepos with composite projects and project references,
  * TypeScript can follow the reference graph and type-check referenced
  * projects. This is undesirable for leaf-node applications like VS Code
  * extension that don't export types to other projects.
- * 
+ *
  * Solution:
  * - Set composite: false (opt out of project references)
  * - Set references: [] (don't follow root project refs)
  * - Exclude sibling project patterns
- * 
+ *
  * References:
  * https://www.typescriptlang.org/docs/handbook/project-references.html
  */
@@ -46,11 +46,11 @@ interface TsConfig {
 function loadTsConfig(): TsConfig {
 	const content = readFileSync(VSCODE_TSCONFIG_PATH, "utf-8");
 	const parseResult = ts.parseConfigFileTextToJson(VSCODE_TSCONFIG_PATH, content);
-	
+
 	if (parseResult.error) {
 		throw new Error(ts.flattenDiagnosticMessageText(parseResult.error.messageText, "\n"));
 	}
-	
+
 	return parseResult.config as TsConfig;
 }
 
@@ -126,14 +126,14 @@ describe("VS Code TypeScript Configuration Isolation", () => {
 
 		it("should only include patterns from own source directory", () => {
 			expect(config.include).toBeDefined();
-			
+
 			// None of the include patterns should reference sibling projects
 			const suspiciousPatterns = config.include?.filter(
 				pattern => pattern.includes("../api") ||
 						   pattern.includes("../web") ||
 						   pattern.includes("../cli")
 			) || [];
-			
+
 			expect(suspiciousPatterns).toHaveLength(0);
 		});
 
@@ -150,7 +150,7 @@ describe("VS Code TypeScript Configuration Isolation", () => {
 		it("should not have paths that reference sibling projects", () => {
 			if (config.compilerOptions?.paths) {
 				const paths = config.compilerOptions.paths;
-				
+
 				// Check all path mappings don't reference sibling projects
 				for (const [alias, mappings] of Object.entries(paths)) {
 					for (const mapping of mappings) {
@@ -193,7 +193,7 @@ describe("VS Code TypeScript Configuration Isolation", () => {
 	describe("Documentation and Maintainability", () => {
 		it("should have inline comments explaining critical settings", () => {
 			const content = readFileSync(VSCODE_TSCONFIG_PATH, "utf-8");
-			
+
 			// Check for documentation of critical settings
 			expect(content).toContain("CRITICAL");
 			expect(content).toContain("composite");
@@ -202,7 +202,7 @@ describe("VS Code TypeScript Configuration Isolation", () => {
 
 		it("should reference TypeScript documentation", () => {
 			const content = readFileSync(VSCODE_TSCONFIG_PATH, "utf-8");
-			
+
 			// Should link to official docs for context
 			expect(content).toMatch(/typescriptlang\.org|project-references/i);
 		});
@@ -220,7 +220,7 @@ If VS Code type-check is including API files, verify:
 4. Run: pnpm tsx scripts/audit/validate-tsconfig-isolation.ts
 5. Run: bash scripts/ci/check-type-check-isolation.sh
 		`.trim();
-		
+
 		expect(guidance).toBeTruthy();
 	});
 });

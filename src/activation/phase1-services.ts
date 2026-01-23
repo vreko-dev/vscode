@@ -3,7 +3,7 @@ import { PhaseLogger } from "./phaseLogger";
 
 /**
  * Initialize Phase 1 services
- * 
+ *
  * NOTE: ServiceFederation (@snapback/core) was removed - unused in extension.
  * Heavy MCP operations now handled by language server or MCP server.
  */

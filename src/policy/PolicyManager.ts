@@ -22,6 +22,10 @@ export class PolicyManager {
 	private expirationCheckInterval: NodeJS.Timeout | null = null;
 	private disposables: vscode.Disposable[] = [];
 
+	// 🆕 P2 FIX: Debounce file watcher events to prevent duplicate reloads
+	private reloadDebounceTimer: NodeJS.Timeout | null = null;
+	private readonly RELOAD_DEBOUNCE_MS = 100;
+
 	constructor(private workspaceRoot: string) {
 		this.policyPath = path.join(workspaceRoot, ".snapback", "policy.json");
 	}
@@ -379,12 +383,28 @@ export class PolicyManager {
 				new vscode.RelativePattern(path.dirname(this.policyPath), "policy.json"),
 			);
 
-			this.disposables.push(
-				this.watcher.onDidChange(async () => {
+			// 🆕 P2 FIX: Debounced reload handler to prevent duplicate reloads
+			const debouncedReload = () => {
+				// Clear existing timer
+				if (this.reloadDebounceTimer) {
+					clearTimeout(this.reloadDebounceTimer);
+				}
+
+				// Set new timer
+				this.reloadDebounceTimer = setTimeout(() => {
 					logger.info("Policy file changed, reloading", {
 						path: this.policyPath,
 					});
-					await this.loadPolicy();
+					this.loadPolicy().catch((error) => {
+						logger.error("Failed to reload policy after file change", error);
+					});
+					this.reloadDebounceTimer = null;
+				}, this.RELOAD_DEBOUNCE_MS);
+			};
+
+			this.disposables.push(
+				this.watcher.onDidChange(() => {
+					debouncedReload();
 				}),
 			);
 
@@ -555,6 +575,12 @@ export class PolicyManager {
 		if (this.watcher) {
 			this.watcher.dispose();
 			this.watcher = null;
+		}
+
+		// 🆕 P2 FIX: Clear debounce timer on dispose
+		if (this.reloadDebounceTimer) {
+			clearTimeout(this.reloadDebounceTimer);
+			this.reloadDebounceTimer = null;
 		}
 
 		if (this.expirationCheckInterval) {

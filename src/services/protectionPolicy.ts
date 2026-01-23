@@ -204,10 +204,16 @@ export class ProtectionManager {
 			this.cachedAudit = audit;
 			this.lastAuditTime = now;
 
+			// Enhanced logging with file details
 			logger.info("Protection audit completed", {
 				status,
 				protectedCount,
 				attentionCount: attentionItems.length,
+				filesNeedingAttention: attentionItems.map((item) => ({
+					file: item.filePath,
+					reason: item.message,
+					action: item.action || "review file",
+				})),
 			});
 
 			return audit;

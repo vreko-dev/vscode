@@ -796,8 +796,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		});
 		logger.info("MCPBridge initialized for pair programming", { workspaceId: primaryWorkspaceId });
 
-		// Phase 3: Business logic managers
-		const phase3Start = Date.now();
+		// Phase 3: Business logic managers (timing marker moved below to line 837)
+		// Pre-Phase 3: Initialize telemetry and event tracking
 		const telemetryProxy = new TelemetryProxy(context); // Ensure telemetryProxy is defined here
 
 		// 🆕 Track extension activation (every activation, not just first install)
@@ -832,6 +832,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		logger.info("ActivationFunnelIntegration initialized");
 
+		// Phase 3: Business Logic Managers
+		// Moved timing marker here to accurately measure just Phase 3 work
+		const phase3Start = Date.now();
 		const phase3Result = await initializePhase3Managers(
 			context,
 			workspaceRoot,
@@ -878,11 +881,16 @@ export async function activate(context: vscode.ExtensionContext) {
 		 * Initialize SDK ProtectionDecisionEngine for centralized protection decisions.
 		 * Per arch_remediation.md Task 1.3: SDK owns the "whether" decisions.
 		 */
+		const sdkImportStart = Date.now();
 		try {
 			const { ProtectionDecisionEngine } = await import("@snapback/sdk");
+			const sdkImportMs = Date.now() - sdkImportStart;
+
 			const decisionEngine = new ProtectionDecisionEngine(phase2Result.sdkProtectionManager);
 			saveHandler.initializeDecisionEngine(decisionEngine);
-			logger.info("SDK ProtectionDecisionEngine initialized successfully");
+			logger.info("SDK ProtectionDecisionEngine initialized successfully", {
+				importMs: sdkImportMs,
+			});
 		} catch (error) {
 			logger.warn("Failed to initialize SDK ProtectionDecisionEngine, using legacy decisions", {
 				error: error instanceof Error ? error.message : String(error),
@@ -958,15 +966,19 @@ export async function activate(context: vscode.ExtensionContext) {
 		// `createAuthedApiClient` uses `AuthService` internally but doesn't expose it.
 		// We need to construct `AuthService` here to pass to `UserIdentityService`.
 		// `AuthService` needs `CredentialsManager`.
+		const authServiceImportStart = Date.now();
 		const authService = new (await import("./auth/AuthService.js")).AuthService(
 			credentialsManager,
 			config.get<string>("apiBaseUrl", "https://api.snapback.dev"),
 		);
+		const authServiceImportMs = Date.now() - authServiceImportStart;
 
 		userIdentityService = new UserIdentityService(anonymousIdManager, authService, telemetryProxy);
 		// Configure TelemetryProxy to use UserIdentityService
 		telemetryProxy.setIdentityProvider(() => userIdentityService?.getCurrentId() ?? Promise.resolve("unknown"));
-		logger.info("UserIdentityService initialized");
+		logger.info("UserIdentityService initialized", {
+			authServiceImportMs,
+		});
 
 		// 🔒 AUTH LISTENER (moved here - userIdentityService now guaranteed to exist)
 		// Listen for session changes to track when user successfully authenticates
@@ -1783,6 +1795,37 @@ export async function activate(context: vscode.ExtensionContext) {
 		const elapsedTime = Date.now() - startTime;
 		logger.info(`Extension activated in ${elapsedTime}ms`);
 		outputChannel.appendLine(`✅ SnapBack activated in ${elapsedTime}ms`);
+
+		// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 5: Performance Metrics Command
+		// Diagnostic command to view activation time and daemon response time
+		context.subscriptions.push(
+			vscode.commands.registerCommand("snapback.showPerformanceMetrics", () => {
+				const daemonBridge = getDaemonBridge();
+				const daemonMetrics = daemonBridge?.getAverageDaemonResponseTime() || {
+					averageMs: 0,
+					samples: 0,
+					p95Ms: 0,
+				};
+
+				const message = [
+					"📊 SnapBack Performance Metrics",
+					"",
+					`Extension Activation Time: ${elapsedTime}ms ${elapsedTime < 500 ? "✅" : "⚠️ (target: <500ms)"}`,
+					"",
+					`Daemon Response Times (${daemonMetrics.samples} samples):`,
+					`  Average: ${daemonMetrics.averageMs}ms ${daemonMetrics.averageMs < 100 ? "✅" : "⚠️ (target: <100ms)"}`,
+					`  P95: ${daemonMetrics.p95Ms}ms`,
+				].join("\n");
+
+				vscode.window.showInformationMessage(message, { modal: true });
+				logger.info("Performance metrics displayed", {
+					activationTime: elapsedTime,
+					daemonAverage: daemonMetrics.averageMs,
+					daemonP95: daemonMetrics.p95Ms,
+					daemonSamples: daemonMetrics.samples,
+				});
+			}),
+		);
 
 		// 🆕 Finalize health monitoring
 		healthMonitor.endActivation();

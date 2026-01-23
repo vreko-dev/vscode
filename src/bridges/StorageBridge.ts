@@ -88,13 +88,49 @@ export class StorageBridge implements IStorageManager {
 	// ============================================
 
 	async initialize(): Promise<void> {
+		const initStart = Date.now();
+
 		if (this.config.useV2Engine) {
 			// V2 storage initializes in constructor, no async init needed
-			logger.debug("StorageBridge initialized V2 engine storage");
+			logger.debug("StorageBridge initialized V2 engine storage", {
+				ms: Date.now() - initStart,
+			});
 		} else {
 			// Initialize V1 storage
 			await this.config.v1Storage.initialize();
-			logger.debug("StorageBridge initialized V1 storage");
+			const initDuration = Date.now() - initStart;
+
+			// 🆕 P0 FIX: Cache state diagnostics for performance variance analysis
+			// DON'T call listSnapshots() here - it triggers lazy initialization of all stores!
+			// Categorize performance: < 50ms = warm cache, 50-100ms = tepid, > 100ms = cold
+			const cacheState = initDuration < 50 ? "warm" : initDuration < 100 ? "tepid" : "cold";
+
+			if (initDuration > 100) {
+				logger.warn("StorageBridge.initialize() cold cache detected", {
+					ms: initDuration,
+					cacheState,
+					storageType: "V1",
+					likely_causes: [
+						"OS disk cache cleared (cold boot, low memory)",
+						"System under load (CPU/disk contention)",
+						"File system slow (network drive, antivirus scanning)",
+					],
+					expected_next_activation: "50-80ms (once OS cache warms)",
+					recommendation: "Implement lazy-loading for non-recent manifests",
+					note: "Snapshot stores initialize lazily on first use",
+				});
+			} else if (initDuration > 50) {
+				logger.info("StorageBridge.initialize() tepid cache", {
+					ms: initDuration,
+					cacheState,
+					note: "Partial cache hit - some data loaded from disk",
+				});
+			} else {
+				logger.debug("StorageBridge initialized V1 storage (warm cache)", {
+					ms: initDuration,
+					cacheState,
+				});
+			}
 		}
 	}
 
