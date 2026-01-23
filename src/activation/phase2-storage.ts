@@ -11,10 +11,8 @@ import { SnapBackRCDecorator } from "../decorators/snapbackrcDecorator";
 import { AutoProtectConfig } from "../protection/autoProtectConfig";
 import { ConfigFileManager } from "../protection/ConfigFileManager";
 import { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
-import { MCPHealthGuardian } from "../services/MCPHealthGuardian";
-import { MCPLifecycleManager } from "../services/MCPLifecycleManager";
+import { type DaemonBridge, getDaemonBridge } from "../services/DaemonBridge";
 import { ProtectedFileRegistry } from "../services/protectedFileRegistry";
-import { RemoteMCPHealthExecutor } from "../services/RemoteMCPHealthExecutor";
 import { migrateExistingSnapshots } from "../snapshot/migration/encrypt-existing-snapshots";
 import { StorageManager } from "../storage/StorageManager";
 import { logger } from "../utils/logger";
@@ -31,7 +29,8 @@ export interface Phase2Result {
 	snapbackrcDecorator: SnapBackRCDecorator;
 	/** Loads and parses .snapbackrc configuration files */
 	snapbackrcLoader: SnapBackRCLoader;
-	mcpManager?: MCPLifecycleManager;
+	/** DaemonBridge for MCP connection (simplified architecture) */
+	daemonBridge: DaemonBridge;
 	/** SDK ProtectionManager - Single Source of Truth for protection decisions */
 	sdkProtectionManager: SDKProtectionManager;
 }
@@ -224,37 +223,15 @@ export async function initializePhase2Storage(
 			logger.error("Migration service failed", err as Error);
 		});
 
-		// Component 9: MCPLifecycleManager creation
+		// Component 9: DaemonBridge initialization (simplified MCP architecture)
 		componentStart = Date.now();
-		const mcpManager = new MCPLifecycleManager({
-			extensionPath: context.extensionPath,
-			dbPath: path.join(workspaceRoot, ".snapback", "snapback.db"),
-			timeout: 3000,
-		});
-		componentTimings["MCPLifecycleManager.create"] = Date.now() - componentStart;
-		logger.info("MCPLifecycleManager created", { ms: componentTimings["MCPLifecycleManager.create"] });
+		const daemonBridge = getDaemonBridge();
+		componentTimings["DaemonBridge.get"] = Date.now() - componentStart;
+		logger.info("DaemonBridge obtained", { ms: componentTimings["DaemonBridge.get"] });
 
-		// Start MCP asynchronously (don't block extension activation):
-		mcpManager.start().catch((err) => {
-			logger.error("MCP server failed to start", err);
-
-			// Show user notification with troubleshooting options
-			vscode.window
-				.showWarningMessage(
-					"SnapBack MCP: Connection failed - AI assistant features limited",
-					"Diagnose",
-					"Retry",
-					"Dismiss",
-				)
-				.then((choice) => {
-					if (choice === "Diagnose") {
-						vscode.commands.executeCommand("snapback.mcp.status");
-					} else if (choice === "Retry") {
-						mcpManager.start().catch((retryErr) => {
-							logger.error("MCP retry failed", retryErr);
-						});
-					}
-				});
+		// Start daemon connection asynchronously (don't block extension activation)
+		daemonBridge.connect().catch((err: Error) => {
+			logger.error("Daemon connection failed", err);
 		});
 
 		// Component 10: SnapBackRCLoader creation
@@ -269,85 +246,10 @@ export async function initializePhase2Storage(
 			ms: componentTimings["SnapBackRCLoader.create"],
 		});
 
-		// 🩺 Initialize MCPHealthGuardian for proactive health monitoring (deferred to background)
-		// This runs independently of the connection - starts when connection succeeds
-		let healthGuardian: MCPHealthGuardian | null = null;
+		// Register DaemonBridge for cleanup
+		context.subscriptions.push(daemonBridge);
 
-		// Subscribe to MCP connection state changes to manage health monitoring
-		mcpManager.onStateChange((event) => {
-			if (event.state === "connected") {
-				// Connection established - start health monitoring
-				const remoteClient = mcpManager.getRemoteClient();
-				const serverUrl = mcpManager.getServerUrl();
-
-				if (remoteClient && serverUrl) {
-					// Create executor and guardian if not already created
-					if (!healthGuardian) {
-						const executor = new RemoteMCPHealthExecutor(remoteClient, serverUrl);
-						healthGuardian = new MCPHealthGuardian(executor, {
-							// Production config: balanced polling intervals
-							pollerConfig: {
-								activeInterval: 3000, // 3s when actively using MCP
-								idleInterval: 10000, // 10s when idle
-								backgroundInterval: 30000, // 30s when window unfocused
-								recoveringInterval: 1000, // 1s during recovery
-								deepCheckFrequency: 10, // Deep check every 10th poll
-							},
-							failureThreshold: 3,
-							recoveryThreshold: 2,
-						});
-
-						// Wire window focus events
-						context.subscriptions.push(
-							vscode.window.onDidChangeWindowState((windowState) => {
-								healthGuardian?.setWindowFocused(windowState.focused);
-							}),
-						);
-
-						// Subscribe to health changes for logging and potential circuit breaker control
-						healthGuardian.onHealthChange((healthEvent) => {
-							logger.info("MCP health state changed", {
-								from: healthEvent.from,
-								to: healthEvent.to,
-								latencyMs: healthEvent.latencyMs,
-							});
-						});
-
-						healthGuardian.onFailure((failureEvent) => {
-							logger.warn("MCP health check failure", {
-								error: failureEvent.error,
-								consecutiveFailures: failureEvent.consecutiveFailures,
-							});
-						});
-
-						healthGuardian.onRecovery((recoveryEvent) => {
-							logger.info("MCP health recovered", {
-								downtimeMs: recoveryEvent.downtimeMs,
-								latencyMs: recoveryEvent.latencyMs,
-							});
-						});
-
-						// Register for cleanup
-						context.subscriptions.push(healthGuardian);
-					}
-
-					// Start monitoring
-					healthGuardian.start();
-					logger.info("MCPHealthGuardian started - proactive health monitoring active");
-				}
-			} else if (event.state === "disconnected" || event.state === "disabled") {
-				// Stop health monitoring when disconnected
-				if (healthGuardian) {
-					healthGuardian.stop();
-					logger.info("MCPHealthGuardian stopped - connection lost");
-				}
-			}
-		});
-
-		// Register for cleanup:
-		context.subscriptions.push(mcpManager);
-
-		// 🆕 Phase 2 component timing breakdown
+		// Phase 2 component timing breakdown
 		const phase2Duration = Date.now() - phase2Start;
 		const sortedComponents = Object.entries(componentTimings)
 			.sort(([, a], [, b]) => b - a)
@@ -372,11 +274,10 @@ export async function initializePhase2Storage(
 			protectedFileRegistry,
 			configManager,
 			autoProtectConfig,
-			mcpManager,
+			daemonBridge,
 			snapbackrcDecorator,
 			sdkProtectionManager,
-			// Must make snapbackrcLoader non-optional in Phase2Result since it's now always created
-			snapbackrcLoader: snapbackrcLoader,
+			snapbackrcLoader,
 		};
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -502,7 +403,7 @@ Check the Output panel for details.`,
 			protectedFileRegistry,
 			configManager,
 			autoProtectConfig,
-			mcpManager: undefined,
+			daemonBridge: getDaemonBridge(),
 			snapbackrcDecorator,
 			sdkProtectionManager: fallbackSdkManager,
 			snapbackrcLoader: fallbackSnapbackrcLoader,

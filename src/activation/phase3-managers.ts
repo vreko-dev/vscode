@@ -4,6 +4,7 @@ import { NotificationManager } from "../notificationManager";
 import { OperationCoordinator } from "../operationCoordinator";
 import { PlatformCoordinator } from "../platform/PlatformCoordinator";
 import { NoopAIRiskService } from "../services/aiRiskService";
+import { getDaemonBridge } from "../services/DaemonBridge";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { ProtectionManager } from "../services/protectionPolicy";
 import { ProtectionService } from "../services/protectionService";
@@ -50,7 +51,7 @@ export async function initializePhase3Managers(
 	protectedFileRegistry?: ProtectedFileRegistry,
 	snapbackrcLoader?: import("../protection/SnapBackRCLoader.js").SnapBackRCLoader,
 	eventBus?: import("@snapback/contracts").SnapBackEventBus,
-	mcpHealthGuardian?: import("../services/MCPHealthGuardian").MCPHealthGuardian,
+	_mcpHealthGuardian?: never, // Removed in MCP architecture simplification
 ): Promise<Phase3Result> {
 	const phase3Start = Date.now();
 	logger.info("Phase 3 (Managers) starting - tracking file operations", {
@@ -272,11 +273,9 @@ export async function initializePhase3Managers(
 			// Celebrations are already shown as toasts by PlatformCoordinator
 		});
 
-		// Wire MCPHealthGuardian if available (sync, fast)
-		if (mcpHealthGuardian) {
-			logger.debug("Wiring MCPHealthGuardian to PlatformCoordinator");
-			platformCoordinator.wireHealthGuardian(mcpHealthGuardian);
-		}
+		// Wire DaemonBridge if available (sync, fast)
+		const daemonBridge = getDaemonBridge();
+		platformCoordinator.wireDaemonBridge(daemonBridge);
 
 		// Fire-and-forget: Initialize with extension surface (async, deferred)
 		// Celebrations and first-init detection happen in background

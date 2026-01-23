@@ -8,7 +8,7 @@ import { NudgeManager } from "../nurturing/NudgeManager";
 import { DetectionCodeActionProvider } from "../providers/DetectionCodeActionProvider";
 import { ProtectionCodeLensProvider } from "../providers/ProtectionCodeLensProvider";
 import { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
-import type { MCPLifecycleManager } from "../services/MCPLifecycleManager";
+import type { DaemonBridge } from "../services/DaemonBridge";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
 import { StorageManager as ServiceStorageManager } from "../services/StorageManager";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
@@ -54,10 +54,10 @@ export async function initializePhase4Providers(
 	storage: IStorageManager,
 	protectedFileRegistry: ProtectedFileRegistry,
 	workspaceRoot: string,
+	daemonBridge: DaemonBridge,
 	_apiClient?: AuthedApiClient,
 	_credentialsManager?: CredentialsManager,
 	telemetryProxy?: TelemetryProxy,
-	mcpManager?: MCPLifecycleManager,
 ): Promise<Phase4Result> {
 	const phase4Start = Date.now();
 	logger.debug("Phase 4 starting...");
@@ -148,15 +148,12 @@ export async function initializePhase4Providers(
 		logger.debug("StatusBarManager", { ms: Date.now() - t });
 
 		// Initialize MCPStatusItem for MCP connection visibility
-		let mcpStatusItem: MCPStatusItem | undefined;
-		if (mcpManager) {
-			t = Date.now();
-			mcpStatusItem = new MCPStatusItem({
-				mcpManager,
-			});
-			context.subscriptions.push(mcpStatusItem);
-			logger.debug("MCPStatusItem", { ms: Date.now() - t });
-		}
+		t = Date.now();
+		const mcpStatusItem = new MCPStatusItem({
+			bridge: daemonBridge,
+		});
+		context.subscriptions.push(mcpStatusItem);
+		logger.debug("MCPStatusItem", { ms: Date.now() - t });
 
 		// Initialize NudgeManager for educational messaging
 		t = Date.now();
