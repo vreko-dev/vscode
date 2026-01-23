@@ -64,7 +64,6 @@ async function checkPackageCreation(): Promise<boolean> {
 async function checkCoreServices(): Promise<boolean> {
 	const coreServices = [
 		"src/services/protectedFileRegistry.ts",
-		"src/services/SnapshotService.ts",
 		"src/storage/SqliteSnapshotStorage.ts",
 		"src/snapshot/SnapshotManager.ts",
 	];

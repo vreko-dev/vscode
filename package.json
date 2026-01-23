@@ -922,6 +922,12 @@
     "configuration": {
       "title": "SnapBack",
       "properties": {
+        "snapback.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "**Enable SnapBack Extension**\n\nMaster toggle to enable or disable SnapBack entirely. When disabled, all SnapBack features are turned off.",
+          "order": 0
+        },
         "snapback.aiDetection.enabled": {
           "type": "boolean",
           "default": true,

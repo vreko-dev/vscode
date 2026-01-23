@@ -313,6 +313,7 @@ export const mockVscodeWindow = {
 		activeTabGroup: undefined,
 		close: vi.fn().mockResolvedValue(undefined),
 		onDidChangeTabGroups: vi.fn(() => ({ dispose: vi.fn() })),
+		onDidChangeTabs: vi.fn(() => ({ dispose: vi.fn() })), // P1 FIX: Add tab change watcher mock
 	},
 	activeTextEditor: undefined,
 	visibleTextEditors: [],
