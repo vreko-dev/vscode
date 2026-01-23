@@ -302,7 +302,7 @@ export function createDefaultHealthChecks(
 	refs: {
 		storage?: { isInitialized?: () => boolean } | null;
 		eventBus?: { isInitialized?: () => boolean } | null;
-		mcpManager?: { isConnected?: () => boolean; getState?: () => string } | null;
+		daemonBridge?: { isConnected?: () => boolean; getState?: () => string } | null;
 		authState?: { isAuthenticated?: () => Promise<boolean> } | null;
 	},
 ): void {
@@ -320,15 +320,15 @@ export function createDefaultHealthChecks(
 		details: { available: !!refs.eventBus },
 	}));
 
-	// MCP connection health check
-	monitor.registerHealthCheck("MCP", () => {
-		if (!refs.mcpManager) {
-			return { name: "MCP", status: "not_initialized" };
+	// DaemonBridge connection health check (MCP simplified architecture)
+	monitor.registerHealthCheck("DaemonBridge", () => {
+		if (!refs.daemonBridge) {
+			return { name: "DaemonBridge", status: "not_initialized" };
 		}
-		const state = refs.mcpManager.getState?.() || "unknown";
+		const state = refs.daemonBridge.getState?.() || "unknown";
 		const isConnected = state === "connected";
 		return {
-			name: "MCP",
+			name: "DaemonBridge",
 			status: isConnected ? "healthy" : "degraded",
 			details: { state, connected: isConnected },
 		};

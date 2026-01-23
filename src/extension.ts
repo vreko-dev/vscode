@@ -1077,10 +1077,10 @@ export async function activate(context: vscode.ExtensionContext) {
 			phase2Result.storage,
 			phase2Result.protectedFileRegistry,
 			workspaceRoot,
+			phase2Result.daemonBridge,
 			apiClient,
 			credentialsManager,
-			undefined, // telemetryProxy
-			phase2Result.mcpManager,
+			telemetryProxy,
 		);
 		phaseTimings["Phase 4 (Providers)"] = Date.now() - phase4Start;
 		addBreadcrumb("Phase 4 complete: UI providers", "activation", {
@@ -1702,11 +1702,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			welcomeView: phase4Result.welcomeView,
 			cooldownIndicator: cooldownIndicator, // 🆕 Add cooldown indicator to command context
 
-			// MCP Manager
-			mcpManager: phase2Result.mcpManager,
+			// DaemonBridge for simplified MCP architecture
+			daemonBridge: phase2Result.daemonBridge,
 
-			// 🆕 ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Daemon Bridge for thin extension
-			daemonBridge: daemonBridge, // Wire daemon bridge for command delegation
+			// ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Daemon Bridge for thin extension
+			// (daemonBridge already provided above)
 
 			// Utility functions
 			refreshViews,
@@ -1865,7 +1865,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		createDefaultHealthChecks(healthMonitor, {
 			storage: storage ? { isInitialized: () => true } : null,
 			eventBus: eventBus ? { isInitialized: () => true } : null,
-			mcpManager: phase2Result.mcpManager ? { getState: () => "connected" } : null,
+			daemonBridge: phase2Result.daemonBridge ? { getState: () => "connected" } : null,
 			authState: authState ? { isAuthenticated: async () => authState?.isAuthenticated() ?? false } : null,
 		});
 		// Run health checks asynchronously (non-blocking)

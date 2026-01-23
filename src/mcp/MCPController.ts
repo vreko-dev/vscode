@@ -491,7 +491,8 @@ export class MCPController implements vscode.Disposable {
 		this.daemonBridge = getDaemonBridge();
 
 		// Subscribe to daemon connection changes
-		this.daemonConnectionSubscription = this.daemonBridge.onConnectionChanged((connected) => {
+		this.daemonConnectionSubscription = this.daemonBridge.onStateChange((event) => {
+			const connected = event.state === "connected";
 			if (connected) {
 				this.emitStateChange("connected", { reason: "Daemon connected" });
 				this.processHealthSuccess(0);

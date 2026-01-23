@@ -6,7 +6,7 @@
 
 import { detectAIClients, getSnapbackMCPConfig, writeClientConfig } from "@snapback/mcp-config";
 import * as vscode from "vscode";
-import type { CliLinkManager } from "../cli/CliLinkManager";
+import { getDaemonBridge } from "../services/DaemonBridge";
 import { executeCLICommand } from "../utils/cli-execution";
 import type { HostEnvironment } from "../utils/host-probe";
 import { clearEnvironmentCache, probeHostEnvironment } from "../utils/host-probe";
@@ -29,7 +29,6 @@ export class OnboardingPanelProvider {
 	constructor(
 		private readonly context: vscode.ExtensionContext,
 		readonly _mcpBaseUrl: string,
-		private readonly cliLinkManager?: CliLinkManager,
 	) {}
 
 	/**
@@ -255,7 +254,7 @@ export class OnboardingPanelProvider {
 	 * Check CLI installation status
 	 */
 	private async checkCliStatus(): Promise<void> {
-		const cliInstalled = this.cliLinkManager?.isConnected() ?? false;
+		const cliInstalled = getDaemonBridge().isConnected();
 
 		this.panel?.webview.postMessage({
 			type: "cliStatus",
