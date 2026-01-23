@@ -218,11 +218,49 @@ export interface DaemonStatus {
 }
 
 // =============================================================================
+// CONNECTION STATE MACHINE (MCP Architecture Simplification)
+// =============================================================================
+
+/**
+ * Connection states for the simplified MCP architecture.
+ * DaemonBridge is now the single source of truth for connection state.
+ */
+export type ConnectionState =
+	| "connected" // Socket connected, daemon responding
+	| "disconnected" // Not connected, not trying
+	| "reconnecting" // Actively trying to reconnect
+	| "cli_missing"; // CLI not installed (circuit breaker)
+
+/**
+ * State change event with all relevant details.
+ * Consumers subscribe to this for real-time UI updates.
+ */
+export interface StateChangeEvent {
+	state: ConnectionState;
+	previousState: ConnectionState;
+
+	/** Reconnection details (when state === "reconnecting") */
+	attempt?: number;
+	maxAttempts?: number;
+	nextRetryMs?: number;
+
+	/** Error details (when transitioning to disconnected/cli_missing) */
+	reason?: string;
+
+	/** Version info (when state === "connected") */
+	daemonVersion?: string;
+}
+
+// =============================================================================
 // DAEMON BRIDGE CLASS
 // =============================================================================
 
 export class DaemonBridge extends vscode.Disposable {
 	private socket: Socket | null = null;
+
+	// State machine for simplified MCP architecture
+	private _state: ConnectionState = "disconnected";
+	private _daemonVersion?: string;
 	private requestId = 0;
 	private pendingRequests = new Map<
 		number,
@@ -253,8 +291,91 @@ export class DaemonBridge extends vscode.Disposable {
 	private _onSnapshotCreated = new vscode.EventEmitter<SnapshotCreatedEvent>();
 	public readonly onSnapshotCreated = this._onSnapshotCreated.event;
 
+	// State machine event emitter (MCP Architecture Simplification)
+	private _onStateChange = new vscode.EventEmitter<StateChangeEvent>();
+	public readonly onStateChange = this._onStateChange.event;
+
 	constructor() {
 		super(() => this.dispose());
+	}
+
+	// =========================================================================
+	// STATE MACHINE (MCP Architecture Simplification)
+	// =========================================================================
+
+	/**
+	 * Get current connection state.
+	 * This is the single source of truth for connection status.
+	 */
+	getState(): ConnectionState {
+		return this._state;
+	}
+
+	/**
+	 * Get daemon version (if connected).
+	 */
+	getDaemonVersion(): string | undefined {
+		return this._daemonVersion;
+	}
+
+	/**
+	 * Reset circuit breaker and retry connection.
+	 * Called when user clicks "Retry" after CLI missing.
+	 */
+	resetAndRetry(): void {
+		resetDaemonCircuitBreaker();
+		this.reconnectAttempts = 0;
+		this.reconnectDelay = MIN_RECONNECT_INTERVAL_MS;
+		void this.connect();
+	}
+
+	/**
+	 * Transition to a new state with event emission.
+	 * Single method for all state transitions ensures events always fire with complete information.
+	 */
+	private transitionTo(
+		newState: ConnectionState,
+		details: Partial<Omit<StateChangeEvent, "state" | "previousState">> = {},
+	): void {
+		const previousState = this._state;
+
+		// No-op if same state (except reconnecting which updates attempt count)
+		if (previousState === newState && newState !== "reconnecting") {
+			return;
+		}
+
+		this._state = newState;
+
+		// Build complete event
+		const event: StateChangeEvent = {
+			state: newState,
+			previousState,
+			...details,
+		};
+
+		// Add reconnection details if applicable
+		if (newState === "reconnecting") {
+			event.attempt = this.reconnectAttempts;
+			event.maxAttempts = this.maxReconnectAttempts;
+			event.nextRetryMs = this.reconnectDelay;
+		}
+
+		// Add version if connected
+		if (newState === "connected" && this._daemonVersion) {
+			event.daemonVersion = this._daemonVersion;
+		}
+
+		logger.info("MCP state transition", {
+			from: previousState,
+			to: newState,
+			...details,
+		});
+
+		// Fire new state change event
+		this._onStateChange.fire(event);
+
+		// Legacy event for backward compatibility
+		this._onConnectionChanged.fire(newState === "connected");
 	}
 
 	// =========================================================================
@@ -385,6 +506,7 @@ export class DaemonBridge extends vscode.Disposable {
 						circuitBreaker.cliNotFound = true;
 						circuitBreaker.lastError = errorMsg;
 						logger.warn("Daemon spawn failed: CLI not found (ENOENT)", { cliPath });
+						this.transitionTo("cli_missing", { reason: errorMsg });
 						this.showCliNotFoundNotification(errorMsg);
 					} else {
 						logger.warn("Failed to spawn daemon process", { error: errorMsg });
@@ -439,6 +561,7 @@ export class DaemonBridge extends vscode.Disposable {
 					circuitBreaker.cliNotFound = true;
 					circuitBreaker.lastError = errorMsg;
 					logger.warn("Daemon spawn exception: CLI not found (ENOENT)", { cliPath });
+					this.transitionTo("cli_missing", { reason: errorMsg });
 					this.showCliNotFoundNotification(errorMsg);
 				} else {
 					logger.warn("Exception during daemon auto-start", { error: errorMsg });
@@ -522,13 +645,15 @@ export class DaemonBridge extends vscode.Disposable {
 			await this.establishConnection();
 			this.reconnectDelay = MIN_RECONNECT_INTERVAL_MS;
 			this.reconnectAttempts = 0; // Reset on successful connection
-			this._onConnectionChanged.fire(true);
 
-			// 🆕 P0 FIX: Verify daemon health immediately after connection
+			// Verify daemon health immediately after connection
 			try {
 				const healthStart = Date.now();
 				const pingResult = await this.ping();
 				const healthLatency = Date.now() - healthStart;
+
+				// Store daemon version for state events
+				this._daemonVersion = pingResult.version;
 
 				logger.info("Connected to SnapBack daemon", {
 					socketPath: getSocketPath(),
@@ -538,21 +663,21 @@ export class DaemonBridge extends vscode.Disposable {
 					healthCheckLatency: healthLatency,
 					healthy: true,
 				});
+
+				// Transition to connected state with version info
+				this.transitionTo("connected", { daemonVersion: pingResult.version });
 			} catch (pingError) {
-				// Connection succeeded but ping failed - log warning but continue
+				// Connection succeeded but ping failed - still transition to connected
 				logger.warn("Daemon connection succeeded but health check failed", {
 					error: pingError instanceof Error ? pingError.message : String(pingError),
 				});
-				logger.info("Connected to SnapBack daemon (health check failed)", {
-					socketPath: getSocketPath(),
-				});
+				this.transitionTo("connected");
 			}
 
 			return true;
 		} catch (error) {
-			logger.debug("Failed to connect to daemon", {
-				error: error instanceof Error ? error.message : String(error),
-			});
+			const reason = error instanceof Error ? error.message : String(error);
+			logger.debug("Failed to connect to daemon", { error: reason });
 			this.scheduleReconnect();
 			return false;
 		} finally {
@@ -578,7 +703,8 @@ export class DaemonBridge extends vscode.Disposable {
 			this.pendingRequests.delete(id);
 		}
 
-		this._onConnectionChanged.fire(false);
+		// Transition to disconnected state
+		this.transitionTo("disconnected", { reason: "Manual disconnect" });
 	}
 
 	/**
@@ -618,7 +744,6 @@ export class DaemonBridge extends vscode.Disposable {
 
 		socket.on("close", () => {
 			this.socket = null;
-			this._onConnectionChanged.fire(false);
 			logger.debug("Daemon connection closed");
 			this.scheduleReconnect();
 		});
@@ -721,6 +846,11 @@ export class DaemonBridge extends vscode.Disposable {
 	 * Schedule reconnection with exponential backoff
 	 */
 	private scheduleReconnect(): void {
+		// Don't schedule if circuit breaker is active
+		if (circuitBreaker.cliNotFound) {
+			return;
+		}
+
 		if (this.reconnectTimer) {
 			return;
 		}
@@ -730,9 +860,14 @@ export class DaemonBridge extends vscode.Disposable {
 		// Give up after max attempts
 		if (this.reconnectAttempts > this.maxReconnectAttempts) {
 			logger.warn("Max reconnection attempts reached, giving up");
-			this._onConnectionChanged.fire(false);
+			this.transitionTo("disconnected", {
+				reason: `Failed after ${this.maxReconnectAttempts} attempts`,
+			});
 			return;
 		}
+
+		// Transition to reconnecting state with details
+		this.transitionTo("reconnecting");
 
 		logger.debug("Scheduling reconnect", {
 			attempt: this.reconnectAttempts,
