@@ -21,7 +21,6 @@ import * as vscode from "vscode";
 import { getMCPBridge } from "../bridges/MCPBridge";
 import type { OperationCoordinator } from "../operationCoordinator";
 import { getDaemonBridge } from "../services/DaemonBridge";
-import type { MCPLifecycleManager } from "../services/MCPLifecycleManager";
 import { getMCPTelemetry } from "../services/MCPTelemetry";
 import type { MCPToolsService } from "../services/MCPToolsService";
 import { logger } from "../utils/logger";
@@ -44,7 +43,6 @@ export function registerMcpCommands(
 	_operationCoordinator: OperationCoordinator,
 	_workflowIntegration: WorkflowIntegration,
 	mcpToolsService?: MCPToolsService | null,
-	mcpManager?: MCPLifecycleManager | null,
 ): vscode.Disposable[] {
 	const disposables: vscode.Disposable[] = [];
 
@@ -355,22 +353,24 @@ export function registerMcpCommands(
 				diagnostics.push("✅ MCP is enabled in settings\n");
 			}
 
-			// 2. Check MCPLifecycleManager state
-			if (mcpManager) {
-				const connectionState = mcpManager.getConnectionState();
-				const isReady = mcpManager.isServerReady();
-				const serverVersion = mcpManager.getServerVersion();
+			// 2. Check DaemonBridge state
+			const daemonBridge = getDaemonBridge();
+			const connectionState = daemonBridge.getState();
+			const isConnected = daemonBridge.isConnected();
+			const serverVersion = daemonBridge.getDaemonVersion();
 
-				if (isReady) {
-					diagnostics.push(`✅ MCP Lifecycle: ${connectionState} (server ready)`);
-					if (serverVersion) {
-						diagnostics.push(`   Server version: v${serverVersion}`);
-					}
-				} else {
-					diagnostics.push(`⚠️ MCP Lifecycle: ${connectionState} (server not ready)`);
+			if (isConnected) {
+				diagnostics.push(`✅ MCP Connection: ${connectionState} (connected)`);
+				if (serverVersion) {
+					diagnostics.push(`   Daemon version: v${serverVersion}`);
 				}
 			} else {
-				diagnostics.push("⚠️ MCP Lifecycle Manager not available");
+				diagnostics.push(`⚠️ MCP Connection: ${connectionState} (not connected)`);
+				if (connectionState === "reconnecting") {
+					diagnostics.push(
+						`   Attempt: ${daemonBridge.getReconnectAttempt()}/${daemonBridge.getMaxReconnectAttempts()}`,
+					);
+				}
 			}
 
 			// 3. Check remote MCP server connectivity (if configured)
@@ -472,7 +472,7 @@ export function registerMcpCommands(
 				diagnostics.push("• Enable MCP in settings to use AI assistant features");
 			}
 
-			if (!mcpManager?.isServerReady()) {
+			if (!getDaemonBridge().isConnected()) {
 				diagnostics.push("• Check network connectivity to MCP server");
 				diagnostics.push("• Verify server URL in settings is correct");
 				diagnostics.push("• Try restarting VS Code if issues persist");
@@ -495,7 +495,7 @@ export function registerMcpCommands(
 
 				getMCPTelemetry().trackDiagnoseExecuted({
 					mcpEnabled,
-					serverReady: mcpManager?.isServerReady() ?? false,
+					serverReady: getDaemonBridge().isConnected(),
 					circuitState: circuitState.state,
 					queueDepth: status.pendingObservations + status.pendingChanges,
 				});
@@ -503,7 +503,7 @@ export function registerMcpCommands(
 				// Bridge not initialized, still track what we can
 				getMCPTelemetry().trackDiagnoseExecuted({
 					mcpEnabled,
-					serverReady: mcpManager?.isServerReady() ?? false,
+					serverReady: getDaemonBridge().isConnected(),
 					circuitState: "closed",
 					queueDepth: 0,
 				});

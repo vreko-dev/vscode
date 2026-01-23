@@ -20,7 +20,7 @@ import { Mutex } from "async-mutex";
 import * as lockfile from "proper-lockfile";
 import * as vscode from "vscode";
 import { getOrCreateWorkspaceId, isValidWorkspaceId } from "../auth/workspace-id";
-import type { MCPHealthGuardian } from "../services/MCPHealthGuardian";
+import type { DaemonBridge } from "../services/DaemonBridge";
 import { logger } from "../utils/logger";
 import type {
 	CelebrationEvent,
@@ -100,9 +100,6 @@ export class PlatformCoordinator implements vscode.Disposable {
 	private manifest: WorkspaceManifest | null = null;
 	private manifestPath: string | null = null;
 	private backupPath: string | null = null;
-	private isHealthGuardianWired = false;
-	// biome-ignore lint/correctness/noUnusedPrivateClassMembers: stored for reference tracking
-	private healthGuardian?: MCPHealthGuardian;
 	private inMemoryMode = false;
 	private disposables: vscode.Disposable[] = [];
 
@@ -287,47 +284,32 @@ export class PlatformCoordinator implements vscode.Disposable {
 	}
 
 	/**
-	 * Wire up MCPHealthGuardian to update manifest on health changes
+	 * Wire up DaemonBridge to update manifest on health changes
 	 *
-	 * @param healthGuardian - MCPHealthGuardian instance
+	 * @param bridge - DaemonBridge instance
 	 */
-	wireHealthGuardian(healthGuardian: MCPHealthGuardian): void {
-		// Double-wire protection (Issue 4.2)
-		if (this.isHealthGuardianWired) {
-			logger.warn("MCPHealthGuardian already wired, ignoring duplicate wire attempt");
-			return;
-		}
-
-		this.healthGuardian = healthGuardian;
-		this.isHealthGuardianWired = true;
-
-		// Subscribe to health change events
+	wireDaemonBridge(bridge: DaemonBridge): void {
+		// Subscribe to state change events
 		this.disposables.push(
-			healthGuardian.onHealthChange(async (event) => {
-				logger.debug("MCP health changed", { from: event.from, to: event.to });
+			bridge.onStateChange(async (event) => {
+				logger.debug("Daemon health changed", { state: event.state });
+
+				const health: SurfaceHealthStatus = event.state === "connected" ? "healthy" : "unhealthy";
+				const reason = event.reason || (event.state === "reconnecting" ? "Reconnecting..." : undefined);
 
 				// Update MCP surface health
-				await this.updateMCPHealth(event.to, event.latencyMs);
+				await this.updateMCPHealth(health, undefined, reason);
 
 				// Celebrate recovery if transitioning to healthy
-				if (event.from !== "healthy" && event.to === "healthy") {
+				if (event.previousState !== "connected" && event.state === "connected") {
 					this.celebrate("mcp_recovered", {
-						from: event.from,
-						latencyMs: event.latencyMs,
+						from: event.previousState,
 					});
 				}
 			}),
 		);
 
-		// Subscribe to failure events for tracking
-		this.disposables.push(
-			healthGuardian.onFailure(async (event) => {
-				logger.warn("MCP health failure", { error: event.error });
-				await this.updateMCPHealth("unhealthy", undefined, event.error);
-			}),
-		);
-
-		logger.info("MCPHealthGuardian wired to PlatformCoordinator");
+		logger.info("DaemonBridge wired to PlatformCoordinator");
 	}
 
 	/**

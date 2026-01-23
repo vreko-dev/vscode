@@ -49,56 +49,51 @@ export function registerAllCommands(
 	context: vscode.ExtensionContext,
 	commandContext: CommandContext,
 ): vscode.Disposable[] {
-	const { mcpManager } = commandContext;
-
-	// Only register MCP commands if MCP manager is available
-	const mcpCommandDisposables = mcpManager
-		? registerMcpCommands(
-				context,
-				// We need to provide the ServiceFederation instance here
-				// For now, we'll pass a minimal implementation
-				{
-					executeWithFallback: async (
-						_service: unknown,
-						primary: () => Promise<unknown>,
-						fallback: () => Promise<unknown>,
-					) => {
-						try {
-							return await primary();
-						} catch (_error) {
-							return fallback();
-						}
-					},
-					executeWithCache: async (
-						_service: unknown,
-						_key: string,
-						primary: () => Promise<unknown>,
-						fallback: () => Promise<unknown>,
-					) => {
-						try {
-							return await primary();
-						} catch (_error) {
-							return fallback();
-						}
-					},
-					executeWithTimeout: async (
-						_service: unknown,
-						primary: () => Promise<unknown>,
-						fallback: () => Promise<unknown>,
-						timeout: number,
-					) => {
-						return Promise.race([
-							primary(),
-							new Promise((resolve) => setTimeout(() => resolve(fallback()), timeout)),
-						]);
-					},
-				} as InstanceType<typeof ServiceFederation>,
-				commandContext.operationCoordinator,
-				commandContext.workflowIntegration,
-				undefined, // mcpToolsService - not yet wired
-				mcpManager, // Pass MCPLifecycleManager for diagnostics
-			)
-		: [];
+	// Register MCP commands - bridge handles connection state internally
+	const mcpCommandDisposables = registerMcpCommands(
+		context,
+		// We need to provide the ServiceFederation instance here
+		// For now, we'll pass a minimal implementation
+		{
+			executeWithFallback: async (
+				_service: unknown,
+				primary: () => Promise<unknown>,
+				fallback: () => Promise<unknown>,
+			) => {
+				try {
+					return await primary();
+				} catch (_error) {
+					return fallback();
+				}
+			},
+			executeWithCache: async (
+				_service: unknown,
+				_key: string,
+				primary: () => Promise<unknown>,
+				fallback: () => Promise<unknown>,
+			) => {
+				try {
+					return await primary();
+				} catch (_error) {
+					return fallback();
+				}
+			},
+			executeWithTimeout: async (
+				_service: unknown,
+				primary: () => Promise<unknown>,
+				fallback: () => Promise<unknown>,
+				timeout: number,
+			) => {
+				return Promise.race([
+					primary(),
+					new Promise((resolve) => setTimeout(() => resolve(fallback()), timeout)),
+				]);
+			},
+		} as InstanceType<typeof ServiceFederation>,
+		commandContext.operationCoordinator,
+		commandContext.workflowIntegration,
+		undefined, // mcpToolsService - not yet wired
+	);
 
 	return [
 		...registerAuthCommands(context),
