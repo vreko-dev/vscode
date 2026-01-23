@@ -801,7 +801,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		const telemetryProxy = new TelemetryProxy(context); // Ensure telemetryProxy is defined here
 
 		// 🆕 Track extension activation (every activation, not just first install)
-		await telemetryProxy.trackActivation();
+		// Fire-and-forget - don't block activation for telemetry network call
+		telemetryProxy.trackActivation().catch((err) => {
+			logger.warn("Failed to track activation (non-critical)", {
+				error: err instanceof Error ? err.message : String(err),
+			});
+		});
 
 		// 🆕 Initialize CoreEventTracker for P0 product events (save_attempt, snapshot_created, session_finalized)
 		initializeCoreEventTracker(telemetryProxy);
@@ -912,9 +917,28 @@ export async function activate(context: vscode.ExtensionContext) {
 				};
 
 				const violationReader = {
-					getViolationsForFile: async (_filePath: string) => {
-						// TODO: Wire up violation reading via Intelligence Service
-						// For now, return empty array (alerts will still work for critical files)
+					getViolationsForFile: async (filePath: string) => {
+						// Get violations from daemon via DaemonBridge
+						const bridge = getDaemonBridge();
+						if (bridge.isConnected()) {
+							try {
+								const result = await bridge.listViolations(workspaceRoot);
+								// Filter violations for the specific file
+								// Transform daemon response to match IViolationReader interface
+								return result.violations
+									.filter((v) => v.file === filePath || v.file.includes(filePath))
+									.map((v) => ({
+										type: v.type,
+										count: v.occurrences || 1,
+										lastOccurrence: new Date(v.createdAt).getTime(),
+									}));
+							} catch (err) {
+								logger.warn("Failed to get violations via daemon", {
+									error: err instanceof Error ? err.message : String(err),
+								});
+							}
+						}
+						// Fall back to empty array if daemon unavailable
 						return [];
 					},
 				};
@@ -1364,13 +1388,17 @@ export async function activate(context: vscode.ExtensionContext) {
 						logger.info("Vitals status bar display updated", { enabled });
 					}
 
-					// TODO: Wire StatusBarController.setExtensionEnabled() when master enable/disable setting is added
-					// Currently no snapback.enabled setting exists - extension is always enabled
-					// When added, implement:
-					// if (e.affectsConfiguration("snapback.enabled")) {
-					//   const enabled = vscode.workspace.getConfiguration().get<boolean>("snapback.enabled", true);
-					//   statusBarController?.setExtensionEnabled(enabled);
-					// }
+					// Master enable/disable setting for entire extension
+					if (e.affectsConfiguration("snapback.enabled")) {
+						const enabled = vscode.workspace.getConfiguration().get<boolean>("snapback.enabled", true);
+						if (enabled) {
+							phase4Result.statusBarController.enable();
+							logger.info("SnapBack extension enabled via config", { enabled: true });
+						} else {
+							phase4Result.statusBarController.disable();
+							logger.info("SnapBack extension disabled via config", { enabled: false });
+						}
+					}
 				}),
 			);
 
