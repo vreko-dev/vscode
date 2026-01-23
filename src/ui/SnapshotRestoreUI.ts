@@ -63,6 +63,7 @@ export class SnapshotRestoreUI {
 			const shouldRestore = await this.showDiffPreviews(snapshot, selectedFiles);
 			if (!shouldRestore) {
 				await this.cleanupDiffTabs();
+				this.disposeStatusBar(); // P0 FIX: Ensure status bar is disposed when user cancels
 				return false; // User cancelled
 			}
 
@@ -334,25 +335,57 @@ export class SnapshotRestoreUI {
 
 	/**
 	 * Waits for user to click Restore or Cancel
+	 *
+	 * P1 FIX: Also monitors for tab close events to detect when user closes diffs manually
+	 * P2 FIX: Uses disposal guard to prevent double-disposal of commands
 	 */
 	private async waitForRestoreDecision(_snapshotName: string, _fileCount: number): Promise<boolean> {
 		// Create a promise that resolves when the user makes a decision
 		return new Promise<boolean>((resolve) => {
-			// Set up command handlers for the status bar actions
-			const restoreCommand = vscode.commands.registerCommand("snapback.internal.restoreFromPreview", () => {
-				// Clean up command handlers
+			// P2 FIX: Guard against double-disposal
+			let isDisposed = false;
+
+			// Cleanup function that safely disposes all resources
+			const cleanup = () => {
+				if (isDisposed) {
+					return; // P2 FIX: Prevent double-disposal
+				}
+				isDisposed = true;
 				restoreCommand.dispose();
 				cancelCommand.dispose();
-				// Resolve with true (restore)
+				tabWatcher?.dispose(); // P1 FIX: Clean up tab watcher
+			};
+
+			// Set up command handlers for the status bar actions
+			const restoreCommand = vscode.commands.registerCommand("snapback.internal.restoreFromPreview", () => {
+				cleanup();
 				resolve(true);
 			});
 
 			const cancelCommand = vscode.commands.registerCommand("snapback.internal.cancelRestore", () => {
-				// Clean up command handlers
-				restoreCommand.dispose();
-				cancelCommand.dispose();
-				// Resolve with false (cancel)
+				cleanup();
 				resolve(false);
+			});
+
+			// P1 FIX: Watch for tab close events
+			// If user closes all diff tabs, treat as cancel
+			const tabWatcher = vscode.window.tabGroups.onDidChangeTabs(() => {
+				// Check if any of our tracked diff tabs are still open
+				const remainingDiffTabs = this.openDiffTabs.filter((tab) => {
+					// Check if this tab still exists in any tab group
+					return vscode.window.tabGroups.all.flatMap((group) => group.tabs).some((t) => t === tab);
+				});
+
+				// If all diff tabs are closed, treat as cancel
+				if (remainingDiffTabs.length === 0 && this.openDiffTabs.length > 0) {
+					logger.info("All diff tabs closed by user, cancelling restore");
+					cleanup();
+					this.disposeStatusBar(); // Clean up status bar since we're resolving early
+					resolve(false);
+				}
+
+				// Update tracked tabs
+				this.openDiffTabs = remainingDiffTabs;
 			});
 
 			/**
@@ -369,10 +402,10 @@ export class SnapshotRestoreUI {
 			vscode.window
 				.showInformationMessage("Review the diffs in the editor. Ready to restore?", "Restore Files", "Cancel")
 				.then((decision) => {
-					// Clean up command handlers
-					restoreCommand.dispose();
-					cancelCommand.dispose();
-					// Resolve based on user decision
+					if (isDisposed) {
+						return; // P2 FIX: Already resolved via another path
+					}
+					cleanup();
 					resolve(decision === "Restore Files");
 				});
 		});
