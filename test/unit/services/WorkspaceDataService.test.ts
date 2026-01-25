@@ -119,8 +119,8 @@ vi.mock("../../../src/services/DaemonBridge", () => ({
 
 // Mock cli-status
 vi.mock("../../../src/utils/cli-status", () => ({
-	getCliStatusSync: vi.fn().mockReturnValue({ installed: false, version: null }),
-	getCliStatus: vi.fn().mockResolvedValue({ installed: false, version: null }),
+	getCliStatusSync: () => ({ installed: false, version: null, path: null }),
+	getCliStatus: async () => ({ installed: false, version: null, path: null }),
 }));
 
 // =============================================================================
