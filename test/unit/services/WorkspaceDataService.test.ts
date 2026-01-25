@@ -104,6 +104,25 @@ vi.mock("vscode", () => {
 	};
 });
 
+// Mock DaemonBridge for MCP connection testing
+const mockDaemonBridge = {
+	getState: vi.fn().mockReturnValue("disconnected" as const),
+	getDaemonVersion: vi.fn().mockReturnValue(undefined),
+	onStateChange: vi.fn().mockReturnValue({ dispose: vi.fn() }),
+	onSnapshotCreated: vi.fn().mockReturnValue({ dispose: vi.fn() }),
+	isConnected: vi.fn().mockReturnValue(false),
+};
+
+vi.mock("../../../src/services/DaemonBridge", () => ({
+	getDaemonBridge: vi.fn(() => mockDaemonBridge),
+}));
+
+// Mock cli-status
+vi.mock("../../../src/utils/cli-status", () => ({
+	getCliStatusSync: vi.fn().mockReturnValue({ installed: false, version: null }),
+	getCliStatus: vi.fn().mockResolvedValue({ installed: false, version: null }),
+}));
+
 // =============================================================================
 // TYPE DEFINITIONS - Expected interface for WorkspaceDataService
 // =============================================================================
@@ -201,6 +220,14 @@ interface WorkspaceDataSnapshot {
 		promotedAt: string;
 		lastSeenAt: string;
 	}>;
+
+	// MCP connection status
+	mcpConnection: {
+		state: "connected" | "disconnected" | "reconnecting" | "cli_missing";
+		daemonVersion?: string;
+		attempt?: number;
+		maxAttempts?: number;
+	};
 }
 
 // =============================================================================
@@ -975,6 +1002,102 @@ describe("WorkspaceDataService", () => {
 			expect(snapshot.stats.restoresToday).toBe(1);
 			// Activity data
 			expect(snapshot.activity.aiDetectionLog.length).toBeGreaterThan(0);
+		});
+	});
+
+	// =========================================================================
+	// 10. MCP CONNECTION TESTS (New functionality)
+	// =========================================================================
+
+	describe("MCP connection status", () => {
+		it("should include MCP connection info in snapshot", async () => {
+			const snapshot = await service.getSnapshot();
+
+			expect(snapshot).toHaveProperty("mcpConnection");
+			expect(snapshot.mcpConnection).toHaveProperty("state");
+		});
+
+		it("should return disconnected state by default", async () => {
+			mockDaemonBridge.getState.mockReturnValue("disconnected" as const);
+			mockDaemonBridge.getDaemonVersion.mockReturnValue(undefined);
+
+			const snapshot = await service.getSnapshot();
+
+			expect(snapshot.mcpConnection.state).toBe("disconnected");
+			expect(snapshot.mcpConnection.daemonVersion).toBeUndefined();
+		});
+
+		it("should return connected state with version when daemon is running", async () => {
+			mockDaemonBridge.getState.mockReturnValue("connected" as const);
+			mockDaemonBridge.getDaemonVersion.mockReturnValue("1.2.3");
+
+			const snapshot = await service.getSnapshot();
+
+			expect(snapshot.mcpConnection.state).toBe("connected");
+			expect(snapshot.mcpConnection.daemonVersion).toBe("1.2.3");
+		});
+
+		it("should handle reconnecting state", async () => {
+			mockDaemonBridge.getState.mockReturnValue("reconnecting" as const);
+
+			const snapshot = await service.getSnapshot();
+
+			expect(snapshot.mcpConnection.state).toBe("reconnecting");
+		});
+
+		it("should handle cli_missing state", async () => {
+			mockDaemonBridge.getState.mockReturnValue("cli_missing" as const);
+
+			const snapshot = await service.getSnapshot();
+
+			expect(snapshot.mcpConnection.state).toBe("cli_missing");
+		});
+
+		it("should call getDaemonBridge singleton", async () => {
+			const { getDaemonBridge } = await import("../../../src/services/DaemonBridge");
+
+			await service.getSnapshot();
+
+			expect(getDaemonBridge).toHaveBeenCalled();
+		});
+
+		it("should reflect live MCP state changes", async () => {
+			// Initially disconnected
+			mockDaemonBridge.getState.mockReturnValue("disconnected" as const);
+			let snapshot = await service.getSnapshot();
+			expect(snapshot.mcpConnection.state).toBe("disconnected");
+
+			// Simulate connection
+			mockDaemonBridge.getState.mockReturnValue("connected" as const);
+			mockDaemonBridge.getDaemonVersion.mockReturnValue("2.0.0");
+			snapshot = await service.getSnapshot();
+			expect(snapshot.mcpConnection.state).toBe("connected");
+			expect(snapshot.mcpConnection.daemonVersion).toBe("2.0.0");
+
+			// Simulate disconnection
+			mockDaemonBridge.getState.mockReturnValue("disconnected" as const);
+			mockDaemonBridge.getDaemonVersion.mockReturnValue(undefined);
+			snapshot = await service.getSnapshot();
+			expect(snapshot.mcpConnection.state).toBe("disconnected");
+			expect(snapshot.mcpConnection.daemonVersion).toBeUndefined();
+		});
+
+		it("should work alongside other snapshot data", async () => {
+			mockDaemonBridge.getState.mockReturnValue("connected" as const);
+			mockDaemonBridge.getDaemonVersion.mockReturnValue("1.0.0");
+
+			const vitals = createMockVitals();
+			service.updateVitals(vitals as any);
+			service.recordRestore("snap-1", 3);
+
+			const snapshot = await service.getSnapshot();
+
+			// MCP connection
+			expect(snapshot.mcpConnection.state).toBe("connected");
+			// Vitals
+			expect(snapshot.vitals).toBeDefined();
+			// Stats
+			expect(snapshot.stats.restoresToday).toBe(1);
 		});
 	});
 });

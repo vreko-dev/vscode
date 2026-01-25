@@ -831,4 +831,192 @@ describe("UnifiedDashboardPanel", () => {
 			expect(mockWebviewPanel.webview.html).toContain('data-panel="setup"');
 		});
 	});
+
+	// =========================================================================
+	// 9. MCP CONNECTION TESTS (New functionality)
+	// =========================================================================
+
+	describe("MCP state change subscription", () => {
+		let mockDaemonBridge: {
+			onSnapshotCreated: ReturnType<typeof vi.fn>;
+			onStateChange: ReturnType<typeof vi.fn>;
+			getState: ReturnType<typeof vi.fn>;
+			getDaemonVersion: ReturnType<typeof vi.fn>;
+		};
+
+		beforeEach(() => {
+			mockDaemonBridge = {
+				onSnapshotCreated: vi.fn().mockReturnValue({ dispose: vi.fn() }),
+				onStateChange: vi.fn().mockReturnValue({ dispose: vi.fn() }),
+				getState: vi.fn().mockReturnValue("disconnected" as const),
+				getDaemonVersion: vi.fn().mockReturnValue(undefined),
+			};
+		});
+
+		it("should subscribe to DaemonBridge state changes when wired", () => {
+			const panel = UnifiedDashboardPanel.createOrShow(
+				mockExtensionUri as any,
+				mockCoordinator as any,
+			);
+
+			// Wire the daemon bridge
+			panel.setDaemonBridge(mockDaemonBridge as any);
+
+			// Should subscribe to both snapshot created and state change events
+			expect(mockDaemonBridge.onSnapshotCreated).toHaveBeenCalled();
+			expect(mockDaemonBridge.onStateChange).toHaveBeenCalled();
+		});
+
+		it("should send data update when MCP state changes", async () => {
+			const panel = UnifiedDashboardPanel.createOrShow(
+				mockExtensionUri as any,
+				mockCoordinator as any,
+			);
+
+			// Simulate webviewReady first
+			const messageHandler = (mockWebviewPanel.webview.onDidReceiveMessage as any).mock
+				.calls[0]?.[0] as ((msg: unknown) => Promise<void>) | undefined;
+			expect(messageHandler).toBeDefined();
+			await messageHandler!({ type: "webviewReady" });
+
+			// Clear postMessage calls
+			mockWebviewPanel.webview.postMessage.mockClear();
+
+			// Wire the daemon bridge
+			panel.setDaemonBridge(mockDaemonBridge as any);
+
+			// Get the state change callback
+			const stateChangeCallback = (mockDaemonBridge.onStateChange as any).mock.calls[0]?.[0] as
+				| (() => void)
+				| undefined;
+			expect(stateChangeCallback).toBeDefined();
+
+			// Simulate state change
+			stateChangeCallback!();
+
+			// Should send updated data to webview
+			expect(mockWebviewPanel.webview.postMessage).toHaveBeenCalled();
+			expect(mockDataService.getSnapshot).toHaveBeenCalled();
+		});
+
+		it("should not send data updates before webview is ready", async () => {
+			const panel = UnifiedDashboardPanel.createOrShow(
+				mockExtensionUri as any,
+				mockCoordinator as any,
+			);
+
+			// Wire the daemon bridge WITHOUT webviewReady
+			panel.setDaemonBridge(mockDaemonBridge as any);
+
+			// Get the state change callback
+			const stateChangeCallback = (mockDaemonBridge.onStateChange as any).mock.calls[0]?.[0] as
+				| (() => void)
+				| undefined;
+
+			// Clear postMessage calls (from initial setup)
+			mockWebviewPanel.webview.postMessage.mockClear();
+
+			// Simulate state change before webview ready
+			stateChangeCallback!();
+
+			// Should NOT send data yet
+			expect(mockWebviewPanel.webview.postMessage).not.toHaveBeenCalled();
+		});
+
+		it("should dispose state change subscription on cleanup", () => {
+			const mockDispose = vi.fn();
+			mockDaemonBridge.onStateChange.mockReturnValue({ dispose: mockDispose });
+
+			const panel = UnifiedDashboardPanel.createOrShow(
+				mockExtensionUri as any,
+				mockCoordinator as any,
+			);
+
+			panel.setDaemonBridge(mockDaemonBridge as any);
+			panel.dispose();
+
+			// Should dispose both subscriptions
+			expect(mockDispose).toHaveBeenCalled();
+		});
+
+		it("should handle multiple setDaemonBridge calls gracefully", () => {
+			const mockDispose1 = vi.fn();
+			const mockDispose2 = vi.fn();
+
+			const mockBridge1 = {
+				...mockDaemonBridge,
+				onSnapshotCreated: vi.fn().mockReturnValue({ dispose: mockDispose1 }),
+				onStateChange: vi.fn().mockReturnValue({ dispose: mockDispose1 }),
+			};
+
+			const mockBridge2 = {
+				...mockDaemonBridge,
+				onSnapshotCreated: vi.fn().mockReturnValue({ dispose: mockDispose2 }),
+				onStateChange: vi.fn().mockReturnValue({ dispose: mockDispose2 }),
+			};
+
+			const panel = UnifiedDashboardPanel.createOrShow(
+				mockExtensionUri as any,
+				mockCoordinator as any,
+			);
+
+			// Wire first bridge
+			panel.setDaemonBridge(mockBridge1 as any);
+
+			// Wire second bridge (should dispose first)
+			panel.setDaemonBridge(mockBridge2 as any);
+
+			// First bridge subscriptions should be disposed
+			expect(mockDispose1).toHaveBeenCalled();
+			// Second bridge should be subscribed
+			expect(mockBridge2.onStateChange).toHaveBeenCalled();
+		});
+
+		it("should send mcpConnection data in update message", async () => {
+			// Update mock to include MCP connection info
+			const snapshotWithMCP = {
+				...defaultSnapshot,
+				mcpConnection: {
+					state: "connected" as const,
+					daemonVersion: "1.2.3",
+				},
+			};
+			mockDataService.getSnapshot.mockResolvedValue(snapshotWithMCP);
+
+			UnifiedDashboardPanel.createOrShow(
+				mockExtensionUri as any,
+				mockCoordinator as any,
+			);
+
+			// Simulate webviewReady
+			const messageHandler = (mockWebviewPanel.webview.onDidReceiveMessage as any).mock
+				.calls[0]?.[0] as ((msg: unknown) => Promise<void>) | undefined;
+			expect(messageHandler).toBeDefined();
+			await messageHandler!({ type: "webviewReady" });
+
+			// Find the update message
+			const sentMessage = (mockWebviewPanel.webview.postMessage as any).mock.calls.find(
+				(call: unknown[]) => (call[0] as { type: string }).type === "update",
+			)?.[0] as { mcpConnection: { state: string; daemonVersion: string } } | undefined;
+
+			expect(sentMessage).toBeDefined();
+			expect(sentMessage?.mcpConnection).toBeDefined();
+			expect(sentMessage?.mcpConnection.state).toBe("connected");
+			expect(sentMessage?.mcpConnection.daemonVersion).toBe("1.2.3");
+		});
+
+		it("should use static wireDaemonBridge method", () => {
+			const panel = UnifiedDashboardPanel.createOrShow(
+				mockExtensionUri as any,
+				mockCoordinator as any,
+			);
+
+			// Wire via static method
+			UnifiedDashboardPanel.wireDaemonBridge(mockDaemonBridge as any);
+
+			// Should subscribe to events
+			expect(mockDaemonBridge.onSnapshotCreated).toHaveBeenCalled();
+			expect(mockDaemonBridge.onStateChange).toHaveBeenCalled();
+		});
+	});
 });
