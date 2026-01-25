@@ -11,6 +11,7 @@ import type {
 	DashboardStats,
 	DashboardTab,
 	ExtensionMessage,
+	MCPConnectionInfo,
 	SessionHealth,
 	TabConfig,
 	UIGuidance,
@@ -57,13 +58,6 @@ interface MCPStatus {
 	pushCount: number;
 }
 
-const DEFAULT_MCP_STATUS: MCPStatus = {
-	enabled: true,
-	serverUrl: "",
-	queuedItems: 0,
-	pushCount: 0,
-};
-
 export function App() {
 	// Detect which panel to show based on data-panel attribute
 	const rootElement = document.getElementById("root");
@@ -77,12 +71,19 @@ export function App() {
 	const [sessionHealth, setSessionHealth] = useState<SessionHealth | null>(null);
 	const [backendGuidance, setBackendGuidance] = useState<AgentGuidance | null>(null);
 
-	// Legacy MCP status (maintained for DashboardHome compatibility)
-	// Note: mcpStatus is currently static - future: derive from settings/activity
-	const [mcpStatus] = useState<MCPStatus>(DEFAULT_MCP_STATUS);
+	// Real MCP connection status from DaemonBridge
+	const [mcpConnection, setMcpConnection] = useState<MCPConnectionInfo | null>(null);
 
 	// CLI status state
 	const [cliStatus, setCliStatus] = useState<{ installed: boolean; version: string | null } | undefined>(undefined);
+
+	// Convert real MCP connection to legacy MCPStatus format for DashboardHome
+	const mcpStatus: MCPStatus = {
+		enabled: mcpConnection?.state === "connected" || mcpConnection?.state === "reconnecting",
+		serverUrl: mcpConnection?.daemonVersion ? `v${mcpConnection.daemonVersion}` : "",
+		queuedItems: 0, // Not tracked in ConnectionInfo
+		pushCount: 0, // Not tracked in ConnectionInfo
+	};
 
 	// Derived UI values (transformed for components)
 	const uiVitals: UIVitalsData = transformVitalsToUI(backendVitals, sessionHealth ?? undefined);
@@ -116,6 +117,10 @@ export function App() {
 						installed: message.settings.cliInstalled,
 						version: message.settings.cliVersion ?? null,
 					});
+				}
+				// Handle real-time MCP connection status from DaemonBridge
+				if (message.mcpConnection) {
+					setMcpConnection(message.mcpConnection);
 				}
 			} else if (message.type === "navigate") {
 				// Handle navigation requests from extension
@@ -163,6 +168,7 @@ export function App() {
 						cliStatus={cliStatus}
 						onOpenSettings={() => setActivePanel("settings")}
 						onNavigateToActivity={() => setActivePanel("activity")}
+						onCreateSnapshot={() => vscodeAPI?.postMessage({ type: "createSnapshot" })}
 					/>
 				)}
 				{activePanel === "activity" && (

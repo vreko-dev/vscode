@@ -186,6 +186,20 @@ export interface WorkspacePattern {
 }
 
 // =============================================================================
+// MCP CONNECTION TYPES
+// =============================================================================
+
+/**
+ * MCP connection status (from WorkspaceDataService.MCPConnectionInfo)
+ */
+export interface MCPConnectionInfo {
+	state: "connected" | "disconnected" | "reconnecting" | "cli_missing";
+	daemonVersion?: string;
+	attempt?: number;
+	maxAttempts?: number;
+}
+
+// =============================================================================
 // MESSAGE PROTOCOL TYPES
 // =============================================================================
 
@@ -205,6 +219,7 @@ export interface UpdateMessagePayload {
 	learnings: Learning[];
 	violations: Violation[];
 	patterns: WorkspacePattern[];
+	mcpConnection: MCPConnectionInfo;
 }
 
 /**

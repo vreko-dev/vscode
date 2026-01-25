@@ -29,6 +29,8 @@ interface DashboardHomeProps {
 		installed: boolean;
 		version: string | null;
 	};
+	/** Handler for creating a snapshot */
+	onCreateSnapshot?: () => void;
 }
 
 // Brand constants (from extension BRANDING export)
@@ -49,6 +51,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 	onOpenSettings,
 	onNavigateToActivity,
 	cliStatus,
+	onCreateSnapshot,
 }) => {
 	const {
 		snapshotsToday,
@@ -147,6 +150,12 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 			<div>
 				<h3 className="text-sm font-semibold text-zinc-400 mb-3 uppercase tracking-wide">Quick Actions</h3>
 				<div className="flex gap-2">
+					{onCreateSnapshot && (
+						<Button size="sm" variant="default" onClick={onCreateSnapshot}>
+							<span className="mr-2">{ICONS.snapshot}</span>
+							Create Snapshot
+						</Button>
+					)}
 					<Button size="sm" variant="outline" onClick={onNavigateToActivity}>
 						<span className="mr-2">📋</span>
 						View Activity

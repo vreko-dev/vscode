@@ -17,6 +17,7 @@ import { getHeatIntegration } from "../heat";
 import type { HeatTracker } from "../heat/HeatTracker";
 import { getCliStatusSync } from "../utils/cli-status";
 import { logger } from "../utils/logger";
+import { getDaemonBridge } from "./DaemonBridge";
 
 // =============================================================================
 // CONSTANTS
@@ -178,6 +179,16 @@ export interface WorkspacePattern {
 }
 
 /**
+ * MCP connection status for dashboard
+ */
+export interface MCPConnectionInfo {
+	state: "connected" | "disconnected" | "reconnecting" | "cli_missing";
+	daemonVersion?: string;
+	attempt?: number;
+	maxAttempts?: number;
+}
+
+/**
  * Complete workspace data snapshot
  */
 export interface WorkspaceDataSnapshot {
@@ -194,6 +205,9 @@ export interface WorkspaceDataSnapshot {
 	learnings: Learning[];
 	violations: Violation[];
 	patterns: WorkspacePattern[];
+
+	// MCP connection status
+	mcpConnection: MCPConnectionInfo;
 }
 
 /**
@@ -957,6 +971,24 @@ export class WorkspaceDataService implements vscode.Disposable {
 	}
 
 	// ==========================================================================
+	// MCP CONNECTION STATUS
+	// ==========================================================================
+
+	/**
+	 * Get MCP connection status from DaemonBridge
+	 */
+	private getMCPConnection(): MCPConnectionInfo {
+		const bridge = getDaemonBridge();
+		const state = bridge.getState();
+		const daemonVersion = bridge.getDaemonVersion();
+
+		return {
+			state,
+			daemonVersion,
+		};
+	}
+
+	// ==========================================================================
 	// PUBLIC API - Main Snapshot Method
 	// ==========================================================================
 
@@ -981,6 +1013,7 @@ export class WorkspaceDataService implements vscode.Disposable {
 			learnings: [...this.learnings],
 			violations: [...this.violations],
 			patterns: [...this.patterns],
+			mcpConnection: this.getMCPConnection(),
 		};
 	}
 

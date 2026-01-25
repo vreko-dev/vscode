@@ -53,7 +53,10 @@ interface WebviewMessage {
 		// CLI status messages
 		| "cli:checkStatus"
 		| "cli:install"
-		| "cli:openDocs";
+		| "cli:openDocs"
+		// Diagnostics messages
+		| "runDiagnostics"
+		| "showAIStatus";
 	payload?: {
 		snapshotId?: string;
 		[key: string]: unknown;
@@ -284,7 +287,7 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		this.daemonEventDisposable?.dispose();
 
 		// Subscribe to snapshot created events from daemon
-		this.daemonEventDisposable = bridge.onSnapshotCreated((event: SnapshotCreatedEvent) => {
+		const snapshotSubscription = bridge.onSnapshotCreated((event: SnapshotCreatedEvent) => {
 			logger.debug("UnifiedDashboardPanel received snapshot created event from daemon", {
 				snapshotId: event.snapshotId,
 				source: event.source,
@@ -296,8 +299,19 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 			}
 		});
 
+		// Subscribe to MCP connection state changes for live status updates
+		const stateChangeSubscription = bridge.onStateChange(() => {
+			logger.debug("UnifiedDashboardPanel received MCP state change from DaemonBridge");
+
+			// Push live MCP status update to webview
+			if (this.isWebviewReady) {
+				this.sendDataToWebview();
+			}
+		});
+
+		this.daemonEventDisposable = vscode.Disposable.from(snapshotSubscription, stateChangeSubscription);
 		this.disposables.push(this.daemonEventDisposable);
-		logger.debug("UnifiedDashboardPanel wired to DaemonBridge");
+		logger.debug("UnifiedDashboardPanel wired to DaemonBridge (snapshot + state change events)");
 	}
 
 	/**
@@ -393,6 +407,16 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 
 				case "cli:openDocs":
 					await vscode.env.openExternal(vscode.Uri.parse("https://docs.snapback.dev/cli"));
+					break;
+
+				case "runDiagnostics":
+					// Route to the diagnostics command
+					await vscode.commands.executeCommand("snapback.runDiagnostics");
+					break;
+
+				case "showAIStatus":
+					// Route to the AI monitoring status command
+					await vscode.commands.executeCommand("snapback.showAIMonitoringStatus");
 					break;
 
 				case "close":
@@ -659,18 +683,45 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		try {
 			const snapshot = await this.dataService.getSnapshot();
 
+			// Ensure all required data has safe defaults to prevent React crashes
+			// Note: sessionHealth, recommendation, and guidance are always returned by WorkspaceDataService
 			await this.panel.webview.postMessage({
 				type: "update",
-				stats: snapshot.stats,
-				activity: snapshot.activity,
-				settings: snapshot.settings,
+				stats: snapshot.stats || {
+					snapshotsToday: 0,
+					totalSnapshots: 0,
+					restoresToday: 0,
+					linesProtected: 0,
+					tokensSaved: 0,
+					restoresThisWeek: 0,
+					efficiencyPercentile: 0,
+				},
+				activity: snapshot.activity || {
+					timeline: [],
+					aiDetectionLog: [],
+					todayEvents: 0,
+					yesterdayEvents: 0,
+					weekEvents: 0,
+				},
+				settings: snapshot.settings || {
+					detectedAITool: null,
+					cliInstalled: false,
+					cliVersion: null,
+					protectionThreshold: "medium",
+					excludePatterns: [],
+					languagePacks: [],
+				},
+				// Vitals CAN be null (only nullable field in WorkspaceDataSnapshot)
 				vitals: snapshot.vitals,
+				// These are ALWAYS returned by WorkspaceDataService (never null)
 				sessionHealth: snapshot.sessionHealth,
 				recommendation: snapshot.recommendation,
 				guidance: snapshot.guidance,
-				learnings: snapshot.learnings,
-				violations: snapshot.violations,
-				patterns: snapshot.patterns,
+				learnings: snapshot.learnings || [],
+				violations: snapshot.violations || [],
+				patterns: snapshot.patterns || [],
+				// Real-time MCP connection status
+				mcpConnection: snapshot.mcpConnection,
 			});
 		} catch (error) {
 			logger.error("Failed to send data to webview", error as Error);
