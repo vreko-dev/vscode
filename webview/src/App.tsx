@@ -92,17 +92,23 @@ export function App() {
 
 	useEffect(() => {
 		// Heartbeat to detect when event loop is blocked
+		// Only enable in non-production builds to avoid noisy logs in normal use.
+		const isDebugHeartbeat = import.meta.env.MODE !== "production";
+		let heartbeat: number | undefined;
 		let heartbeatCount = 0;
-		const heartbeat = setInterval(() => {
-			heartbeatCount++;
-			console.log(`[HEARTBEAT] ${heartbeatCount} - ${new Date().toISOString()}`);
-			vscodeAPI?.postMessage({
-				type: "debug",
-				phase: "HEARTBEAT",
-				message: `tick ${heartbeatCount}`,
-				elapsed: Math.round(performance.now()),
-			});
-		}, 2000);
+
+		if (isDebugHeartbeat) {
+			heartbeat = window.setInterval(() => {
+				heartbeatCount++;
+				console.log(`[HEARTBEAT] ${heartbeatCount} - ${new Date().toISOString()}`);
+				vscodeAPI?.postMessage({
+					type: "debug",
+					phase: "HEARTBEAT",
+					message: `tick ${heartbeatCount}`,
+					elapsed: Math.round(performance.now()),
+				});
+			}, 2000);
+		}
 
 		// Listen for messages from extension
 		const messageHandler = (event: MessageEvent) => {
@@ -153,7 +159,9 @@ export function App() {
 		vscodeAPI?.postMessage({ type: "webviewReady" });
 
 		return () => {
-			clearInterval(heartbeat);
+			if (heartbeat !== undefined) {
+				clearInterval(heartbeat);
+			}
 			window.removeEventListener("message", messageHandler);
 		};
 	}, []);
