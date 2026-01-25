@@ -1,4 +1,4 @@
-import { Badge, Card, Spinner } from "@snapback/ui";
+import { Badge, Card, Spinner } from "@snapback/ui/components";
 import type React from "react";
 
 type MCPStatus = "untested" | "configured" | "connected" | "failed";

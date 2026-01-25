@@ -9,7 +9,7 @@
  * @packageDocumentation
  */
 
-import { Card } from "@snapback/ui";
+import { Card } from "@snapback/ui/components";
 import type React from "react";
 import { formatTimeOfDay, getEventIcon } from "../transforms";
 import type { ActivityData, ActivityEvent } from "../types";

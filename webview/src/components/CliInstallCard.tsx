@@ -6,7 +6,7 @@
  * Communicates with extension host via postMessage to trigger terminal installation.
  */
 
-import { Alert, Badge, Button, Card } from "@snapback/ui";
+import { Alert, Badge, Button, Card } from "@snapback/ui/components";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { getVSCodeAPI } from "../vscode-api";

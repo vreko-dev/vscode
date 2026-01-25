@@ -1,4 +1,4 @@
-import { Button, Card } from "@snapback/ui";
+import { Button, Card } from "@snapback/ui/components";
 import type React from "react";
 import { StatusBadge } from "../components/StatusBadge";
 

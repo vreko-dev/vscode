@@ -56,12 +56,19 @@ interface WebviewMessage {
 		| "cli:openDocs"
 		// Diagnostics messages
 		| "runDiagnostics"
-		| "showAIStatus";
+		| "showAIStatus"
+		// Debug messages from webview
+		| "debug";
 	payload?: {
 		snapshotId?: string;
 		[key: string]: unknown;
 	};
 	step?: string; // For onboarding "next" messages
+	// Debug message fields
+	phase?: string;
+	message?: string;
+	elapsed?: number;
+	data?: string;
 }
 
 // =============================================================================
@@ -421,6 +428,13 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 
 				case "close":
 					this.panel.dispose();
+					break;
+
+				case "debug":
+					// Forward webview debug logs to extension output for troubleshooting
+					logger.info(`[WEBVIEW] [${message.elapsed}ms] ${message.phase}: ${message.message}`, {
+						data: message.data,
+					});
 					break;
 
 				default:

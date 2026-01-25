@@ -1,5 +1,6 @@
-import { WorkspaceVitals } from "@snapback/ui/vitals";
 import { useEffect, useState } from "react";
+// Use local WebviewVitals to avoid motion/react crash in VS Code webview sandbox
+import { WorkspaceVitals } from "./components/WebviewVitals";
 import { ActivityPanel } from "./panels/ActivityPanel";
 import { DashboardHome } from "./panels/DashboardHome";
 import { SettingsPanel } from "./panels/SettingsPanel";

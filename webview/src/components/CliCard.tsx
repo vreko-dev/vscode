@@ -6,7 +6,7 @@
  * Automatically probes host environment and selects optimal execution strategy.
  */
 
-import { Alert, Badge, Button, Card } from "@snapback/ui";
+import { Alert, Badge, Button, Card } from "@snapback/ui/components";
 import type React from "react";
 import { useEffect } from "react";
 import { useCliEnvironment } from "../hooks/useCliEnvironment";

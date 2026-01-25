@@ -1,4 +1,4 @@
-import { Alert, Button, Card } from "@snapback/ui";
+import { Alert, Button, Card } from "@snapback/ui/components";
 import type React from "react";
 import { useEffect, useState } from "react";
 import snapbackIcon from "../assets/snapback-icon.png";
