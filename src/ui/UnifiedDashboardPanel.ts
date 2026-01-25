@@ -124,6 +124,28 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	 */
 	private daemonEventDisposable?: vscode.Disposable;
 
+	/**
+	 * Throttle: minimum interval between webview updates (ms)
+	 * Prevents postMessage payload from overwhelming the webview renderer
+	 * See: https://github.com/cline/cline/issues/2031
+	 */
+	private static readonly SEND_THROTTLE_MS = 1000;
+
+	/**
+	 * Last time data was sent to webview
+	 */
+	private lastSendTime = 0;
+
+	/**
+	 * Flag indicating an update is pending (throttled)
+	 */
+	private pendingUpdate = false;
+
+	/**
+	 * Timeout handle for pending update
+	 */
+	private pendingUpdateTimeout?: ReturnType<typeof setTimeout>;
+
 	// ==========================================================================
 	// STATIC METHODS
 	// ==========================================================================
@@ -245,6 +267,19 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		// Set up panel dispose handler
 		this.panel.onDidDispose(() => this.handlePanelDispose(), null, this.disposables);
 
+		// Track view state changes (visibility, focus)
+		this.panel.onDidChangeViewState(
+			(e) => {
+				logger.info("Panel view state changed", {
+					visible: e.webviewPanel.visible,
+					active: e.webviewPanel.active,
+					viewColumn: e.webviewPanel.viewColumn,
+				});
+			},
+			null,
+			this.disposables,
+		);
+
 		// Subscribe to data changes
 		const dataSubscription = this.dataService.onDataChange(() => {
 			if (this.isWebviewReady) {
@@ -330,6 +365,12 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 			UnifiedDashboardPanel.instance = undefined;
 		}
 
+		// Clear pending update timeout
+		if (this.pendingUpdateTimeout) {
+			clearTimeout(this.pendingUpdateTimeout);
+			this.pendingUpdateTimeout = undefined;
+		}
+
 		// Dispose all subscriptions
 		for (const disposable of this.disposables) {
 			disposable.dispose();
@@ -357,7 +398,7 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 				case "webviewReady":
 					logger.info("Webview ready - sending initial data");
 					this.isWebviewReady = true;
-					await this.sendDataToWebview();
+					await this.sendDataToWebview(true); // force=true bypasses throttle for initial load
 					break;
 
 				case "createSnapshot":
@@ -463,7 +504,7 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 		}
 		this.disposables = [];
 
-		logger.debug("UnifiedDashboardPanel panel disposed by user");
+		logger.info("UnifiedDashboardPanel panel disposed by user");
 	}
 
 	// ==========================================================================
@@ -691,16 +732,41 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 	// ==========================================================================
 
 	/**
-	 * Send data to the webview
+	 * Send data to the webview with throttling to prevent overwhelming the renderer.
+	 *
+	 * The webview can crash if postMessage is called too frequently with large payloads.
+	 * This implements a 1-second throttle with pending update coalescing.
+	 *
+	 * @param force - Skip throttling (for initial load only)
 	 */
-	private async sendDataToWebview(): Promise<void> {
+	private async sendDataToWebview(force = false): Promise<void> {
+		const now = Date.now();
+		const timeSinceLastSend = now - this.lastSendTime;
+
+		// Throttle check (unless forced for initial load)
+		if (!force && timeSinceLastSend < UnifiedDashboardPanel.SEND_THROTTLE_MS) {
+			// Schedule a pending update if not already scheduled
+			if (!this.pendingUpdate) {
+				this.pendingUpdate = true;
+				const delay = UnifiedDashboardPanel.SEND_THROTTLE_MS - timeSinceLastSend;
+				logger.debug("Throttling webview update", { delay, timeSinceLastSend });
+
+				this.pendingUpdateTimeout = setTimeout(() => {
+					this.pendingUpdate = false;
+					this.pendingUpdateTimeout = undefined;
+					// Send the update (will pass throttle check now)
+					this.sendDataToWebview();
+				}, delay);
+			}
+			return;
+		}
+
 		try {
 			const snapshot = await this.dataService.getSnapshot();
 
-			// Ensure all required data has safe defaults to prevent React crashes
-			// Note: sessionHealth, recommendation, and guidance are always returned by WorkspaceDataService
-			await this.panel.webview.postMessage({
-				type: "update",
+			// Build payload
+			const payload = {
+				type: "update" as const,
 				stats: snapshot.stats || {
 					snapshotsToday: 0,
 					totalSnapshots: 0,
@@ -736,7 +802,26 @@ export class UnifiedDashboardPanel implements vscode.Disposable {
 				patterns: snapshot.patterns || [],
 				// Real-time MCP connection status
 				mcpConnection: snapshot.mcpConnection,
+			};
+
+			// Log payload size for diagnostics (helps identify if data is growing too large)
+			const payloadSize = JSON.stringify(payload).length;
+			logger.debug("Sending webview update", {
+				payloadSizeBytes: payloadSize,
+				payloadSizeKB: (payloadSize / 1024).toFixed(2),
+				timeSinceLastSend,
+				forced: force,
 			});
+
+			// Warn if payload is getting large (>50KB could cause issues)
+			if (payloadSize > 50 * 1024) {
+				logger.warn("Large webview payload detected - may cause performance issues", {
+					payloadSizeKB: (payloadSize / 1024).toFixed(2),
+				});
+			}
+
+			await this.panel.webview.postMessage(payload);
+			this.lastSendTime = Date.now();
 		} catch (error) {
 			logger.error("Failed to send data to webview", error as Error);
 			vscode.window.showErrorMessage(

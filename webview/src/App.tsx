@@ -91,11 +91,26 @@ export function App() {
 	const uiGuidance: UIGuidance | undefined = transformGuidanceToUI(backendGuidance);
 
 	useEffect(() => {
+		// Heartbeat to detect when event loop is blocked
+		let heartbeatCount = 0;
+		const heartbeat = setInterval(() => {
+			heartbeatCount++;
+			console.log(`[HEARTBEAT] ${heartbeatCount} - ${new Date().toISOString()}`);
+			vscodeAPI?.postMessage({
+				type: "debug",
+				phase: "HEARTBEAT",
+				message: `tick ${heartbeatCount}`,
+				elapsed: Math.round(performance.now()),
+			});
+		}, 2000);
+
 		// Listen for messages from extension
 		const messageHandler = (event: MessageEvent) => {
 			const message = event.data as ExtensionMessage;
+			console.log("[APP] Message received:", message.type);
 
 			if (message.type === "update") {
+				console.log("[APP] Processing update message");
 				// Handle unified update message from WorkspaceDataService
 				if (message.stats) {
 					setStats(message.stats);
@@ -123,6 +138,7 @@ export function App() {
 				if (message.mcpConnection) {
 					setMcpConnection(message.mcpConnection);
 				}
+				console.log("[APP] Update message processed");
 			} else if (message.type === "navigate") {
 				// Handle navigation requests from extension
 				if (message.tab) {
@@ -136,7 +152,10 @@ export function App() {
 		// Signal to extension that webview is ready to receive messages
 		vscodeAPI?.postMessage({ type: "webviewReady" });
 
-		return () => window.removeEventListener("message", messageHandler);
+		return () => {
+			clearInterval(heartbeat);
+			window.removeEventListener("message", messageHandler);
+		};
 	}, []);
 
 	return (

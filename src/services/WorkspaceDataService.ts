@@ -1024,15 +1024,14 @@ export class WorkspaceDataService implements vscode.Disposable {
 	/**
 	 * Fire data change event with debouncing
 	 * Coalesces rapid updates into single event per type
+	 *
+	 * NOTE: All events are now debounced including vitals-updated.
+	 * Previously vitals bypassed debouncing which contributed to webview crashes
+	 * from frequent postMessage payloads overwhelming the renderer.
+	 * The panel also has a 1-second throttle as a second layer of protection.
 	 */
 	private fireDataChange(event: WorkspaceDataEvent): void {
-		// For vitals updates, fire immediately (no debounce)
-		if (event.type === "vitals-updated") {
-			this._onDataChange.fire(event);
-			return;
-		}
-
-		// Debounce other events - deduplicate by type
+		// Debounce all events - deduplicate by type
 		const existingIndex = this.pendingEvents.findIndex((e) => e.type === event.type);
 		if (existingIndex >= 0) {
 			// Replace existing event of same type (coalesce)
