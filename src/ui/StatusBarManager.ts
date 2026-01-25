@@ -49,6 +49,7 @@ import {
 	TRAJECTORY_SIGNAGE,
 } from "../signage/constants";
 import type { SessionHealthCanonical, TrajectoryCanonical } from "../signage/types";
+import { formatNumber } from "../utils/format";
 import { logger } from "../utils/logger";
 import type { ActivitySequenceType, ActivityStep, StatusBarState, StatusBarStats, VitalsDisplayData } from "./ux-types";
 import { ACTIVITY_SEQUENCES, PULSE_EMOJI, TEMP_EMOJI } from "./ux-types";
@@ -120,7 +121,7 @@ const STATUS_TEXT: Record<StatusBarState, string | ((data: unknown) => string)> 
 		`🧢 ${(stats as StatusBarStats).checkpointsToday} snapshot${(stats as StatusBarStats).checkpointsToday !== 1 ? "s" : ""} today`,
 	"ai-session": (tool: unknown) => (tool ? `✨ ${tool as string} session protected` : "⚡ Active session"),
 	checkpoint: "✅ Snapshot saved",
-	restored: (lines: unknown) => `📜 Restored${lines ? ` ${lines as number}` : ""} lines`,
+	restored: (lines: unknown) => `📜 Restored${lines ? ` ${formatNumber(lines as number)}` : ""} lines`,
 	vitals: (vitals: unknown) => formatVitalsText(vitals as VitalsDisplayData),
 	recommendation: (urgency: unknown) => {
 		const u = urgency as RecommendationUrgency;
@@ -765,22 +766,22 @@ export class StatusBarManager implements vscode.Disposable {
 
 			md.appendMarkdown("**Workspace Vitals:**\n");
 			md.appendMarkdown(
-				`- ${pulseSignage.icon} Pulse: ${pulseSignage.label} (${this.currentVitals.pulse.value}/min)\n`,
+				`- ${pulseSignage.icon} Pulse: ${pulseSignage.label} (${formatNumber(this.currentVitals.pulse.value)}/min)\n`,
 			);
 			md.appendMarkdown(`- ${tempSignage.icon} Temperature: ${tempSignage.label}`);
 			if (this.currentVitals.temperature.tool) {
 				md.appendMarkdown(` (${this.currentVitals.temperature.tool})`);
 			}
 			md.appendMarkdown("\n");
-			md.appendMarkdown(`- 📊 Pressure: ${this.currentVitals.pressure.value}%\n`);
-			md.appendMarkdown(`- 🫁 Oxygen: ${this.currentVitals.oxygen.value}%\n`);
+			md.appendMarkdown(`- 📊 Pressure: ${formatNumber(this.currentVitals.pressure.value)}%\n`);
+			md.appendMarkdown(`- 🫁 Oxygen: ${formatNumber(this.currentVitals.oxygen.value)}%\n`);
 			md.appendMarkdown(`- ${trajectorySignage.icon} Trajectory: ${trajectorySignage.label}\n\n`);
 		}
 
 		// Stats section
 		md.appendMarkdown("---\n\n");
 		md.appendMarkdown(
-			`Today: ${this.stats.checkpointsToday} snapshots | ${this.stats.aiSessionsToday} AI sessions\n\n`,
+			`Today: ${formatNumber(this.stats.checkpointsToday)} snapshots | ${formatNumber(this.stats.aiSessionsToday)} AI sessions\n\n`,
 		);
 
 		if (this.stats.lastCheckpoint) {

@@ -1,6 +1,4 @@
 import * as vscode from "vscode";
-import type { AuthedApiClient } from "../api/authedApiClient";
-import type { CredentialsManager } from "../auth/credentials";
 import { registerDashboardCommands } from "../commands/dashboardCommands";
 import { FileHealthDecorationProvider } from "../decorations/FileHealthDecorationProvider";
 import { SnapshotDecorations } from "../decorations/snapshotDecorations";
@@ -8,207 +6,85 @@ import { NudgeManager } from "../nurturing/NudgeManager";
 import { DetectionCodeActionProvider } from "../providers/DetectionCodeActionProvider";
 import { ProtectionCodeLensProvider } from "../providers/ProtectionCodeLensProvider";
 import { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
-import type { DaemonBridge } from "../services/DaemonBridge";
-import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
-import { StorageManager as ServiceStorageManager } from "../services/StorageManager";
-import type { TelemetryProxy } from "../services/telemetry-proxy";
 import { WorkspaceSafetyService } from "../services/WorkspaceSafetyService";
-import type { IStorageManager } from "../storage/types";
 import { DiagnosticEventTracker } from "../telemetry/diagnostic-event-tracker";
 import { MCPStatusItem } from "../ui/MCPStatusItem";
 import { ProtectionDecorationProvider } from "../ui/ProtectionDecorationProvider";
-import { createStatusBarManager, type StatusBarManager } from "../ui/StatusBarManager";
-import { createStatusBarController, type StatusBarController } from "../ui/statusBar/StatusBarController";
-import { createVitalsUIIntegration, registerVitalsCommands, type VitalsUIIntegration } from "../ui/VitalsUIIntegration";
+import { createStatusBarManager } from "../ui/StatusBarManager";
+import { createStatusBarController } from "../ui/statusBar/StatusBarController";
+import { createVitalsUIIntegration, registerVitalsCommands } from "../ui/VitalsUIIntegration";
 import { logger } from "../utils/logger";
 import { IntelligenceTreeProvider } from "../views/IntelligenceTreeProvider";
 import { SessionsTreeProvider } from "../views/SessionsTreeProvider";
 import { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
 import { WelcomeView } from "../welcomeView";
-import type { Phase3Result } from "./phase3-managers";
 import { PhaseLogger } from "./phaseLogger";
+import type { AppContext } from "./AppContext";
 
-export interface Phase4Result {
-	snapBackTreeProvider: SnapBackTreeProvider;
-	intelligenceTreeProvider: IntelligenceTreeProvider;
-	snapshotDocumentProvider: SnapshotDocumentProvider;
-	protectionDecorationProvider: ProtectionDecorationProvider;
-	protectionCodeLensProvider: ProtectionCodeLensProvider;
-	statusBarManager: StatusBarManager; // Consolidated status bar
-	statusBarController: StatusBarController; // FSM-based status bar controller
-	mcpStatusItem?: MCPStatusItem; // MCP connection status indicator
-	welcomeView: WelcomeView;
-	snapshotDecorations: SnapshotDecorations;
-	snapshotNavigatorProvider: SnapshotNavigatorProvider;
-	detectionCodeActionProvider: DetectionCodeActionProvider;
-	fileHealthDecorationProvider: FileHealthDecorationProvider;
-	sessionsTreeProvider: SessionsTreeProvider;
-	workspaceSafetyService: WorkspaceSafetyService;
-	vitalsUIIntegration: VitalsUIIntegration;
-}
+export async function initializePhase4Providers(appContext: AppContext): Promise<void> {
+	const { context, workspaceRoot, storage, protectedFileRegistry, daemonBridge, telemetryProxy, sessionCoordinator, snapshotSummaryProvider, operationCoordinator } = appContext;
 
-export async function initializePhase4Providers(
-	context: vscode.ExtensionContext,
-	phase3Result: Phase3Result,
-	storage: IStorageManager,
-	protectedFileRegistry: ProtectedFileRegistry,
-	workspaceRoot: string,
-	daemonBridge: DaemonBridge,
-	_apiClient?: AuthedApiClient,
-	_credentialsManager?: CredentialsManager,
-	telemetryProxy?: TelemetryProxy,
-): Promise<Phase4Result> {
+	if (!storage || !protectedFileRegistry || !daemonBridge || !sessionCoordinator || !snapshotSummaryProvider || !operationCoordinator) {
+		throw new Error("Missing dependencies for Phase 4");
+	}
+
 	const phase4Start = Date.now();
 	logger.debug("Phase 4 starting...");
 	try {
-		// Compute workspaceId once for all providers that need it
 		const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? workspaceRoot;
 
-		// Initialize document provider
-		let t = Date.now();
-		const snapshotDocumentProvider = new SnapshotDocumentProvider();
-		logger.debug("SnapshotDocumentProvider", { ms: Date.now() - t });
+		appContext.snapshotDocumentProvider = new SnapshotDocumentProvider();
+		appContext.intelligenceTreeProvider = new IntelligenceTreeProvider(workspaceId, workspaceRoot, context.globalState);
+		appContext.protectionDecorationProvider = new ProtectionDecorationProvider(protectedFileRegistry, workspaceRoot);
+		appContext.fileHealthDecorationProvider = new FileHealthDecorationProvider();
+		appContext.snapshotDecorations = new SnapshotDecorations(storage);
 
-		// Initialize tree providers
-		if (!protectedFileRegistry) {
-			throw new Error("ProtectedFileRegistry is required for tree providers");
-		}
+		const diagnosticTracker = new DiagnosticEventTracker(telemetryProxy || ({ trackEvent: () => {} } as any));
+		appContext.welcomeView = new WelcomeView(context.extensionUri, context.globalState, diagnosticTracker);
 
-		// Initialize Intelligence Tree Provider
-		t = Date.now();
-		const intelligenceTreeProvider = new IntelligenceTreeProvider(workspaceId, workspaceRoot, context.globalState);
-		logger.debug("IntelligenceTreeProvider", { ms: Date.now() - t });
+		appContext.snapshotNavigatorProvider = new SnapshotNavigatorProvider(storage);
+		appContext.detectionCodeActionProvider = new DetectionCodeActionProvider();
+		appContext.protectionCodeLensProvider = new ProtectionCodeLensProvider(protectedFileRegistry);
 
-		// Initialize decoration providers
-		t = Date.now();
-		const protectionDecorationProvider = new ProtectionDecorationProvider(protectedFileRegistry, workspaceRoot);
-		logger.debug("ProtectionDecorationProvider", { ms: Date.now() - t });
-
-		// 🆕 Initialize file health decoration provider
-		t = Date.now();
-		const fileHealthDecorationProvider = new FileHealthDecorationProvider();
-		logger.debug("FileHealthDecorationProvider", { ms: Date.now() - t });
-
-		t = Date.now();
-		const snapshotDecorations = new SnapshotDecorations(storage);
-		logger.debug("SnapshotDecorations", { ms: Date.now() - t });
-
-		// Initialize welcome view with diagnostic tracking
-		t = Date.now();
-		const diagnosticTracker = telemetryProxy
-			? new DiagnosticEventTracker(telemetryProxy)
-			: new DiagnosticEventTracker({ trackEvent: () => {} } as unknown as TelemetryProxy);
-		const welcomeView = new WelcomeView(context.extensionUri, context.globalState, diagnosticTracker);
-		logger.debug("WelcomeView with DiagnosticEventTracker", {
-			ms: Date.now() - t,
-		});
-
-		// Initialize snapshot navigator provider
-		t = Date.now();
-		const snapshotNavigatorProvider = new SnapshotNavigatorProvider(storage);
-		logger.debug("SnapshotNavigatorProvider", { ms: Date.now() - t });
-
-		// Initialize detection code action provider
-		t = Date.now();
-		const detectionCodeActionProvider = new DetectionCodeActionProvider();
-		logger.debug("DetectionCodeActionProvider", { ms: Date.now() - t });
-
-		// Initialize protection CodeLens provider
-		t = Date.now();
-		const protectionCodeLensProvider = new ProtectionCodeLensProvider(protectedFileRegistry);
-		logger.debug("ProtectionCodeLensProvider", { ms: Date.now() - t });
-
-		// 🆕 Initialize sessions tree provider with storage manager
-		// Use SessionCoordinator from phase3 (already wired to SnapshotManager)
-		t = Date.now();
+		const { StorageManager: ServiceStorageManager } = await import("../services/StorageManager");
 		const storageManager = new ServiceStorageManager(workspaceRoot);
-		const sessionsTreeProvider = new SessionsTreeProvider(phase3Result.sessionCoordinator, storageManager);
-		logger.debug("SessionsTreeProvider", { ms: Date.now() - t });
+		appContext.sessionsTreeProvider = new SessionsTreeProvider(sessionCoordinator, storageManager);
 
-		// 🟢 Phase 2: Initialize SnapBack TreeView (replaces SafetyDashboard)
-		t = Date.now();
-		const { provider: snapBackTreeProvider } = SnapBackTreeProvider.register(
-			context,
-			storage,
-			protectedFileRegistry,
-		);
-		logger.debug("SnapBackTreeProvider", { ms: Date.now() - t });
+		const { provider: snapBackTreeProvider } = SnapBackTreeProvider.register(context, storage, protectedFileRegistry);
+		appContext.snapBackTreeProvider = snapBackTreeProvider;
 
-		t = Date.now();
-		// Initialize WorkspaceSafetyService (still used by other components)
-		const workspaceSafetyService = new WorkspaceSafetyService(phase3Result.snapshotSummaryProvider);
-		workspaceSafetyService.startAutoRefresh(); // Auto-refresh every 60s
-		logger.debug("WorkspaceSafetyService", { ms: Date.now() - t });
+		appContext.workspaceSafetyService = new WorkspaceSafetyService(snapshotSummaryProvider);
+		appContext.workspaceSafetyService.startAutoRefresh();
 
-		// Initialize StatusBarManager (consolidated status bar)
-		t = Date.now();
-		const statusBarManager = createStatusBarManager();
-		context.subscriptions.push(statusBarManager);
-		logger.debug("StatusBarManager", { ms: Date.now() - t });
+		appContext.statusBarManager = createStatusBarManager();
+		context.subscriptions.push(appContext.statusBarManager);
 
-		// Initialize MCPStatusItem for MCP connection visibility
-		t = Date.now();
-		const mcpStatusItem = new MCPStatusItem({
-			bridge: daemonBridge,
-		});
-		context.subscriptions.push(mcpStatusItem);
-		logger.debug("MCPStatusItem", { ms: Date.now() - t });
+		appContext.mcpStatusItem = new MCPStatusItem({ bridge: daemonBridge });
+		context.subscriptions.push(appContext.mcpStatusItem);
 
-		// Initialize NudgeManager for educational messaging
-		t = Date.now();
 		const nudgeManager = new NudgeManager(context);
-		logger.debug("NudgeManager", { ms: Date.now() - t });
-
-		// Initialize VitalsUIIntegration - connects data service to UI components
-		t = Date.now();
-		const vitalsUIIntegration = createVitalsUIIntegration(
+		appContext.vitalsUIIntegration = createVitalsUIIntegration(
 			workspaceId,
 			workspaceRoot,
 			context.extensionUri,
-			statusBarManager,
+			appContext.statusBarManager,
 			nudgeManager,
 		);
-		registerVitalsCommands(context, vitalsUIIntegration);
-		context.subscriptions.push(vitalsUIIntegration);
-		logger.debug("VitalsUIIntegration", { ms: Date.now() - t });
+		registerVitalsCommands(context, appContext.vitalsUIIntegration);
+		context.subscriptions.push(appContext.vitalsUIIntegration);
 
-		// Initialize StatusBarController - FSM bridge between data service and status bar
-		t = Date.now();
-		const dataService = vitalsUIIntegration.getDataService();
-		const statusBarController = createStatusBarController(dataService, statusBarManager);
-		context.subscriptions.push(statusBarController);
-		logger.debug("StatusBarController", { ms: Date.now() - t });
+		const dataService = appContext.vitalsUIIntegration.getDataService();
+		appContext.statusBarController = createStatusBarController(dataService, appContext.statusBarManager);
+		context.subscriptions.push(appContext.statusBarController);
 
-		// Register new Dashboard commands (3-tab dashboard)
-		t = Date.now();
-		const dashboardDisposables = registerDashboardCommands(context, phase3Result.operationCoordinator);
+		const dashboardDisposables = registerDashboardCommands(context, operationCoordinator);
 		for (const d of dashboardDisposables) {
 			context.subscriptions.push(d);
 		}
-		logger.debug("DashboardCommands", { ms: Date.now() - t });
 
-		logger.debug("Phase 4 completed", { ms: Date.now() - phase4Start });
+		logger.debug("Phase 4 completed", { duration: Date.now() - phase4Start });
 		PhaseLogger.logPhase("4: UI Providers");
-
-		return {
-			snapBackTreeProvider,
-			intelligenceTreeProvider,
-			snapshotDocumentProvider,
-			protectionDecorationProvider,
-			protectionCodeLensProvider,
-			statusBarManager,
-			statusBarController,
-			mcpStatusItem,
-			welcomeView,
-			snapshotDecorations,
-			snapshotNavigatorProvider,
-			detectionCodeActionProvider,
-			fileHealthDecorationProvider,
-			sessionsTreeProvider,
-			workspaceSafetyService,
-			vitalsUIIntegration,
-		};
 	} catch (error) {
 		PhaseLogger.logError("4: UI Providers", error as Error);
 		throw error;

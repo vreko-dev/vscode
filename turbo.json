@@ -7,6 +7,11 @@
 			"dependsOn": ["@snapback/vscode-webview#build", "^build"],
 			"inputs": ["$TURBO_DEFAULT$", "esbuild.config.cjs", "tsconfig.json"],
 			"cache": true
+		},
+		"type-check": {
+			"dependsOn": ["^build:types"],
+			"inputs": ["$TURBO_DEFAULT$", "**/*.ts", "**/*.tsx", "**/tsconfig.json"],
+			"cache": true
 		}
 	}
 }

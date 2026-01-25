@@ -17,7 +17,7 @@
  */
 
 import * as vscode from "vscode";
-import { getMCPBridge } from "../bridges/MCPBridge";
+import { getMCPClient } from "../mcp";
 import type { HeatTracker } from "../heat/HeatTracker";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { DaemonBridge, SnapshotCreatedEvent } from "../services/DaemonBridge";
@@ -560,7 +560,7 @@ export class DashboardPanel implements vscode.Disposable {
 	private async handleGetProviderStatus(): Promise<void> {
 		try {
 			const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
-			const bridge = getMCPBridge(workspaceId);
+			const bridge = getMCPClient(workspaceId);
 			const status = bridge.getStatus();
 			const circuitState = bridge.getCircuitState();
 
@@ -611,7 +611,7 @@ export class DashboardPanel implements vscode.Disposable {
 		logger.info("Reconnecting provider", { providerId });
 		try {
 			const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
-			const bridge = getMCPBridge(workspaceId);
+			const bridge = getMCPClient(workspaceId);
 
 			// Force close circuit breaker to allow retry
 			bridge.forceCloseCircuit("Manual reconnect requested via dashboard");
@@ -688,7 +688,7 @@ export class DashboardPanel implements vscode.Disposable {
 		let pushCount = 0;
 		try {
 			const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
-			const bridge = getMCPBridge(workspaceId);
+			const bridge = getMCPClient(workspaceId);
 			const status = bridge.getStatus();
 			queuedItems = status.pendingObservations + status.pendingChanges;
 			pushCount = status.pushCount;

@@ -16,14 +16,6 @@ export {
 	type SessionMetadata,
 	type UserBehaviorInput,
 } from "./IntelligenceBridge";
-export {
-	disposeMCPBridge,
-	getMCPBridge,
-	MCPBridge,
-	type MCPBridgeConfig,
-	type MCPFileChange,
-	type MCPObservation,
-} from "./MCPBridge";
 export { type AIDetectionResult, type BurstState, SignalBridge, type SignalBridgeOptions } from "./SignalBridge";
 export {
 	disposeSignalOrchestrator,

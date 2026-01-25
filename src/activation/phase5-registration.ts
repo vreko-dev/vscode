@@ -2,98 +2,84 @@ import * as vscode from "vscode";
 import { registerConnectCommand, registerOpenSnapshotInWebCommand } from "../commands/authCommands";
 import { registerToggleGroupingModeCommand } from "../commands/toggleGroupingMode";
 import { COMMANDS } from "../constants/index";
-import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
 import { logger } from "../utils/logger";
 import { VIEW_IDS } from "../views/ViewRegistry";
-import type { Phase4Result } from "./phase4-providers";
+import type { AppContext } from "./AppContext";
 import { PhaseLogger } from "./phaseLogger";
 
-export type Phase5Result = Record<string, never>;
-
-export async function initializePhase5Registration(
-	context: vscode.ExtensionContext,
-	phase4Result: Phase4Result,
-	sessionCoordinator: SessionCoordinator,
-): Promise<Phase5Result> {
+export async function initializePhase5Registration(appContext: AppContext): Promise<void> {
+	const { context, sessionCoordinator } = appContext;
 	try {
-		// Register tree data providers
-		vscode.window.registerTreeDataProvider(VIEW_IDS.INTELLIGENCE, phase4Result.intelligenceTreeProvider);
+		if (appContext.intelligenceTreeProvider) {
+			vscode.window.registerTreeDataProvider(VIEW_IDS.INTELLIGENCE, appContext.intelligenceTreeProvider);
+		}
 
-		// 🟢 Phase 2: Register SnapBack TreeView (primary dashboard view)
-		// Note: SnapBackTreeProvider already creates and registers its own TreeView
-		// via SnapBackTreeProvider.register() in phase4, so no additional registration needed
+		if (appContext.sessionsTreeProvider) {
+			vscode.window.registerTreeDataProvider(VIEW_IDS.SESSIONS, appContext.sessionsTreeProvider);
+		}
 
-		// Register sessions tree provider
-		vscode.window.registerTreeDataProvider(VIEW_IDS.SESSIONS, phase4Result.sessionsTreeProvider);
+		if (appContext.snapBackTreeProvider) {
+			context.subscriptions.push(
+				registerConnectCommand(context, () => appContext.snapBackTreeProvider?.refresh()),
+				registerOpenSnapshotInWebCommand(context),
+			);
 
-		// NOTE: SnapBack Cloud view removed - Pioneer status shown in status bar
-		// Connect commands still available via command palette
-		context.subscriptions.push(
-			registerConnectCommand(context, () => phase4Result.snapBackTreeProvider.refresh()),
-			registerOpenSnapshotInWebCommand(context),
-		);
+			context.subscriptions.push(
+				vscode.commands.registerCommand(COMMANDS.VIEW.REFRESH_DASHBOARD, () => {
+					appContext.snapBackTreeProvider?.refresh();
+				}),
+			);
 
-		// 🆕 v1.1: Register Safety Dashboard tree provider
-		// Note: Replaced by SnapBackTreeProvider in Phase 2
-		// vscode.window.registerTreeDataProvider(
-		// 	VIEW_IDS.DASHBOARD,
-		// 	phase4Result.safetyDashboardTreeProvider,
-		// );
+			registerToggleGroupingModeCommand(context, appContext.snapBackTreeProvider);
+		}
 
-		// 🆕 v1.1: Register refresh command for SnapBackTreeProvider (Phase 2)
-		context.subscriptions.push(
-			vscode.commands.registerCommand(COMMANDS.VIEW.REFRESH_DASHBOARD, () => {
-				phase4Result.snapBackTreeProvider.refresh();
-			}),
-		);
+		if (appContext.intelligenceTreeProvider) {
+			context.subscriptions.push(
+				vscode.commands.registerCommand("snapback.refreshIntelligence", () => {
+					appContext.intelligenceTreeProvider?.refresh();
+				}),
+			);
+		}
 
-		// 🟢 Phase 2: Register toggle grouping mode command
-		registerToggleGroupingModeCommand(context, phase4Result.snapBackTreeProvider);
+		if (appContext.protectionDecorationProvider) {
+			vscode.window.registerFileDecorationProvider(appContext.protectionDecorationProvider);
+		}
 
-		// Register refresh command for Intelligence TreeView
-		context.subscriptions.push(
-			vscode.commands.registerCommand("snapback.refreshIntelligence", () => {
-				phase4Result.intelligenceTreeProvider.refresh();
-			}),
-		);
+		if (appContext.fileHealthDecorationProvider) {
+			vscode.window.registerFileDecorationProvider(appContext.fileHealthDecorationProvider);
+		}
 
-		// Register file decoration providers
-		vscode.window.registerFileDecorationProvider(phase4Result.protectionDecorationProvider);
-		logger.debug("Protection decoration provider registered");
+		if (appContext.snapshotDocumentProvider) {
+			vscode.workspace.registerTextDocumentContentProvider(
+				"snapback-snapshot",
+				appContext.snapshotDocumentProvider,
+			);
+		}
 
-		// 🆕 Register file health decoration provider
-		vscode.window.registerFileDecorationProvider(phase4Result.fileHealthDecorationProvider);
-		logger.debug("File health decoration provider registered (heat-based decorations)");
+		if (appContext.detectionCodeActionProvider) {
+			context.subscriptions.push(
+				vscode.languages.registerCodeActionsProvider("*", appContext.detectionCodeActionProvider),
+			);
+		}
 
-		// Register document content provider
-		vscode.workspace.registerTextDocumentContentProvider(
-			"snapback-snapshot",
-			phase4Result.snapshotDocumentProvider,
-		);
+		if (appContext.protectionCodeLensProvider) {
+			context.subscriptions.push(
+				vscode.languages.registerCodeLensProvider("*", appContext.protectionCodeLensProvider),
+			);
+		}
 
-		// Register code action provider
-		context.subscriptions.push(
-			vscode.languages.registerCodeActionsProvider("*", phase4Result.detectionCodeActionProvider),
-		);
-
-		// Register CodeLens provider for protection indicators
-		context.subscriptions.push(
-			vscode.languages.registerCodeLensProvider("*", phase4Result.protectionCodeLensProvider),
-		);
-
-		// Register window blur listener for session finalization
-		context.subscriptions.push(
-			vscode.window.onDidChangeWindowState((e) => {
-				if (!e.focused) {
-					logger.debug("Window blur detected, triggering session finalization");
-					sessionCoordinator.handleWindowBlur();
-				}
-			}),
-		);
+		if (sessionCoordinator) {
+			context.subscriptions.push(
+				vscode.window.onDidChangeWindowState((e) => {
+					if (!e.focused) {
+						logger.debug("Window blur detected, triggering session finalization");
+						sessionCoordinator.handleWindowBlur();
+					}
+				}),
+			);
+		}
 
 		PhaseLogger.logPhase("5: Registration");
-
-		return {};
 	} catch (error) {
 		PhaseLogger.logError("5: Registration", error as Error);
 		throw error;

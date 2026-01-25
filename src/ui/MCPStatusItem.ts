@@ -20,6 +20,7 @@
  * @packageDocumentation
  */
 
+import { detectAIClients, detectWorkspaceConfig } from "@snapback/mcp-config";
 import * as vscode from "vscode";
 import type { ConnectionState, DaemonBridge, StateChangeEvent } from "../services/DaemonBridge";
 import { logger } from "../utils/logger";
@@ -87,7 +88,7 @@ export class MCPStatusItem implements vscode.Disposable {
 		switch (state) {
 			case "connected":
 				this.statusBarItem.text = "SB·MCP ✓";
-				this.statusBarItem.tooltip = daemonVersion ? `MCP connected (v${daemonVersion})` : "MCP connected";
+				this.statusBarItem.tooltip = this.buildTooltip("connected", daemonVersion);
 				this.statusBarItem.backgroundColor = undefined;
 				this.statusBarItem.color = new vscode.ThemeColor("testing.iconPassed");
 				this.statusBarItem.show();
@@ -95,7 +96,7 @@ export class MCPStatusItem implements vscode.Disposable {
 
 			case "reconnecting":
 				this.statusBarItem.text = `SB·MCP $(sync~spin) (${attempt ?? 1}/${maxAttempts ?? 5})`;
-				this.statusBarItem.tooltip = "Reconnecting to MCP server...";
+				this.statusBarItem.tooltip = this.buildTooltip("reconnecting", undefined, attempt, maxAttempts);
 				this.statusBarItem.backgroundColor = undefined;
 				this.statusBarItem.color = undefined;
 				this.statusBarItem.show();
@@ -103,9 +104,7 @@ export class MCPStatusItem implements vscode.Disposable {
 
 			case "disconnected":
 				this.statusBarItem.text = "SB·MCP ✗";
-				this.statusBarItem.tooltip = reason
-					? `Disconnected: ${reason}`
-					: "Daemon not connected. Click to diagnose.";
+				this.statusBarItem.tooltip = this.buildTooltip("disconnected", undefined, undefined, undefined, reason);
 				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
 				this.statusBarItem.color = undefined;
 				this.statusBarItem.show();
@@ -113,12 +112,93 @@ export class MCPStatusItem implements vscode.Disposable {
 
 			case "cli_missing":
 				this.statusBarItem.text = "SB·MCP ⚠";
-				this.statusBarItem.tooltip = "CLI not installed. Click to install.";
+				this.statusBarItem.tooltip = this.buildTooltip("cli_missing");
 				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 				this.statusBarItem.color = undefined;
 				this.statusBarItem.show();
 				break;
 		}
+	}
+
+	/**
+	 * Build rich tooltip with server details
+	 */
+	private buildTooltip(
+		state: ConnectionState,
+		daemonVersion?: string,
+		attempt?: number,
+		maxAttempts?: number,
+		reason?: string,
+	): vscode.MarkdownString {
+		const md = new vscode.MarkdownString();
+		md.isTrusted = true;
+
+		// Header based on state
+		switch (state) {
+			case "connected":
+				md.appendMarkdown(`**MCP Status:** ✅ Connected${daemonVersion ? ` (v${daemonVersion})` : ""}\n\n`);
+				break;
+			case "reconnecting":
+				md.appendMarkdown(`**MCP Status:** 🔄 Reconnecting (${attempt ?? 1}/${maxAttempts ?? 5})\n\n`);
+				break;
+			case "disconnected":
+				md.appendMarkdown("**MCP Status:** ❌ Disconnected\n\n");
+				if (reason) {
+					md.appendMarkdown(`*${reason}*\n\n`);
+				}
+				break;
+			case "cli_missing":
+				md.appendMarkdown("**MCP Status:** ⚠️ CLI Not Installed\n\n");
+				break;
+		}
+
+		// Show configured AI clients
+		const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+		const detection = detectAIClients({ cwd: workspaceRoot });
+		const configuredClients = detection.detected.filter((c) => c.hasSnapback);
+		const unconfiguredClients = detection.detected.filter((c) => !c.hasSnapback);
+
+		if (configuredClients.length > 0) {
+			md.appendMarkdown("**Configured Clients:**\n");
+			for (const client of configuredClients) {
+				md.appendMarkdown(`- ✅ ${client.displayName}\n`);
+			}
+			md.appendMarkdown("\n");
+		}
+
+		if (unconfiguredClients.length > 0) {
+			md.appendMarkdown("**Detected (not configured):**\n");
+			for (const client of unconfiguredClients) {
+				md.appendMarkdown(`- ⚪ ${client.displayName}\n`);
+			}
+			md.appendMarkdown("\n");
+		}
+
+		// Show workspace config if present
+		if (workspaceRoot) {
+			const workspaceConfig = detectWorkspaceConfig(workspaceRoot);
+			if (workspaceConfig) {
+				md.appendMarkdown(`**Workspace Config:** \`${workspaceConfig.type}\`\n\n`);
+			}
+		}
+
+		// Action hint
+		md.appendMarkdown("---\n\n");
+		switch (state) {
+			case "connected":
+				md.appendMarkdown("*Click to view MCP status details*");
+				break;
+			case "disconnected":
+				md.appendMarkdown("*Click to diagnose connection*");
+				break;
+			case "cli_missing":
+				md.appendMarkdown("*Click to install CLI*");
+				break;
+			default:
+				md.appendMarkdown("*Click for options*");
+		}
+
+		return md;
 	}
 
 	/**

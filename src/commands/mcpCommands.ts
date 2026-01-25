@@ -18,10 +18,10 @@
 
 import type { ServiceFederation } from "@snapback/core";
 import * as vscode from "vscode";
-import { getMCPBridge } from "../bridges/MCPBridge";
+import { getMCPClient } from "../mcp";
 import type { OperationCoordinator } from "../operationCoordinator";
 import { getDaemonBridge } from "../services/DaemonBridge";
-import { getMCPTelemetry } from "../services/MCPTelemetry";
+
 import type { MCPToolsService } from "../services/MCPToolsService";
 import { logger } from "../utils/logger";
 import type { WorkflowIntegration } from "../workflowIntegration";
@@ -430,9 +430,9 @@ export function registerMcpCommands(
 			diagnostics.push("\n📊 Queue & Circuit Breaker Status:");
 			try {
 				const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
-				const bridge = getMCPBridge(workspaceId);
-				const status = bridge.getStatus();
-				const circuitState = bridge.getCircuitState();
+				const client = getMCPClient(workspaceId);
+				const status = client.getStatus();
+				const circuitState = client.getCircuitState();
 
 				diagnostics.push(`   Pending observations: ${status.pendingObservations}`);
 				diagnostics.push(`   Pending changes: ${status.pendingChanges}`);
@@ -450,12 +450,6 @@ export function registerMcpCommands(
 					diagnostics.push(`   Next retry in: ${Math.round(circuitState.nextRetryIn / 1000)}s`);
 				}
 
-				if (status.lastPushTime) {
-					const ago = Math.round((Date.now() - status.lastPushTime) / 1000);
-					diagnostics.push(`   Last push: ${ago}s ago`);
-				} else {
-					diagnostics.push("   Last push: never");
-				}
 				if (status.pendingObservations > 0 || status.pendingChanges > 0) {
 					diagnostics.push("   ⚠️ Work is queued - will sync when connection restored");
 				} else {
@@ -489,19 +483,20 @@ export function registerMcpCommands(
 			// Track telemetry for diagnose execution (G10: MCP metrics)
 			try {
 				const diagWorkspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? "default";
-				const bridge = getMCPBridge(diagWorkspaceId);
-				const status = bridge.getStatus();
-				const circuitState = bridge.getCircuitState();
+				const client = getMCPClient(diagWorkspaceId);
+				const status = client.getStatus();
+				const circuitState = client.getCircuitState();
 
-				getMCPTelemetry().trackDiagnoseExecuted({
+				client.trackEvent("mcp.diagnostics_executed", {
 					mcpEnabled,
 					serverReady: getDaemonBridge().isConnected(),
 					circuitState: circuitState.state,
 					queueDepth: status.pendingObservations + status.pendingChanges,
 				});
 			} catch {
-				// Bridge not initialized, still track what we can
-				getMCPTelemetry().trackDiagnoseExecuted({
+				// Client not initialized, still track what we can
+				const client = getMCPClient("default");
+				client.trackEvent("mcp.diagnostics_executed", {
 					mcpEnabled,
 					serverReady: getDaemonBridge().isConnected(),
 					circuitState: "closed",
