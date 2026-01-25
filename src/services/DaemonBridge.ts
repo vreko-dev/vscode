@@ -76,6 +76,12 @@ const DAEMON_START_TIMEOUT_MS = 10000;
 /** Delay before considering daemon started */
 const DAEMON_START_WAIT_MS = 500;
 
+/** Client identifier for multi-client debugging */
+const CLIENT_ID = `vscode-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+/** Log prefix for easy filtering */
+const LOG_PREFIX = "[MCP-Bridge]";
+
 // =============================================================================
 // CIRCUIT BREAKER STATE (P1 UX Improvement)
 // =============================================================================
@@ -365,9 +371,11 @@ export class DaemonBridge extends vscode.Disposable {
 			event.daemonVersion = this._daemonVersion;
 		}
 
-		logger.info("MCP state transition", {
+		logger.info(`${LOG_PREFIX} State transition`, {
+			clientId: CLIENT_ID,
 			from: previousState,
 			to: newState,
+			timestamp: new Date().toISOString(),
 			...details,
 		});
 
@@ -619,21 +627,41 @@ export class DaemonBridge extends vscode.Disposable {
 	 * Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Verify daemon auto-starts on activation.
 	 */
 	async connect(): Promise<boolean> {
+		const connectStartTime = Date.now();
+		logger.info(`${LOG_PREFIX} Connection attempt starting`, {
+			clientId: CLIENT_ID,
+			attempt: this.reconnectAttempts + 1,
+			maxAttempts: this.maxReconnectAttempts,
+			socketPath: getSocketPath(),
+			alreadyConnected: this.isConnected(),
+			isConnecting: this.isConnecting,
+			circuitBreakerActive: circuitBreaker.cliNotFound,
+		});
+
 		if (this.isConnected()) {
+			logger.debug(`${LOG_PREFIX} Already connected, skipping`);
 			return true;
 		}
 
 		if (this.isConnecting) {
+			logger.debug(`${LOG_PREFIX} Connection already in progress, skipping duplicate`);
 			return false;
 		}
 
 		// Auto-start daemon if not running
 		// Per ARCHITECTURE_REFACTOR_SPEC.md Phase 1: Verify daemon auto-starts on activation
 		if (!this.isDaemonRunning()) {
-			logger.debug("Daemon not running, attempting auto-start...");
+			logger.info(`${LOG_PREFIX} Daemon not running, attempting auto-start...`, {
+				clientId: CLIENT_ID,
+				pidPath: getPidPath(),
+			});
 			const started = await this.autoStartDaemon();
 			if (!started) {
-				logger.debug("Daemon auto-start failed, skipping connection attempt");
+				logger.warn(`${LOG_PREFIX} Daemon auto-start failed`, {
+					clientId: CLIENT_ID,
+					elapsedMs: Date.now() - connectStartTime,
+					circuitBreakerActive: circuitBreaker.cliNotFound,
+				});
 				return false;
 			}
 		}
@@ -642,7 +670,17 @@ export class DaemonBridge extends vscode.Disposable {
 
 		try {
 			const connectionStart = Date.now();
+			logger.debug(`${LOG_PREFIX} Establishing socket connection...`, {
+				clientId: CLIENT_ID,
+				socketPath: getSocketPath(),
+			});
 			await this.establishConnection();
+			const socketConnectTime = Date.now() - connectionStart;
+			logger.info(`${LOG_PREFIX} Socket connected`, {
+				clientId: CLIENT_ID,
+				socketConnectMs: socketConnectTime,
+			});
+
 			this.reconnectDelay = MIN_RECONNECT_INTERVAL_MS;
 			this.reconnectAttempts = 0; // Reset on successful connection
 
@@ -655,20 +693,24 @@ export class DaemonBridge extends vscode.Disposable {
 				// Store daemon version for state events
 				this._daemonVersion = pingResult.version;
 
-				logger.info("Connected to SnapBack daemon", {
+				logger.info(`${LOG_PREFIX} Connected to SnapBack daemon`, {
+					clientId: CLIENT_ID,
 					socketPath: getSocketPath(),
 					connectionLatency: Date.now() - connectionStart,
+					socketConnectMs: socketConnectTime,
 					daemonVersion: pingResult.version,
 					daemonUptime: pingResult.uptime,
 					healthCheckLatency: healthLatency,
 					healthy: true,
+					totalConnectTimeMs: Date.now() - connectStartTime,
 				});
 
 				// Transition to connected state with version info
 				this.transitionTo("connected", { daemonVersion: pingResult.version });
 			} catch (pingError) {
 				// Connection succeeded but ping failed - still transition to connected
-				logger.warn("Daemon connection succeeded but health check failed", {
+				logger.warn(`${LOG_PREFIX} Daemon connection succeeded but health check failed`, {
+					clientId: CLIENT_ID,
 					error: pingError instanceof Error ? pingError.message : String(pingError),
 				});
 				this.transitionTo("connected");
@@ -677,7 +719,13 @@ export class DaemonBridge extends vscode.Disposable {
 			return true;
 		} catch (error) {
 			const reason = error instanceof Error ? error.message : String(error);
-			logger.debug("Failed to connect to daemon", { error: reason });
+			logger.warn(`${LOG_PREFIX} Failed to connect to daemon`, {
+				clientId: CLIENT_ID,
+				error: reason,
+				elapsedMs: Date.now() - connectStartTime,
+				attempt: this.reconnectAttempts + 1,
+				willRetry: this.reconnectAttempts < this.maxReconnectAttempts,
+			});
 			this.scheduleReconnect();
 			return false;
 		} finally {
@@ -738,19 +786,41 @@ export class DaemonBridge extends vscode.Disposable {
 	 * Set up socket event handlers
 	 */
 	private setupSocketHandlers(socket: Socket): void {
+		const socketSetupTime = Date.now();
+		logger.debug(`${LOG_PREFIX} Setting up socket handlers`, { clientId: CLIENT_ID });
+
 		socket.on("data", (data) => {
 			this.handleData(data.toString());
 		});
 
-		socket.on("close", () => {
+		socket.on("close", (hadError) => {
+			const connectionDuration = Date.now() - socketSetupTime;
+			logger.warn(`${LOG_PREFIX} Daemon connection closed`, {
+				clientId: CLIENT_ID,
+				hadError,
+				connectionDurationMs: connectionDuration,
+				reconnectAttempts: this.reconnectAttempts,
+				nextReconnectDelayMs: this.reconnectDelay,
+				timestamp: new Date().toISOString(),
+			});
 			this.socket = null;
-			logger.debug("Daemon connection closed");
 			this.scheduleReconnect();
 		});
 
 		socket.on("error", (error) => {
-			logger.warn("Daemon socket error", {
+			logger.error(`${LOG_PREFIX} Daemon socket error`, {
+				clientId: CLIENT_ID,
 				error: error instanceof Error ? error.message : String(error),
+				errorCode: (error as NodeJS.ErrnoException).code,
+				connectionDurationMs: Date.now() - socketSetupTime,
+				timestamp: new Date().toISOString(),
+			});
+		});
+
+		socket.on("timeout", () => {
+			logger.warn(`${LOG_PREFIX} Daemon socket timeout`, {
+				clientId: CLIENT_ID,
+				connectionDurationMs: Date.now() - socketSetupTime,
 			});
 		});
 	}
@@ -848,10 +918,16 @@ export class DaemonBridge extends vscode.Disposable {
 	private scheduleReconnect(): void {
 		// Don't schedule if circuit breaker is active
 		if (circuitBreaker.cliNotFound) {
+			logger.debug(`${LOG_PREFIX} Reconnect skipped: circuit breaker active (CLI not found)`, {
+				clientId: CLIENT_ID,
+			});
 			return;
 		}
 
 		if (this.reconnectTimer) {
+			logger.debug(`${LOG_PREFIX} Reconnect already scheduled, skipping duplicate`, {
+				clientId: CLIENT_ID,
+			});
 			return;
 		}
 
@@ -859,26 +935,44 @@ export class DaemonBridge extends vscode.Disposable {
 
 		// Give up after max attempts
 		if (this.reconnectAttempts > this.maxReconnectAttempts) {
-			logger.warn("Max reconnection attempts reached, giving up");
+			logger.error(`${LOG_PREFIX} Max reconnection attempts reached, giving up`, {
+				clientId: CLIENT_ID,
+				attempts: this.reconnectAttempts,
+				maxAttempts: this.maxReconnectAttempts,
+				totalBackoffMs: this.reconnectDelay,
+				timestamp: new Date().toISOString(),
+			});
 			this.transitionTo("disconnected", {
 				reason: `Failed after ${this.maxReconnectAttempts} attempts`,
 			});
 			return;
 		}
 
+		// Add jitter to prevent thundering herd (multiple clients reconnecting simultaneously)
+		const jitter = Math.floor(Math.random() * 500);
+		const delayWithJitter = this.reconnectDelay + jitter;
+
+		logger.info(`${LOG_PREFIX} Scheduling reconnect`, {
+			clientId: CLIENT_ID,
+			attempt: this.reconnectAttempts,
+			maxAttempts: this.maxReconnectAttempts,
+			baseDelayMs: this.reconnectDelay,
+			jitterMs: jitter,
+			totalDelayMs: delayWithJitter,
+			nextAttemptAt: new Date(Date.now() + delayWithJitter).toISOString(),
+		});
+
 		// Transition to reconnecting state with details
 		this.transitionTo("reconnecting");
 
-		logger.debug("Scheduling reconnect", {
-			attempt: this.reconnectAttempts,
-			max: this.maxReconnectAttempts,
-			delayMs: this.reconnectDelay,
-		});
-
 		this.reconnectTimer = setTimeout(async () => {
 			this.reconnectTimer = null;
+			logger.debug(`${LOG_PREFIX} Reconnect timer fired, attempting connection`, {
+				clientId: CLIENT_ID,
+				attempt: this.reconnectAttempts,
+			});
 			await this.connect();
-		}, this.reconnectDelay);
+		}, delayWithJitter);
 
 		// Exponential backoff
 		this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_INTERVAL_MS);

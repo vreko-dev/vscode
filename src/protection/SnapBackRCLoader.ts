@@ -73,7 +73,9 @@ export class SnapBackRCLoader implements vscode.Disposable {
 				return;
 			}
 
-			logger.info(`Loaded ${mergedConfig.protection.length} protection rules (defaults + .snapbackrc)`);
+			// Fix: Accurately report config source based on whether user config was loaded
+			const configSource = userConfig ? "defaults + .snapbackrc" : "defaults only";
+			logger.info(`Loaded ${mergedConfig.protection.length} protection rules (${configSource})`);
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
 				logger.debug(".snapbackrc not found, using defaults only");
