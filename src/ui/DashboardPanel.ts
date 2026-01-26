@@ -17,8 +17,8 @@
  */
 
 import * as vscode from "vscode";
-import { getMCPClient } from "../mcp";
 import type { HeatTracker } from "../heat/HeatTracker";
+import { getMCPClient } from "../mcp";
 import type { OperationCoordinator } from "../operationCoordinator";
 import type { DaemonBridge, SnapshotCreatedEvent } from "../services/DaemonBridge";
 import { getCliStatus, verifyCliInstallation } from "../utils/cli-status";

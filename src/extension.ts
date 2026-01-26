@@ -7,59 +7,61 @@ process.env.MCP_QUIET = "1";
 
 import { SnapBackEventBus } from "@snapback/contracts";
 import * as vscode from "vscode";
+import type { AppContext } from "./activation/AppContext";
 import { initializePhase1Services } from "./activation/phase1-services";
-import { initializeContextFileManager, initializePhase2Storage } from "./activation/phase2-storage";
+import { initializePhase2Storage } from "./activation/phase2-storage";
 import { initializePhase3Managers } from "./activation/phase3-managers";
 import { initializePhase4Providers } from "./activation/phase4-providers";
 import { initializePhase5Registration } from "./activation/phase5-registration";
 import { initializePioneerInfrastructure } from "./activation/pioneer";
 import { autoConfigureAgentRules, registerAgentRulesCommands } from "./ai/config";
-import { createAuthedApiClient } from "./api/authedApiClient";
 import { AnonymousIdManager } from "./auth/AnonymousIdManager";
+import { AuthService } from "./auth/AuthService";
 import { AuthState } from "./auth/AuthState";
 import { createCredentialsManager } from "./auth/credentials";
 import { EventBridge } from "./bridges/EventBridge";
-import { getMCPClient, disposeAllMCPClients } from "./mcp";
 import { SignalBridge } from "./bridges/SignalBridge";
 import { registerAllCommands } from "./commands/index";
 import { ContextManager } from "./contextManager";
-import { createRateLimiter } from "./domain/rateLimiter";
-import { SaveHandler } from "./handlers/SaveHandler";
 import { disposeHeatIntegration, initializeHeatIntegration } from "./heat";
 import { AutoDecisionIntegration } from "./integration/AutoDecisionIntegration";
+import { getMCPClient } from "./mcp";
 import { autoConfigureMCP, registerMCPCommands } from "./mcp/auto-configure";
 import { AIDetectionToast } from "./notifications/AIDetectionToast";
 import { initializeHealthMonitor } from "./observability/ActivationHealthMonitor";
 import { addBreadcrumb, initSentryExtension } from "./observability/sentry";
+import { ExtensionHost } from "./platform/ExtensionHost";
 import { FileSystemWatcher } from "./protection/FileSystemWatcher";
 import { RulesManager } from "./rules/RulesManager";
 import { initializeSecureConfig } from "./security/SecureConfigService";
 import { NoopAIRiskService } from "./services/aiRiskService";
+import { FeatureFlagService } from "./services/feature-flag-service";
 import { activateLanguageServer, preCacheVitals } from "./services/LanguageClient";
 import { TelemetryProxy } from "./services/telemetry-proxy";
-import { FeatureFlagService } from "./services/feature-flag-service";
 import { UserIdentityService } from "./services/UserIdentityService";
 import { createWorkspaceContextManager } from "./services/WorkspaceContextManager";
-import { WorkspaceManager } from "./services/WorkspaceManager";
 import { initializeActivationFunnel } from "./telemetry/ActivationFunnelIntegration";
 import { initializeCoreEventTracker } from "./telemetry/core-event-tracker";
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
 import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
+import { installGlobalErrorHandlers } from "./utils/errorHandlers";
 import { logger } from "./utils/logger";
 import { installProcessExitGuard } from "./utils/processGuard";
 import { findProjectRoot } from "./utils/projectRoot";
 import { WorkspaceFolderResolver } from "./utils/WorkspaceFolderResolver";
 import { registerEmptyViews } from "./views/ViewRegistry";
-import { ExtensionHost } from "./platform/ExtensionHost";
-import { installGlobalErrorHandlers } from "./utils/errorHandlers";
-import type { AppContext } from "./activation/AppContext";
-import { AuthService } from "./auth/AuthService";
 
 let host: ExtensionHost | null = null;
 
-export function getWorkspaceManager() { return host?.workspaceManager; }
-export function getAuthState() { return host?.authState; }
-export function getAnonymousIdManager() { return host?.anonymousIdManager; }
+export function getWorkspaceManager() {
+	return host?.workspaceManager;
+}
+export function getAuthState() {
+	return host?.authState;
+}
+export function getAnonymousIdManager() {
+	return host?.anonymousIdManager;
+}
 
 export async function activate(context: vscode.ExtensionContext) {
 	host = new ExtensionHost(context);
@@ -88,7 +90,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	installGlobalErrorHandlers();
 	installProcessExitGuard();
 
-	const isTestMode = process.env.VSCODE_SNAPSHOT_TEST_MODE === "true" ||
+	const isTestMode =
+		process.env.VSCODE_SNAPSHOT_TEST_MODE === "true" ||
 		vscode.workspace.getConfiguration("snapback").get<boolean>("testMode", false);
 
 	await host.initAuthProvider(isTestMode);
@@ -120,7 +123,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		context,
 		workspaceRoot,
 		eventBus,
-		telemetryProxy
+		telemetryProxy,
 	};
 	host.eventBus = eventBus as any;
 
@@ -132,7 +135,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		setImmediate(() => {
 			activateLanguageServer(context)
 				.then(() => preCacheVitals(primaryWorkspaceId))
-				.catch(err => logger.warn("LSP failed", { err }));
+				.catch((err) => logger.warn("LSP failed", { err }));
 		});
 
 		// Execute Phases with Unified Context
@@ -163,7 +166,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		host.authState = new AuthState(credentialsManager);
 		host.anonymousIdManager = new AnonymousIdManager(context.globalState);
 		host.userIdentityService = new UserIdentityService(host.anonymousIdManager, authService, telemetryProxy);
-		telemetryProxy.setIdentityProvider(() => host!.userIdentityService?.getCurrentId() ?? Promise.resolve("unknown"));
+		telemetryProxy.setIdentityProvider(
+			() => host!.userIdentityService?.getCurrentId() ?? Promise.resolve("unknown"),
+		);
 
 		host.statusBarManager = appContext.statusBarManager!;
 		host.aiDetectionToast = new AIDetectionToast();
@@ -196,7 +201,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			context,
 			new NoopAIRiskService(),
 			appContext.operationCoordinator!,
-			eventBus as any
+			eventBus as any,
 		);
 		host.autoDecisionIntegration.activate();
 
@@ -215,21 +220,31 @@ export async function activate(context: vscode.ExtensionContext) {
 			},
 			updateHasProtectedFilesContext: async () => {
 				const protectedFiles = await appContext.protectedFileRegistry!.list();
-				await vscode.commands.executeCommand("setContext", "snapback.hasProtectedFiles", protectedFiles.length > 0);
+				await vscode.commands.executeCommand(
+					"setContext",
+					"snapback.hasProtectedFiles",
+					protectedFiles.length > 0,
+				);
 			},
 			getProtectionStateSummary: async () => {
 				const protectedFiles = await appContext.protectedFileRegistry!.list();
 				return { state: {}, message: `SnapBack: ${protectedFiles.length} protected files` };
 			},
-			snapshotRestoreUI: new SnapshotRestoreUI(appContext.operationCoordinator!, appContext.snapshotDocumentProvider!, workspaceRoot),
-			codeLensProvider: new SnapBackCodeLensProvider(appContext.protectedFileRegistry!, appContext.operationCoordinator!),
+			snapshotRestoreUI: new SnapshotRestoreUI(
+				appContext.operationCoordinator!,
+				appContext.snapshotDocumentProvider!,
+				workspaceRoot,
+			),
+			codeLensProvider: new SnapBackCodeLensProvider(
+				appContext.protectedFileRegistry!,
+				appContext.operationCoordinator!,
+			),
 			contextManager: new ContextManager(appContext.protectedFileRegistry!),
 			fileWatcher: new FileSystemWatcher(appContext.protectedFileRegistry!),
 		} as any);
 
 		await vscode.commands.executeCommand("setContext", "snapback.isActive", true);
 		logger.info("SnapBack activated successfully", { duration: Date.now() - startTime });
-
 	} catch (error) {
 		logger.error("Activation failed", error as Error);
 		throw error;

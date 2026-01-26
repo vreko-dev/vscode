@@ -19,13 +19,30 @@ import { SessionsTreeProvider } from "../views/SessionsTreeProvider";
 import { SnapBackTreeProvider } from "../views/snapBackTreeProvider";
 import { SnapshotNavigatorProvider } from "../views/snapshotNavigatorProvider";
 import { WelcomeView } from "../welcomeView";
-import { PhaseLogger } from "./phaseLogger";
 import type { AppContext } from "./AppContext";
+import { PhaseLogger } from "./phaseLogger";
 
 export async function initializePhase4Providers(appContext: AppContext): Promise<void> {
-	const { context, workspaceRoot, storage, protectedFileRegistry, daemonBridge, telemetryProxy, sessionCoordinator, snapshotSummaryProvider, operationCoordinator } = appContext;
+	const {
+		context,
+		workspaceRoot,
+		storage,
+		protectedFileRegistry,
+		daemonBridge,
+		telemetryProxy,
+		sessionCoordinator,
+		snapshotSummaryProvider,
+		operationCoordinator,
+	} = appContext;
 
-	if (!storage || !protectedFileRegistry || !daemonBridge || !sessionCoordinator || !snapshotSummaryProvider || !operationCoordinator) {
+	if (
+		!storage ||
+		!protectedFileRegistry ||
+		!daemonBridge ||
+		!sessionCoordinator ||
+		!snapshotSummaryProvider ||
+		!operationCoordinator
+	) {
 		throw new Error("Missing dependencies for Phase 4");
 	}
 
@@ -35,8 +52,15 @@ export async function initializePhase4Providers(appContext: AppContext): Promise
 		const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? workspaceRoot;
 
 		appContext.snapshotDocumentProvider = new SnapshotDocumentProvider();
-		appContext.intelligenceTreeProvider = new IntelligenceTreeProvider(workspaceId, workspaceRoot, context.globalState);
-		appContext.protectionDecorationProvider = new ProtectionDecorationProvider(protectedFileRegistry, workspaceRoot);
+		appContext.intelligenceTreeProvider = new IntelligenceTreeProvider(
+			workspaceId,
+			workspaceRoot,
+			context.globalState,
+		);
+		appContext.protectionDecorationProvider = new ProtectionDecorationProvider(
+			protectedFileRegistry,
+			workspaceRoot,
+		);
 		appContext.fileHealthDecorationProvider = new FileHealthDecorationProvider();
 		appContext.snapshotDecorations = new SnapshotDecorations(storage);
 
@@ -51,7 +75,11 @@ export async function initializePhase4Providers(appContext: AppContext): Promise
 		const storageManager = new ServiceStorageManager(workspaceRoot);
 		appContext.sessionsTreeProvider = new SessionsTreeProvider(sessionCoordinator, storageManager);
 
-		const { provider: snapBackTreeProvider } = SnapBackTreeProvider.register(context, storage, protectedFileRegistry);
+		const { provider: snapBackTreeProvider } = SnapBackTreeProvider.register(
+			context,
+			storage,
+			protectedFileRegistry,
+		);
 		appContext.snapBackTreeProvider = snapBackTreeProvider;
 
 		appContext.workspaceSafetyService = new WorkspaceSafetyService(snapshotSummaryProvider);

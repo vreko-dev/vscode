@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { logger } from "./logger";
 import { captureException } from "../observability/sentry";
 import { isSnapBackError } from "./errorHelpers";
+import { logger } from "./logger";
 
 /**
  * Installs global error handlers to prevent extension host crashes.

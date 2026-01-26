@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
-import { SignalBridge } from "../bridges/SignalBridge";
-import { logger } from "../utils/logger";
-import { isMonitorableDocument } from "../utils/documentFilters";
-import { calculateLineDiff } from "../utils/lineDiff";
-import { getWorkspaceVitalsSync } from "./IntelligenceService";
-import type { StatusBarManager } from "../ui/StatusBarManager";
-import type { AIDetectionToast, AISignal } from "../notifications/AIDetectionToast";
+import type { SignalBridge } from "../bridges/SignalBridge";
 import type { PRWManager } from "../domain/prwManager";
 import { FeedbackManager } from "../engine/FeedbackManager";
+import type { AIDetectionToast, AISignal } from "../notifications/AIDetectionToast";
+import type { StatusBarManager } from "../ui/StatusBarManager";
+import { isMonitorableDocument } from "../utils/documentFilters";
+import { calculateLineDiff } from "../utils/lineDiff";
+import { logger } from "../utils/logger";
+import { getWorkspaceVitalsSync } from "./IntelligenceService";
 
 export interface EditMonitorDeps {
 	signalBridge: SignalBridge;
@@ -37,9 +37,7 @@ export class EditMonitorService implements vscode.Disposable {
 	}
 
 	private registerListeners() {
-		this.disposables.push(
-			vscode.workspace.onDidChangeTextDocument((e) => this.handleDocumentChange(e)),
-		);
+		this.disposables.push(vscode.workspace.onDidChangeTextDocument((e) => this.handleDocumentChange(e)));
 	}
 
 	private handleDocumentChange(e: vscode.TextDocumentChangeEvent) {
@@ -54,10 +52,7 @@ export class EditMonitorService implements vscode.Disposable {
 			return;
 		}
 
-		if (
-			e.reason === vscode.TextDocumentChangeReason.Undo ||
-			e.reason === vscode.TextDocumentChangeReason.Redo
-		) {
+		if (e.reason === vscode.TextDocumentChangeReason.Undo || e.reason === vscode.TextDocumentChangeReason.Redo) {
 			return;
 		}
 

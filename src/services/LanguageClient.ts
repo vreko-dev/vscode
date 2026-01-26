@@ -24,6 +24,7 @@ const PRESSURE_THRESHOLDS = {
 	high: 75,
 	critical: 80,
 } as const;
+
 import * as vscode from "vscode";
 import {
 	LanguageClient,
