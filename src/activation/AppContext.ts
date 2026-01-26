@@ -14,6 +14,7 @@ import type { SnapBackRCLoader } from "../protection/SnapBackRCLoader";
 import type { DetectionCodeActionProvider } from "../providers/DetectionCodeActionProvider";
 import type { ProtectionCodeLensProvider } from "../providers/ProtectionCodeLensProvider";
 import type { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
+import type { RollbackService } from "../rollback/RollbackService";
 import type { DaemonBridge } from "../services/DaemonBridge";
 import type { MCPToolsService } from "../services/MCPToolsService";
 import type { ProtectedFileRegistry } from "../services/protectedFileRegistry";
@@ -65,6 +66,7 @@ export interface AppContext {
 	operationCoordinator?: OperationCoordinator;
 	sessionCoordinator?: SessionCoordinator;
 	snapshotManager?: SnapshotManager;
+	rollbackService?: RollbackService;
 	smartContextDetector?: SmartContextDetector;
 	workflowIntegration?: WorkflowIntegration;
 	conflictResolver?: ConflictResolver;

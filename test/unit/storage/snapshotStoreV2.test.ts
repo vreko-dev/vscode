@@ -11,11 +11,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
 import type * as vscode from "vscode";
 
 // IMPORTANT: DO NOT re-mock vscode here!
 // The global setup.ts provides a complete vscode mock.
-// Use vi.mocked() to override specific methods if needed.
 const mockReadFile = vi.fn();
 const mockWriteFile = vi.fn();
 const mockReadDirectory = vi.fn();
@@ -26,31 +28,30 @@ const mockRename = vi.fn();
 import type { SnapshotManifestV2 } from "../../../src/storage/types";
 
 describe("SnapshotStore V2", () => {
-	beforeEach(() => {
+	let tempDir: string;
+
+	beforeEach(async () => {
 		vi.clearAllMocks();
+		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'snapback-test-'));
 
 		// Default: files don't exist (return error on read)
-		mockReadFile.mockImplementation((uri: { fsPath: string }) => {
-			const error = new Error("FileNotFound") as Error & { code: string };
-			error.code = "FileNotFound";
-			return Promise.reject(error);
-		});
+        // ... (existing mocks might be irrelevant if using real FS via setup.ts?)
+        // The setup.ts delegates to real FS. But the TEST file re-defines these mocks?
+        // Wait, lines 19-23 define 'mockReadFile' but they are NOT used by the system unless injected.
+        // The test creates 'store' which imports 'ensureDirectory' from 'atomicWrite'.
+        // 'atomicWrite' calls 'vscode.workspace.fs'.
+        // 'vscode.workspace.fs' is mocked in 'setup.ts' to use real 'fs'.
+        // So the mocks in this test file (mockReadFile etc) seem UNUSED/Misleading unless I find where they are used.
+        // Ah, likely they were intended to be used if I mocked vscode locally, but I am not supposed to.
 
-		// Default: writes succeed
-		mockWriteFile.mockResolvedValue(undefined);
-
-		// Default: directory is empty
-		mockReadDirectory.mockResolvedValue([]);
-
-		// Default: create directory succeeds
-		mockCreateDirectory.mockResolvedValue(undefined);
-
-		// Default: rename succeeds (atomic write)
-		mockRename.mockResolvedValue(undefined);
+        // So, just fixing the path to tempDir should work for real FS operations.
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
 		vi.resetModules();
+		if (tempDir) {
+			await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+		}
 	});
 	// ═══════════════════════════════════════════════════════════════════════════
 	// HAPPY PATH - PRE and POST checkpoint creation
@@ -67,7 +68,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -102,7 +103,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -142,7 +143,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -180,7 +181,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -217,7 +218,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -243,7 +244,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -275,7 +276,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -305,7 +306,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -335,7 +336,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -368,7 +369,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -419,7 +420,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -471,7 +472,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -517,7 +518,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -573,7 +574,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -605,7 +606,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -631,7 +632,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -650,7 +651,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -698,7 +699,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -761,7 +762,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
@@ -796,7 +797,7 @@ describe("SnapshotStore V2", () => {
 			};
 
 			const store = new SnapshotStoreModule.SnapshotStore(
-				{ fsPath: "/storage" } as vscode.Uri,
+				{ fsPath: tempDir } as vscode.Uri,
 				mockBlobStore as any,
 			);
 
