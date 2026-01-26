@@ -15,7 +15,7 @@
 import { detectAIClients, getSnapbackMCPConfig, writeClientConfig } from "@snapback/mcp-config";
 import * as vscode from "vscode";
 import type { DaemonBridge, SnapshotCreatedEvent } from "../services/DaemonBridge";
-import { type SnapshotCoordinator, WorkspaceDataService } from "../services/WorkspaceDataService";
+import { type SnapshotCoordinator, WorkspaceDataService } from "../services/workspace-data";
 import { getCliStatus } from "../utils/cli-status";
 import { logger } from "../utils/logger";
 import { detectPackageManager, getInstallCommand } from "../utils/package-manager";
