@@ -15,11 +15,7 @@
 			"@vscode/*": ["./src/*"]
 		}
 	},
-	"include": [
-		"src/**/*.ts",
-		"vscode.proposed.timeline.d.ts",
-		"types/**/*.d.ts"
-	],
+	"include": ["src/**/*.ts", "vscode.proposed.timeline.d.ts", "types/**/*.d.ts"],
 	"exclude": [
 		"node_modules",
 		"dist",

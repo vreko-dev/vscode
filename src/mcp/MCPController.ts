@@ -172,10 +172,8 @@ export class MCPController implements vscode.Disposable {
 	// Health state
 	private healthState: HealthState = "unknown";
 	private consecutiveSuccesses = 0;
-	private consecutiveFailures = 0;
 	private latencyHistory: number[] = [];
 	private readonly maxHistorySize = 100;
-	private unhealthySince: number | null = null;
 
 	// Event emitters
 	private readonly _onStateChange = new vscode.EventEmitter<MCPStateChangeEvent>();

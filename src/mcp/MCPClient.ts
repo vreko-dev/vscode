@@ -149,7 +149,6 @@ export class MCPClient {
 	// Stats
 	private pushCount = 0;
 	private failureCount = 0;
-	private lastPushTime: number | null = null;
 	private lastSuccessfulEndpoint: "remote" | "local" | null = null;
 
 	// Circuit breaker

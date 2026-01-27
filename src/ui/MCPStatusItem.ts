@@ -149,12 +149,26 @@ export class MCPStatusItem implements vscode.Disposable {
 			if (mcpProcessRunning) {
 				// MCP server is running, show "partial" status (tools work, daemon doesn't)
 				this.statusBarItem.text = "SB·MCP ~";
-				this.statusBarItem.tooltip = this.buildTooltip("disconnected", undefined, undefined, undefined, reason, true);
+				this.statusBarItem.tooltip = this.buildTooltip(
+					"disconnected",
+					undefined,
+					undefined,
+					undefined,
+					reason,
+					true,
+				);
 				this.statusBarItem.backgroundColor = undefined;
 				this.statusBarItem.color = new vscode.ThemeColor("editorWarning.foreground");
 			} else {
 				this.statusBarItem.text = "SB·MCP ✗";
-				this.statusBarItem.tooltip = this.buildTooltip("disconnected", undefined, undefined, undefined, reason, false);
+				this.statusBarItem.tooltip = this.buildTooltip(
+					"disconnected",
+					undefined,
+					undefined,
+					undefined,
+					reason,
+					false,
+				);
 				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
 				this.statusBarItem.color = undefined;
 			}
@@ -162,12 +176,26 @@ export class MCPStatusItem implements vscode.Disposable {
 			if (mcpProcessRunning) {
 				// MCP server is running even without CLI - show partial status
 				this.statusBarItem.text = "SB·MCP ~";
-				this.statusBarItem.tooltip = this.buildTooltip("cli_missing", undefined, undefined, undefined, undefined, true);
+				this.statusBarItem.tooltip = this.buildTooltip(
+					"cli_missing",
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					true,
+				);
 				this.statusBarItem.backgroundColor = undefined;
 				this.statusBarItem.color = new vscode.ThemeColor("editorWarning.foreground");
 			} else {
 				this.statusBarItem.text = "SB·MCP ⚠";
-				this.statusBarItem.tooltip = this.buildTooltip("cli_missing", undefined, undefined, undefined, undefined, false);
+				this.statusBarItem.tooltip = this.buildTooltip(
+					"cli_missing",
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					false,
+				);
 				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 				this.statusBarItem.color = undefined;
 			}
@@ -204,7 +232,9 @@ export class MCPStatusItem implements vscode.Disposable {
 				if (mcpProcessRunning) {
 					md.appendMarkdown("**MCP Status:** 🟡 MCP Tools Active\n\n");
 					md.appendMarkdown("*MCP server is running, but CLI daemon is not connected.*\n");
-					md.appendMarkdown("*Your AI tools work fine. Some advanced features (proactive protection) require the daemon.*\n\n");
+					md.appendMarkdown(
+						"*Your AI tools work fine. Some advanced features (proactive protection) require the daemon.*\n\n",
+					);
 				} else {
 					md.appendMarkdown("**MCP Status:** ❌ Disconnected\n\n");
 					if (reason) {

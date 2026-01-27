@@ -866,9 +866,9 @@ export class DaemonBridge extends vscode.Disposable {
 					}
 				}
 			} catch (error) {
-				logger.debug("Malformed daemon message", { 
+				logger.debug("Malformed daemon message", {
 					line: line.substring(0, 100),
-					error: error instanceof Error ? error.message : String(error)
+					error: error instanceof Error ? error.message : String(error),
 				});
 			}
 		}
@@ -1230,7 +1230,10 @@ export class DaemonBridge extends vscode.Disposable {
 			logger.debug("Unsubscribed from file watching", { workspace: workspacePath });
 			return true;
 		} catch (error) {
-			logger.debug("Failed to unsubscribe from file watching", { workspace: workspacePath, error: String(error) });
+			logger.debug("Failed to unsubscribe from file watching", {
+				workspace: workspacePath,
+				error: String(error),
+			});
 			return false;
 		}
 	}

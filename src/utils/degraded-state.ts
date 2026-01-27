@@ -57,12 +57,7 @@ class DegradedStateManager {
 	 * @param error - Optional error object
 	 * @param suggestion - Recovery suggestion for user
 	 */
-	markDegraded(
-		component: DegradedComponent,
-		reason: string,
-		error?: unknown,
-		suggestion?: string
-	): void {
+	markDegraded(component: DegradedComponent, reason: string, error?: unknown, suggestion?: string): void {
 		const existing = this.degraded.get(component);
 		const errorObj = error instanceof Error ? error : error ? new Error(String(error)) : undefined;
 
@@ -212,7 +207,7 @@ export async function withDegradedFallback<T>(
 	component: DegradedComponent,
 	fn: () => Promise<T>,
 	fallback: T,
-	options?: { reason?: string; suggestion?: string }
+	options?: { reason?: string; suggestion?: string },
 ): Promise<T> {
 	try {
 		const result = await fn();
@@ -222,12 +217,7 @@ export async function withDegradedFallback<T>(
 		}
 		return result;
 	} catch (error) {
-		degradedState.markDegraded(
-			component,
-			options?.reason ?? "Operation failed",
-			error,
-			options?.suggestion
-		);
+		degradedState.markDegraded(component, options?.reason ?? "Operation failed", error, options?.suggestion);
 		return fallback;
 	}
 }
@@ -239,7 +229,7 @@ export function withDegradedFallbackSync<T>(
 	component: DegradedComponent,
 	fn: () => T,
 	fallback: T,
-	options?: { reason?: string; suggestion?: string }
+	options?: { reason?: string; suggestion?: string },
 ): T {
 	try {
 		const result = fn();
@@ -248,12 +238,7 @@ export function withDegradedFallbackSync<T>(
 		}
 		return result;
 	} catch (error) {
-		degradedState.markDegraded(
-			component,
-			options?.reason ?? "Operation failed",
-			error,
-			options?.suggestion
-		);
+		degradedState.markDegraded(component, options?.reason ?? "Operation failed", error, options?.suggestion);
 		return fallback;
 	}
 }
@@ -279,7 +264,7 @@ export async function withTimeout<T>(
 		component: DegradedComponent;
 		reason?: string;
 		fallback?: T;
-	}
+	},
 ): Promise<T | undefined> {
 	const { timeout, component, reason, fallback } = options;
 
@@ -291,7 +276,7 @@ export async function withTimeout<T>(
 				component,
 				reason ?? `Operation timed out after ${timeout}ms`,
 				undefined,
-				`The ${component} component is taking too long. Some features may be unavailable.`
+				`The ${component} component is taking too long. Some features may be unavailable.`,
 			);
 			resolve(fallback);
 		}, timeout);

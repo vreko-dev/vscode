@@ -247,18 +247,23 @@ function failedRestoreResult(
 ): DetailedRestoreResult {
 	// Generate actionable suggestion based on failure reasons
 	const hasPermissionError = failed.some((f) => f.reason.toLowerCase().includes("permission"));
-	const hasLockedFile = failed.some((f) => f.reason.toLowerCase().includes("locked") || f.reason.toLowerCase().includes("busy"));
+	const hasLockedFile = failed.some(
+		(f) => f.reason.toLowerCase().includes("locked") || f.reason.toLowerCase().includes("busy"),
+	);
 	const hasNotFound = failed.some((f) => f.reason.toLowerCase().includes("not found") || f.errorCode === "ENOENT");
 
 	let suggestion: string;
 	if (hasLockedFile) {
 		suggestion = "Close any editors with these files open, then try again. Files may be locked by another process.";
 	} else if (hasPermissionError) {
-		suggestion = "Check file permissions. Try running VS Code as administrator, or manually restore from .snapback/snapshots/";
+		suggestion =
+			"Check file permissions. Try running VS Code as administrator, or manually restore from .snapback/snapshots/";
 	} else if (hasNotFound) {
-		suggestion = "Some target directories may be missing. The restore will create files in existing directories only.";
+		suggestion =
+			"Some target directories may be missing. The restore will create files in existing directories only.";
 	} else {
-		suggestion = "Try running 'SnapBack: List Snapshots' to see available snapshots, or check .snapback/ for manual recovery.";
+		suggestion =
+			"Try running 'SnapBack: List Snapshots' to see available snapshots, or check .snapback/ for manual recovery.";
 	}
 
 	return {
@@ -1331,7 +1336,9 @@ export class OperationCoordinator {
 							// P0 FIX: Return detailed per-file failures
 							let failures: Array<{ file: string; reason: string }>;
 							if (error && "failures" in error) {
-								failures = (error as { failures: Array<{ file: string; reason: string; message?: string }> }).failures.map((f) => ({
+								failures = (
+									error as { failures: Array<{ file: string; reason: string; message?: string }> }
+								).failures.map((f) => ({
 									file: f.file,
 									reason: f.message || f.reason,
 								}));
@@ -1406,9 +1413,9 @@ export class OperationCoordinator {
 							});
 						}
 
-						const lockedFiles = (error.failures as Array<{ reason: string }>)
-							.filter((f) => f.reason === "file_locked")
-							.length;
+						const lockedFiles = (error.failures as Array<{ reason: string }>).filter(
+							(f) => f.reason === "file_locked",
+						).length;
 
 						if (lockedFiles > 0) {
 							void vscode.window.showErrorMessage(
@@ -1496,7 +1503,7 @@ export class OperationCoordinator {
 				[],
 				[{ file: "(snapshot)", reason: error instanceof Error ? error.message : String(error) }],
 				0,
-				Date.now() - startTime
+				Date.now() - startTime,
 			);
 		}
 	}

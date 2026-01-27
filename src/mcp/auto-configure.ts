@@ -124,7 +124,8 @@ async function _configureClients(clients: AIClientConfig[], context: vscode.Exte
 	const apiKey = await getStoredApiKey(context);
 	// Get workspace ID for MCP tier resolution (always available)
 	const workspaceIdResult = await getOrCreateWorkspaceId(context.secrets);
-	const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId: workspaceIdResult.workspaceId });
+	// Get workspace root for config
+	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
 	await vscode.window.withProgress(
 		{
@@ -136,6 +137,13 @@ async function _configureClients(clients: AIClientConfig[], context: vscode.Exte
 			for (const client of clients) {
 				progress.report({ message: `Setting up ${client.displayName}...` });
 
+				// Generate config per-client to use correct transport (stdio for Claude Desktop, HTTP for others)
+				const mcpConfig = getSnapbackMCPConfig({
+					apiKey,
+					workspaceId: workspaceIdResult.workspaceId,
+					workspaceRoot,
+					client: client.format, // Pass client format for transport selection
+				});
 				const result = writeClientConfig(client, mcpConfig);
 				results.push({
 					client: client.displayName,
@@ -185,7 +193,6 @@ async function configureClientsSilently(clients: AIClientConfig[], context: vsco
 	const workspaceIdResult = await getOrCreateWorkspaceId(context.secrets);
 	// Get workspace root for config
 	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-	const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId: workspaceIdResult.workspaceId, workspaceRoot });
 
 	// Configure each client silently (no progress UI)
 	for (const client of clients) {
@@ -198,6 +205,13 @@ async function configureClientsSilently(clients: AIClientConfig[], context: vsco
 				}
 			}
 
+			// Generate config per-client to use correct transport (stdio for Claude Desktop, HTTP for others)
+			const mcpConfig = getSnapbackMCPConfig({
+				apiKey,
+				workspaceId: workspaceIdResult.workspaceId,
+				workspaceRoot,
+				client: client.format, // Pass client format for transport selection
+			});
 			const result = writeClientConfig(client, mcpConfig);
 
 			// Post-write validation
@@ -333,9 +347,16 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 
 			const apiKey = await getStoredApiKey(context);
 			const workspaceIdResult = await getOrCreateWorkspaceId(context.secrets);
-			const mcpConfig = getSnapbackMCPConfig({ apiKey, workspaceId: workspaceIdResult.workspaceId });
+			const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
 			for (const item of selected) {
+				// Generate config per-client to use correct transport (stdio for Claude Desktop, HTTP for others)
+				const mcpConfig = getSnapbackMCPConfig({
+					apiKey,
+					workspaceId: workspaceIdResult.workspaceId,
+					workspaceRoot,
+					client: item.client.format, // Pass client format for transport selection
+				});
 				const result = writeClientConfig(item.client, mcpConfig);
 				if (result.success) {
 					vscode.window.showInformationMessage(`✓ Configured ${item.client.displayName}`);
@@ -424,7 +445,9 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 									}
 								} else {
 									// Show issues and offer to repair
-									const issueList = validation.issues.map((i) => `${i.severity}: ${i.message}`).join("\n");
+									const issueList = validation.issues
+										.map((i) => `${i.severity}: ${i.message}`)
+										.join("\n");
 									const choice = await vscode.window.showWarningMessage(
 										`${client.displayName} has issues:\n${issueList}`,
 										"Repair Now",
@@ -440,9 +463,13 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 								// Directly configure this specific client
 								const apiKey = await getStoredApiKey(context);
 								const workspaceIdResult = await getOrCreateWorkspaceId(context.secrets);
+								const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+								// Generate config for this client with correct transport
 								const mcpConfig = getSnapbackMCPConfig({
 									apiKey,
 									workspaceId: workspaceIdResult.workspaceId,
+									workspaceRoot,
+									client: client.format, // Pass client format for transport selection
 								});
 
 								const result = writeClientConfig(client, mcpConfig);
@@ -469,7 +496,8 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 									cline: "https://github.com/cline/cline",
 									roo: "https://roo.dev",
 								};
-								const url = installUrls[client.name.toLowerCase()] || "https://snapback.dev/docs/integrations";
+								const url =
+									installUrls[client.name.toLowerCase()] || "https://snapback.dev/docs/integrations";
 								const choice = await vscode.window.showInformationMessage(
 									`${client.displayName} is not installed. Visit ${url} to download.`,
 									"Open Download Page",

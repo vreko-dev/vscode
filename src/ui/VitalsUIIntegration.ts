@@ -175,7 +175,6 @@ function calculatePressureTrend(value: number): "rising" | "stable" | "falling" 
  * Main integration class connecting data service to UI components
  */
 export class VitalsUIIntegration implements vscode.Disposable {
-	private _extensionUri: vscode.Uri;
 	private dataService: UnifiedDataService;
 	private statusBarManager: StatusBarManager;
 	private recommendationUI: SnapshotRecommendationUI;
