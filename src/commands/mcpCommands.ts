@@ -10,6 +10,7 @@
  * - snapback.mcp.startTask: Start a new development task
  * - snapback.mcp.endTask: End current development task
  * - snapback.mcp.diagnose: Diagnose MCP connection issues
+ * - snapback.mcp.reconnect: Force MCP daemon reconnection
  * - snapback.toggleAIMonitoring: Toggle AI monitoring
  * - snapback.showAIMonitoringStatus: Show AI monitoring status
  *
@@ -505,6 +506,70 @@ export function registerMcpCommands(
 			}
 
 			logger.info("MCP diagnostics completed", { diagnosticsCount: diagnostics.length });
+		}),
+	);
+
+	// Command: Force MCP Daemon Reconnection
+	disposables.push(
+		vscode.commands.registerCommand("snapback.mcp.reconnect", async () => {
+			const bridge = getDaemonBridge();
+			const currentState = bridge.getState();
+
+			// Show confirmation dialog
+			const confirm = await vscode.window.showWarningMessage(
+				`Current MCP status: ${currentState}. Force reconnection?`,
+				{ modal: true },
+				"Reconnect",
+				"Cancel",
+			);
+
+			if (confirm !== "Reconnect") {
+				return;
+			}
+
+			// Show progress notification
+			await vscode.window.withProgress(
+				{
+					location: vscode.ProgressLocation.Notification,
+					title: "Reconnecting to MCP daemon...",
+					cancellable: false,
+				},
+				async (progress) => {
+					progress.report({ message: "Resetting connection state..." });
+
+					// Force reconnection
+					logger.info("[MCP] User triggered manual reconnection", { previousState: currentState });
+					bridge.resetAndRetry();
+
+					// Wait a moment for connection attempt
+					await new Promise((resolve) => setTimeout(resolve, 2000));
+
+					const newState = bridge.getState();
+					progress.report({ message: `New state: ${newState}` });
+
+					// Track telemetry
+					try {
+						const client = getMCPClient("default");
+						client.trackEvent("mcp.manual_reconnect", {
+							previousState: currentState,
+							newState: newState,
+						});
+					} catch {
+						// Ignore telemetry errors
+					}
+				},
+			);
+
+			const finalState = bridge.getState();
+			if (finalState === "connected") {
+				vscode.window.showInformationMessage("✓ MCP daemon reconnected successfully!");
+			} else if (finalState === "reconnecting") {
+				vscode.window.showInformationMessage("MCP daemon is reconnecting... Check status bar for progress.");
+			} else {
+				vscode.window.showWarningMessage(
+					`MCP daemon is ${finalState}. Try 'SnapBack: MCP Diagnose' for more details.`,
+				);
+			}
 		}),
 	);
 

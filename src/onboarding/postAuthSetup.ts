@@ -12,7 +12,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { initializeWorkspaceDirectory } from "../auth/workspace-id";
-import { type ConfigStoreV2Type, getInitializedConfigStore } from "../config/configStore";
+import { type ConfigStoreV2, getInitializedConfigStore } from "../config/configStore";
 import { detectWorkspaceFrameworks } from "../services/IntelligenceService";
 import type { TelemetryProxy } from "../services/telemetry-proxy";
 import { logger } from "../utils/logger";
@@ -95,7 +95,7 @@ export async function runPostAuthSetup(workspaceRoot: string, telemetry?: Teleme
 		});
 
 		// 3. Build config object with proper typing
-		const config: ConfigStoreV2Type = {
+		const config: ConfigStoreV2 = {
 			version: 2,
 			protections: defaultRules,
 			ignore: ["node_modules/**", ".git/**", "dist/**", "build/**", ".next/**", "__pycache__/**", "*.log"],

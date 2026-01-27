@@ -7,8 +7,7 @@
  * This module provides the single point of config access for the VS Code Extension.
  */
 
-import type { ConfigPath, PathValue } from "@snapback/config";
-import type { ConfigStoreV2 as ConfigStoreV2Type } from "@snapback/config/schemas";
+import type { ConfigPath, ConfigStoreV2, PathValue } from "@snapback/config";
 import { ConfigStore, getConfigStore } from "@snapback/config/store";
 import { logger } from "../utils/logger";
 
@@ -59,7 +58,7 @@ export function getInitializedConfigStore(): InstanceType<typeof ConfigStore> {
  * Subscribe to config changes with hot-reload support
  * Returns unsubscribe function
  */
-export function onConfigChange(callback: (config: ConfigStoreV2Type) => void): () => void {
+export function onConfigChange(callback: (config: ConfigStoreV2) => void): () => void {
 	const store = getInitializedConfigStore();
 	return store.onChange(callback);
 }
@@ -67,7 +66,7 @@ export function onConfigChange(callback: (config: ConfigStoreV2Type) => void): (
 /**
  * Get full config
  */
-export function getConfig(): ConfigStoreV2Type {
+export function getConfig(): ConfigStoreV2 {
 	return getInitializedConfigStore().getConfig();
 }
 
@@ -81,9 +80,9 @@ export function getConfig(): ConfigStoreV2Type {
  * getConfigValue("fake.path") // ❌ Compile error
  * ```
  */
-export function getConfigValue<P extends ConfigPath<ConfigStoreV2Type> & string>(
+export function getConfigValue<P extends ConfigPath<ConfigStoreV2> & string>(
 	path: P,
-): PathValue<ConfigStoreV2Type, P> | undefined {
+): PathValue<ConfigStoreV2, P> | undefined {
 	const store = getInitializedConfigStore();
 	try {
 		return store.get(path);
@@ -101,17 +100,17 @@ export function getConfigValue<P extends ConfigPath<ConfigStoreV2Type> & string>
  *
  * Note: For type safety, path must be a valid ConfigPath
  */
-export function getConfigValueOrDefault<P extends ConfigPath<ConfigStoreV2Type> & string>(
+export function getConfigValueOrDefault<P extends ConfigPath<ConfigStoreV2> & string>(
 	path: P,
-	defaultValue: PathValue<ConfigStoreV2Type, P>,
-): PathValue<ConfigStoreV2Type, P> {
+	defaultValue: PathValue<ConfigStoreV2, P>,
+): PathValue<ConfigStoreV2, P> {
 	return getConfigValue(path) ?? defaultValue;
 }
 
 /**
  * Save config to .snapbackrc
  */
-export async function saveConfig(config: ConfigStoreV2Type): Promise<void> {
+export async function saveConfig(config: ConfigStoreV2): Promise<void> {
 	const store = getInitializedConfigStore();
 	await store.saveSnapbackrc(config);
 }
@@ -149,4 +148,4 @@ export function reset(): void {
 	ConfigStore.reset();
 }
 
-export type { ConfigStoreV2Type };
+export type { ConfigStoreV2 };

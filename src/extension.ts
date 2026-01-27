@@ -243,12 +243,12 @@ export async function activate(context: vscode.ExtensionContext) {
 				await vscode.commands.executeCommand(
 					"setContext",
 					"snapback.hasProtectedFiles",
-					protectedFiles.length > 0,
+					(protectedFiles?.length ?? 0) > 0,
 				);
 			},
 			getProtectionStateSummary: async () => {
 				const protectedFiles = await appContext.protectedFileRegistry?.list();
-				return { state: {}, message: `SnapBack: ${protectedFiles.length} protected files` };
+				return { state: {}, message: `SnapBack: ${protectedFiles?.length ?? 0} protected files` };
 			},
 			snapshotRestoreUI: new SnapshotRestoreUI(
 				appContext.operationCoordinator!,
