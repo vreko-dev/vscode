@@ -409,10 +409,12 @@ export class DaemonBridge extends vscode.Disposable {
 			try {
 				process.kill(pid, 0);
 				return true;
-			} catch {
+			} catch (error) {
+				logger.debug("Daemon process not running", { pid, error: String(error) });
 				return false;
 			}
-		} catch {
+		} catch (error) {
+			logger.debug("Failed to check daemon PID file", { error: String(error) });
 			return false;
 		}
 	}
@@ -863,8 +865,11 @@ export class DaemonBridge extends vscode.Disposable {
 						}
 					}
 				}
-			} catch {
-				logger.debug("Malformed daemon message", { line: line.substring(0, 100) });
+			} catch (error) {
+				logger.debug("Malformed daemon message", { 
+					line: line.substring(0, 100),
+					error: error instanceof Error ? error.message : String(error)
+				});
 			}
 		}
 	}
@@ -1144,7 +1149,8 @@ export class DaemonBridge extends vscode.Disposable {
 				uptime: result.uptime,
 				workspaces: result.workspaces,
 			};
-		} catch {
+		} catch (error) {
+			logger.debug("Daemon status check failed", { error: String(error) });
 			return { connected: false };
 		}
 	}
@@ -1161,7 +1167,8 @@ export class DaemonBridge extends vscode.Disposable {
 			return await this.request<SessionStatusResult>("session.status", {
 				workspace: workspacePath,
 			});
-		} catch {
+		} catch (error) {
+			logger.debug("Failed to get session status", { workspace: workspacePath, error: String(error) });
 			return null;
 		}
 	}
@@ -1222,7 +1229,8 @@ export class DaemonBridge extends vscode.Disposable {
 			this.subscriptions.delete(workspacePath);
 			logger.debug("Unsubscribed from file watching", { workspace: workspacePath });
 			return true;
-		} catch {
+		} catch (error) {
+			logger.debug("Failed to unsubscribe from file watching", { workspace: workspacePath, error: String(error) });
 			return false;
 		}
 	}

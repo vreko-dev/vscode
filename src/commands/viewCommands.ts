@@ -217,12 +217,12 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 
 					const recoveryDurationMs = Date.now() - recoveryStartTime;
 
-					if (result) {
+					if (result.success) {
 						// Record successful recovery in DORA metrics
-						doraMetrics.recordRecoveryComplete(snapshotId, true, files.length);
+						doraMetrics.recordRecoveryComplete(snapshotId, true, result.restored.length);
 						logger.info("Recovery completed successfully", {
 							snapshotId,
-							fileCount: files.length,
+							fileCount: result.restored.length,
 							durationMs: recoveryDurationMs,
 						});
 
@@ -232,25 +232,53 @@ export function registerViewCommands(context: vscode.ExtensionContext, ctx: Comm
 						// 🆕 Track session restored in core event tracker (P0 product event)
 						getCoreEventTracker()?.trackSessionRestored({
 							session_id: snapshotId,
-							files_restored: files, // Already relative paths from snapshot.contents keys
+							files_restored: result.restored,
 							time_to_restore_ms: recoveryDurationMs,
 							reason: "user_initiated",
 						});
 
 						vscode.window.showInformationMessage(
-							`✅ Restored ${files.length} file(s) from "${snapshotLabel}"`,
+							`✅ Restored ${result.restored.length} file(s) from "${snapshotLabel}"`,
 						);
 						ctx.refreshViews();
 					} else {
+						// P0 FIX: Show detailed per-file errors
+						const failedCount = result.failed.length;
+						const failureReasons = result.failed
+							.slice(0, 3)
+							.map((f) => `${f.file}: ${f.reason}`)
+							.join("\n");
+
 						// Record failed recovery in DORA metrics
-						doraMetrics.recordRecoveryComplete(snapshotId, false, 0, "Restore operation returned false");
+						doraMetrics.recordRecoveryComplete(snapshotId, false, result.restored.length, failureReasons);
 						logger.warn("Recovery failed", {
 							snapshotId,
 							durationMs: recoveryDurationMs,
-							reason: "operationCoordinator returned false",
+							failedFiles: failedCount,
+							restoredFiles: result.restored.length,
+							reason: failureReasons,
 						});
 
-						vscode.window.showErrorMessage("Failed to restore snapshot");
+						// Show actionable error message
+						if (failedCount > 0) {
+							vscode.window
+								.showErrorMessage(
+									`Restore failed for ${failedCount} file(s). ${result.suggestion || "Check output for details."}`,
+									"Show Details",
+								)
+								.then((selection) => {
+									if (selection === "Show Details") {
+										const details = result.failed
+											.map((f) => `  • ${f.file}: ${f.reason}`)
+											.join("\n");
+										vscode.window.showInformationMessage(`Failed files:\n${details}`, {
+											modal: true,
+										});
+									}
+								});
+						} else {
+							vscode.window.showErrorMessage(`Restore failed: ${result.suggestion || "Unknown error"}`);
+						}
 					}
 				} catch (error) {
 					// Record recovery failure in DORA metrics

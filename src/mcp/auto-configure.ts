@@ -377,33 +377,173 @@ export function registerMCPCommands(context: vscode.ExtensionContext): void {
 
 			const deduplicatedClients = Array.from(clientsByName.values());
 
-			const items = deduplicatedClients.map((client) => {
+			// Define QuickPick item interface with action handler
+			interface MCPStatusQuickPickItem extends vscode.QuickPickItem {
+				client: (typeof detection.clients)[0];
+				state: "active" | "needs-setup" | "not-installed";
+				action: () => Promise<void>;
+			}
+
+			const items: MCPStatusQuickPickItem[] = deduplicatedClients.map((client) => {
 				let status = "⚪ Not installed";
+				let description = "Click to learn how to install";
+				let state: "active" | "needs-setup" | "not-installed" = "not-installed";
+
 				if (client.exists && client.hasSnapback) {
 					status = "🟢 Active";
+					description = "Click to validate or reconfigure";
+					state = "active";
 				} else if (client.exists) {
 					status = "🟡 Needs setup";
+					description = "Click to configure SnapBack";
+					state = "needs-setup";
 				}
 
-				return `${client.displayName}: ${status}`;
+				return {
+					label: `${client.displayName}: ${status}`,
+					description,
+					client,
+					state,
+					action: async () => {
+						switch (state) {
+							case "active": {
+								// For active clients, offer validation or reconfiguration
+								const validation = validateClientConfig(client);
+								if (validation.valid && validation.issues.length === 0) {
+									const choice = await vscode.window.showInformationMessage(
+										`✓ ${client.displayName} is properly configured`,
+										"Open Config",
+										"Reconfigure",
+										"Done",
+									);
+									if (choice === "Open Config" && client.configPath) {
+										const uri = vscode.Uri.file(client.configPath);
+										await vscode.window.showTextDocument(uri);
+									} else if (choice === "Reconfigure") {
+										await vscode.commands.executeCommand("snapback.mcp.configure");
+									}
+								} else {
+									// Show issues and offer to repair
+									const issueList = validation.issues.map((i) => `${i.severity}: ${i.message}`).join("\n");
+									const choice = await vscode.window.showWarningMessage(
+										`${client.displayName} has issues:\n${issueList}`,
+										"Repair Now",
+										"Ignore",
+									);
+									if (choice === "Repair Now") {
+										await vscode.commands.executeCommand("snapback.mcp.repair");
+									}
+								}
+								break;
+							}
+							case "needs-setup": {
+								// Directly configure this specific client
+								const apiKey = await getStoredApiKey(context);
+								const workspaceIdResult = await getOrCreateWorkspaceId(context.secrets);
+								const mcpConfig = getSnapbackMCPConfig({
+									apiKey,
+									workspaceId: workspaceIdResult.workspaceId,
+								});
+
+								const result = writeClientConfig(client, mcpConfig);
+								if (result.success) {
+									vscode.window.showInformationMessage(
+										`✓ Configured ${client.displayName}. Restart your AI assistant to apply.`,
+									);
+									trackTelemetry("mcp_status_quick_configure", { client: client.name });
+								} else {
+									vscode.window.showErrorMessage(
+										`Failed to configure ${client.displayName}: ${result.error}`,
+									);
+								}
+								break;
+							}
+							case "not-installed": {
+								// Show installation instructions
+								const installUrls: Record<string, string> = {
+									claude: "https://claude.ai/download",
+									cursor: "https://cursor.sh",
+									windsurf: "https://codeium.com/windsurf",
+									continue: "https://continue.dev",
+									qoder: "https://qodo.ai",
+									cline: "https://github.com/cline/cline",
+									roo: "https://roo.dev",
+								};
+								const url = installUrls[client.name.toLowerCase()] || "https://snapback.dev/docs/integrations";
+								const choice = await vscode.window.showInformationMessage(
+									`${client.displayName} is not installed. Visit ${url} to download.`,
+									"Open Download Page",
+									"Cancel",
+								);
+								if (choice === "Open Download Page") {
+									vscode.env.openExternal(vscode.Uri.parse(url));
+								}
+								break;
+							}
+						}
+					},
+				};
 			});
 
-			const selected = await vscode.window.showQuickPick(items, {
-				placeHolder: "SnapBack MCP Status",
-				canPickMany: false,
-			});
+			// Add separator and utility actions
+			const utilityItems: MCPStatusQuickPickItem[] = [
+				{
+					label: "$(gear) Configure All...",
+					description: "Open the full MCP configuration wizard",
+					client: {} as (typeof detection.clients)[0],
+					state: "active",
+					kind: vscode.QuickPickItemKind.Separator,
+					action: async () => {},
+				},
+				{
+					label: "$(gear) Configure All Assistants",
+					description: "Open the full MCP configuration wizard",
+					client: {} as (typeof detection.clients)[0],
+					state: "active",
+					action: async () => {
+						await vscode.commands.executeCommand("snapback.mcp.configure");
+					},
+				},
+				{
+					label: "$(debug-start) Validate All Configurations",
+					description: "Check all MCP configurations for issues",
+					client: {} as (typeof detection.clients)[0],
+					state: "active",
+					action: async () => {
+						await vscode.commands.executeCommand("snapback.mcp.validate");
+					},
+				},
+				{
+					label: "$(tools) Repair Configurations",
+					description: "Fix any detected MCP configuration issues",
+					client: {} as (typeof detection.clients)[0],
+					state: "active",
+					action: async () => {
+						await vscode.commands.executeCommand("snapback.mcp.repair");
+					},
+				},
+			];
 
-			// If user selected an item that needs setup, offer to configure
-			if (selected?.includes("🟡")) {
-				const configure = await vscode.window.showInformationMessage(
-					"Would you like to configure this AI assistant?",
-					"Configure",
-					"Cancel",
-				);
-				if (configure === "Configure") {
-					vscode.commands.executeCommand("snapback.mcp.configure");
+			const allItems = [...items, ...utilityItems];
+
+			// Create QuickPick with proper selection handling
+			const quickPick = vscode.window.createQuickPick<MCPStatusQuickPickItem>();
+			quickPick.title = "🔌 SnapBack MCP Status";
+			quickPick.placeholder = "Select an AI assistant to configure or manage";
+			quickPick.items = allItems;
+			quickPick.matchOnDescription = true;
+
+			// Handle selection - execute the action
+			quickPick.onDidAccept(async () => {
+				const selected = quickPick.selectedItems[0];
+				if (selected?.action) {
+					quickPick.hide();
+					await selected.action();
 				}
-			}
+			});
+
+			quickPick.onDidHide(() => quickPick.dispose());
+			quickPick.show();
 		}),
 	);
 

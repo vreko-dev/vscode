@@ -182,6 +182,96 @@ export interface Operation {
 }
 
 /**
+ * P0 FIX: Detailed restore result with per-file error reporting
+ *
+ * Instead of returning just `boolean`, restore operations now return
+ * detailed information about what succeeded, what failed, and how to fix it.
+ *
+ * @example
+ * ```typescript
+ * const result = await coordinator.restoreToSnapshot(snapshotId);
+ * if (!result.success) {
+ *   console.error(`Failed: ${result.failed.length} files`);
+ *   for (const failure of result.failed) {
+ *     console.error(`  ${failure.file}: ${failure.reason}`);
+ *   }
+ *   console.log(`Suggestion: ${result.suggestion}`);
+ * }
+ * ```
+ */
+export interface DetailedRestoreResult {
+	/** Whether the restore was fully successful */
+	success: boolean;
+	/** Files that were successfully restored */
+	restored: string[];
+	/** Files that failed to restore with reasons */
+	failed: Array<{
+		file: string;
+		reason: string;
+		errorCode?: string;
+	}>;
+	/** Total number of files in snapshot */
+	totalFiles: number;
+	/** Human-readable suggestion for recovery */
+	suggestion?: string;
+	/** Duration in milliseconds */
+	durationMs: number;
+	/** Pre-flight check failures if any */
+	preFlightFailures?: Array<{
+		file: string;
+		reason: string;
+	}>;
+}
+
+/**
+ * Helper to create a successful restore result
+ */
+function successRestoreResult(restored: string[], totalFiles: number, durationMs: number): DetailedRestoreResult {
+	return {
+		success: true,
+		restored,
+		failed: [],
+		totalFiles,
+		durationMs,
+	};
+}
+
+/**
+ * Helper to create a failed restore result with actionable suggestions
+ */
+function failedRestoreResult(
+	restored: string[],
+	failed: Array<{ file: string; reason: string; errorCode?: string }>,
+	totalFiles: number,
+	durationMs: number,
+): DetailedRestoreResult {
+	// Generate actionable suggestion based on failure reasons
+	const hasPermissionError = failed.some((f) => f.reason.toLowerCase().includes("permission"));
+	const hasLockedFile = failed.some((f) => f.reason.toLowerCase().includes("locked") || f.reason.toLowerCase().includes("busy"));
+	const hasNotFound = failed.some((f) => f.reason.toLowerCase().includes("not found") || f.errorCode === "ENOENT");
+
+	let suggestion: string;
+	if (hasLockedFile) {
+		suggestion = "Close any editors with these files open, then try again. Files may be locked by another process.";
+	} else if (hasPermissionError) {
+		suggestion = "Check file permissions. Try running VS Code as administrator, or manually restore from .snapback/snapshots/";
+	} else if (hasNotFound) {
+		suggestion = "Some target directories may be missing. The restore will create files in existing directories only.";
+	} else {
+		suggestion = "Try running 'SnapBack: List Snapshots' to see available snapshots, or check .snapback/ for manual recovery.";
+	}
+
+	return {
+		success: false,
+		restored,
+		failed,
+		totalFiles,
+		durationMs,
+		suggestion,
+	};
+}
+
+/**
  * Centralized coordination engine for managing complex multi-step operations.
  *
  * Architecture Pattern: Coordinator + Observer
@@ -1072,7 +1162,13 @@ export class OperationCoordinator {
 
 	/**
 	 * Restore workspace to a previous snapshot
+	 *
+	 * P0 FIX: Now returns DetailedRestoreResult with per-file error reporting
+	 * instead of just boolean. This allows callers to show users exactly
+	 * what succeeded, what failed, and how to fix it.
+	 *
 	 * @param snapshotId - The snapshot to restore
+	 * @returns DetailedRestoreResult with success/failure per file
 	 */
 	async restoreToSnapshot(
 		snapshotId: string,
@@ -1081,10 +1177,12 @@ export class OperationCoordinator {
 			dryRun?: boolean;
 			backupCurrent?: boolean;
 		},
-	): Promise<boolean> {
+	): Promise<DetailedRestoreResult> {
 		const operationId = `restore-${Date.now()}`;
+		const startTime = Date.now();
 		this.startOperation(operationId, "Restore from Snapshot", [snapshotId]);
 		let filesRestored = 0;
+		let restoredPaths: string[] = [];
 
 		try {
 			const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -1183,7 +1281,14 @@ export class OperationCoordinator {
 					if (!resolutions) {
 						// User cancelled
 						this.updateOperationStatus(operationId, "completed");
-						return false;
+						return {
+							success: false,
+							restored: [],
+							failed: [],
+							totalFiles: conflicts.length,
+							durationMs: Date.now() - startTime,
+							suggestion: "Restore cancelled by user.",
+						};
 					}
 
 					// Apply resolutions by restoring only accepted files
@@ -1193,7 +1298,14 @@ export class OperationCoordinator {
 
 					if (filesToRestore.length === 0) {
 						this.updateOperationStatus(operationId, "completed");
-						return false;
+						return {
+							success: false,
+							restored: [],
+							failed: [],
+							totalFiles: conflicts.length,
+							durationMs: Date.now() - startTime,
+							suggestion: "No files were selected for restore.",
+						};
 					}
 
 					// Phase 3: Atomic restore with selected files (P1-9 / J3-E08)
@@ -1212,9 +1324,22 @@ export class OperationCoordinator {
 
 						if (!restoreResult.success) {
 							const error = restoreResult.error;
-							logger.error(`Conflict resolution restore failed: ${error?.message || "Unknown error"}`);
+							const errorMessage = error?.message || "Unknown error";
+							logger.error(`Conflict resolution restore failed: ${errorMessage}`);
 							this.updateOperationStatus(operationId, "failed");
-							return false;
+
+							// P0 FIX: Return detailed per-file failures
+							let failures: Array<{ file: string; reason: string }>;
+							if (error && "failures" in error) {
+								failures = (error as { failures: Array<{ file: string; reason: string; message?: string }> }).failures.map((f) => ({
+									file: f.file,
+									reason: f.message || f.reason,
+								}));
+							} else {
+								failures = [{ file: "(unknown)", reason: errorMessage }];
+							}
+
+							return failedRestoreResult([], failures, filesToRestore.length, Date.now() - startTime);
 						}
 
 						filesRestored = restoreResult.value.filesRestored;
@@ -1226,7 +1351,7 @@ export class OperationCoordinator {
 					this.updateOperationStatus(operationId, "completed");
 					this.updateOperationProgress(operationId, 100);
 
-					return true;
+					return successRestoreResult(filesToRestore, filesToRestore.length, Date.now() - startTime);
 				}
 				// No conflict resolution needed, proceed with normal restore below
 			}
@@ -1247,7 +1372,14 @@ export class OperationCoordinator {
 				if (restoreFiles.length === 0) {
 					logger.warn("No files to restore after filtering");
 					this.updateOperationStatus(operationId, "completed");
-					return false;
+					return {
+						success: false,
+						restored: [],
+						failed: [],
+						totalFiles: Object.keys(snapshot.contents || {}).length,
+						durationMs: Date.now() - startTime,
+						suggestion: "No matching files found. Check your file filter or snapshot contents.",
+					};
 				}
 
 				// Use atomic cluster restore handler
@@ -1263,28 +1395,40 @@ export class OperationCoordinator {
 					const error = restoreResult.error;
 					logger.error(`Atomic restore failed: ${error?.message || "Unknown error"}`);
 
-					// Show user-friendly error for locked files
+					// P0 FIX: Build detailed per-file failure list
+					const failures: Array<{ file: string; reason: string; errorCode?: string }> = [];
 					if (error && "failures" in error && error.failures.length > 0) {
-						const lockedFiles = error.failures
-							.filter((f: { reason: string }) => f.reason === "file_locked")
-							.map((f: { file: string }) => f.file);
+						for (const f of error.failures as Array<{ file: string; reason: string; message: string }>) {
+							failures.push({
+								file: f.file,
+								reason: f.message || f.reason,
+								errorCode: f.reason,
+							});
+						}
 
-						if (lockedFiles.length > 0) {
+						const lockedFiles = (error.failures as Array<{ reason: string }>)
+							.filter((f) => f.reason === "file_locked")
+							.length;
+
+						if (lockedFiles > 0) {
 							void vscode.window.showErrorMessage(
-								`Restore aborted: ${lockedFiles.length} file(s) are locked. Close them and try again.`,
+								`Restore aborted: ${lockedFiles} file(s) are locked. Close them and try again.`,
 							);
 						} else {
 							void vscode.window.showErrorMessage(
-								`Restore aborted: ${error.failures.length} file(s) cannot be written.`,
+								`Restore aborted: ${failures.length} file(s) cannot be written.`,
 							);
 						}
+					} else {
+						failures.push({ file: "(all files)", reason: error?.message || "Unknown error" });
 					}
 
 					this.updateOperationStatus(operationId, "failed");
-					return false;
+					return failedRestoreResult([], failures, restoreFiles.length, Date.now() - startTime);
 				}
 
 				filesRestored = restoreResult.value.filesRestored;
+				restoredPaths = restoreResult.value.restoredPaths || [];
 			}
 
 			this.updateOperationProgress(operationId, 90);
@@ -1341,11 +1485,19 @@ export class OperationCoordinator {
 				vscode.window.setStatusBarMessage(`✅ Workspace restored from snapshot (${filesRestored} files)`, 5000);
 			}
 
-			return true;
+			// P0 FIX: Return detailed success result
+			return successRestoreResult(restoredPaths, filesRestored, Date.now() - startTime);
 		} catch (error) {
 			logger.error("Restore failed", error instanceof Error ? error : new Error(String(error)), { snapshotId });
 			this.updateOperationStatus(operationId, "failed");
-			return false;
+
+			// P0 FIX: Return detailed failure with actionable suggestion
+			return failedRestoreResult(
+				[],
+				[{ file: "(snapshot)", reason: error instanceof Error ? error.message : String(error) }],
+				0,
+				Date.now() - startTime
+			);
 		}
 	}
 

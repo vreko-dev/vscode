@@ -20,7 +20,7 @@
  * @packageDocumentation
  */
 
-import { detectAIClients, detectWorkspaceConfig } from "@snapback/mcp-config";
+import { detectAIClients, detectMCPProcesses, detectWorkspaceConfig } from "@snapback/mcp-config";
 import * as vscode from "vscode";
 import type { ConnectionState, DaemonBridge, StateChangeEvent } from "../services/DaemonBridge";
 import { logger } from "../utils/logger";
@@ -79,11 +79,44 @@ export class MCPStatusItem implements vscode.Disposable {
 	}
 
 	/**
+	 * Cache for MCP process status to avoid excessive process checks
+	 */
+	private mcpProcessCache: { running: boolean; checkedAt: number } | null = null;
+	private readonly MCP_PROCESS_CACHE_TTL_MS = 10000; // 10 second cache
+
+	/**
+	 * Check if MCP server process is running (with caching)
+	 */
+	private async checkMCPProcessRunning(): Promise<boolean> {
+		const now = Date.now();
+		if (this.mcpProcessCache && now - this.mcpProcessCache.checkedAt < this.MCP_PROCESS_CACHE_TTL_MS) {
+			return this.mcpProcessCache.running;
+		}
+
+		try {
+			const health = await detectMCPProcesses();
+			const running = health.snapbackRunning;
+			this.mcpProcessCache = { running, checkedAt: now };
+			return running;
+		} catch (err) {
+			logger.debug("MCP process detection failed", { error: err instanceof Error ? err.message : String(err) });
+			return false;
+		}
+	}
+
+	/**
 	 * Render status bar based on state
-	 * Pure function: state in → UI out
+	 * Now includes MCP process detection for more accurate status
 	 */
 	private render(event: StateChangeEvent): void {
-		const { state, attempt, maxAttempts, reason, daemonVersion } = event;
+		const { state, attempt, maxAttempts, daemonVersion } = event;
+
+		// For disconnected/cli_missing states, check if MCP process is running
+		// to show a more accurate status
+		if (state === "disconnected" || state === "cli_missing") {
+			this.renderWithProcessCheck(event);
+			return;
+		}
 
 		switch (state) {
 			case "connected":
@@ -101,27 +134,51 @@ export class MCPStatusItem implements vscode.Disposable {
 				this.statusBarItem.color = undefined;
 				this.statusBarItem.show();
 				break;
-
-			case "disconnected":
-				this.statusBarItem.text = "SB·MCP ✗";
-				this.statusBarItem.tooltip = this.buildTooltip("disconnected", undefined, undefined, undefined, reason);
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
-				this.statusBarItem.color = undefined;
-				this.statusBarItem.show();
-				break;
-
-			case "cli_missing":
-				this.statusBarItem.text = "SB·MCP ⚠";
-				this.statusBarItem.tooltip = this.buildTooltip("cli_missing");
-				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
-				this.statusBarItem.color = undefined;
-				this.statusBarItem.show();
-				break;
 		}
 	}
 
 	/**
+	 * Render for disconnected/cli_missing states with MCP process check
+	 * Shows "partial" status if MCP tools are working even without daemon
+	 */
+	private async renderWithProcessCheck(event: StateChangeEvent): Promise<void> {
+		const { state, reason } = event;
+		const mcpProcessRunning = await this.checkMCPProcessRunning();
+
+		if (state === "disconnected") {
+			if (mcpProcessRunning) {
+				// MCP server is running, show "partial" status (tools work, daemon doesn't)
+				this.statusBarItem.text = "SB·MCP ~";
+				this.statusBarItem.tooltip = this.buildTooltip("disconnected", undefined, undefined, undefined, reason, true);
+				this.statusBarItem.backgroundColor = undefined;
+				this.statusBarItem.color = new vscode.ThemeColor("editorWarning.foreground");
+			} else {
+				this.statusBarItem.text = "SB·MCP ✗";
+				this.statusBarItem.tooltip = this.buildTooltip("disconnected", undefined, undefined, undefined, reason, false);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+				this.statusBarItem.color = undefined;
+			}
+		} else if (state === "cli_missing") {
+			if (mcpProcessRunning) {
+				// MCP server is running even without CLI - show partial status
+				this.statusBarItem.text = "SB·MCP ~";
+				this.statusBarItem.tooltip = this.buildTooltip("cli_missing", undefined, undefined, undefined, undefined, true);
+				this.statusBarItem.backgroundColor = undefined;
+				this.statusBarItem.color = new vscode.ThemeColor("editorWarning.foreground");
+			} else {
+				this.statusBarItem.text = "SB·MCP ⚠";
+				this.statusBarItem.tooltip = this.buildTooltip("cli_missing", undefined, undefined, undefined, undefined, false);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+				this.statusBarItem.color = undefined;
+			}
+		}
+
+		this.statusBarItem.show();
+	}
+
+	/**
 	 * Build rich tooltip with server details
+	 * Now includes MCP process detection for accurate status reporting
 	 */
 	private buildTooltip(
 		state: ConnectionState,
@@ -129,6 +186,7 @@ export class MCPStatusItem implements vscode.Disposable {
 		attempt?: number,
 		maxAttempts?: number,
 		reason?: string,
+		mcpProcessRunning?: boolean,
 	): vscode.MarkdownString {
 		const md = new vscode.MarkdownString();
 		md.isTrusted = true;
@@ -142,13 +200,23 @@ export class MCPStatusItem implements vscode.Disposable {
 				md.appendMarkdown(`**MCP Status:** 🔄 Reconnecting (${attempt ?? 1}/${maxAttempts ?? 5})\n\n`);
 				break;
 			case "disconnected":
-				md.appendMarkdown("**MCP Status:** ❌ Disconnected\n\n");
-				if (reason) {
-					md.appendMarkdown(`*${reason}*\n\n`);
+				// Show different message if MCP server is running but daemon is not
+				if (mcpProcessRunning) {
+					md.appendMarkdown("**MCP Status:** 🟡 MCP Tools Active\n\n");
+					md.appendMarkdown("*MCP server is running, but CLI daemon is not connected.*\n");
+					md.appendMarkdown("*Your AI tools work fine. Some advanced features (proactive protection) require the daemon.*\n\n");
+				} else {
+					md.appendMarkdown("**MCP Status:** ❌ Disconnected\n\n");
+					if (reason) {
+						md.appendMarkdown(`*${reason}*\n\n`);
+					}
 				}
 				break;
 			case "cli_missing":
 				md.appendMarkdown("**MCP Status:** ⚠️ CLI Not Installed\n\n");
+				if (mcpProcessRunning) {
+					md.appendMarkdown("*MCP server is running. Install CLI for enhanced features.*\n\n");
+				}
 				break;
 		}
 
@@ -180,6 +248,13 @@ export class MCPStatusItem implements vscode.Disposable {
 			if (workspaceConfig) {
 				md.appendMarkdown(`**Workspace Config:** \`${workspaceConfig.type}\`\n\n`);
 			}
+		}
+
+		// Show MCP server process status
+		if (mcpProcessRunning !== undefined) {
+			const processIcon = mcpProcessRunning ? "✅" : "⚪";
+			const processText = mcpProcessRunning ? "Running" : "Not detected";
+			md.appendMarkdown(`**MCP Server Process:** ${processIcon} ${processText}\n\n`);
 		}
 
 		// Action hint

@@ -44,6 +44,7 @@ import { initializeActivationFunnel } from "./telemetry/ActivationFunnelIntegrat
 import { initializeCoreEventTracker } from "./telemetry/core-event-tracker";
 import { SnapBackCodeLensProvider } from "./ui/SnapBackCodeLensProvider";
 import { SnapshotRestoreUI } from "./ui/SnapshotRestoreUI";
+import { withTimeout } from "./utils/degraded-state";
 import { installGlobalErrorHandlers } from "./utils/errorHandlers";
 import { logger } from "./utils/logger";
 import { installProcessExitGuard } from "./utils/processGuard";
@@ -111,7 +112,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	let workspaceRoot = workspaceFolderResolver.getAllWorkspaceFolders()[0].uri.fsPath;
 	const projectRoot = await findProjectRoot(workspaceRoot);
-	if (projectRoot) workspaceRoot = projectRoot;
+	if (projectRoot) {
+		workspaceRoot = projectRoot;
+	}
 
 	const config = vscode.workspace.getConfiguration("snapback");
 	RulesManager.getInstance(context).setOfflineMode(config.get<boolean>("offlineMode.enabled", false));
@@ -138,10 +141,27 @@ export async function activate(context: vscode.ExtensionContext) {
 				.catch((err) => logger.warn("LSP failed", { err }));
 		});
 
-		// Execute Phases with Unified Context
-		await initializePhase2Storage(appContext);
-		await initializePhase3Managers(appContext);
-		await initializePhase4Providers(appContext);
+		// Execute Phases with Unified Context (with timeout protection)
+		// P2 Fix: Prevent indefinite hangs during activation
+		const PHASE_TIMEOUT = 5000; // 5 seconds per phase
+
+		await withTimeout(initializePhase2Storage(appContext), {
+			timeout: PHASE_TIMEOUT,
+			component: "storage",
+			reason: "Phase 2 (Storage) initialization timed out",
+		});
+
+		await withTimeout(initializePhase3Managers(appContext), {
+			timeout: PHASE_TIMEOUT,
+			component: "snapshot_service",
+			reason: "Phase 3 (Managers) initialization timed out",
+		});
+
+		await withTimeout(initializePhase4Providers(appContext), {
+			timeout: PHASE_TIMEOUT,
+			component: "file_watcher",
+			reason: "Phase 4 (Providers) initialization timed out",
+		});
 
 		// Record services in host for global accessors
 		host.storage = appContext.storage!;
@@ -167,7 +187,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		host.anonymousIdManager = new AnonymousIdManager(context.globalState);
 		host.userIdentityService = new UserIdentityService(host.anonymousIdManager, authService, telemetryProxy);
 		telemetryProxy.setIdentityProvider(
-			() => host!.userIdentityService?.getCurrentId() ?? Promise.resolve("unknown"),
+			() => host?.userIdentityService?.getCurrentId() ?? Promise.resolve("unknown"),
 		);
 
 		host.statusBarManager = appContext.statusBarManager!;
@@ -215,11 +235,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			...appContext,
 			refreshViews,
 			updateFileProtectionContext: async (uri: vscode.Uri) => {
-				const isProtected = appContext.protectedFileRegistry!.isProtected(uri.fsPath);
+				const isProtected = appContext.protectedFileRegistry?.isProtected(uri.fsPath);
 				await vscode.commands.executeCommand("setContext", "snapback.fileProtected", isProtected);
 			},
 			updateHasProtectedFilesContext: async () => {
-				const protectedFiles = await appContext.protectedFileRegistry!.list();
+				const protectedFiles = await appContext.protectedFileRegistry?.list();
 				await vscode.commands.executeCommand(
 					"setContext",
 					"snapback.hasProtectedFiles",
@@ -227,7 +247,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				);
 			},
 			getProtectionStateSummary: async () => {
-				const protectedFiles = await appContext.protectedFileRegistry!.list();
+				const protectedFiles = await appContext.protectedFileRegistry?.list();
 				return { state: {}, message: `SnapBack: ${protectedFiles.length} protected files` };
 			},
 			snapshotRestoreUI: new SnapshotRestoreUI(
