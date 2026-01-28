@@ -57,3 +57,56 @@ package.json.lint-scripts
 docs/internal/
 docs/development/bug-fixes-history.md
 docs/documentation-update-summary.md
+
+# === Professional extension standards (like GitLens, Prettier) ===
+# Source code - keep in private repo, dist/ only in public
+src/
+
+# Test directories - too many files for public repo
+test/
+!test/README.md
+
+# Coverage reports
+coverage/
+*.lcov
+.nyc_output/
+
+# Build caches
+.turbo/
+.cache/
+.parcel-cache/
+
+# Development summaries and strategy docs (internal use only)
+*_SUMMARY.md
+*_STRATEGY.md
+*_CHECKLIST.md
+*_GUIDE.md
+*_REPORT.md
+*_ROADMAP.md
+*_OUTLINE.md
+*_ANALYSIS.md
+*_COMPLETION.md
+*_RESEARCH.md
+*_RESULTS.md
+*_TESTING.md
+EXECUTION_*.md
+IMPLEMENTATION_*.md
+PHASE_*.md
+
+# Webview build artifacts
+webview/dist/
+webview/node_modules/
+webview/.turbo/
+
+# TypeScript config for different environments (keep main ones)
+tsconfig.*.json
+!tsconfig.json
+!tsconfig.build.json
+
+# Keep only essential docs visible
+!README.md
+!CHANGELOG.md
+!CONTRIBUTING.md
+!LICENSE
+!SECURITY.md
+!CODE_OF_CONDUCT.md
