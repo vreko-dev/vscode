@@ -28,3 +28,32 @@ package.json.tmp
 *.tmp
 *.orig
 test-workspace/.vscode/settings.json
+
+# === Prevent internal file leaks to public repos ===
+# Internal documentation
+CLAUDE.md
+claudedocs/
+dashboard_*.md
+oauth-flow.md
+*-flow.md
+
+# Debug artifacts
+test.txt
+validation-*.txt
+untitled:*
+mock-*.csv
+*.backup
+*.bak
+*.orig
+
+# Test workspaces
+test-workspace/
+spike/
+
+# Build artifacts
+package.json.lint-scripts
+
+# Internal docs
+docs/internal/
+docs/development/bug-fixes-history.md
+docs/documentation-update-summary.md
