@@ -10,6 +10,51 @@ export interface SnapBackRC {
 	policies?: SnapBackPolicies;
 	hooks?: SnapBackHooks;
 	templates?: SnapshotTemplate[];
+	integrations?: IntegrationConfig;
+}
+
+export interface IntegrationConfig {
+	enabled?: boolean;
+	github?: GitHubIntegrationConfig;
+	context7?: Context7IntegrationConfig;
+	sentry?: SentryIntegrationConfig;
+	cache?: IntegrationCacheConfig;
+	circuitBreaker?: CircuitBreakerConfig;
+}
+
+export interface GitHubIntegrationConfig {
+	enabled?: boolean;
+	token?: string;
+	owner?: string;
+	repo?: string;
+	timeoutMs?: number;
+}
+
+export interface Context7IntegrationConfig {
+	enabled?: boolean;
+	apiKey?: string;
+	timeoutMs?: number;
+}
+
+export interface SentryIntegrationConfig {
+	enabled?: boolean;
+	authToken?: string;
+	organization?: string;
+	project?: string;
+	timeoutMs?: number;
+}
+
+export interface IntegrationCacheConfig {
+	enabled?: boolean;
+	githubTtlMs?: number;
+	context7TtlMs?: number;
+	sentryTtlMs?: number;
+	maxEntries?: number;
+}
+
+export interface CircuitBreakerConfig {
+	failureThreshold?: number;
+	recoveryTimeMs?: number;
 }
 
 export interface ProtectionRule {

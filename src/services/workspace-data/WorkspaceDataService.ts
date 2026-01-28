@@ -20,7 +20,7 @@ import * as vscode from "vscode";
 import { getHeatIntegration } from "../../heat";
 import type { HeatTracker } from "../../heat/HeatTracker";
 import { logger } from "../../utils/logger";
-import { getDaemonBridge } from "../DaemonBridge";
+import { getCurrentWorkspaceId, getDaemonBridge } from "../DaemonBridge";
 import { ActivityService } from "./ActivityService";
 import { LearningsService } from "./LearningsService";
 import { SettingsService } from "./SettingsService";
@@ -266,7 +266,8 @@ export class WorkspaceDataService implements vscode.Disposable {
 	 * Get MCP connection status from DaemonBridge
 	 */
 	private getMCPConnection(): MCPConnectionInfo {
-		const bridge = getDaemonBridge();
+		const workspaceId = getCurrentWorkspaceId() ?? this.workspaceId;
+		const bridge = getDaemonBridge(workspaceId);
 		const state = bridge.getState();
 		const daemonVersion = bridge.getDaemonVersion();
 

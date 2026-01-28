@@ -115,6 +115,7 @@ const mockDaemonBridge = {
 
 vi.mock("../../../src/services/DaemonBridge", () => ({
 	getDaemonBridge: vi.fn(() => mockDaemonBridge),
+	getCurrentWorkspaceId: vi.fn(() => "test-workspace"),
 }));
 
 // Mock cli-status
@@ -663,8 +664,8 @@ describe("WorkspaceDataService", () => {
 			const vitals = createMockVitals();
 			service.updateVitals(vitals as any);
 
-			// Allow async event propagation
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			// Allow async event propagation (debounce is 500ms)
+			await new Promise((resolve) => setTimeout(resolve, 600));
 
 			expect(eventHandler).toHaveBeenCalled();
 		});
@@ -716,7 +717,8 @@ describe("WorkspaceDataService", () => {
 			const vitals = createMockVitals();
 			service.updateVitals(vitals as any);
 
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			// Allow async event propagation (debounce is 500ms)
+			await new Promise((resolve) => setTimeout(resolve, 600));
 
 			expect(events.length).toBeGreaterThan(0);
 			expect(events[0].type).toBeDefined();

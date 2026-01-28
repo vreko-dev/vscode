@@ -17,7 +17,7 @@ import { getHeatIntegration } from "../heat";
 import type { HeatTracker } from "../heat/HeatTracker";
 import { getCliStatusSync } from "../utils/cli-status";
 import { logger } from "../utils/logger";
-import { getDaemonBridge } from "./DaemonBridge";
+import { type ConnectionState, getCurrentWorkspaceId, getDaemonBridge } from "./DaemonBridge";
 
 // =============================================================================
 // CONSTANTS
@@ -182,7 +182,7 @@ export interface WorkspacePattern {
  * MCP connection status for dashboard
  */
 export interface MCPConnectionInfo {
-	state: "connected" | "disconnected" | "reconnecting" | "cli_missing";
+	state: ConnectionState;
 	daemonVersion?: string;
 	attempt?: number;
 	maxAttempts?: number;
@@ -978,7 +978,8 @@ export class WorkspaceDataService implements vscode.Disposable {
 	 * Get MCP connection status from DaemonBridge
 	 */
 	private getMCPConnection(): MCPConnectionInfo {
-		const bridge = getDaemonBridge();
+		const workspaceId = getCurrentWorkspaceId() ?? this.workspaceId;
+		const bridge = getDaemonBridge(workspaceId);
 		const state = bridge.getState();
 		const daemonVersion = bridge.getDaemonVersion();
 

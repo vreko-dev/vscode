@@ -7,6 +7,8 @@
  * @packageDocumentation
  */
 
+import type { ConnectionState } from "../DaemonBridge";
+
 // =============================================================================
 // CONSTANTS (shared across services)
 // =============================================================================
@@ -199,7 +201,7 @@ export interface WorkspacePattern {
  * MCP connection status for dashboard
  */
 export interface MCPConnectionInfo {
-	state: "connected" | "disconnected" | "reconnecting" | "cli_missing";
+	state: ConnectionState;
 	daemonVersion?: string;
 	attempt?: number;
 	maxAttempts?: number;

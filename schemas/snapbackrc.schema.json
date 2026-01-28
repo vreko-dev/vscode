@@ -137,6 +137,151 @@
 				},
 				"additionalProperties": false
 			}
+		},
+		"integrations": {
+			"type": "object",
+			"description": "🔌 External MCP integrations for enriched context (GitHub PRs, Sentry errors, Context7 docs)",
+			"properties": {
+				"enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable/disable all integrations globally"
+				},
+				"github": {
+					"type": "object",
+					"description": "📊 GitHub integration for PR context, change frequency, and file blame",
+					"properties": {
+						"enabled": {
+							"type": "boolean",
+							"default": false,
+							"description": "Enable GitHub MCP integration"
+						},
+						"token": {
+							"type": "string",
+							"description": "GitHub personal access token (classic or fine-grained)"
+						},
+						"owner": {
+							"type": "string",
+							"description": "Repository owner/organization"
+						},
+						"repo": {
+							"type": "string",
+							"description": "Repository name"
+						},
+						"timeoutMs": {
+							"type": "number",
+							"default": 5000,
+							"minimum": 1000,
+							"description": "Request timeout in milliseconds"
+						}
+					},
+					"additionalProperties": false
+				},
+				"context7": {
+					"type": "object",
+					"description": "📚 Context7 integration for API documentation validation and deprecation detection",
+					"properties": {
+						"enabled": {
+							"type": "boolean",
+							"default": false,
+							"description": "Enable Context7 MCP integration"
+						},
+						"apiKey": {
+							"type": "string",
+							"description": "Context7 API key (get at https://context7.dev)"
+						},
+						"timeoutMs": {
+							"type": "number",
+							"default": 5000,
+							"minimum": 1000,
+							"description": "Request timeout in milliseconds"
+						}
+					},
+					"additionalProperties": false
+				},
+				"sentry": {
+					"type": "object",
+					"description": "🐛 Sentry integration for production error context on modified files",
+					"properties": {
+						"enabled": {
+							"type": "boolean",
+							"default": false,
+							"description": "Enable Sentry MCP integration"
+						},
+						"authToken": {
+							"type": "string",
+							"description": "Sentry auth token with project:read scope"
+						},
+						"organization": {
+							"type": "string",
+							"description": "Sentry organization slug"
+						},
+						"project": {
+							"type": "string",
+							"description": "Sentry project slug"
+						},
+						"timeoutMs": {
+							"type": "number",
+							"default": 5000,
+							"minimum": 1000,
+							"description": "Request timeout in milliseconds"
+						}
+					},
+					"additionalProperties": false
+				},
+				"cache": {
+					"type": "object",
+					"description": "Cache configuration for integration responses",
+					"properties": {
+						"enabled": {
+							"type": "boolean",
+							"default": true,
+							"description": "Enable response caching"
+						},
+						"githubTtlMs": {
+							"type": "number",
+							"default": 300000,
+							"description": "GitHub cache TTL (5 minutes)"
+						},
+						"context7TtlMs": {
+							"type": "number",
+							"default": 1800000,
+							"description": "Context7 cache TTL (30 minutes)"
+						},
+						"sentryTtlMs": {
+							"type": "number",
+							"default": 300000,
+							"description": "Sentry cache TTL (5 minutes)"
+						},
+						"maxEntries": {
+							"type": "number",
+							"default": 100,
+							"minimum": 10,
+							"description": "Maximum cache entries"
+						}
+					},
+					"additionalProperties": false
+				},
+				"circuitBreaker": {
+					"type": "object",
+					"description": "Circuit breaker for failing integrations",
+					"properties": {
+						"failureThreshold": {
+							"type": "number",
+							"default": 3,
+							"minimum": 1,
+							"description": "Failures before circuit opens"
+						},
+						"recoveryTimeMs": {
+							"type": "number",
+							"default": 60000,
+							"description": "Recovery time after circuit opens (1 minute)"
+						}
+					},
+					"additionalProperties": false
+				}
+			},
+			"additionalProperties": false
 		}
 	},
 	"additionalProperties": false

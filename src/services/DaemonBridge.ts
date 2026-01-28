@@ -76,6 +76,15 @@ const DAEMON_START_TIMEOUT_MS = 10000;
 /** Delay before considering daemon started */
 const DAEMON_START_WAIT_MS = 500;
 
+/** Health check interval in ms - ping daemon every 30s to verify responsiveness */
+const HEALTH_CHECK_INTERVAL_MS = 30000;
+
+/** Health check timeout in ms - shorter than request timeout for faster failure detection */
+const HEALTH_CHECK_TIMEOUT_MS = 5000;
+
+/** Maximum time to stay in degraded state before forcing reconnection (3 minutes) */
+const MAX_DEGRADED_TIME_MS = 180000;
+
 /** Client identifier for multi-client debugging */
 const CLIENT_ID = `vscode-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
@@ -235,7 +244,8 @@ export type ConnectionState =
 	| "connected" // Socket connected, daemon responding
 	| "disconnected" // Not connected, not trying
 	| "reconnecting" // Actively trying to reconnect
-	| "cli_missing"; // CLI not installed (circuit breaker)
+	| "cli_missing" // CLI not installed (circuit breaker)
+	| "degraded"; // Socket connected but daemon not responding to health checks
 
 /**
  * State change event with all relevant details.
@@ -248,6 +258,10 @@ export interface StateChangeEvent {
 	/** Reconnection details (when state === "reconnecting") */
 	attempt?: number;
 	maxAttempts?: number;
+
+	/** Health check details (when state === "degraded") */
+	healthy?: boolean;
+	lastHealthCheck?: Date;
 	nextRetryMs?: number;
 
 	/** Error details (when transitioning to disconnected/cli_missing) */
@@ -283,6 +297,15 @@ export class DaemonBridge extends vscode.Disposable {
 	private reconnectAttempts = 0;
 	private maxReconnectAttempts = 5;
 	private subscriptions: Set<string> = new Set();
+
+	// Health monitoring
+	private healthCheckTimer: NodeJS.Timeout | null = null;
+	private lastHealthCheckTime: Date | null = null;
+	private lastHealthCheckSuccess = true;
+	private consecutiveHealthFailures = 0;
+	private readonly maxHealthFailures = 3; // Degrade after 3 failed health checks
+	private degradedSince: Date | null = null; // Track when degradation started
+	private degradedReconnectTimer: NodeJS.Timeout | null = null; // Timer for forced reconnect
 
 	// Event emitters
 	private _onRiskDetected = new vscode.EventEmitter<RiskDetectedEvent>();
@@ -322,6 +345,27 @@ export class DaemonBridge extends vscode.Disposable {
 	 */
 	getDaemonVersion(): string | undefined {
 		return this._daemonVersion;
+	}
+
+	/**
+	 * Check if daemon is responding to health checks.
+	 * Returns cached health status to avoid blocking operations.
+	 *
+	 * @returns true if last health check succeeded, false if degraded
+	 */
+	isHealthy(): boolean {
+		// If no health checks run yet, assume healthy if connected
+		if (this.lastHealthCheckTime === null) {
+			return this._state === "connected";
+		}
+		return this.lastHealthCheckSuccess;
+	}
+
+	/**
+	 * Get last health check timestamp.
+	 */
+	getLastHealthCheckTime(): Date | null {
+		return this.lastHealthCheckTime;
 	}
 
 	/**
@@ -709,6 +753,9 @@ export class DaemonBridge extends vscode.Disposable {
 
 				// Transition to connected state with version info
 				this.transitionTo("connected", { daemonVersion: pingResult.version });
+
+				// Start periodic health checks to verify continued responsiveness
+				this.startHealthCheck();
 			} catch (pingError) {
 				// Connection succeeded but ping failed - still transition to connected
 				logger.warn(`${LOG_PREFIX} Daemon connection succeeded but health check failed`, {
@@ -716,6 +763,10 @@ export class DaemonBridge extends vscode.Disposable {
 					error: pingError instanceof Error ? pingError.message : String(pingError),
 				});
 				this.transitionTo("connected");
+
+				// Start health checks even if initial ping failed
+				// Health checks will detect if daemon is unresponsive
+				this.startHealthCheck();
 			}
 
 			return true;
@@ -740,6 +791,8 @@ export class DaemonBridge extends vscode.Disposable {
 	 */
 	disconnect(): void {
 		this.cancelReconnect();
+		this.stopHealthCheck(); // Stop health checks
+		this.cancelDegradedReconnect(); // Cancel degraded reconnection timer
 
 		if (this.socket) {
 			this.socket.destroy();
@@ -752,6 +805,11 @@ export class DaemonBridge extends vscode.Disposable {
 			pending.reject(new Error("Disconnected"));
 			this.pendingRequests.delete(id);
 		}
+
+		// Reset health check state
+		this.lastHealthCheckTime = null;
+		this.lastHealthCheckSuccess = true;
+		this.consecutiveHealthFailures = 0;
 
 		// Transition to disconnected state
 		this.transitionTo("disconnected", { reason: "Manual disconnect" });
@@ -806,6 +864,7 @@ export class DaemonBridge extends vscode.Disposable {
 				timestamp: new Date().toISOString(),
 			});
 			this.socket = null;
+			this.stopHealthCheck(); // Stop health checks on disconnect
 			this.scheduleReconnect();
 		});
 
@@ -1086,6 +1145,165 @@ export class DaemonBridge extends vscode.Disposable {
 	// =========================================================================
 
 	// =========================================================================
+	// HEALTH MONITORING
+	// =========================================================================
+
+	/**
+	 * Start periodic health checks to verify daemon responsiveness.
+	 * Pings daemon every 30 seconds and transitions to degraded state if checks fail.
+	 *
+	 * This prevents the false-positive "connected" status when socket is open
+	 * but daemon is frozen/crashed.
+	 */
+	private startHealthCheck(): void {
+		this.stopHealthCheck(); // Clear any existing timer
+
+		logger.debug(`${LOG_PREFIX} Starting health checks`, {
+			clientId: CLIENT_ID,
+			intervalMs: HEALTH_CHECK_INTERVAL_MS,
+		});
+
+		this.healthCheckTimer = setInterval(async () => {
+			// Only health check when in connected or degraded state
+			if (this._state !== "connected" && this._state !== "degraded") {
+				return;
+			}
+
+			const checkStartTime = Date.now();
+			try {
+				// Use shorter timeout for health checks
+				const timeoutPromise = new Promise<never>((_, reject) => {
+					setTimeout(() => reject(new Error("Health check timeout")), HEALTH_CHECK_TIMEOUT_MS);
+				});
+
+				const pingPromise = this.ping();
+				const pingResult = await Promise.race([pingPromise, timeoutPromise]);
+
+				const latency = Date.now() - checkStartTime;
+				this.lastHealthCheckTime = new Date();
+				this.lastHealthCheckSuccess = true;
+				this.consecutiveHealthFailures = 0;
+
+				logger.debug(`${LOG_PREFIX} Health check passed`, {
+					clientId: CLIENT_ID,
+					latencyMs: latency,
+					daemonVersion: pingResult.version,
+					daemonUptime: pingResult.uptime,
+				});
+
+				// If we were degraded, transition back to connected
+				if (this._state === "degraded") {
+					logger.info(`${LOG_PREFIX} Daemon recovered from degraded state`, {
+						clientId: CLIENT_ID,
+					});
+					// Cancel degraded reconnect timer since we recovered
+					this.cancelDegradedReconnect();
+					this.transitionTo("connected", {
+						daemonVersion: pingResult.version,
+					});
+				}
+			} catch (error) {
+				const latency = Date.now() - checkStartTime;
+				this.lastHealthCheckTime = new Date();
+				this.lastHealthCheckSuccess = false;
+				this.consecutiveHealthFailures++;
+
+				logger.warn(`${LOG_PREFIX} Health check failed`, {
+					clientId: CLIENT_ID,
+					error: error instanceof Error ? error.message : String(error),
+					latencyMs: latency,
+					consecutiveFailures: this.consecutiveHealthFailures,
+					maxFailures: this.maxHealthFailures,
+				});
+
+				// Transition to degraded after multiple failures
+				if (this.consecutiveHealthFailures >= this.maxHealthFailures && this._state === "connected") {
+					logger.warn(`${LOG_PREFIX} Daemon not responding, transitioning to degraded state`, {
+						clientId: CLIENT_ID,
+						failures: this.consecutiveHealthFailures,
+					});
+
+					// Mark when degradation started
+					this.degradedSince = new Date();
+
+					// Schedule forced reconnection after MAX_DEGRADED_TIME_MS
+					this.scheduleDegradedReconnect();
+
+					this.transitionTo("degraded", {
+						reason: "Daemon not responding to health checks",
+						healthy: false,
+						lastHealthCheck: this.lastHealthCheckTime,
+					});
+				}
+			}
+		}, HEALTH_CHECK_INTERVAL_MS);
+	}
+
+	/**
+	 * Stop periodic health checks.
+	 * Called on disconnect or dispose.
+	 */
+	private stopHealthCheck(): void {
+		if (this.healthCheckTimer) {
+			logger.debug(`${LOG_PREFIX} Stopping health checks`, {
+				clientId: CLIENT_ID,
+			});
+			clearInterval(this.healthCheckTimer);
+			this.healthCheckTimer = null;
+		}
+	}
+
+	/**
+	 * Schedule forced reconnection after prolonged degraded state.
+	 * This gives the daemon time to recover (3 minutes) before forcing a fresh connection.
+	 */
+	private scheduleDegradedReconnect(): void {
+		// Clear any existing timer
+		this.cancelDegradedReconnect();
+
+		logger.info(`${LOG_PREFIX} Scheduling forced reconnection after degraded timeout`, {
+			clientId: CLIENT_ID,
+			timeoutMs: MAX_DEGRADED_TIME_MS,
+			reconnectAt: new Date(Date.now() + MAX_DEGRADED_TIME_MS).toISOString(),
+		});
+
+		this.degradedReconnectTimer = setTimeout(() => {
+			logger.warn(`${LOG_PREFIX} Daemon degraded for too long, forcing reconnection`, {
+				clientId: CLIENT_ID,
+				degradedDurationMs: this.degradedSince ? Date.now() - this.degradedSince.getTime() : 0,
+			});
+
+			// Force fresh connection by closing socket and reconnecting
+			if (this.socket) {
+				this.socket.destroy();
+				this.socket = null;
+			}
+
+			// Reset degraded state
+			this.degradedSince = null;
+			this.degradedReconnectTimer = null;
+
+			// This will trigger reconnection logic
+			this.scheduleReconnect();
+		}, MAX_DEGRADED_TIME_MS);
+	}
+
+	/**
+	 * Cancel scheduled degraded reconnection.
+	 * Called when daemon recovers or connection is manually closed.
+	 */
+	private cancelDegradedReconnect(): void {
+		if (this.degradedReconnectTimer) {
+			logger.debug(`${LOG_PREFIX} Canceling degraded reconnection timer`, {
+				clientId: CLIENT_ID,
+			});
+			clearTimeout(this.degradedReconnectTimer);
+			this.degradedReconnectTimer = null;
+			this.degradedSince = null;
+		}
+	}
+
+	// =========================================================================
 	// PATH CONVERSION UTILITIES (P0 Fix: Absolute paths not allowed)
 	// =========================================================================
 
@@ -1284,7 +1502,8 @@ export class DaemonBridge extends vscode.Disposable {
 	 *
 	 * @example
 	 * ```typescript
-	 * const bridge = getDaemonBridge();
+	 * const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '/workspace';
+	 * const bridge = getDaemonBridge(workspaceId);
 	 * const result = await bridge.createSnapshot(
 	 *   '/workspace/path',
 	 *   ['src/file.ts'],
@@ -1337,7 +1556,8 @@ export class DaemonBridge extends vscode.Disposable {
 	 *
 	 * @example
 	 * ```typescript
-	 * const bridge = getDaemonBridge();
+	 * const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '/workspace';
+	 * const bridge = getDaemonBridge(workspaceId);
 	 * const snapshots = await bridge.listSnapshots('/workspace/path', { limit: 10 });
 	 * ```
 	 */
@@ -1363,7 +1583,8 @@ export class DaemonBridge extends vscode.Disposable {
 	 *
 	 * @example
 	 * ```typescript
-	 * const bridge = getDaemonBridge();
+	 * const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '/workspace';
+	 * const bridge = getDaemonBridge(workspaceId);
 	 * await bridge.deleteSnapshot('/workspace/path', 'snapshot-123');
 	 * ```
 	 */
@@ -1384,7 +1605,8 @@ export class DaemonBridge extends vscode.Disposable {
 	 *
 	 * @example
 	 * ```typescript
-	 * const bridge = getDaemonBridge();
+	 * const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '/workspace';
+	 * const bridge = getDaemonBridge(workspaceId);
 	 * await bridge.restoreSnapshot('/workspace/path', 'snapshot-123', { dryRun: true });
 	 * ```
 	 */
@@ -1418,7 +1640,8 @@ export class DaemonBridge extends vscode.Disposable {
 	 *
 	 * @example
 	 * ```typescript
-	 * const bridge = getDaemonBridge();
+	 * const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '/workspace';
+	 * const bridge = getDaemonBridge(workspaceId);
 	 * const result = await bridge.bulkDeleteSnapshots('/workspace/path', {
 	 *   olderThanDays: 30,
 	 *   keepProtected: true
@@ -1449,7 +1672,8 @@ export class DaemonBridge extends vscode.Disposable {
 	 *
 	 * @example
 	 * ```typescript
-	 * const bridge = getDaemonBridge();
+	 * const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '/workspace';
+	 * const bridge = getDaemonBridge(workspaceId);
 	 * await bridge.protectSnapshot('/workspace/path', 'snapshot-123');
 	 * ```
 	 */
@@ -1473,7 +1697,8 @@ export class DaemonBridge extends vscode.Disposable {
 	 *
 	 * @example
 	 * ```typescript
-	 * const bridge = getDaemonBridge();
+	 * const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '/workspace';
+	 * const bridge = getDaemonBridge(workspaceId);
 	 * await bridge.unprotectSnapshot('/workspace/path', 'snapshot-123');
 	 * ```
 	 */
@@ -1498,7 +1723,8 @@ export class DaemonBridge extends vscode.Disposable {
 	 *
 	 * @example
 	 * ```typescript
-	 * const bridge = getDaemonBridge();
+	 * const workspaceId = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '/workspace';
+	 * const bridge = getDaemonBridge(workspaceId);
 	 * await bridge.renameSnapshot('/workspace/path', 'snapshot-123', 'New Name');
 	 * ```
 	 */
@@ -1953,27 +2179,96 @@ export class DaemonBridge extends vscode.Disposable {
 }
 
 // =============================================================================
-// SINGLETON
+// WORKSPACE-KEYED REGISTRY (Multi-Workspace Isolation)
 // =============================================================================
 
-let bridgeInstance: DaemonBridge | null = null;
+/**
+ * Registry of DaemonBridge instances keyed by workspace ID.
+ * Each workspace folder gets its own daemon connection for proper isolation.
+ *
+ * Per root cause analysis: Singleton pattern broke multi-workspace isolation.
+ * Daemon supports workspace contexts, but extension used global singleton.
+ */
+const bridgeRegistry = new Map<string, DaemonBridge>();
 
 /**
- * Get the singleton DaemonBridge instance
+ * Get or create a DaemonBridge instance for the specified workspace.
+ *
+ * @param workspaceId - Workspace folder URI string (e.g., "/path/to/workspace")
+ * @returns DaemonBridge instance for this workspace
+ *
+ * @example
+ * const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+ * const bridge = getDaemonBridge(workspaceRoot);
  */
-export function getDaemonBridge(): DaemonBridge {
-	if (!bridgeInstance) {
-		bridgeInstance = new DaemonBridge();
+export function getDaemonBridge(workspaceId: string): DaemonBridge {
+	let bridge = bridgeRegistry.get(workspaceId);
+
+	if (!bridge) {
+		bridge = new DaemonBridge();
+		bridgeRegistry.set(workspaceId, bridge);
+		logger.debug("DaemonBridge created for workspace", { workspaceId });
 	}
-	return bridgeInstance;
+
+	return bridge;
 }
 
 /**
- * Dispose the DaemonBridge
+ * Dispose a specific workspace's DaemonBridge.
+ * Call this when a workspace folder is removed.
+ *
+ * @param workspaceId - Workspace folder URI string
  */
-export function disposeDaemonBridge(): void {
-	if (bridgeInstance) {
-		bridgeInstance.dispose();
-		bridgeInstance = null;
+export function disposeDaemonBridge(workspaceId: string): void {
+	const bridge = bridgeRegistry.get(workspaceId);
+	if (bridge) {
+		bridge.dispose();
+		bridgeRegistry.delete(workspaceId);
+		logger.debug("DaemonBridge disposed for workspace", { workspaceId });
 	}
+}
+
+/**
+ * Dispose all DaemonBridge instances.
+ * Call this during extension deactivation.
+ */
+export function disposeAllDaemonBridges(): void {
+	for (const [workspaceId, bridge] of bridgeRegistry.entries()) {
+		bridge.dispose();
+		logger.debug("DaemonBridge disposed (shutdown)", { workspaceId });
+	}
+	bridgeRegistry.clear();
+}
+
+/**
+ * Get all active workspace IDs with daemon bridges.
+ * Useful for debugging and testing.
+ */
+export function getActiveWorkspaces(): string[] {
+	return Array.from(bridgeRegistry.keys());
+}
+
+/**
+ * Helper: Get workspace ID for current context.
+ * Prefers active editor's workspace, falls back to first workspace folder.
+ *
+ * @returns Workspace ID (fsPath) or null if no workspace open
+ */
+export function getCurrentWorkspaceId(): string | null {
+	// Prefer active editor's workspace
+	const activeEditor = vscode.window.activeTextEditor;
+	if (activeEditor) {
+		const workspaceFolder = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri);
+		if (workspaceFolder) {
+			return workspaceFolder.uri.fsPath;
+		}
+	}
+
+	// Fallback to first workspace folder
+	const folders = vscode.workspace.workspaceFolders;
+	if (folders && folders.length > 0) {
+		return folders[0].uri.fsPath;
+	}
+
+	return null;
 }
