@@ -9,7 +9,7 @@
 			"cache": true
 		},
 		"type-check": {
-			"dependsOn": ["^build:types"],
+			"dependsOn": [],
 			"inputs": ["$TURBO_DEFAULT$", "**/*.ts", "**/*.tsx", "**/tsconfig.json"],
 			"cache": true
 		}
