@@ -150,6 +150,8 @@ export class MCPClient {
 	private pushCount = 0;
 	private failureCount = 0;
 	private lastSuccessfulEndpoint: "remote" | "local" | null = null;
+	// biome-ignore lint/correctness/noUnusedPrivateClassMembers: Tracked for telemetry/debugging
+	private lastPushTime: number | null = null;
 
 	// Circuit breaker
 	private circuitState: CircuitState = "closed";

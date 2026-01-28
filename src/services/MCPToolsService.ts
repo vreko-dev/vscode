@@ -17,7 +17,7 @@
 import type { SessionCoordinator } from "../snapshot/SessionCoordinator";
 import type { IStorageManager } from "../storage/types";
 import { logger } from "../utils/logger";
-import { getDaemonBridge } from "./DaemonBridge";
+import { getCurrentWorkspaceId, getDaemonBridge } from "./DaemonBridge";
 import type { ProtectedFileRegistry } from "./protectedFileRegistry";
 
 // =============================================================================
@@ -221,7 +221,8 @@ export class MCPToolsService {
 		this._taskStartTime = Date.now();
 
 		// Sync session start with daemon (best-effort, non-blocking)
-		const bridge = getDaemonBridge();
+		const workspaceId = getCurrentWorkspaceId() ?? this._workspaceRoot;
+		const bridge = getDaemonBridge(workspaceId);
 		if (bridge.isConnected()) {
 			try {
 				await bridge.beginSession(
@@ -378,7 +379,8 @@ export class MCPToolsService {
 		}
 
 		// Sync session end with daemon (best-effort, non-blocking)
-		const bridge = getDaemonBridge();
+		const endWorkspaceId = getCurrentWorkspaceId() ?? this._workspaceRoot;
+		const bridge = getDaemonBridge(endWorkspaceId);
 		if (bridge.isConnected()) {
 			try {
 				await bridge.endSession(
@@ -425,7 +427,8 @@ export class MCPToolsService {
 		});
 
 		// Sync learning with daemon (best-effort, non-blocking)
-		const bridge = getDaemonBridge();
+		const learnWorkspaceId = getCurrentWorkspaceId() ?? this._workspaceRoot;
+		const bridge = getDaemonBridge(learnWorkspaceId);
 		if (bridge.isConnected()) {
 			try {
 				await bridge.addLearning(this._workspaceRoot, {

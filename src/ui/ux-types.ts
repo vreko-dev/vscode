@@ -58,6 +58,24 @@ export interface StatusBarStats {
 	};
 }
 
+/**
+ * Integration health status for single integration
+ */
+export interface IntegrationHealthItem {
+	enabled: boolean;
+	connected: boolean;
+	status: string; // Human-readable status: "1 PR affecting files", "2 errors detected", "✓ APIs up-to-date", etc.
+}
+
+/**
+ * Integration health display data for status bar tooltip
+ */
+export interface IntegrationHealthDisplay {
+	github: IntegrationHealthItem;
+	sentry: IntegrationHealthItem;
+	context7: IntegrationHealthItem;
+}
+
 // =============================================================================
 // ACTIVITY SECTION TYPES
 // =============================================================================

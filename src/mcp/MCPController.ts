@@ -17,7 +17,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { detectAIClients, detectWorkspaceConfig } from "@snapback/mcp-config";
 import * as vscode from "vscode";
-import { type DaemonBridge, getDaemonBridge } from "../services/DaemonBridge";
+import { type DaemonBridge, getCurrentWorkspaceId, getDaemonBridge } from "../services/DaemonBridge";
 import type { RemoteMCPClient } from "../services/RemoteMCPClient";
 import { logger } from "../utils/logger";
 
@@ -172,6 +172,10 @@ export class MCPController implements vscode.Disposable {
 	// Health state
 	private healthState: HealthState = "unknown";
 	private consecutiveSuccesses = 0;
+	// biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used in processHealthFailure
+	private consecutiveFailures = 0;
+	// biome-ignore lint/correctness/noUnusedPrivateClassMembers: Tracks health degradation start time
+	private unhealthySince: number | null = null;
 	private latencyHistory: number[] = [];
 	private readonly maxHistorySize = 100;
 
@@ -486,7 +490,13 @@ export class MCPController implements vscode.Disposable {
 	// =========================================================================
 
 	private async startLocalCLIMode(): Promise<void> {
-		this.daemonBridge = getDaemonBridge();
+		const workspaceId = getCurrentWorkspaceId();
+		if (!workspaceId) {
+			logger.warn("No workspace available for local CLI mode");
+			this.emitStateChange("disconnected", { reason: "No workspace folder" });
+			return;
+		}
+		this.daemonBridge = getDaemonBridge(workspaceId);
 
 		// Subscribe to daemon connection changes
 		this.daemonConnectionSubscription = this.daemonBridge.onStateChange((event) => {

@@ -1,13 +1,16 @@
 /**
- * MCPStatusItem - MCP connection status indicator (Simplified)
+ * MCPStatusItem - MCP connection status indicator (Workspace-Aware)
  *
  * Displays MCP status in its own status bar item positioned RIGHT NEXT TO
  * the main SnapBack item (priority 998 vs 999) so they travel together.
  *
- * ## Simplified Architecture (MCP Architecture Simplification)
+ * ## Workspace Isolation Architecture
  *
- * This component subscribes directly to DaemonBridge.onStateChange for
- * real-time UI updates. No polling. No caching. Just renders what it's told.
+ * This component tracks the active workspace folder and subscribes to that
+ * workspace's DaemonBridge.onStateChange for real-time UI updates.
+ *
+ * Key fix: Removed global MCP process detection (detectMCPProcesses) which
+ * checked ALL system processes instead of current workspace daemon state.
  *
  * States:
  * - Connected: SB·MCP ✓ (green text)
@@ -20,23 +23,17 @@
  * @packageDocumentation
  */
 
-import { detectAIClients, detectMCPProcesses, detectWorkspaceConfig } from "@snapback/mcp-config";
+import { detectAIClients, detectWorkspaceConfig } from "@snapback/mcp-config";
 import * as vscode from "vscode";
-import type { ConnectionState, DaemonBridge, StateChangeEvent } from "../services/DaemonBridge";
+import type { ConnectionState, StateChangeEvent } from "../services/DaemonBridge";
+import { getDaemonBridge } from "../services/DaemonBridge";
 import { logger } from "../utils/logger";
-
-/**
- * MCPStatusItem configuration
- */
-export interface MCPStatusItemOptions {
-	/** DaemonBridge instance to observe for state changes */
-	bridge: DaemonBridge;
-}
 
 /**
  * MCPStatusItem - Displays MCP connection status next to main SnapBack item
  *
- * SIMPLIFIED: No polling. No caching. Just renders what DaemonBridge tells it.
+ * WORKSPACE-AWARE: Tracks active workspace and shows that workspace's daemon status.
+ * No global checks. No polling. Just event-driven updates from workspace daemon.
  *
  * Design:
  * - Uses its own dedicated status bar item at priority 998
@@ -46,15 +43,14 @@ export interface MCPStatusItemOptions {
  * - Status indicator follows the label (standard UX pattern)
  */
 export class MCPStatusItem implements vscode.Disposable {
-	private readonly bridge: DaemonBridge;
 	private readonly disposables: vscode.Disposable[] = [];
+	private currentWorkspaceId: string | null = null;
+	private stateChangeSubscription: vscode.Disposable | null = null;
 
 	/** Dedicated status bar item for MCP status (travels with main item) */
 	private readonly statusBarItem: vscode.StatusBarItem;
 
-	constructor(options: MCPStatusItemOptions) {
-		this.bridge = options.bridge;
-
+	constructor() {
 		// Create dedicated status bar item
 		// Priority 998 positions it right after main SnapBack item (999)
 		this.statusBarItem = vscode.window.createStatusBarItem(
@@ -65,58 +61,90 @@ export class MCPStatusItem implements vscode.Disposable {
 		this.statusBarItem.command = "snapback.mcp.status";
 		this.disposables.push(this.statusBarItem);
 
-		// Subscribe to state changes - THE ONLY DATA SOURCE
-		this.disposables.push(this.bridge.onStateChange((event) => this.render(event)));
+		// Track active workspace and subscribe to its daemon
+		this.updateActiveWorkspace();
 
-		// Initial render based on current state
-		this.render({
-			state: this.bridge.getState(),
-			previousState: "disconnected",
-			daemonVersion: this.bridge.getDaemonVersion(),
-		});
+		// Listen for workspace folder changes
+		this.disposables.push(
+			vscode.workspace.onDidChangeWorkspaceFolders(() => {
+				this.updateActiveWorkspace();
+			}),
+		);
 
-		logger.debug("MCPStatusItem initialized (simplified)");
+		// Listen for active editor changes (indicates workspace switch in multi-root)
+		this.disposables.push(
+			vscode.window.onDidChangeActiveTextEditor(() => {
+				this.updateActiveWorkspace();
+			}),
+		);
+
+		logger.debug("MCPStatusItem initialized (workspace-aware)");
 	}
 
 	/**
-	 * Cache for MCP process status to avoid excessive process checks
+	 * Update active workspace tracking and re-subscribe to daemon events
 	 */
-	private mcpProcessCache: { running: boolean; checkedAt: number } | null = null;
-	private readonly MCP_PROCESS_CACHE_TTL_MS = 10000; // 10 second cache
+	private updateActiveWorkspace(): void {
+		// Determine active workspace (prefer active editor's workspace)
+		let workspaceId: string | null = null;
 
-	/**
-	 * Check if MCP server process is running (with caching)
-	 */
-	private async checkMCPProcessRunning(): Promise<boolean> {
-		const now = Date.now();
-		if (this.mcpProcessCache && now - this.mcpProcessCache.checkedAt < this.MCP_PROCESS_CACHE_TTL_MS) {
-			return this.mcpProcessCache.running;
+		const activeEditor = vscode.window.activeTextEditor;
+		if (activeEditor) {
+			const workspaceFolder = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri);
+			workspaceId = workspaceFolder?.uri.fsPath || null;
 		}
 
-		try {
-			const health = await detectMCPProcesses();
-			const running = health.snapbackRunning;
-			this.mcpProcessCache = { running, checkedAt: now };
-			return running;
-		} catch (err) {
-			logger.debug("MCP process detection failed", { error: err instanceof Error ? err.message : String(err) });
-			return false;
+		// Fallback to first workspace folder
+		if (!workspaceId && vscode.workspace.workspaceFolders?.length) {
+			workspaceId = vscode.workspace.workspaceFolders[0].uri.fsPath;
 		}
-	}
 
-	/**
-	 * Render status bar based on state
-	 * Now includes MCP process detection for more accurate status
-	 */
-	private render(event: StateChangeEvent): void {
-		const { state, attempt, maxAttempts, daemonVersion } = event;
-
-		// For disconnected/cli_missing states, check if MCP process is running
-		// to show a more accurate status
-		if (state === "disconnected" || state === "cli_missing") {
-			this.renderWithProcessCheck(event);
+		// No change, skip
+		if (workspaceId === this.currentWorkspaceId) {
 			return;
 		}
+
+		logger.debug("Active workspace changed", {
+			previous: this.currentWorkspaceId,
+			current: workspaceId,
+		});
+
+		// Unsubscribe from previous workspace's daemon
+		if (this.stateChangeSubscription) {
+			this.stateChangeSubscription.dispose();
+			this.stateChangeSubscription = null;
+		}
+
+		this.currentWorkspaceId = workspaceId;
+
+		// Subscribe to new workspace's daemon (if workspace exists)
+		if (workspaceId) {
+			const bridge = getDaemonBridge(workspaceId);
+
+			// Subscribe to state changes
+			this.stateChangeSubscription = bridge.onStateChange((event) => this.render(event));
+
+			// Initial render
+			this.render({
+				state: bridge.getState(),
+				previousState: "disconnected",
+				daemonVersion: bridge.getDaemonVersion(),
+			});
+		} else {
+			// No workspace - show disconnected
+			this.render({
+				state: "disconnected",
+				previousState: "disconnected",
+				reason: "No workspace open",
+			});
+		}
+	}
+
+	/**
+	 * Render status bar based on daemon state (synchronous, event-driven)
+	 */
+	private render(event: StateChangeEvent): void {
+		const { state, attempt, maxAttempts, daemonVersion, reason } = event;
 
 		switch (state) {
 			case "connected":
@@ -127,6 +155,14 @@ export class MCPStatusItem implements vscode.Disposable {
 				this.statusBarItem.show();
 				break;
 
+			case "degraded":
+				this.statusBarItem.text = "SB·MCP ~";
+				this.statusBarItem.tooltip = this.buildTooltip("degraded", daemonVersion, undefined, undefined, reason);
+				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+				this.statusBarItem.color = undefined;
+				this.statusBarItem.show();
+				break;
+
 			case "reconnecting":
 				this.statusBarItem.text = `SB·MCP $(sync~spin) (${attempt ?? 1}/${maxAttempts ?? 5})`;
 				this.statusBarItem.tooltip = this.buildTooltip("reconnecting", undefined, attempt, maxAttempts);
@@ -134,79 +170,27 @@ export class MCPStatusItem implements vscode.Disposable {
 				this.statusBarItem.color = undefined;
 				this.statusBarItem.show();
 				break;
-		}
-	}
 
-	/**
-	 * Render for disconnected/cli_missing states with MCP process check
-	 * Shows "partial" status if MCP tools are working even without daemon
-	 */
-	private async renderWithProcessCheck(event: StateChangeEvent): Promise<void> {
-		const { state, reason } = event;
-		const mcpProcessRunning = await this.checkMCPProcessRunning();
-
-		if (state === "disconnected") {
-			if (mcpProcessRunning) {
-				// MCP server is running, show "partial" status (tools work, daemon doesn't)
-				this.statusBarItem.text = "SB·MCP ~";
-				this.statusBarItem.tooltip = this.buildTooltip(
-					"disconnected",
-					undefined,
-					undefined,
-					undefined,
-					reason,
-					true,
-				);
-				this.statusBarItem.backgroundColor = undefined;
-				this.statusBarItem.color = new vscode.ThemeColor("editorWarning.foreground");
-			} else {
+			case "disconnected":
 				this.statusBarItem.text = "SB·MCP ✗";
-				this.statusBarItem.tooltip = this.buildTooltip(
-					"disconnected",
-					undefined,
-					undefined,
-					undefined,
-					reason,
-					false,
-				);
+				this.statusBarItem.tooltip = this.buildTooltip("disconnected", undefined, undefined, undefined, reason);
 				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
 				this.statusBarItem.color = undefined;
-			}
-		} else if (state === "cli_missing") {
-			if (mcpProcessRunning) {
-				// MCP server is running even without CLI - show partial status
-				this.statusBarItem.text = "SB·MCP ~";
-				this.statusBarItem.tooltip = this.buildTooltip(
-					"cli_missing",
-					undefined,
-					undefined,
-					undefined,
-					undefined,
-					true,
-				);
-				this.statusBarItem.backgroundColor = undefined;
-				this.statusBarItem.color = new vscode.ThemeColor("editorWarning.foreground");
-			} else {
+				this.statusBarItem.show();
+				break;
+
+			case "cli_missing":
 				this.statusBarItem.text = "SB·MCP ⚠";
-				this.statusBarItem.tooltip = this.buildTooltip(
-					"cli_missing",
-					undefined,
-					undefined,
-					undefined,
-					undefined,
-					false,
-				);
+				this.statusBarItem.tooltip = this.buildTooltip("cli_missing");
 				this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
 				this.statusBarItem.color = undefined;
-			}
+				this.statusBarItem.show();
+				break;
 		}
-
-		this.statusBarItem.show();
 	}
 
 	/**
-	 * Build rich tooltip with server details
-	 * Now includes MCP process detection for accurate status reporting
+	 * Build rich tooltip with server details (workspace-aware)
 	 */
 	private buildTooltip(
 		state: ConnectionState,
@@ -214,7 +198,6 @@ export class MCPStatusItem implements vscode.Disposable {
 		attempt?: number,
 		maxAttempts?: number,
 		reason?: string,
-		mcpProcessRunning?: boolean,
 	): vscode.MarkdownString {
 		const md = new vscode.MarkdownString();
 		md.isTrusted = true;
@@ -224,35 +207,30 @@ export class MCPStatusItem implements vscode.Disposable {
 			case "connected":
 				md.appendMarkdown(`**MCP Status:** ✅ Connected${daemonVersion ? ` (v${daemonVersion})` : ""}\n\n`);
 				break;
+			case "degraded":
+				md.appendMarkdown(`**MCP Status:** ⚠️ Degraded${daemonVersion ? ` (v${daemonVersion})` : ""}\n\n`);
+				md.appendMarkdown("*Socket connected but daemon not responding to health checks*\n\n");
+				if (reason) {
+					md.appendMarkdown(`*${reason}*\n\n`);
+				}
+				break;
 			case "reconnecting":
 				md.appendMarkdown(`**MCP Status:** 🔄 Reconnecting (${attempt ?? 1}/${maxAttempts ?? 5})\n\n`);
 				break;
 			case "disconnected":
-				// Show different message if MCP server is running but daemon is not
-				if (mcpProcessRunning) {
-					md.appendMarkdown("**MCP Status:** 🟡 MCP Tools Active\n\n");
-					md.appendMarkdown("*MCP server is running, but CLI daemon is not connected.*\n");
-					md.appendMarkdown(
-						"*Your AI tools work fine. Some advanced features (proactive protection) require the daemon.*\n\n",
-					);
-				} else {
-					md.appendMarkdown("**MCP Status:** ❌ Disconnected\n\n");
-					if (reason) {
-						md.appendMarkdown(`*${reason}*\n\n`);
-					}
+				md.appendMarkdown("**MCP Status:** ❌ Disconnected\n\n");
+				if (reason) {
+					md.appendMarkdown(`*${reason}*\n\n`);
 				}
 				break;
 			case "cli_missing":
 				md.appendMarkdown("**MCP Status:** ⚠️ CLI Not Installed\n\n");
-				if (mcpProcessRunning) {
-					md.appendMarkdown("*MCP server is running. Install CLI for enhanced features.*\n\n");
-				}
 				break;
 		}
 
-		// Show configured AI clients
-		const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-		const detection = detectAIClients({ cwd: workspaceRoot });
+		// Show configured AI clients (use current workspace, not hardcoded first)
+		const workspaceRoot = this.currentWorkspaceId;
+		const detection = detectAIClients({ cwd: workspaceRoot || undefined });
 		const configuredClients = detection.detected.filter((c) => c.hasSnapback);
 		const unconfiguredClients = detection.detected.filter((c) => !c.hasSnapback);
 
@@ -280,18 +258,14 @@ export class MCPStatusItem implements vscode.Disposable {
 			}
 		}
 
-		// Show MCP server process status
-		if (mcpProcessRunning !== undefined) {
-			const processIcon = mcpProcessRunning ? "✅" : "⚪";
-			const processText = mcpProcessRunning ? "Running" : "Not detected";
-			md.appendMarkdown(`**MCP Server Process:** ${processIcon} ${processText}\n\n`);
-		}
-
 		// Action hint
 		md.appendMarkdown("---\n\n");
 		switch (state) {
 			case "connected":
 				md.appendMarkdown("*Click to view MCP status details*");
+				break;
+			case "degraded":
+				md.appendMarkdown("*Click to reconnect or diagnose*");
 				break;
 			case "disconnected":
 				md.appendMarkdown("*Click to diagnose connection*");
@@ -310,20 +284,31 @@ export class MCPStatusItem implements vscode.Disposable {
 	 * Get current state (for external queries)
 	 */
 	getState(): ConnectionState {
-		return this.bridge.getState();
+		if (!this.currentWorkspaceId) {
+			return "disconnected";
+		}
+		const bridge = getDaemonBridge(this.currentWorkspaceId);
+		return bridge.getState();
 	}
 
 	/**
 	 * Check if connected
 	 */
 	isConnected(): boolean {
-		return this.bridge.isConnected();
+		if (!this.currentWorkspaceId) {
+			return false;
+		}
+		const bridge = getDaemonBridge(this.currentWorkspaceId);
+		return bridge.isConnected();
 	}
 
 	/**
 	 * Dispose resources
 	 */
 	dispose(): void {
+		if (this.stateChangeSubscription) {
+			this.stateChangeSubscription.dispose();
+		}
 		for (const d of this.disposables) {
 			d.dispose();
 		}

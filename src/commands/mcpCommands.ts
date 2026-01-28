@@ -21,7 +21,7 @@ import type { ServiceFederation } from "@snapback/core";
 import * as vscode from "vscode";
 import { getMCPClient } from "../mcp";
 import type { OperationCoordinator } from "../operationCoordinator";
-import { getDaemonBridge } from "../services/DaemonBridge";
+import { getCurrentWorkspaceId, getDaemonBridge } from "../services/DaemonBridge";
 
 import type { MCPToolsService } from "../services/MCPToolsService";
 import { logger } from "../utils/logger";
@@ -105,7 +105,11 @@ export function registerMcpCommands(
 			}
 
 			const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-			const daemonBridge = getDaemonBridge();
+			const daemonBridge = getCurrentWorkspaceId() ? getDaemonBridge(getCurrentWorkspaceId()!) : null;
+			if (!daemonBridge) {
+				vscode.window.showErrorMessage("No workspace folder open");
+				return;
+			}
 
 			// Try daemon delegation first (ARCHITECTURE_REFACTOR_SPEC.md pattern)
 			if (daemonBridge?.isConnected() && workspaceRoot) {
@@ -175,7 +179,11 @@ export function registerMcpCommands(
 			const editor = vscode.window.activeTextEditor;
 			const files = editor ? [editor.document.fileName] : [];
 			const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-			const daemonBridge = getDaemonBridge();
+			const daemonBridge = getCurrentWorkspaceId() ? getDaemonBridge(getCurrentWorkspaceId()!) : null;
+			if (!daemonBridge) {
+				vscode.window.showErrorMessage("No workspace folder open");
+				return;
+			}
 
 			// Try daemon delegation first (ARCHITECTURE_REFACTOR_SPEC.md pattern)
 			if (daemonBridge?.isConnected() && workspaceRoot) {
@@ -239,7 +247,11 @@ export function registerMcpCommands(
 			const ok = success.startsWith("Yes");
 			const outcome = ok ? "completed" : "abandoned";
 			const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-			const daemonBridge = getDaemonBridge();
+			const daemonBridge = getCurrentWorkspaceId() ? getDaemonBridge(getCurrentWorkspaceId()!) : null;
+			if (!daemonBridge) {
+				vscode.window.showErrorMessage("No workspace folder open");
+				return;
+			}
 
 			// Try daemon delegation first (ARCHITECTURE_REFACTOR_SPEC.md pattern)
 			if (daemonBridge?.isConnected() && workspaceRoot) {
@@ -355,7 +367,11 @@ export function registerMcpCommands(
 			}
 
 			// 2. Check DaemonBridge state
-			const daemonBridge = getDaemonBridge();
+			const daemonBridge = getCurrentWorkspaceId() ? getDaemonBridge(getCurrentWorkspaceId()!) : null;
+			if (!daemonBridge) {
+				vscode.window.showErrorMessage("No workspace folder open");
+				return;
+			}
 			const connectionState = daemonBridge.getState();
 			const isConnected = daemonBridge.isConnected();
 			const serverVersion = daemonBridge.getDaemonVersion();
@@ -467,7 +483,8 @@ export function registerMcpCommands(
 				diagnostics.push("• Enable MCP in settings to use AI assistant features");
 			}
 
-			if (!getDaemonBridge().isConnected()) {
+			const workspaceId = getCurrentWorkspaceId();
+			if (workspaceId && !getDaemonBridge(workspaceId).isConnected()) {
 				diagnostics.push("• Check network connectivity to MCP server");
 				diagnostics.push("• Verify server URL in settings is correct");
 				diagnostics.push("• Try restarting VS Code if issues persist");
@@ -490,16 +507,17 @@ export function registerMcpCommands(
 
 				client.trackEvent("mcp.diagnostics_executed", {
 					mcpEnabled,
-					serverReady: getDaemonBridge().isConnected(),
+					serverReady: workspaceId ? getDaemonBridge(workspaceId).isConnected() : false,
 					circuitState: circuitState.state,
 					queueDepth: status.pendingObservations + status.pendingChanges,
 				});
 			} catch {
 				// Client not initialized, still track what we can
 				const client = getMCPClient("default");
+				const fallbackWorkspaceId = getCurrentWorkspaceId();
 				client.trackEvent("mcp.diagnostics_executed", {
 					mcpEnabled,
-					serverReady: getDaemonBridge().isConnected(),
+					serverReady: fallbackWorkspaceId ? getDaemonBridge(fallbackWorkspaceId).isConnected() : false,
 					circuitState: "closed",
 					queueDepth: 0,
 				});
@@ -512,7 +530,12 @@ export function registerMcpCommands(
 	// Command: Force MCP Daemon Reconnection
 	disposables.push(
 		vscode.commands.registerCommand("snapback.mcp.reconnect", async () => {
-			const bridge = getDaemonBridge();
+			const reconnectWorkspaceId = getCurrentWorkspaceId();
+			if (!reconnectWorkspaceId) {
+				void vscode.window.showErrorMessage("No workspace folder open");
+				return;
+			}
+			const bridge = getDaemonBridge(reconnectWorkspaceId);
 			const currentState = bridge.getState();
 
 			// Show confirmation dialog

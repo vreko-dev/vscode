@@ -51,7 +51,14 @@ import {
 import type { SessionHealthCanonical, TrajectoryCanonical } from "../signage/types";
 import { formatNumber } from "../utils/format";
 import { logger } from "../utils/logger";
-import type { ActivitySequenceType, ActivityStep, StatusBarState, StatusBarStats, VitalsDisplayData } from "./ux-types";
+import type {
+	ActivitySequenceType,
+	ActivityStep,
+	IntegrationHealthDisplay,
+	StatusBarState,
+	StatusBarStats,
+	VitalsDisplayData,
+} from "./ux-types";
 import { ACTIVITY_SEQUENCES, PULSE_EMOJI, TEMP_EMOJI } from "./ux-types";
 
 /**
@@ -185,6 +192,11 @@ export class StatusBarManager implements vscode.Disposable {
 	 * Current vitals snapshot for detailed tooltip
 	 */
 	private currentVitals: VitalsDisplayData | undefined;
+
+	/**
+	 * Current integration health for tooltip display
+	 */
+	private integrationHealth: IntegrationHealthDisplay | undefined;
 
 	/**
 	 * Debounce tracking for sequence triggers
@@ -778,6 +790,50 @@ export class StatusBarManager implements vscode.Disposable {
 			md.appendMarkdown(`- ${trajectorySignage.icon} Trajectory: ${trajectorySignage.label}\n\n`);
 		}
 
+		// Integration status section (if available)
+		if (this.integrationHealth) {
+			md.appendMarkdown("**External Integrations:**\n");
+
+			// GitHub integration
+			if (this.integrationHealth.github.enabled) {
+				const ghIcon = this.integrationHealth.github.connected ? "📊" : "⚠️";
+				const ghStatus = this.integrationHealth.github.connected
+					? this.integrationHealth.github.status
+					: "Not connected - configure in .snapbackrc";
+				md.appendMarkdown(`- ${ghIcon} GitHub: ${ghStatus}\n`);
+			}
+
+			// Sentry integration
+			if (this.integrationHealth.sentry.enabled) {
+				const snIcon = this.integrationHealth.sentry.connected ? "🐛" : "⚠️";
+				const snStatus = this.integrationHealth.sentry.connected
+					? this.integrationHealth.sentry.status
+					: "Not connected - configure in .snapbackrc";
+				md.appendMarkdown(`- ${snIcon} Sentry: ${snStatus}\n`);
+			}
+
+			// Context7 integration
+			if (this.integrationHealth.context7.enabled) {
+				const c7Icon = this.integrationHealth.context7.connected ? "📚" : "⚠️";
+				const c7Status = this.integrationHealth.context7.connected
+					? this.integrationHealth.context7.status
+					: "Not connected - configure in .snapbackrc";
+				md.appendMarkdown(`- ${c7Icon} Context7: ${c7Status}\n`);
+			}
+
+			// Show setup guidance if no integrations are connected
+			const anyConnected =
+				this.integrationHealth.github.connected ||
+				this.integrationHealth.sentry.connected ||
+				this.integrationHealth.context7.connected;
+
+			if (!anyConnected) {
+				md.appendMarkdown("\n*Configure integrations in .snapbackrc for enhanced context*\n");
+			}
+
+			md.appendMarkdown("\n");
+		}
+
 		// Stats section
 		md.appendMarkdown("---\n\n");
 		md.appendMarkdown(
@@ -870,6 +926,20 @@ export class StatusBarManager implements vscode.Disposable {
 	 */
 	getSnapshotCount(): number {
 		return this.stats.checkpointsToday;
+	}
+
+	/**
+	 * Update integration health status
+	 *
+	 * Call this when integration health changes to update tooltip.
+	 */
+	updateIntegrationHealth(health: IntegrationHealthDisplay | undefined): void {
+		this.integrationHealth = health;
+
+		// Refresh tooltip if in idle state
+		if (this.state === "idle" || this.state === "idle-stats") {
+			this.item.tooltip = this.buildTooltip();
+		}
 	}
 
 	// ===========================================================================
