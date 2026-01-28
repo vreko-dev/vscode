@@ -114,7 +114,7 @@ export async function initializePhase3Managers(appContext: AppContext): Promise<
 			logger.info("Celebration event", { type: celebration.type, message: celebration.message });
 		});
 
-		const daemonBridge = getDaemonBridge();
+		const daemonBridge = getDaemonBridge(workspaceRoot);
 		appContext.platformCoordinator.wireDaemonBridge(daemonBridge);
 
 		const packageJson = context.extension?.packageJSON as { version?: string } | undefined;

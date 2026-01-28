@@ -6,7 +6,7 @@
 
 import { detectAIClients, getSnapbackMCPConfig, writeClientConfig } from "@snapback/mcp-config";
 import * as vscode from "vscode";
-import { getDaemonBridge } from "../services/DaemonBridge";
+import { getCurrentWorkspaceId, getDaemonBridge } from "../services/DaemonBridge";
 import { executeCLICommand } from "../utils/cli-execution";
 import type { HostEnvironment } from "../utils/host-probe";
 import { clearEnvironmentCache, probeHostEnvironment } from "../utils/host-probe";
@@ -254,7 +254,12 @@ export class OnboardingPanelProvider {
 	 * Check CLI installation status
 	 */
 	private async checkCliStatus(): Promise<void> {
-		const cliInstalled = getDaemonBridge().isConnected();
+		const workspaceId = getCurrentWorkspaceId();
+		if (!workspaceId) {
+			logger.warn("No workspace available for CLI status check");
+			return;
+		}
+		const cliInstalled = getDaemonBridge(workspaceId).isConnected();
 
 		this.panel?.webview.postMessage({
 			type: "cliStatus",

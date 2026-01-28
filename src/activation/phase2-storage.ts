@@ -110,7 +110,7 @@ export async function initializePhase2Storage(appContext: AppContext): Promise<v
 			logger.error("[WARN] AutoProtectConfig initialization failed", err);
 		});
 
-		appContext.daemonBridge = getDaemonBridge();
+		appContext.daemonBridge = getDaemonBridge(workspaceRoot);
 		appContext.daemonBridge.connect().catch((err) => {
 			logger.error("Daemon connection failed", err);
 		});

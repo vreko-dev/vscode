@@ -87,8 +87,79 @@ export async function initializePhase4Providers(appContext: AppContext): Promise
 
 		appContext.statusBarManager = createStatusBarManager();
 		context.subscriptions.push(appContext.statusBarManager);
-
-		appContext.mcpStatusItem = new MCPStatusItem({ bridge: daemonBridge });
+		
+		// 🐛 FIX: Wire SNAPSHOT_CREATED event → incrementSnapshotCount()
+		// This is the ONLY place the counter should be incremented.
+		// Without this handler, snapshots stay at 0 despite constant activity.
+		if (appContext.eventBus) {
+			appContext.eventBus.on("snapshot:created", () => {
+				appContext.statusBarManager?.incrementSnapshotCount();
+			});
+			logger.debug("SNAPSHOT_CREATED event handler registered for status bar counter");
+		}
+		
+		// 🔌 Wire Integration Health Updates (Daemon Brain Pattern)
+		// Query integration health from MCP daemon and update status bar tooltip
+		const updateIntegrationHealth = async () => {
+			try {
+				// Access integration health via daemon-backed MCP client
+				// The MCP client is the "daemon brain" that manages IntegrationOrchestratorService
+				const mcpClient = (appContext as any).mcpClient; // Will be set after phase4
+				if (!mcpClient) {
+					return;
+				}
+		
+				// Query via check({mode:'integrations'}) tool through daemon
+				const result = await mcpClient.callTool("check", {
+					mode: "integrations",
+					workspaceRoot,
+				});
+		
+				if (result?.content?.[0]?.text) {
+					const data = JSON.parse(result.content[0].text);
+					if (data.integrations) {
+						// Transform to IntegrationHealthDisplay format
+						const health = {
+							github: {
+								enabled: data.integrations.github?.enabled ?? false,
+								connected: data.integrations.github?.connected ?? false,
+								status: data.integrations.github?.connected
+									? "✓ Connected"
+									: "Not connected - configure in .snapbackrc",
+							},
+							sentry: {
+								enabled: data.integrations.sentry?.enabled ?? false,
+								connected: data.integrations.sentry?.connected ?? false,
+								status: data.integrations.sentry?.connected
+									? "✓ Connected"
+									: "Not connected - configure in .snapbackrc",
+							},
+							context7: {
+								enabled: data.integrations.context7?.enabled ?? false,
+								connected: data.integrations.context7?.connected ?? false,
+								status: data.integrations.context7?.connected
+									? "✓ Connected"
+									: "Not connected - configure in .snapbackrc",
+							},
+						};
+						appContext.statusBarManager?.updateIntegrationHealth(health);
+					}
+				}
+			} catch (error) {
+				// Integration health is optional - fail silently
+				logger.debug("Could not fetch integration health", { error });
+			}
+		};
+		
+		// Poll integration health every 30s (daemon brain pattern)
+		const healthInterval = setInterval(() => void updateIntegrationHealth(), 30000);
+		context.subscriptions.push({ dispose: () => clearInterval(healthInterval) });
+		
+		// Initial health check (delayed after MCPClient is ready)
+		setTimeout(() => void updateIntegrationHealth(), 5000);
+		
+		// MCP Status Item - workspace-aware, no bridge dependency
+		appContext.mcpStatusItem = new MCPStatusItem();
 		context.subscriptions.push(appContext.mcpStatusItem);
 
 		const nudgeManager = new NudgeManager(context);
