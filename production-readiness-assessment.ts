@@ -9,7 +9,6 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { logger } from "@snapback/infrastructure";
 
 interface AssessmentResult {
 	score: number;
@@ -232,12 +231,12 @@ async function runAssessment(): Promise<AssessmentResult> {
 }
 
 function printAssessmentResult(result: AssessmentResult): void {
-	logger.info(".snapback-production-readiness-assessment.md");
+	console.log(".snapback-production-readiness-assessment.md");
 	console.log("=".repeat(50));
 	console.log();
-	logger.info("# SnapBack VS Code Extension - Production Readiness Assessment");
+	console.log("# SnapBack VS Code Extension - Production Readiness Assessment");
 	console.log();
-	logger.info("## 🎯 Assessment Results");
+	console.log("## 🎯 Assessment Results");
 	console.log();
 	console.log(
 		`**Overall Score: ${Math.round(result.score)}/${
@@ -249,13 +248,13 @@ function printAssessmentResult(result: AssessmentResult): void {
 	// Readiness level
 	const percentage = (result.score / result.maxScore) * 100;
 	if (percentage >= 95) {
-		logger.info("🟢 **PRODUCTION READY** - Very High Confidence");
+		console.log("🟢 **PRODUCTION READY** - Very High Confidence");
 	} else if (percentage >= 90) {
-		logger.info("🟡 **ALMOST READY** - High Confidence");
+		console.log("🟡 **ALMOST READY** - High Confidence");
 	} else if (percentage >= 80) {
-		logger.info("🟠 **NEEDS WORK** - Medium Confidence");
+		console.log("🟠 **NEEDS WORK** - Medium Confidence");
 	} else {
-		logger.info("🔴 **NOT READY** - Low Confidence");
+		console.log("🔴 **NOT READY** - Low Confidence");
 	}
 	console.log();
 
@@ -263,36 +262,36 @@ function printAssessmentResult(result: AssessmentResult): void {
 	for (const section of result.sections) {
 		console.log(`## ${section.name} (${Math.round(section.score)}/${section.maxScore})`);
 		for (const check of section.checks) {
-			logger.info(`  ${check.passed ? "✅" : "❌"} ${check.name}`);
+			console.log(`  ${check.passed ? "✅" : "❌"} ${check.name}`);
 			if (check.notes) {
-				logger.info(`    ${check.notes}`);
+				console.log(`    ${check.notes}`);
 			}
 		}
 		console.log();
 	}
 
 	// Recommendations
-	logger.info("## 📝 Recommendations");
+	console.log("## 📝 Recommendations");
 	if (percentage >= 95) {
-		logger.info("1. Review documentation one final time");
-		logger.info("2. Create release notes");
-		logger.info("3. Publish to marketplace");
-		logger.info("4. Announce launch");
+		console.log("1. Review documentation one final time");
+		console.log("2. Create release notes");
+		console.log("3. Publish to marketplace");
+		console.log("4. Announce launch");
 	} else if (percentage >= 90) {
-		logger.info("1. Fix any failing checks");
-		logger.info("2. Rerun assessment");
-		logger.info("3. Update documentation");
-		logger.info("4. Publish when ≥ 95%");
+		console.log("1. Fix any failing checks");
+		console.log("2. Rerun assessment");
+		console.log("3. Update documentation");
+		console.log("4. Publish when ≥ 95%");
 	} else if (percentage >= 80) {
-		logger.info("1. Prioritize failures by impact");
-		logger.info("2. Focus on user-facing issues first");
-		logger.info("3. Address security/data safety issues");
-		logger.info("4. Rerun full assessment when fixed");
+		console.log("1. Prioritize failures by impact");
+		console.log("2. Focus on user-facing issues first");
+		console.log("3. Address security/data safety issues");
+		console.log("4. Rerun full assessment when fixed");
 	} else {
-		logger.info("1. Return to development phase");
-		logger.info("2. Complete missing features");
-		logger.info("3. Fix critical bugs");
-		logger.info("4. Increase test coverage");
+		console.log("1. Return to development phase");
+		console.log("2. Complete missing features");
+		console.log("3. Fix critical bugs");
+		console.log("4. Increase test coverage");
 	}
 }
 

@@ -622,20 +622,21 @@
       "snapback": [
         {
           "id": "snapback.dashboard",
-          "name": "SnapBack",
+          "name": "Activity",
+          "when": "snapback.isActive && config.snapback.ui.showTreeView",
+          "icon": "$(history)"
+        },
+        {
+          "id": "snapback.intelligence",
+          "name": "Protected",
           "when": "snapback.isActive && config.snapback.ui.showTreeView",
           "icon": "$(shield)"
         },
         {
-          "id": "snapback.intelligence",
-          "name": "Intelligence",
-          "when": "snapback.isActive && config.snapback.ui.showTreeView",
-          "icon": "$(warning)"
-        },
-        {
           "id": "snapback.sessions",
-          "name": "Sessions",
-          "when": "snapback.isActive && config.snapback.ui.showTreeView"
+          "name": "History",
+          "when": "snapback.isActive && config.snapback.ui.showTreeView",
+          "icon": "$(archive)"
         }
       ]
     },
@@ -793,80 +794,69 @@
       ],
       "view/item/context": [
         {
-          "command": "snapback.openProtectedFile",
-          "when": "view == snapback.protectedFiles && viewItem == snapback.item.protectedFile",
-          "group": "navigation@1"
-        },
-        {
-          "submenu": "snapback.changeProtectionLevel",
-          "when": "view == snapback.protectedFiles && viewItem == snapback.item.protectedFile",
-          "group": "protection@1"
-        },
-        {
-          "command": "snapback.createSnapshot",
-          "when": "view == snapback.protectedFiles && viewItem == snapback.item.protectedFile",
-          "group": "snapshot@1",
-          "icon": "$(save)"
-        },
-        {
-          "command": "snapback.snapBack",
-          "when": "view == snapback.protectedFiles && viewItem == snapback.item.protectedFile",
-          "group": "snapshot@2",
-          "icon": "$(history)"
-        },
-        {
-          "command": "snapback.unprotectFile",
-          "when": "view == snapback.protectedFiles && viewItem == snapback.item.protectedFile",
-          "group": "danger@1",
-          "icon": "$(unlock)"
-        },
-        {
-          "command": "snapback.unprotectFile",
-          "when": "view == snapback.main && viewItem == snapback.item.protectedFile",
-          "group": "danger@1",
-          "icon": "$(unlock)"
-        },
-        {
-          "command": "snapback.openSnapshotInWeb",
-          "when": "view == snapbackExplorer && viewItem == snapshot",
-          "group": "navigation@1",
-          "icon": "$(link-external)"
-        },
-        {
-          "command": "snapback.createSnapshot",
-          "when": "view == snapbackExplorer && viewItem == blockingIssue",
-          "group": "snapshot@1",
-          "icon": "$(save)"
-        },
-        {
-          "command": "snapback.snapshot.showFileDiff",
-          "when": "view == snapback.dashboard && viewItem == activityEventSingle",
-          "group": "inline"
-        },
-        {
-          "command": "snapback.snapshot.showFileDiff",
-          "when": "view == snapback.dashboard && viewItem == activityFile",
-          "group": "inline"
-        },
-        {
           "command": "snapback.restoreSnapshot",
-          "when": "view == snapback.dashboard && viewItem =~ /^activityEvent/",
+          "when": "view == snapback.dashboard && viewItem =~ /^snapback\\.activityEvent/",
           "group": "inline@1"
         },
         {
-          "command": "snapback.deleteSnapshot",
-          "when": "view == snapback.dashboard && viewItem =~ /^activityEvent/",
+          "command": "snapback.snapshot.showFileDiff",
+          "when": "view == snapback.dashboard && viewItem =~ /^snapback\\.activityEvent/",
           "group": "inline@2"
         },
         {
           "command": "snapback.restoreSnapshot",
-          "when": "view == snapback.dashboard && viewItem =~ /^activityEvent/",
-          "group": "snapshot@1"
+          "when": "view == snapback.dashboard && viewItem =~ /^snapback\\.activityEvent/",
+          "group": "1_restore@1"
+        },
+        {
+          "command": "snapback.compareWithSnapshot",
+          "when": "view == snapback.dashboard && viewItem =~ /^snapback\\.activityEvent/",
+          "group": "1_restore@2"
         },
         {
           "command": "snapback.deleteSnapshot",
-          "when": "view == snapback.dashboard && viewItem =~ /^activityEvent/",
-          "group": "danger@1"
+          "when": "view == snapback.dashboard && viewItem =~ /^snapback\\.activityEvent/",
+          "group": "9_danger@1"
+        },
+        {
+          "command": "snapback.openProtectedFile",
+          "when": "view == snapback.intelligence && viewItem =~ /^snapback\\.protectedFile/",
+          "group": "navigation@1"
+        },
+        {
+          "submenu": "snapback.changeProtectionLevel",
+          "when": "view == snapback.intelligence && viewItem =~ /^snapback\\.protectedFile/",
+          "group": "1_protection@1"
+        },
+        {
+          "command": "snapback.unprotectFile",
+          "when": "view == snapback.intelligence && viewItem =~ /^snapback\\.protectedFile/",
+          "group": "9_danger@1"
+        },
+        {
+          "command": "snapback.session.restore",
+          "when": "view == snapback.sessions && viewItem == snapback.session.restorable",
+          "group": "inline@1"
+        },
+        {
+          "command": "snapback.session.restore",
+          "when": "view == snapback.sessions && viewItem == snapback.session.restorable",
+          "group": "1_restore@1"
+        },
+        {
+          "command": "snapback.compareWithSnapshot",
+          "when": "view == snapback.sessions && viewItem =~ /^snapback\\.session/",
+          "group": "1_restore@2"
+        },
+        {
+          "command": "snapback.snapshot.showFileDiff",
+          "when": "view == snapback.sessions && viewItem == snapback.sessionFile",
+          "group": "inline@1"
+        },
+        {
+          "command": "snapback.restoreSnapshot",
+          "when": "view == snapback.sessions && viewItem == snapback.sessionFile",
+          "group": "1_restore@1"
         }
       ],
       "view/title": [
@@ -1121,9 +1111,19 @@
     ],
     "viewsWelcome": [
       {
-        "view": "snapback.protectedFiles",
-        "contents": "No snapshots yet.\n\nSnapBack creates snapshots automatically when you save files.\n\n[🧢 Create Manual Snapshot](command:snapback.createSnapshot)\n\nLearn more in [Getting Started](command:snapback.openWalkthrough).",
+        "view": "snapback.dashboard",
+        "contents": "No activity yet.\n\nSnapBack creates snapshots automatically when you save files.\n\n[📸 Create Snapshot](command:snapback.createSnapshot)\n\nLearn more in [Getting Started](command:snapback.openWalkthrough).",
+        "when": "!snapback.hasSnapshots"
+      },
+      {
+        "view": "snapback.intelligence",
+        "contents": "No protected files.\n\nProtect critical files to get automatic snapshots.\n\n[🛡️ Protect Current File](command:snapback.protectCurrentFile)\n[📁 Apply Protection Defaults](command:snapback.protectEntireRepo)",
         "when": "!snapback.hasProtectedFiles"
+      },
+      {
+        "view": "snapback.sessions",
+        "contents": "No snapshots yet.\n\nSnapBack groups your activity into sessions for easy browsing.\n\n[📸 Create Snapshot](command:snapback.createSnapshot)\n[📜 Browse All Snapshots](command:snapback.showAllSnapshots)",
+        "when": "!snapback.hasSnapshots"
       }
     ],
     "jsonValidation": [
@@ -1273,8 +1273,8 @@
     "test:performance": "vitest run test/performance",
     "test:regression": "vitest run test/regression",
     "test:storage": "vitest run test/unit/snapshot/storageEfficiency.test.ts",
-    "test:unit": "vitest run test/unit/**/*.spec.ts",
-    "test:unit:watch": "vitest test/unit/**/*.spec.ts",
+    "test:unit": "vitest run test/unit/**/*.test.ts",
+    "test:unit:watch": "vitest test/unit/**/*.test.ts",
     "test:vsix": "bash scripts/test-vsix.sh",
     "test:webview": "playwright test test/e2e/webview",
     "validate-commands": "node scripts/validate-commands.js",
