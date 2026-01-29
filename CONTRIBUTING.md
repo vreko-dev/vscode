@@ -37,7 +37,7 @@ Be respectful, inclusive, and professional. We're building a welcoming community
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/snapback-dev/snapback.dev.git
+git clone https://github.com/snapback-dev/vscode.git
 cd snapback.dev
 pnpm install
 ```

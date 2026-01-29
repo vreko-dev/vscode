@@ -1,11 +1,5 @@
 <p align="center">
-  <img src="https://snapback.dev/logo.png" alt="SnapBack" width="120" />
-</p>
-
-<h1 align="center">SnapBack</h1>
-
-<p align="center">
-  <strong>The Intelligence Layer for AI-Assisted Development</strong>
+  <img src="../../brand/github/github-vscode.png" alt="SnapBack for VS Code - Intelligent code safety and restoration in your editor" />
 </p>
 
 <p align="center">
@@ -352,8 +346,8 @@ Create `.snapbackrc` in your workspace root:
 We're building SnapBack in public and your feedback shapes the product.
 
 - **Discord**: [Join our community →](https://discord.gg/B4BXeYkE2F)
-- **GitHub Issues**: [Report bugs →](https://github.com/snapback-dev/snapback/issues)
-- **Feature Requests**: [Discussions →](https://github.com/snapback-dev/snapback/discussions)
+- **GitHub Issues**: [Report bugs →](https://github.com/snapback-dev/vscode/issues)
+- **Feature Requests**: [Discussions →](https://github.com/snapback-dev/vscode/discussions)
 - **Twitter**: [@snapbackdev](https://twitter.com/snapbackdev)
 
 ---
@@ -367,7 +361,7 @@ We're building SnapBack in public and your feedback shapes the product.
 | GitHub | [github.com/snapback-dev](https://github.com/snapback-dev) |
 | MCP Server | [@snapback/mcp-server](https://www.npmjs.com/package/@snapback/mcp-server) |
 | CLI | [@snapback/cli](https://www.npmjs.com/package/@snapback/cli) |
-| Changelog | [View releases](https://github.com/snapback-dev/snapback/releases) |
+| Changelog | [View releases](https://github.com/snapback-dev/vscode/releases) |
 
 ---
 
