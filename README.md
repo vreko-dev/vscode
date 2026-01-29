@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../../brand/github/github-vscode.png" alt="SnapBack for VS Code - Intelligent code safety and restoration in your editor" />
+  <img src="./assets/github-vscode.png" alt="SnapBack for VS Code - Intelligent code safety and restoration in your editor" />
 </p>
 
 <p align="center">
