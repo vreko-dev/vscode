@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/github-vscode.png" alt="SnapBack for VS Code - Intelligent code safety and restoration in your editor" />
+  <img width="2172" height="724" alt="vreko-lockup" src="https://github.com/user-attachments/assets/fddd90b6-4bb5-4985-8f73-3b63060c526f" />
 </p>
 
 <p align="center">
