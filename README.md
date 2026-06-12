@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./media/lockup-white.png" width="400">
-    <img alt="Vreko" src="./media/lockup-dark.png" width="400">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vreko-dev/vscode/main/lockup-white.png" width="400">
+    <img alt="Vreko" src="https://raw.githubusercontent.com/vreko-dev/vscode/main/lockup-dark.png" width="400">
   </picture>
 </p>
 
