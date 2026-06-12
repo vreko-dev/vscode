@@ -1,0 +1,185 @@
+/**
+ * Configuration management for Vreko extension
+ * Uses unified ConfigStore v2 for all settings
+ */
+
+import { getInitializedConfigStore } from "./config/configStore";
+
+/**
+ * Configuration type inferred from ConfigStore schema
+ */
+export interface VrekoConfig {
+	privacy: {
+		consent: boolean;
+		clipboard: boolean;
+		watcher: boolean;
+		gitWrapper: boolean;
+		lastReminded: string | undefined;
+	};
+	protection: {
+		enabled: boolean;
+		level: "watch" | "warn" | "block";
+		autoProtect: boolean;
+	};
+	notifications: {
+		enabled: boolean;
+		quietHours: {
+			start: string;
+			end: string;
+		};
+		rateLimit: number;
+	};
+	snapshots: {
+		enabled: boolean;
+		autoCreate: boolean;
+		retentionDays: number;
+	};
+	ai: {
+		enabled: boolean;
+		context: boolean;
+		copilot: boolean;
+	};
+}
+
+/**
+ * Get the current Vreko configuration from ConfigStore
+ * @returns Current configuration
+ */
+export function getConfig(): VrekoConfig {
+	const store = getInitializedConfigStore();
+	const config = store.getConfig();
+	const settings = config.settings as Record<string, Record<string, unknown>>;
+
+	return {
+		privacy: {
+			consent: (settings.privacy?.consent as boolean) ?? false,
+			clipboard: (settings.privacy?.clipboard as boolean) ?? false,
+			watcher: (settings.privacy?.watcher as boolean) ?? false,
+			gitWrapper: (settings.privacy?.gitWrapper as boolean) ?? false,
+			lastReminded: settings.privacy?.lastReminded as string | undefined,
+		},
+		protection: {
+			enabled: true,
+			level: (settings.defaultProtectionLevel as unknown as "watch" | "warn" | "block") || "warn",
+			autoProtect: true,
+		},
+		notifications: {
+			enabled: (settings.notifications?.enabled as boolean) ?? true,
+			quietHours: (settings.notifications?.quietHours as { start: string; end: string }) || {
+				start: "22:00",
+				end: "08:00",
+			},
+			rateLimit: (settings.notifications?.rateLimit as number) ?? 5,
+		},
+		snapshots: {
+			enabled: (settings.snapshots?.enabled as boolean) ?? true,
+			autoCreate: (settings.snapshots?.autoCreate as boolean) ?? true,
+			retentionDays: (settings.snapshots?.retentionDays as number) ?? 30,
+		},
+		ai: {
+			enabled: (settings.ai?.enabled as boolean) ?? true,
+			context: (settings.ai?.context as boolean) ?? true,
+			copilot: (settings.ai?.copilot as boolean) ?? true,
+		},
+	};
+}
+
+/**
+ * Update a specific configuration value in ConfigStore
+ * @param path Dot notation path (e.g., 'privacy.consent', 'notifications.enabled')
+ * @param value New value
+ */
+export async function updateConfig(path: string, value: unknown): Promise<void> {
+	const store = getInitializedConfigStore();
+	const config = store.getConfig();
+
+	// Update nested property
+	const keys = path.split(".");
+	let current: Record<string, unknown> = config as Record<string, unknown>;
+
+	for (let i = 0; i < keys.length - 1; i++) {
+		if (!(keys[i] in current)) {
+			current[keys[i]] = {};
+		}
+		current = current[keys[i]] as Record<string, unknown>;
+	}
+
+	current[keys[keys.length - 1]] = value;
+	await store.saveVrekorc(config);
+}
+
+/**
+ * Check if privacy consent has been given
+ * @returns Whether privacy consent has been given
+ */
+export function hasPrivacyConsent(): boolean {
+	const store = getInitializedConfigStore();
+	return store.get("settings.privacy.consent") || false;
+}
+
+/**
+ * Check if a specific feature is enabled based on consent
+ * @param feature Feature to check (clipboard, watcher, gitWrapper)
+ * @returns Whether the feature is enabled
+ */
+export function isFeatureEnabled(feature: "clipboard" | "watcher" | "gitWrapper"): boolean {
+	if (!hasPrivacyConsent()) {
+		return false;
+	}
+
+	const store = getInitializedConfigStore();
+	// Type-safe path access per feature
+	if (feature === "clipboard") {
+		return store.get("settings.privacy.clipboard") || false;
+	}
+	if (feature === "watcher") {
+		return store.get("settings.privacy.watcher") || false;
+	}
+	return store.get("settings.privacy.gitWrapper") || false;
+}
+
+/**
+ * Check if protection is enabled
+ * @returns Whether protection is enabled
+ */
+export function isProtectionEnabled(): boolean {
+	const store = getInitializedConfigStore();
+	const level = store.get("settings.defaultProtectionLevel");
+	return level !== "watch";
+}
+
+/**
+ * Get the current protection level
+ * @returns Current protection level
+ */
+export function getProtectionLevel(): "watch" | "warn" | "block" {
+	const store = getInitializedConfigStore();
+	return store.get("settings.defaultProtectionLevel") || "warn";
+}
+
+/**
+ * Check if notifications are enabled
+ * @returns Whether notifications are enabled
+ */
+export function areNotificationsEnabled(): boolean {
+	const store = getInitializedConfigStore();
+	return store.get("settings.notifications.enabled") !== false;
+}
+
+/**
+ * Check if snapshots are enabled
+ * @returns Whether snapshots are enabled
+ */
+export function areSnapshotsEnabled(): boolean {
+	const store = getInitializedConfigStore();
+	return store.get("settings.snapshots.enabled") !== false;
+}
+
+/**
+ * Check if AI features are enabled
+ * @returns Whether AI features are enabled
+ */
+export function isAiEnabled(): boolean {
+	const store = getInitializedConfigStore();
+	return store.get("settings.ai.enabled") !== false;
+}

@@ -1,0 +1,11 @@
+***************
+*** 572
+- vi.mock("../../src/utils/logger", () => ({
+--- 572,578 -----
++ // Mock local logger with child method
++ vi.mock("@vscode/utils/logger", () => ({
++ 	logger: {
++ 		child: vi.fn(() => ({
++ 			info: vi.fn(),
++ 			debug: vi.fn(),
++ 			warn: vi.fn(),

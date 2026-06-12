@@ -1,75 +1,81 @@
 <p align="center">
-  <img width="2172" height="724" alt="vreko-lockup" src="https://github.com/user-attachments/assets/fddd90b6-4bb5-4985-8f73-3b63060c526f" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./media/lockup-white.png" width="400">
+    <img alt="Vreko" src="./media/lockup-dark.png" width="400">
+  </picture>
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode"><img src="https://img.shields.io/visual-studio-marketplace/v/MarcelleLabs.snapback-vscode?style=flat-square&color=4ADE80" alt="Version" /></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode"><img src="https://img.shields.io/visual-studio-marketplace/d/MarcelleLabs.snapback-vscode?style=flat-square&color=4ADE80" alt="Downloads" /></a>
-  <a href="https://discord.gg/B4BXeYkE2F"><img src="https://img.shields.io/discord/1234567890?style=flat-square&color=5865F2&logo=discord&logoColor=white&label=Discord" alt="Discord" /></a>
-  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square" alt="License" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.vreko-vscode"><img src="https://img.shields.io/visual-studio-marketplace/v/MarcelleLabs.vreko-vscode?style=flat-square&color=4ADE80" alt="Version" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.vreko-vscode"><img src="https://img.shields.io/visual-studio-marketplace/d/MarcelleLabs.vreko-vscode?style=flat-square&color=4ADE80" alt="Downloads" /></a>
+  <a href="https://discord.gg/B4BXeYkE2F"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://opensource.org/licenses/GPL-3.0"><img src="https://img.shields.io/badge/License-GPL_3.0-blue.svg?style=flat-square" alt="License" /></a>
 </p>
 
 <p align="center">
-  SnapBack watches every AI-assisted change, learns what breaks in YOUR codebase, and catches disasters before they ship. Works with Cursor, Copilot, Claude, Windsurf, Cline, and more.
+  <strong>Your codebase gets smarter every session.</strong><br />
+  Pattern Memory learns what breaks YOUR code - mistakes don't repeat, patterns compound.
 </p>
 
 <p align="center">
   <a href="#-quick-start">Quick Start</a> ·
-  <a href="#-the-snapback-platform">Platform</a> ·
+  <a href="#-the-vreko-intelligence-platform">Platform</a> ·
   <a href="#-mcp-integration">MCP Integration</a> ·
-  <a href="https://docs.snapback.dev">Documentation</a> ·
+  <a href="https://docs.vreko.dev">Documentation</a> ·
   <a href="https://discord.gg/B4BXeYkE2F">Discord</a>
 </p>
 
 ---
 
-## Why SnapBack?
+## Why Vreko?
 
-AI coding assistants are powerful but unpredictable. They can:
-- Overwrite hours of work in a single paste
-- Break configurations that "always worked"
-- Introduce subtle bugs across multiple files
+AI coding agents are powerful but unpredictable. Vibe-coding with Cursor, Claude Code, or Copilot ships features fast - and introduces regressions just as fast. Vreko turns that unpredictability into **compound intelligence**:
 
-**SnapBack is your safety net.** It runs silently in the background, creating restore points and learning patterns. When AI breaks something—and it will—you're one click away from recovery.
+| Day 1 | Day 30 | Month 3 |
+|-------|--------|---------|
+| Automatic snapshots | Learns YOUR patterns | Catches issues before they ship |
+| AI change detection | Context-aware warnings | Team-wide pattern library |
+| Real-time intelligence | Risk calibration | Mistakes don't repeat |
 
-> *"Day 1: 94% accurate. Day 30: It knows YOUR codebase. Month 3: It catches patterns you didn't know existed."*
+> Your codebase gets smarter every session. Patterns compound. Mistakes don't repeat.
 
 ---
 
-## The SnapBack Platform
+## The Vreko Intelligence Platform
 
-This extension is the **visual interface** to the SnapBack intelligence platform. The full platform includes:
+This extension is one piece of an integrated intelligence system. Each component amplifies the others:
 
-| Component | Purpose |
-|-----------|---------|
-| **VS Code Extension** | Real-time protection, instant recovery, status bar dashboard |
-| **CLI** (`@snapback/cli`) | Terminal workflows, CI/CD integration, automation scripts |
-| **MCP Server** | AI assistant coordination, intelligent checkpointing |
-| **Web Dashboard** | Cross-project analytics, team insights, pattern library |
+| Component | What It Adds |
+|-----------|--------------|
+| **🦎 VS Code Extension** | Visual interface, real-time snapshots, Pattern Memory feedback |
+| **⌨️ CLI** (`@vreko/cli`) | Terminal workflows, CI/CD hooks, automation scripts |
+| **🤖 MCP Server** | AI assistant coordination, context-aware checkpoints, learning capture |
+| **📊 Web Dashboard** | Cross-project insights, team patterns, intelligence analytics |
 
-Install the extension to get started—the intelligence layer works immediately. Add the CLI or MCP server when you're ready for advanced workflows.
+**Start here** → Extension works standalone. Add CLI for terminal workflows. Add MCP to supercharge your AI assistant.
 
 ---
 
 ## Key Capabilities
 
-### Instant Recovery
-Restore any file to any point in seconds. No Git archaeology, no lost work.
+### 🧠 Pattern Memory
 
-### AI Detection
+The intelligence layer that learns YOUR codebase. Day 1: snapshots. Day 30: it knows what breaks. Month 3: catches patterns you didn't know existed.
+
+### ⚡ Time Travel
+
+Access any previous state in <1 second. Compare, diff, learn from what changed.
+
+### 🔍 AI Detection
+
 Automatically detects changes from **11 AI assistants**: GitHub Copilot, Cursor, Claude, Windsurf, Cline, Tabnine, Codeium, Amazon Q, JetBrains AI, Sourcegraph Cody, and more.
 
-### Pattern Learning
-SnapBack learns what breaks in your specific codebase and warns you before the same mistakes happen again.
+### 📊 Status Bar Dashboard
 
-### Status Bar Dashboard
-Click the **SnapBack icon** in your status bar to instantly access:
-- Protection status at a glance
-- Quick actions (snapshot, restore, protect)
-- Jump to your web dashboard
-- Session statistics
+One-click access to session status, quick actions, stats, and web dashboard.
 
-### Privacy-First
+### 🔒 Privacy-First
+
 100% local by default. Your code never leaves your machine. Cloud sync is optional.
 
 ---
@@ -80,15 +86,15 @@ Click the **SnapBack icon** in your status bar to instantly access:
 
 **VS Code Marketplace** (Recommended)
 ```
-ext install MarcelleLabs.snapback-vscode
+ext install MarcelleLabs.vreko-vscode
 ```
 
-Or [install from the marketplace](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
+Or [install from the marketplace](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.vreko-vscode)
 
 ### 2. Protect Your First File
 
 1. Open any critical file (`.env`, `auth.ts`, `database.ts`)
-2. Right-click → **SnapBack: Protect This File**
+2. Right-click → **Vreko: Protect This File**
 3. Choose a protection level:
 
 | Level | Icon | Behavior |
@@ -97,29 +103,29 @@ Or [install from the marketplace](https://marketplace.visualstudio.com/items?ite
 | **Warn** | ⚠️ | Show banner before risky edits |
 | **Block** | 🔒 | Require confirmation for any edit |
 
-### 3. Your First Restore
+### 3. See Pattern Memory in Action
 
-When AI breaks something:
+When Vreko detects a risky change:
 
-1. `Cmd+Shift+P` → **SnapBack: Restore Snapshot**
-2. Select the snapshot (timestamped, with AI tool attribution)
-3. Preview the diff → Confirm
-4. Done. File restored.
+1. You'll see a warning with context about why it's risky
+2. Compare the diff to understand what changed
+3. Accept or revert based on Pattern Memory's guidance
+4. Vreko learns from your decision
 
-**Shortcut**: `Cmd+Shift+S` creates a snapshot, `Cmd+Shift+R` restores.
+**Shortcut**: `Cmd+Shift+S` creates a snapshot, `Cmd+Shift+R` opens the timeline.
 
 ---
 
 ## Status Bar Quick Access
 
-The **SnapBack status bar item** gives you one-click access to everything:
+The **Vreko status bar item** gives you one-click access to everything:
 
 ```
 ┌─────────────────────────────────────┐
-│  SnapBack Quick Actions             │
+│  Vreko Quick Actions             │
 ├─────────────────────────────────────┤
 │  📸  Create Snapshot                │
-│  ↩️   Quick Restore                 │
+│  🧠  View Timeline                  │
 │  🛡️   Protect Current File          │
 │  📊  Open Dashboard                 │
 │  ⚙️   Settings                      │
@@ -132,36 +138,65 @@ Click the status bar → select an action → done. No command palette required.
 
 ## MCP Integration
 
-SnapBack includes a **Model Context Protocol (MCP) server** that enables AI assistants to coordinate with your protection system.
+Vreko includes a **Model Context Protocol (MCP) server** that enables AI assistants to coordinate with your intelligence system.
+
+### MCP Health Guardian
+
+The extension includes **proactive health monitoring** to ensure your MCP server is always ready when AI assistants need it:
+
+- **Fast Detection**: Know about issues in <5s (not 30s)
+- **Adaptive Polling**: Faster checks when you're actively using AI tools
+- **Status Bar Indicator**: Real-time health status with visual feedback
+- **Proactive Alerts**: Toast notifications when MCP becomes unavailable
+- **Zero Surprise Failures**: LLM tools never hit a dead server unexpectedly
+
+**Status Bar States**:
+
+| Icon | Color | Meaning |
+|------|-------|---------|
+| ✓ | Green | MCP healthy and ready |
+| ⚠ | Yellow | MCP degraded (slower than usual) |
+| ✗ | Red | MCP unavailable |
+| ? | Gray | MCP status unknown |
+
+**Configuration**:
+
+```json
+{
+  "vreko.mcp.healthGuardian.enabled": true,
+  "vreko.mcp.healthGuardian.proactiveAlerts": true
+}
+```
 
 ### For AI Assistants (Claude, Cursor, etc.)
 
-When configured, AI assistants can:
+Vreko exposes a **4-tool session API** designed for agentic coding loops. Your AI assistant calls these automatically:
 
 ```
-snap({mode: "start", task: "refactor auth module"})
-→ SnapBack creates checkpoint, returns context
+vreko({ task: "refactor auth module" })
+  → briefing: past learnings, active warnings, lineage chain
 
-snap({mode: "check", files: ["auth.ts"]})
-→ Validates changes against learned patterns
+  [... agent works with full context ...]
 
-snap_end({ok: 1, learnings: ["Always backup before auth changes"]})
-→ Records session outcome for future learning
+vreko_pulse()   // optional mid-session vitals check
+  → pulse: elevated, pressure: 38%, trajectory: stable
+
+vreko_learn({ insight: "always snapshot before token refresh logic" })
+
+vreko_end({ outcome: "completed", summary: "..." })
+  → ceremony: files changed, patterns captured, carry-forward context
 ```
 
-### MCP Tools Available
+### MCP Tools
 
-| Tool | Purpose |
-|------|---------|
-| `snap` | Start task, get context, quick check |
-| `check` | Validate code against patterns |
-| `advise` | Get risk analysis before changes |
-| `pulse` | Health check and session status |
-| `snap_learn` | Record a new pattern |
-| `snap_violation` | Report a mistake for learning |
-| `snap_end` | Complete task with learnings |
-| `snap_fix` | List/restore snapshots |
-| `snap_help` | Get workflow guidance |
+| Tool | When | Purpose |
+|------|------|---------|
+| `vreko` | Start of every task | Opens session, returns intelligence briefing |
+| `vreko_pulse` | Mid-session check | Read-only vitals: pulse, pressure, trajectory |
+| `vreko_learn` | Any discovery | Captures pattern, gotcha, or decision |
+| `vreko_end` | Task complete | Closes session with ceremony and carry-forward context |
+
+The full surface - `check`, `advise`, `safe_to_write`, refactoring and learning intelligence tools - is also available. See [MCP documentation →](https://docs.vreko.dev/mcp)
 
 ### Setup MCP
 
@@ -170,48 +205,53 @@ Add to your AI assistant's MCP configuration:
 ```json
 {
   "mcpServers": {
-    "snapback": {
+    "vreko": {
       "command": "npx",
-      "args": ["@snapback/mcp-server"]
+      "args": ["-y", "@vreko/cli", "mcp", "--stdio", "--workspace", "/absolute/path/to/your/project"],
+      "env": {
+        "VREKO_API_KEY": "your-api-key-here"
+      }
     }
   }
 }
 ```
 
-[Full MCP documentation →](https://docs.snapback.dev/mcp)
+[Full MCP documentation →](https://docs.vreko.dev/mcp)
 
 ---
 
 ## CLI Integration
 
-For terminal workflows and automation, install the SnapBack CLI:
+For terminal workflows and automation, install the Vreko CLI:
 
 ```bash
-npm install -g @snapback/cli
+npm install -g @vreko/cli
+# or
+pnpm add -g @vreko/cli
 ```
 
 ### CLI Commands
 
 ```bash
 # Create a snapshot before risky operations
-snapback snap "before refactor"
+vreko "before refactor"
 
 # List recent snapshots
-snapback list
-
-# Restore a specific snapshot
-snapback restore <snapshot-id>
+vreko list
 
 # Check file against learned patterns
-snapback check src/auth.ts
+vreko check src/auth.ts
 
-# View protection status
-snapback status
+# View intelligence status
+vreko status
+
+# Compare current state with a snapshot
+vreko diff <snapshot-id>
 ```
 
-The CLI shares the same `.snapback/` database as the extension—your snapshots and learnings sync automatically.
+The CLI shares the same `.vreko/` database as the extension - your snapshots and learnings sync automatically.
 
-[CLI documentation →](https://docs.snapback.dev/cli)
+[CLI documentation →](https://docs.vreko.dev/cli)
 
 ---
 
@@ -222,9 +262,9 @@ The CLI shares the same `.snapback/` database as the extension—your snapshots 
 | Command | Shortcut | Description |
 |---------|----------|-------------|
 | **Create Snapshot** | `Cmd+Shift+S` | Snapshot current file state |
-| **Quick Restore** | `Cmd+Shift+R` | Restore most recent snapshot |
-| **Undo AI Change** | — | Revert the last AI-detected change |
-| **View All Snapshots** | — | Browse snapshot history with diffs |
+| **View Timeline** | `Cmd+Shift+R` | Browse snapshot history with diffs |
+| **Compare Changes** |  -  | See what AI changed and why |
+| **View All Snapshots** |  -  | Full snapshot history |
 
 ### Protection Commands
 
@@ -239,21 +279,21 @@ The CLI shares the same `.snapback/` database as the extension—your snapshots 
 
 | Command | Description |
 |---------|-------------|
-| **Restore Session** | Restore multiple files from a session |
+| **Browse Session** | View all changes from a session |
 | **Compare with Snapshot** | Diff current vs snapshot |
 | **Delete Older Snapshots** | Clean up old snapshots |
 
-Access all commands: `Cmd+Shift+P` → type "SnapBack"
+Access all commands: `Cmd+Shift+P` → type "Vreko"
 
 ---
 
 ## Authentication
 
-SnapBack works **100% offline** with full functionality. Sign in to unlock cloud features.
+Vreko works **100% offline** with full functionality. Sign in to unlock cloud features.
 
 ### Sign In (Optional)
 
-1. `Cmd+Shift+P` → **SnapBack: Sign In**
+1. `Cmd+Shift+P` → **Vreko: Sign In**
 2. Browser opens → Sign in with GitHub or Google
 3. Extension auto-connects
 
@@ -269,15 +309,15 @@ SnapBack works **100% offline** with full functionality. Sign in to unlock cloud
 
 ### Sign Out
 
-`Cmd+Shift+P` → **SnapBack: Sign Out** — all local data preserved.
+`Cmd+Shift+P` → **Vreko: Sign Out**  -  all local data preserved.
 
 ---
 
 ## Configuration
 
-### Quick Setup (`.snapbackrc`)
+### Quick Setup (`.vrekorc`)
 
-Create `.snapbackrc` in your workspace root:
+Create `.vrekorc` in your workspace root:
 
 ```json
 {
@@ -299,22 +339,22 @@ Create `.snapbackrc` in your workspace root:
 
 ```json
 {
-  "snapback.autoProtect": true,
-  "snapback.protectionPatterns": ["*.env*", "**/*.key"],
-  "snapback.telemetry": false
+  "vreko.autoProtect": true,
+  "vreko.protectionPatterns": ["*.env*", "**/*.key"],
+  "vreko.telemetry": false
 }
 ```
 
-[Full configuration reference →](https://docs.snapback.dev/configuration)
+[Full configuration reference →](https://docs.vreko.dev/configuration)
 
 ---
 
 ## Privacy & Security
 
-- **Local-first**: All data in `.snapback/` in your workspace
+- **Local-first**: All data in `.vreko/` in your workspace
 - **No telemetry** without explicit consent
 - **No code upload**: We never see your code
-- **Open source**: Audit at [github.com/snapback-dev](https://github.com/snapback-dev)
+- **Open source**: Audit at [github.com/vreko-dev](https://github.com/vreko-dev)
 - **Cloud optional**: Full functionality offline
 
 ---
@@ -325,11 +365,11 @@ Create `.snapbackrc` in your workspace root:
 
 1. Requires VS Code 1.80+
 2. `Cmd+Shift+P` → "Developer: Reload Window"
-3. Check Output panel → "SnapBack" for errors
+3. Check Output panel → "Vreko" for errors
 
 ### Snapshots Not Appearing?
 
-1. Check `.snapback/` directory exists in workspace
+1. Check `.vreko/` directory exists in workspace
 2. Verify file is protected: look for badge in explorer
 3. Confirm disk space available
 
@@ -337,18 +377,18 @@ Create `.snapbackrc` in your workspace root:
 
 1. Verify MCP config syntax
 2. Check AI assistant supports MCP
-3. See [MCP troubleshooting →](https://docs.snapback.dev/mcp-troubleshooting)
+3. See [MCP troubleshooting →](https://docs.vreko.dev/mcp-troubleshooting)
 
 ---
 
 ## Get Help & Give Feedback
 
-We're building SnapBack in public and your feedback shapes the product.
+We're building Vreko in public and your feedback shapes the product.
 
 - **Discord**: [Join our community →](https://discord.gg/B4BXeYkE2F)
-- **GitHub Issues**: [Report bugs →](https://github.com/snapback-dev/vscode/issues)
-- **Feature Requests**: [Discussions →](https://github.com/snapback-dev/vscode/discussions)
-- **Twitter**: [@snapbackdev](https://twitter.com/snapbackdev)
+- **GitHub Issues**: [Report bugs →](https://github.com/vreko-dev/vscode/issues)
+- **Feature Requests**: [Discussions →](https://github.com/vreko-dev/vscode/discussions)
+- **Twitter**: [@vrekodev](https://twitter.com/vrekodev)
 
 ---
 
@@ -356,19 +396,19 @@ We're building SnapBack in public and your feedback shapes the product.
 
 | Resource | Link |
 |----------|------|
-| Documentation | [docs.snapback.dev](https://docs.snapback.dev) |
-| Website | [snapback.dev](https://snapback.dev) |
-| GitHub | [github.com/snapback-dev](https://github.com/snapback-dev) |
-| MCP Server | [@snapback/mcp-server](https://www.npmjs.com/package/@snapback/mcp-server) |
-| CLI | [@snapback/cli](https://www.npmjs.com/package/@snapback/cli) |
-| Changelog | [View releases](https://github.com/snapback-dev/vscode/releases) |
+| Documentation | [docs.vreko.dev](https://docs.vreko.dev) |
+| Website | [vreko.dev](https://vreko.dev) |
+| GitHub | [github.com/vreko-dev](https://github.com/vreko-dev) |
+| CLI | [@vreko/cli](https://www.npmjs.com/package/@vreko/cli) | Includes bundled MCP server |
+| Changelog | [View releases](https://github.com/vreko-dev/vscode/releases) |
 
 ---
 
 <p align="center">
-  <sub>Built with 💚 by <a href="https://snapback.dev">Marcelle Labs</a></sub>
+  <sub>Built with 💚 by <a href="https://vreko.dev">Marcelle Labs</a></sub>
 </p>
 
+
 <p align="center">
-  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square" alt="License" /></a>
+  <a href="https://opensource.org/licenses/GPL-3.0"><img src="https://img.shields.io/badge/License-GPL_3.0-blue.svg?style=flat-square" alt="License" /></a>
 </p>

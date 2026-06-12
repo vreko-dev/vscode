@@ -1,0 +1,31 @@
+{
+  "workspaceId": "unknown",
+  "initializedBy": "extension",
+  "initializedAt": "2026-03-22T10:09:29.669Z",
+  "surfaces": {
+    "extension": {
+      "version": "1.0.0",
+      "lastSeen": "2026-03-22T10:09:29.669Z",
+      "healthy": "healthy"
+    },
+    "cli": {
+      "version": "1.62.0",
+      "lastSeen": "2026-03-22T10:09:32.106Z",
+      "healthy": "healthy"
+    },
+    "mcp": {
+      "version": "1.63.0",
+      "lastSeen": "2026-03-22T10:09:32.282Z",
+      "healthy": "unhealthy"
+    }
+  },
+  "tier": "free",
+  "healthCheck": {
+    "lastCheck": "2026-03-22T10:09:32.282Z",
+    "status": "unhealthy",
+    "issues": [
+      "mcp: unhealthy "
+    ]
+  },
+  "version": 1
+}

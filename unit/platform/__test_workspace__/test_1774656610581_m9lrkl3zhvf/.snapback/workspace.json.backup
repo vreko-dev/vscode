@@ -1,0 +1,19 @@
+{
+  "workspaceId": "unknown",
+  "initializedBy": "extension",
+  "initializedAt": "2026-03-28T00:10:10.582Z",
+  "surfaces": {
+    "extension": {
+      "version": "1.0.0",
+      "lastSeen": "2026-03-28T00:10:10.582Z",
+      "healthy": "healthy"
+    }
+  },
+  "tier": "free",
+  "healthCheck": {
+    "lastCheck": "2026-03-28T00:10:10.582Z",
+    "status": "healthy",
+    "issues": []
+  },
+  "version": 1
+}

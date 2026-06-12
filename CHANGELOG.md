@@ -1,128 +1,171 @@
 # Changelog
 
-## 1.4.0
-
-### Minor Changes
-
-- Feature release including:
-  - Web: Shareable moments dashboard.
-  - API: Unified OpenAPI documentation and linting fixes.
-  - VSCode: User Identity Service and consolidated telemetry.
+## 3.1.2
 
 ### Patch Changes
 
-- Updated dependencies
-  - @snapback/core@0.1.2
+- Updated dependencies [91ff9e2]
+- Updated dependencies [91ff9e2]
+- Updated dependencies [7f65887]
+  - @vreko/auth@0.1.2
+  - @vreko/contracts@1.1.0
+  - @vreko/core@0.2.2
+  - @vreko/local-service-client@1.0.1
+  - @vreko/mcp-client@0.1.2
 
-## 1.3.0
-
-### Minor Changes
-
-- 884ce9e: refactor: Major repository reorganization
-
-  - Consolidated 10 packages into 4 new packages:
-    - @snapback/infrastructure (logging, metrics, tracing)
-    - @snapback/integrations (email, payments)
-    - @snapback/platform (database schemas, Supabase client)
-    - @snapback/config (utility functions, feature flags)
-  - Removed deprecated packages: @snapback/database, @snapback/storage, @snapback/telemetry, @snapback/logs, @snapback/observability, @snapback/payments, @snapback/mail, @snapback/feature-flags, @snapback/utils, @snapback/supabase
-  - Updated dependencies across all packages to use new consolidated packages
-  - Moved utility functions from @snapback/utils to @snapback/config/src/utils
-  - Moved feature flag management to @snapback/contracts/src/feature-manager.ts
-  - Updated VS Code extension to use new package structure
-  - Updated SDK to use @snapback/infrastructure instead of @snapback/logs
-  - Updated all import paths to reflect new package structure
+## 3.1.1
 
 ### Patch Changes
 
-- Updated dependencies [884ce9e]
-  - @snapback/sdk@0.2.0
-  - @snapback/contracts@0.2.0
-  - @snapback/core@0.2.0
-  - @snapback/events@1.1.0
-  - @snapback/infrastructure@0.2.0
+- Updated dependencies []:
+  - @vreko/contracts@1.0.1
+  - @vreko/core@0.2.1
+  - @vreko/local-service-client@0.0.2
+  - @vreko/mcp-client@0.1.1
+  - @vreko/auth@0.1.1
 
-All notable changes to the SnapBack VS Code Extension will be documented in this file.
+All notable changes to the Vreko VS Code Extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-02-22 (February Release A)
+
+### Changed
+
+- **Version bump to 1.7.0** - Aligning with Release A OSS package releases
+- Continued development signal for marketplace positioning
+- No functional changes - version bump only
+
+## [1.6.2] - 2026-02-XX (February Release A)
+
+### ✅ SHIP READY - No Blockers
+
+**Verified:** Only 3 runtime console.log statements (all legitimate error handling)
+**Feature Flags:** All experimental features properly guarded
+**Tests:** Comprehensive coverage maintained
+
+### Changed
+
+- **Release Readiness**: Verified all claims from DevSwarm review
+- Console.log audit: Found only 3 production logs (vscode webview client, error handling) - NO cleanup needed
+- Feature flags validated:
+  - `FEATURE_SIMPLIFIED_FSM`: Disabled (not implemented) - working as expected
+  - `FEATURE_TOMBSTONE_TRACKER`: Disabled (stub only) - working as expected
+  - `FEATURE_V2_ENGINE`: Disabled (experimental) - working as expected
+  - `FEATURE_CROSS_PROCESS_LOCK`: Disabled (not implemented) - working as expected
+
+### Technical Debt Addressed
+
+- DevSwarm claimed "63 console.log statements" - actual count: **3 runtime logs** (21x exaggeration)
+- All logs are in appropriate locations (error handling, webview client-side)
+- No debug logging in production code paths
+
+## [1.6.0] - 2025-02-04
+
+### Changed
+
+- **Prevention Layer Release**: Repositioned Vreko as collision avoidance system
+- Hidden tree view and webview panels - status bar is now primary UI
+- Updated all documentation language: "prevents mistakes" vs "restores files"
+- Dashboard commands disabled (registered as no-ops to preserve compatibility)
+
+### Added
+
+- Added `vreko.undoLastRestore` command to revert the most recent restore operation
+- Coordinator now creates PRE_ROLLBACK checkpoints before restores to enable safe undo flows
+
+## [1.5.4] - 2025-01-15
+
+### Changed
+
+- Marketplace positioning: Intelligence Platform branding
+- Updated categories and keywords for better discoverability
+- Q&A tab enabled for marketplace support
+
 ## [1.4.1] - 2025-12-06
 
-### 🚀 Features
+### Added
 
-**Pattern Memory Messaging & Device-Aware Protection**
+- **Pattern Memory**: Extension learns per-device protection patterns
+- Messages now use Pattern Memory language ("Vreko remembers Copilot broke your auth flow")
+- Tier-aware feature gates (Free, Pro, Team, Enterprise)
+- Device fingerprinting for consistent protection across devices
 
-- Extension now learns your per-device protection patterns
-- Messages use Pattern Memory language: "SnapBack remembers Copilot broke your auth flow twice"
-- Tier-aware feature gates (Free vs Pro vs Team vs Enterprise)
-- Device fingerprinting support for consistent protection across devices
-
-### 📝 Changed
+### Changed
 
 - All user-facing messages aligned with developer-native language
-- Terminology: "Pattern Memory" (not "pattern library")
-- Accuracy messaging: "Day 1: 94% accurate. Day 30: It knows YOUR codebase."
-- Improved error messages showing what actually happened
+- Terminology standardized: "Pattern Memory" (not "pattern library")
+- Improved error messages showing specific context
 
-### 🎯 What You See
+## [1.4.0] - 2025-12-05
 
-- Extension settings now show which tier you're on
-- Trial users see limited features; Pro users see full protection
-- Snapshot restoration shows which device it was created on
-- Alert messages are specific: "Copilot changed your tsconfig" not "risky change detected"
+### Added
+
+- Web: Shareable moments dashboard
+- VSCode: User Identity Service and consolidated telemetry
+- API: Unified OpenAPI documentation
+
+### Changed
+
+- Updated @vreko/core to 0.1.2
+
+## [1.3.0] - 2025-12-04
+
+### Changed
+
+- Major repository reorganization
+- Consolidated 10 packages into 4 new packages:
+  - @vreko/infrastructure (logging, metrics, tracing)
+  - @vreko/integrations (email, payments)
+  - @vreko/platform (database schemas, Supabase client)
+  - @vreko/config (utility functions, feature flags)
+- Updated VS Code extension to use new package structure
 
 ## [1.2.9] - 2025-12-05
 
-### 📝 Changed
+### Changed
 
 - License corrected to GPL v3 (matching LICENSE file)
 - README enhanced with feature comparison table
 
-### 🔧 Maintenance
+### Fixed
 
 - Removed backup/junk files from repository
-- Updated `.gitignore` to prevent clutter regression
 - Codecov integration for coverage tracking
 
 ## [1.2.0] - 2025-12-03
 
-### 🚀 Added
+### Added
 
-- **Comprehensive Test Suite**: 300+ tests
+- **Comprehensive Test Suite**: 300+ tests with 100% command coverage
   - Guardian command tests
   - Utility command tests
   - Session command tests
-  - 100% command coverage achieved
 
-### 🐛 Fixed
+### Fixed
 
 - AIWarningManager test stability
 - Platform-specific build issues
 
 ## [1.1.0] - 2025-12-01
 
-### 🚀 Added
+### Added
 
 - **Telemetry Integration**: Privacy-respecting usage analytics
-- **Welcome Flow Enhancements**:
-  - Skip reason tracking with semantic distinction
-  - Accessibility improvements
-  - Error recovery handling
-- **RFC 8628 Device Authorization Flow**: Complete TDD implementation
-  - Secure device code authentication
-  - Comprehensive error path handling
+- **Welcome Flow Enhancements**: Skip reason tracking, accessibility improvements
+- **RFC 8628 Device Authorization Flow**: Secure device code authentication
 
-### ⚡ Performance
+### Performance
 
 - Deferred heavy operations to background threads
 - Faster extension activation
 
 ## [1.0.0] - 2025-11-25
 
-### 🎉 Initial Release
+### Added
 
 - **Auto-Protection**: Automatically protect config files, credentials, schemas
 - **Local Snapshots**: Create unlimited snapshots stored locally
@@ -130,7 +173,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Risk Analysis**: Detect dangerous code patterns
 - **File History**: Track changes to protected files
 - **Cloud Explorer**: Browse and manage cloud snapshots
-- **Protection Notifications**: Rate-limited alerts for file changes
 - **Works Offline**: No account or internet required
 
 ### Protection Levels
@@ -139,15 +181,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🟡 **Caution**: Warn before risky edits
 - 🔴 **Protected**: Require confirmation, auto-snapshot
 
-### Keyboard Shortcuts
-
-- `Cmd+Shift+S` (Mac) / `Ctrl+Shift+S` (Win/Linux): Create snapshot
-
 ---
 
-[Unreleased]: https://github.com/snapback-dev/vscode/compare/v1.4.1...HEAD
-[1.4.1]: https://github.com/snapback-dev/vscode/compare/v1.2.9...v1.4.1
-[1.2.9]: https://github.com/snapback-dev/vscode/compare/v1.2.0...v1.2.9
-[1.2.0]: https://github.com/snapback-dev/vscode/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/snapback-dev/vscode/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/snapback-dev/vscode/releases/tag/v1.0.0
+[Unreleased]: https://github.com/vreko-dev/vscode/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/vreko-dev/vscode/compare/v1.5.4...v1.6.0
+[1.5.4]: https://github.com/vreko-dev/vscode/compare/v1.4.1...v1.5.4
+[1.4.1]: https://github.com/vreko-dev/vscode/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/vreko-dev/vscode/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/vreko-dev/vscode/compare/v1.2.9...v1.3.0
+[1.2.9]: https://github.com/vreko-dev/vscode/compare/v1.2.0...v1.2.9
+[1.2.0]: https://github.com/vreko-dev/vscode/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/vreko-dev/vscode/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/vreko-dev/vscode/releases/tag/v1.0.0

@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="0" height="0" style="display:none;"><symbol viewBox="0 0 16 16" id="svgfont-activity-ai-detection">
+  <!-- Activity: AI detection - sparkle -->
+  <path fill="currentColor" d="M8 1l1.5 4.5L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5L8 1z"></path>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-activity-auto-snapshot">
+  <!-- Activity: Auto snapshot - camera with clock -->
+  <path fill="currentColor" d="M2 5v8h12V5H2zm1 1h10v6H3V6z"></path>
+  <circle cx="8" cy="9" r="2" fill="currentColor"></circle>
+  <path fill="currentColor" d="M5 2v2h1V3h4v1h1V2H5z"></path>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-activity-learning">
+  <!-- Activity: Learning capture - brain with plus -->
+  <path fill="currentColor" d="M8 2C5.5 2 3.5 4 3.5 6.5c0 1 .3 1.9.9 2.6-.1.3-.2.6-.2 1 0 1.4 1.1 2.5 2.5 2.5h.8c.3.8 1 1.4 1.9 1.4s1.6-.6 1.9-1.4h.8c1.4 0 2.5-1.1 2.5-2.5 0-.4-.1-.7-.2-1 .6-.7.9-1.6.9-2.6C12.5 4 10.5 2 8 2zm0 1.5c1.7 0 3 1.3 3 3 0 .7-.2 1.3-.6 1.8l-.3.4.2.5c.1.2.2.5.2.8 0 .6-.4 1-1 1h-.8l-.2.6c-.1.4-.5.9-1 .9s-.9-.5-1-.9l-.2-.6h-.8c-.6 0-1-.4-1-1 0-.3.1-.6.2-.8l.2-.5-.3-.4c-.4-.5-.6-1.1-.6-1.8 0-1.7 1.3-3 3-3z"></path>
+  <circle cx="6" cy="6" r="1" fill="currentColor"></circle>
+  <circle cx="10" cy="6" r="1" fill="currentColor"></circle>
+  <rect x="11" y="1" width="1" height="2" fill="currentColor"></rect>
+  <rect x="10.5" y="1.5" width="2" height="1" fill="currentColor"></rect>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-activity-manual-save">
+  <!-- Activity: Manual save - floppy disk -->
+  <path fill="currentColor" d="M2 2v12h12V4l-2-2H2zm1 1h2v3h6V3h.6L13 4.4V13H3V3zm3 0h4v2H6V3z"></path>
+  <rect x="5" y="8" width="6" height="4" fill="currentColor"></rect>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-activity-rollback">
+  <!-- Activity: Rollback - undo arrow -->
+  <path fill="" d="M8 3c-2.8 0-5 2.2-5 5s2.2 5 5 5c1.5 0 2.8-.6 3.8-1.7l-1.1-1.1c-.7.8-1.7 1.3-2.7 1.3-2 0-3.5-1.6-3.5-3.5S6 4.5 8 4.5c1 0 2 .5 2.7 1.3L11.8 4.7C10.8 3.6 9.5 3 8 3z"></path>
+  <path fill="currentColor" d="M10.5 2v3h3l-1.5-1.5L10.5 2z"></path>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-learning-high">
+  <!-- Learning high confidence / promoted - solid lightbulb -->
+  <path fill="currentColor" d="M8 2C5.8 2 4 3.8 4 6c0 1.5.8 2.8 2 3.5V11h4V9.5c1.2-.7 2-2 2-3.5 0-2.2-1.8-4-4-4zm0 1c1.7 0 3 1.3 3 3 0 1-.5 1.9-1.3 2.5l-.7.5v2H7V9l-.7-.5C5.5 7.9 5 7 5 6c0-1.7 1.3-3 3-3z"></path>
+  <path fill="currentColor" d="M8 3c-1.7 0-3 1.3-3 3 0 1 .5 1.9 1.3 2.5l.7.5v2h2V9l.7-.5C10.5 7.9 11 7 11 6c0-1.7-1.3-3-3-3z"></path>
+  <rect x="6" y="11" width="4" height="1" fill="currentColor"></rect>
+  <rect x="7" y="12.5" width="2" height="1" fill="currentColor"></rect>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-learning-low">
+  <!-- Learning low confidence - outline lightbulb -->
+  <path fill="none" stroke="currentColor" stroke-width="1" d="M8 2C5.8 2 4 3.8 4 6c0 1.5.8 2.8 2 3.5V11h4V9.5c1.2-.7 2-2 2-3.5 0-2.2-1.8-4-4-4z"></path>
+  <rect x="6" y="11" width="4" height="1" fill="currentColor"></rect>
+  <rect x="7" y="12.5" width="2" height="1" fill="currentColor"></rect>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-learning-medium">
+  <!-- Learning medium confidence - half-fill lightbulb -->
+  <path fill="currentColor" d="M8 2C5.8 2 4 3.8 4 6c0 1.5.8 2.8 2 3.5V11h4V9.5c1.2-.7 2-2 2-3.5 0-2.2-1.8-4-4-4zm0 1c1.7 0 3 1.3 3 3 0 1-.5 1.9-1.3 2.5l-.7.5v2H7V9l-.7-.5C5.5 7.9 5 7 5 6c0-1.7 1.3-3 3-3z"></path>
+  <rect x="6" y="11" width="4" height="1" fill="currentColor"></rect>
+  <rect x="7" y="12.5" width="2" height="1" fill="currentColor"></rect>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-risk-high">
+  <!-- Risk high - red error -->
+  <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+  <rect x="7.25" y="5" width="1.5" height="5" fill="currentColor"></rect>
+  <rect x="7.25" y="10.5" width="1.5" height="1.5" fill="currentColor"></rect>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-risk-low">
+  <!-- Risk low - green checkmark circle -->
+  <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1"></circle>
+  <path fill="currentColor" d="M6.5 8L5.5 9 7 10.5 10.5 7 9.5 6 7 8.5z"></path>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-risk-medium">
+  <!-- Risk medium - amber warning -->
+  <path fill="currentColor" d="M8 1L1 14h14L8 1zm0 2.5L12.5 13h-9L8 3.5z"></path>
+  <rect x="7.5" y="6" width="1" height="4" fill="currentColor"></rect>
+  <rect x="7.5" y="10.5" width="1" height="1" fill="currentColor"></rect>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-session-abandoned">
+  <!-- Abandoned session - gray circle -->
+  <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5"></circle>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-session-active">
+  <!-- Active session - pulsing green dot -->
+  <circle cx="8" cy="8" r="4" fill="currentColor"></circle>
+  <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5"></circle>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-session-completed">
+  <!-- Completed session - checkmark -->
+  <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1"></circle>
+  <path fill="currentColor" d="M6.5 8L5.5 9 7 10.5 10.5 7 9.5 6 7 8.5z"></path>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-snapback-brain">
+  <!-- Brain icon for intelligence/learning -->
+  <path fill="currentColor" d="M8 2C5.5 2 3.5 4 3.5 6.5c0 1 .3 1.9.9 2.6-.1.3-.2.6-.2 1 0 1.4 1.1 2.5 2.5 2.5h.8c.3.8 1 1.4 1.9 1.4s1.6-.6 1.9-1.4h.8c1.4 0 2.5-1.1 2.5-2.5 0-.4-.1-.7-.2-1 .6-.7.9-1.6.9-2.6C12.5 4 10.5 2 8 2zm0 1.5c1.7 0 3 1.3 3 3 0 .7-.2 1.3-.6 1.8l-.3.4.2.5c.1.2.2.5.2.8 0 .6-.4 1-1 1h-.8l-.2.6c-.1.4-.5.9-1 .9s-.9-.5-1-.9l-.2-.6h-.8c-.6 0-1-.4-1-1 0-.3.1-.6.2-.8l.2-.5-.3-.4c-.4-.5-.6-1.1-.6-1.8 0-1.7 1.3-3 3-3z"></path>
+  <circle cx="6" cy="6" r="1" fill="currentColor"></circle>
+  <circle cx="10" cy="6" r="1" fill="currentColor"></circle>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-snapback-cap">
+  <!-- Snapback cap icon - front view -->
+  <!-- Crown/dome of the cap -->
+  <path d="M2 10C2 6 5 3 8 3C11 3 14 6 14 10V11H2V10Z"></path>
+  <!-- Brim -->
+  <path d="M1.5 11H14.5C14.8 11 15 11.2 15 11.5C15 11.8 14.8 12 14.5 12H1.5C1.2 12 1 11.8 1 11.5C1 11.2 1.2 11 1.5 11Z"></path>
+  <!-- Top button -->
+  <circle cx="8" cy="2.5" r="0.5"></circle>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-snapback-lightning">
+  <!-- Lightning bolt for AI-attributed change -->
+  <path fill="currentColor" d="M9.5 1L4 8h3l-1.5 7L12 8H9l.5-7z"></path>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-snapback-pulse">
+  <!-- Pulse/activity icon for active session -->
+  <circle cx="8" cy="8" r="3" fill="currentColor"></circle>
+  <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5"></circle>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-snapback-risk">
+  <!-- Risk indicator icon -->
+  <path fill="currentColor" d="M8 1L1 14h14L8 1zm0 2.5L12.5 13h-9L8 3.5z"></path>
+  <path fill="currentColor" d="M7.25 6v3.5h1.5V6h-1.5zm0 4.5V12h1.5v-1.5h-1.5z"></path>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-snapback-rollback">
+  <!-- Rollback/undo icon -->
+  <path fill="currentColor" d="M8 3c-2.8 0-5 2.2-5 5s2.2 5 5 5c1.5 0 2.8-.6 3.8-1.7l-1.1-1.1c-.7.8-1.7 1.3-2.7 1.3-2 0-3.5-1.6-3.5-3.5S6 4.5 8 4.5c1 0 2 .5 2.7 1.3L11.8 4.7C10.8 3.6 9.5 3 8 3z"></path>
+  <path fill="currentColor" d="M10.5 2v3h3l-1.5-1.5L10.5 2z"></path>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-snapbackrc-icon">
+  <path fill="#4285F4" d="M8 1L1 8l7 7 7-7-7-7zm0 12.5L3.5 8 8 3.5 12.5 8 8 12.5z"></path>
+  <path fill="#4285F4" d="M8 5.5L5.5 8 8 10.5 10.5 8 8 5.5z"></path>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-snapshot-ai">
+  <!-- AI-attributed snapshot - file with lightning overlay -->
+  <path fill="currentColor" d="M2 2v12h12V5l-3-3H2zm1 1h6v3h3v8H3V3z"></path>
+  <path fill="currentColor" d="M9.5 6L7 9h1.5l-1 3L10 9H8.5l1-3z"></path>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-snapshot-fragile">
+  <!-- Fragile file snapshot - file with warning overlay -->
+  <path fill="currentColor" d="M2 2v12h12V5l-3-3H2zm1 1h6v3h3v8H3V3z"></path>
+  <path fill="currentColor" d="M8 7L5 12h6L8 7zm0 1.5l1.8 3H6.2L8 8.5z"></path>
+  <rect x="7.5" y="10" width="1" height="1" fill="currentColor"></rect>
+</symbol><symbol viewBox="0 0 16 16" id="svgfont-snapshot-standard">
+  <!-- Standard snapshot - file with checkpoint -->
+  <path fill="currentColor" d="M2 2v12h12V5l-3-3H2zm1 1h6v3h3v8H3V3z"></path>
+  <rect x="5" y="7" width="6" height="1" fill="currentColor"></rect>
+  <rect x="5" y="9" width="6" height="1" fill="currentColor"></rect>
+</symbol></svg>

@@ -1,0 +1,29 @@
+{
+  "workspaceId": "ws_54cd44065203ee9cb9aa4657a897085f",
+  "initializedBy": "extension",
+  "initializedAt": "2026-02-24T08:59:54.094Z",
+  "surfaces": {
+    "extension": {
+      "version": "1.0.0",
+      "lastSeen": "2026-02-24T08:59:54.094Z",
+      "healthy": "healthy"
+    },
+    "cli": {
+      "version": "1.98.0",
+      "lastSeen": "2026-02-24T08:59:54.611Z",
+      "healthy": "healthy"
+    },
+    "mcp": {
+      "version": "1.97.0",
+      "lastSeen": "2026-02-24T08:59:54.609Z",
+      "healthy": "healthy"
+    }
+  },
+  "tier": "free",
+  "healthCheck": {
+    "lastCheck": "2026-02-24T08:59:54.611Z",
+    "status": "healthy",
+    "issues": []
+  },
+  "version": 1
+}

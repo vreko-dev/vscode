@@ -1,0 +1,48 @@
+{
+	"contributes": {
+		"icons": {
+			"vreko-cap": {
+				"description": "Vreko brand icon",
+				"default": {
+					"fontPath": "./media/fonts/vreko-icons.woff",
+					"fontCharacter": "\\EA10"
+				}
+			},
+			"vreko-lightning": {
+				"description": "AI-attributed change",
+				"default": {
+					"fontPath": "./media/fonts/vreko-icons.woff",
+					"fontCharacter": "\\EA11"
+				}
+			},
+			"vreko-pulse": {
+				"description": "Active session pulse",
+				"default": {
+					"fontPath": "./media/fonts/vreko-icons.woff",
+					"fontCharacter": "\\EA12"
+				}
+			},
+			"vreko-brain": {
+				"description": "Intelligence/learning",
+				"default": {
+					"fontPath": "./media/fonts/vreko-icons.woff",
+					"fontCharacter": "\\EA0F"
+				}
+			},
+			"vreko-rollback": {
+				"description": "Rollback available",
+				"default": {
+					"fontPath": "./media/fonts/vreko-icons.woff",
+					"fontCharacter": "\\EA14"
+				}
+			},
+			"vreko-risk": {
+				"description": "Risk indicator",
+				"default": {
+					"fontPath": "./media/fonts/vreko-icons.woff",
+					"fontCharacter": "\\EA13"
+				}
+			}
+		}
+	}
+}

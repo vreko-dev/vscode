@@ -1,6 +1,6 @@
 {
 	"$schema": "https://json.schemastore.org/tsconfig",
-	"extends": "@snapback/tsconfig/extension",
+	"extends": "@vreko/tsconfig/extension",
 	"compilerOptions": {
 		// CRITICAL: composite must be false to prevent type-checking sibling projects
 		// When composite: true, TypeScript follows project references from root tsconfig.json

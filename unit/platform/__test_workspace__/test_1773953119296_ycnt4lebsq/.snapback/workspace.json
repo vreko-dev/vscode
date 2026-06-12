@@ -1,0 +1,19 @@
+{
+  "workspaceId": "unknown",
+  "initializedBy": "cli",
+  "initializedAt": "2026-03-19T20:45:19.298Z",
+  "surfaces": {
+    "cli": {
+      "version": "1.1.0",
+      "lastSeen": "2026-03-19T20:45:19.298Z",
+      "healthy": "healthy"
+    }
+  },
+  "tier": "free",
+  "healthCheck": {
+    "lastCheck": "2026-03-19T20:45:19.298Z",
+    "status": "healthy",
+    "issues": []
+  },
+  "version": 1
+}

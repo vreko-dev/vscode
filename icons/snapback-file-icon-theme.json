@@ -1,0 +1,13 @@
+{
+	"iconDefinitions": {
+		"_vrekorc": {
+			"iconPath": "./icons/vrekorc-icon.svg"
+		}
+	},
+	"fileNames": {
+		".vrekorc": "_vrekorc"
+	},
+	"fileExtensions": {
+		"vrekorc": "_vrekorc"
+	}
+}

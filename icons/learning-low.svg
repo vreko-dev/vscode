@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- Learning low confidence - outline lightbulb -->
+  <path fill="none" stroke="currentColor" stroke-width="1" d="M8 2C5.8 2 4 3.8 4 6c0 1.5.8 2.8 2 3.5V11h4V9.5c1.2-.7 2-2 2-3.5 0-2.2-1.8-4-4-4z"/>
+  <rect x="6" y="11" width="4" height="1" fill="currentColor"/>
+  <rect x="7" y="12.5" width="2" height="1" fill="currentColor"/>
+</svg>

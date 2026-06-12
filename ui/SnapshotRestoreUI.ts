@@ -1,0 +1,628 @@
+/**
+ * @fileoverview Snapshot Restore UI - GitLens-level restore experience with diff previews
+ *
+ * This module provides a multi-step QuickPick flow for snapshot restoration
+ * with rich diff previews, file selection, and visual change indicators.
+ * Implements a GitLens-inspired UX for professional-grade snapshot management.
+ */
+
+import * as path from "node:path";
+import * as vscode from "vscode";
+import type { OperationCoordinator } from "../operationCoordinator";
+import type { SnapshotDocumentProvider } from "../providers/SnapshotDocumentProvider";
+import { type FileChange as AnalyzerFileChange, analyzeSnapshot } from "../utils/FileChangeAnalyzer";
+import { logger } from "../utils/logger";
+
+/**
+ * UI-specific file change interface with display properties
+ * Adapts FileChangeAnalyzer output for VSCode UI consumption
+ */
+interface VSCodeFileChange {
+	path: string;
+	fileName: string;
+	filePath: string;
+	relativePath: string;
+	changeType: "added" | "modified" | "deleted" | "unchanged";
+	changeSummary: string;
+	icon: string;
+	lineCount: number;
+	snapshotContent: string;
+}
+
+/**
+ * Snapshot restore UI orchestrator
+ *
+ * Provides a multi-phase restoration workflow:
+ * 1. Snapshot Selection - Choose which snapshot to restore
+ * 2. File Selection - Choose which files to restore with change preview
+ * 3. Diff Preview - View side-by-side diffs before committing
+ * 4. Confirmation & Restoration - Execute the restore operation
+ */
+export class SnapshotRestoreUI {
+	private statusBarItem: vscode.StatusBarItem | undefined;
+	private openDiffTabs: vscode.Tab[] = [];
+	private snapshotFiles: Set<string> = new Set();
+
+	constructor(
+		private coordinator: OperationCoordinator,
+		private _snapshotDocumentProvider: SnapshotDocumentProvider,
+		private workspaceRoot: string,
+	) {
+		/* intentionally empty */
+	}
+
+	/**
+	 * Main entry point - starts the multi-step restore workflow
+	 *
+	 * @returns true if restoration was completed, false if cancelled
+	 */
+	async showRestoreWorkflow(): Promise<boolean> {
+		try {
+			// Phase 1: Select snapshot (metadata only)
+			const selectedMeta = await this.selectSnapshot();
+			if (!selectedMeta) {
+				return false; // User cancelled
+			}
+
+			// Phase 1.5: Fetch full content for selected snapshot
+			const snapshot = await this.fetchSnapshotContent(selectedMeta.id, selectedMeta.name);
+			if (!snapshot) {
+				vscode.window.showErrorMessage("Failed to load snapshot content");
+				return false;
+			}
+
+			// Phase 2: Analyze changes and select files
+			const selectedFiles = await this.selectFilesWithPreview(snapshot);
+			if (!selectedFiles || selectedFiles.length === 0) {
+				return false; // User cancelled or no files selected
+			}
+
+			// Phase 3: Show diff previews
+			const shouldRestore = await this.showDiffPreviews(snapshot, selectedFiles);
+			if (!shouldRestore) {
+				await this.cleanupDiffTabs();
+				this.disposeStatusBar(); // P0 FIX: Ensure status bar is disposed when user cancels
+				return false; // User cancelled
+			}
+
+			// Phase 4: Execute restoration
+			const success = await this.executeRestoration(snapshot.id, selectedFiles);
+
+			// Cleanup
+			await this.cleanupDiffTabs();
+			this.disposeStatusBar();
+
+			return success;
+		} catch (error) {
+			logger.error("Restore workflow failed", error as Error);
+			vscode.window.showErrorMessage(
+				`Restore workflow failed: ${error instanceof Error ? error.message : String(error)}`,
+			);
+
+			// Ensure cleanup on error
+			await this.cleanupDiffTabs();
+			this.disposeStatusBar();
+
+			return false;
+		}
+	}
+
+	/**
+	 * Phase 1: Snapshot Selection
+	 *
+	 * Shows a rich QuickPick with snapshot metadata.
+	 * Returns just the ID/name - content is fetched separately.
+	 */
+	private async selectSnapshot(): Promise<{ id: string; name: string; timestamp: number } | undefined> {
+		return vscode.window.withProgress(
+			{
+				location: vscode.ProgressLocation.Window,
+				title: "Loading snapshots...",
+				cancellable: false,
+			},
+			async () => {
+				const snapshots = await this.coordinator.listSnapshots();
+
+				if (snapshots.length === 0) {
+					vscode.window.showInformationMessage("No snapshots available to restore");
+					return undefined;
+				}
+
+				// Create rich QuickPick items (metadata only, no content)
+				// Use anchor file for display with (+N) for multiple files
+				const items = snapshots
+					.sort((a, b) => b.timestamp - a.timestamp)
+					.map((cp) => {
+						const fileName = cp.anchorFile ? path.basename(cp.anchorFile) : cp.name;
+						const fileDisplay = cp.fileCount > 1 ? `${fileName} (+${cp.fileCount - 1})` : fileName;
+						return {
+							label: `⏱️ ${fileDisplay}`,
+							description: this.formatTimeAgo(cp.timestamp),
+							detail: `${cp.fileCount} files`,
+							id: cp.id,
+							timestamp: cp.timestamp,
+							name: fileDisplay, // Use file display as name for downstream
+						};
+					});
+
+				const selected = await vscode.window.showQuickPick(items, {
+					placeHolder: "Select snapshot to restore",
+					matchOnDetail: true,
+					matchOnDescription: true,
+				});
+
+				return selected
+					? {
+							id: selected.id,
+							name: selected.name,
+							timestamp: selected.timestamp,
+						}
+					: undefined;
+			},
+		);
+	}
+
+	/**
+	 * Phase 1.5: Fetch Full Content
+	 *
+	 * After user selects a snapshot, fetch its full content from blob storage.
+	 * This is the KEY fix - content is fetched on-demand, not in list.
+	 */
+	private async fetchSnapshotContent(snapshotId: string, snapshotName: string): Promise<SnapshotInfo | undefined> {
+		return vscode.window.withProgress(
+			{
+				location: vscode.ProgressLocation.Window,
+				title: "Loading snapshot content...",
+				cancellable: false,
+			},
+			async () => {
+				const snapshot = await this.coordinator.getSnapshotWithContent(snapshotId);
+				if (!snapshot) {
+					logger.error("Failed to fetch snapshot content", undefined, { snapshotId });
+					return undefined;
+				}
+
+				return {
+					id: snapshot.id,
+					name: snapshotName,
+					timestamp: snapshot.timestamp,
+					fileContents: snapshot.fileContents,
+				};
+			},
+		);
+	}
+
+	/**
+	 * Phase 2: File Selection with Change Preview
+	 *
+	 * Shows files with change indicators and allows multi-selection
+	 */
+	private async selectFilesWithPreview(snapshot: SnapshotInfo): Promise<VSCodeFileChange[] | undefined> {
+		return vscode.window.withProgress(
+			{
+				location: vscode.ProgressLocation.Window,
+				title: "Analyzing changes...",
+				cancellable: false,
+			},
+			async () => {
+				// Analyze all file changes
+				const analyzerChanges = await analyzeSnapshot(snapshot.fileContents, this.workspaceRoot);
+
+				if (analyzerChanges.length === 0) {
+					vscode.window.showInformationMessage("No files in snapshot");
+					return undefined;
+				}
+
+				// Adapt analyzer output to UI format
+				const changes = this.adaptFileChanges(analyzerChanges, snapshot.fileContents);
+
+				// Create QuickPick with file items
+				const quickPick = vscode.window.createQuickPick<FileChangeQuickPickItem>();
+				quickPick.title = `Restore from: ${snapshot.name}`;
+				quickPick.placeholder = "Select files to restore (Space to toggle, Enter to preview diffs)";
+				quickPick.canSelectMany = true;
+				quickPick.matchOnDetail = true;
+				quickPick.matchOnDescription = true;
+
+				// Create items with change indicators
+				quickPick.items = changes.map((change) => ({
+					label: `$(${change.icon}) ${change.fileName}`,
+					description: change.changeSummary,
+					detail: change.relativePath,
+					picked: change.changeType !== "unchanged", // Auto-select changed files
+					change,
+				}));
+
+				// Auto-select all changed files by default
+				quickPick.selectedItems = quickPick.items.filter((item) => item.picked);
+
+				// Show the picker and wait for user selection
+				return new Promise<VSCodeFileChange[] | undefined>((resolve) => {
+					quickPick.onDidAccept(() => {
+						const selected = quickPick.selectedItems.map((item) => item.change);
+						quickPick.dispose();
+						resolve(selected);
+					});
+
+					quickPick.onDidHide(() => {
+						quickPick.dispose();
+						resolve(undefined);
+					});
+
+					quickPick.show();
+				});
+			},
+		);
+	}
+
+	/**
+	 * Adapt FileChangeAnalyzer output to VSCode UI format
+	 */
+	private adaptFileChanges(
+		analyzerChanges: AnalyzerFileChange[],
+		snapshotFiles: Record<string, string>,
+	): VSCodeFileChange[] {
+		return analyzerChanges.map((change) => {
+			const fileName = path.basename(change.path);
+			// Map analyzer types to UI types
+			let changeType: "added" | "modified" | "deleted" | "unchanged";
+			if (change.type === "renamed") {
+				changeType = "modified";
+			} else {
+				// Check if file is actually unchanged
+				const hasChanges = change.linesAdded > 0 || change.linesRemoved > 0;
+				changeType = hasChanges ? change.type : "unchanged";
+			}
+			const icon = this.getChangeIcon(changeType);
+			const changeSummary = this.getChangeSummary(change);
+			const snapshotContent = snapshotFiles[change.relativePath] || change.previousContent || "";
+
+			return {
+				path: change.path,
+				fileName,
+				filePath: change.path,
+				relativePath: change.relativePath,
+				changeType,
+				changeSummary,
+				icon,
+				lineCount: change.linesAdded + change.linesRemoved,
+				snapshotContent,
+			};
+		});
+	}
+
+	/**
+	 * Get icon for change type
+	 */
+	private getChangeIcon(changeType: "added" | "modified" | "deleted" | "unchanged"): string {
+		switch (changeType) {
+			case "added":
+				return "diff-added";
+			case "modified":
+				return "diff-modified";
+			case "deleted":
+				return "diff-removed";
+			case "unchanged":
+				return "circle-outline";
+			default:
+				return "file";
+		}
+	}
+
+	/**
+	 * Get change summary text
+	 */
+	private getChangeSummary(change: AnalyzerFileChange): string {
+		if (change.type === "deleted") {
+			return `Deleted (${change.linesRemoved} lines)`;
+		}
+		if (change.linesAdded === 0 && change.linesRemoved === 0) {
+			return "No changes";
+		}
+		const parts: string[] = [];
+		if (change.linesAdded > 0) {
+			parts.push(`+${change.linesAdded}`);
+		}
+		if (change.linesRemoved > 0) {
+			parts.push(`-${change.linesRemoved}`);
+		}
+		return parts.join(", ");
+	}
+
+	/**
+	 * Phase 3: Show Diff Previews
+	 *
+	 * Opens side-by-side diffs for all selected files and shows action bar
+	 */
+	private async showDiffPreviews(snapshot: SnapshotInfo, selectedFiles: VSCodeFileChange[]): Promise<boolean> {
+		logger.info("Opening diff previews", {
+			snapshotId: snapshot.id,
+			fileCount: selectedFiles.length,
+		});
+
+		// Clear previous tracking
+		this.openDiffTabs = [];
+		this.snapshotFiles.clear();
+
+		// Register snapshot content with provider
+		for (const fileChange of selectedFiles) {
+			this._snapshotDocumentProvider.setSnapshotContent(
+				snapshot.id,
+				fileChange.filePath,
+				fileChange.snapshotContent,
+			);
+			// Track files for cleanup
+			this.snapshotFiles.add(fileChange.filePath);
+		}
+
+		// Open diffs for all files and track them properly
+		const openedTabs: vscode.Tab[] = [];
+		for (const fileChange of selectedFiles) {
+			try {
+				// Skip unchanged files
+				if (fileChange.changeType === "unchanged") {
+					continue;
+				}
+
+				// Create URIs for diff editor
+				// Format: vreko-snapshot:snapshot-id/file/path.ts
+				const snapshotUri = vscode.Uri.parse(`vreko-snapshot:${snapshot.id}/${fileChange.filePath}`);
+
+				const currentUri = vscode.Uri.file(fileChange.filePath);
+
+				// Open side-by-side diff
+				await vscode.commands.executeCommand(
+					"vscode.diff",
+					snapshotUri,
+					currentUri,
+					`Snapshot ← ${fileChange.fileName} → Current`,
+				);
+
+				// Track the opened tab by looking for tabs that contain our diff
+				// Wait a bit for the tab to be created
+				await new Promise((resolve) => setTimeout(resolve, 100));
+
+				const tabs = vscode.window.tabGroups.all
+					.flatMap((group) => group.tabs)
+					.filter((tab) => {
+						// Use proper VS Code API for tab input detection
+						if (tab.input instanceof vscode.TabInputTextDiff) {
+							return (
+								tab.input.original.toString() === snapshotUri.toString() &&
+								tab.input.modified.toString() === currentUri.toString()
+							);
+						}
+						return false;
+					});
+
+				if (tabs.length > 0) {
+					openedTabs.push(...tabs);
+				}
+			} catch (error) {
+				logger.error("Failed to open diff for file", error as Error, {
+					filePath: fileChange.filePath,
+				});
+			}
+		}
+
+		// Set the tracked tabs
+		this.openDiffTabs = openedTabs;
+
+		// Show status bar with action buttons
+		this.showRestoreStatusBar(snapshot.name, selectedFiles.length);
+
+		// Wait for user decision
+		return this.waitForRestoreDecision(snapshot.name, selectedFiles.length);
+	}
+
+	/**
+	 * Shows restore status - DEPRECATED
+	 * @deprecated Status bar removed - uses toast notification instead
+	 */
+	private showRestoreStatusBar(snapshotName: string, fileCount: number): void {
+		// NO LONGER CREATES STATUS BAR ITEM
+		// Show a brief toast notification instead
+		void vscode.window.showInformationMessage(
+			`📦 Reviewing: ${snapshotName} (${fileCount} files) - Use Command Palette to Restore or Cancel`,
+		);
+	}
+
+	/**
+	 * Waits for user to click Restore or Cancel
+	 *
+	 * P1 FIX: Also monitors for tab close events to detect when user closes diffs manually
+	 * P2 FIX: Uses disposal guard to prevent double-disposal of commands
+	 */
+	private async waitForRestoreDecision(_snapshotName: string, _fileCount: number): Promise<boolean> {
+		// Create a promise that resolves when the user makes a decision
+		return new Promise<boolean>((resolve) => {
+			// P2 FIX: Guard against double-disposal
+			let isDisposed = false;
+
+			// Cleanup function that safely disposes all resources
+			const cleanup = () => {
+				if (isDisposed) {
+					return; // P2 FIX: Prevent double-disposal
+				}
+				isDisposed = true;
+				restoreCommand.dispose();
+				cancelCommand.dispose();
+				tabWatcher?.dispose(); // P1 FIX: Clean up tab watcher
+			};
+
+			// Set up command handlers for the status bar actions
+			const restoreCommand = vscode.commands.registerCommand("vreko.internal.restoreFromPreview", () => {
+				cleanup();
+				resolve(true);
+			});
+
+			const cancelCommand = vscode.commands.registerCommand("vreko.internal.cancelRestore", () => {
+				cleanup();
+				resolve(false);
+			});
+
+			// P1 FIX: Watch for tab close events
+			// If user closes all diff tabs, treat as cancel
+			const tabWatcher = vscode.window.tabGroups.onDidChangeTabs(() => {
+				// Check if any of our tracked diff tabs are still open
+				const remainingDiffTabs = this.openDiffTabs.filter((tab) => {
+					// Check if this tab still exists in any tab group
+					return vscode.window.tabGroups.all.flatMap((group) => group.tabs).some((t) => t === tab);
+				});
+
+				// If all diff tabs are closed, treat as cancel
+				if (remainingDiffTabs.length === 0 && this.openDiffTabs.length > 0) {
+					logger.info("All diff tabs closed by user, cancelling restore");
+					cleanup();
+					this.disposeStatusBar(); // Clean up status bar since we're resolving early
+					resolve(false);
+				}
+
+				// Update tracked tabs
+				this.openDiffTabs = remainingDiffTabs;
+			});
+
+			/**
+			 * MVP Note: Modal dialog has been commented out for MVP and will be replaced with
+			 * inline CodeLens + status-bar toast UI instead of full-screen modals.
+			 *
+			 * For context: Modal dialogs create interruption cost for users. The MVP approach
+			 * uses inline banners with "Allow once · Mark wrong · Details" chips that store
+			 * rationale without flow break.
+			 */
+
+			// MVP implementation: Show non-modal information message for restore decision
+			// User can click status bar OR respond to this message
+			vscode.window
+				.showInformationMessage("Review the diffs in the editor. Ready to restore?", "Restore Files", "Cancel")
+				.then((decision) => {
+					if (isDisposed) {
+						return; // P2 FIX: Already resolved via another path
+					}
+					cleanup();
+					resolve(decision === "Restore Files");
+				});
+		});
+	}
+
+	/**
+	 * Phase 4: Execute Restoration
+	 */
+	private async executeRestoration(snapshotId: string, selectedFiles: VSCodeFileChange[]): Promise<boolean> {
+		return vscode.window.withProgress(
+			{
+				location: vscode.ProgressLocation.Notification,
+				title: "Restoring snapshot...",
+				cancellable: false,
+			},
+			async (progress) => {
+				try {
+					progress.report({ message: "Applying changes..." });
+
+					// Extract file paths for restoration
+					const filePaths = selectedFiles.map((f) => f.filePath);
+
+					// Execute restoration through coordinator
+					const result = await this.coordinator.restoreToSnapshot(snapshotId, {
+						files: filePaths,
+					});
+
+					if (result) {
+						vscode.window.showInformationMessage(
+							`Vreko complete - Restored ${selectedFiles.length} files successfully`,
+						);
+						return true;
+					}
+
+					vscode.window.showErrorMessage("Failed to restore snapshot");
+					return false;
+				} catch (error) {
+					logger.error("Restoration failed", error as Error);
+					vscode.window.showErrorMessage(
+						`Restoration failed: ${error instanceof Error ? error.message : String(error)}`,
+					);
+					return false;
+				}
+			},
+		);
+	}
+
+	/**
+	 * Cleanup: Close all diff editors
+	 */
+	private async cleanupDiffTabs(): Promise<void> {
+		// Close tracked diff tabs
+		for (const tab of this.openDiffTabs) {
+			try {
+				await vscode.window.tabGroups.close(tab);
+			} catch (error) {
+				logger.warn("Failed to close diff tab", error as Error);
+			}
+		}
+
+		// Clear all snapshot content to prevent memory leaks
+		try {
+			// @ts-expect-error - We need to access the contentMap to clear it
+			this._snapshotDocumentProvider.contentMap?.clear();
+		} catch (error) {
+			logger.warn("Failed to clear snapshot content", error as Error);
+		}
+
+		// Clear tracking arrays
+		this.openDiffTabs = [];
+		this.snapshotFiles.clear();
+
+		logger.info("Closed diff preview tabs and cleared snapshot content");
+	}
+
+	/**
+	 * Cleanup: Dispose status bar
+	 */
+	private disposeStatusBar(): void {
+		if (this.statusBarItem) {
+			this.statusBarItem.dispose();
+			this.statusBarItem = undefined;
+		}
+	}
+
+	/**
+	 * Formats a timestamp into a human-readable "time ago" string
+	 */
+	private formatTimeAgo(timestamp: number): string {
+		const now = Date.now();
+		const diffMs = now - timestamp;
+		const diffSec = Math.floor(diffMs / 1000);
+		const diffMin = Math.floor(diffSec / 60);
+		const diffHours = Math.floor(diffMin / 60);
+		const diffDays = Math.floor(diffHours / 24);
+
+		if (diffSec < 60) {
+			return `${diffSec}s ago`;
+		}
+		if (diffMin < 60) {
+			return `${diffMin}m ago`;
+		}
+		if (diffHours < 24) {
+			return `${diffHours}h ago`;
+		}
+		return `${diffDays}d ago`;
+	}
+}
+
+/**
+ * Snapshot information for UI
+ */
+interface SnapshotInfo {
+	id: string;
+	name: string;
+	timestamp: number;
+	fileContents: Record<string, string>;
+}
+
+/**
+ * QuickPick item for file selection
+ */
+interface FileChangeQuickPickItem extends vscode.QuickPickItem {
+	change: VSCodeFileChange;
+	picked: boolean;
+}

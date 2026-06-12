@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140" fill="currentColor">
+  <!-- Gecko top-down silhouette (placeholder  -  replace with final brand SVG) -->
+  <path d="M50 4 L36 20 L50 17 L64 20 Z"/>
+  <path d="M41 18 Q34 26 34 42 Q34 66 38 82 L50 87 L62 82 Q66 66 66 42 Q66 26 59 18 Z"/>
+  <path d="M44 84 Q41 97 43 112 Q46 120 50 122 Q54 120 57 112 Q59 97 56 84 Z"/>
+  <path d="M36 34 L22 28 L16 36 L20 40 L24 44 L20 52 L28 52 L28 46 L32 50 L34 44 Z"/>
+  <path d="M64 34 L78 28 L84 36 L80 40 L76 44 L80 52 L72 52 L72 46 L68 50 L66 44 Z"/>
+  <path d="M36 64 L20 70 L14 80 L20 82 L22 78 L20 86 L28 86 L28 78 L32 84 L36 76 Z"/>
+  <path d="M64 64 L80 70 L86 80 L80 82 L78 78 L80 86 L72 86 L72 78 L68 84 L64 76 Z"/>
+</svg>

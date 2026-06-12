@@ -1,966 +1,992 @@
 {
-  "name": "snapback-vscode",
-  "description": "Automatic snapshots for AI-assisted coding. Recover what Cursor, Copilot, or Claude overwrote in <1 second. Your code never leaves your machine.",
-  "version": "1.5.4",
+  "name": "vreko-vscode",
+  "description": "AI code intelligence that learns YOUR patterns. Vreko detects changes, prevents repeated mistakes, and surfaces warnings before the next AI-introduced regression.",
+  "version": "3.1.2",
   "activationEvents": [
     "onStartupFinished",
-    "onCommand:snapback.*",
-    "workspaceContains:.snapbackrc"
+    "onCommand:vreko.*",
+    "onCommand:vreko.*",
+    "workspaceContains:.vrekorc",
+    "workspaceContains:.vrekorc"
   ],
-  "bugs": "https://github.com/snapback-dev/vscode/issues",
+  "bugs": "https://github.com/vreko-dev/vscode/issues",
+  "qna": "https://github.com/vreko-dev/vscode/discussions",
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "SnapBack requires workspace trust to create snapshots and analyze files. In untrusted workspaces, SnapBack will only provide read-only snapshot viewing.",
+      "description": "Vreko requires workspace trust to create snapshots and analyze files. In untrusted workspaces, Vreko will only provide read-only snapshot viewing.",
       "restrictedConfigurations": [
-        "snapback.snapshot.autoCreate",
-        "snapback.config.enableExecutableConfigs",
-        "snapback.guardian.enabled"
+        "vreko.snapshot.autoCreate",
+        "vreko.config.enableExecutableConfigs",
+        "vreko.guardian.enabled"
       ]
     }
   },
   "categories": [
+    "Machine Learning",
+    "Testing",
     "Other"
   ],
   "keywords": [
-    "ai",
-    "code protection",
-    "cursor",
-    "copilot",
-    "claude",
-    "backup",
-    "recovery",
-    "snapshots",
-    "undo",
-    "safety",
-    "ai coding",
-    "ai assistant",
-    "code safety",
-    "restore",
-    "snapshot",
-    "windsurf",
-    "local-first",
-    "privacy"
+    "ai code intelligence",
+    "copilot code learning",
+    "claude code memory",
+    "windsurf cascade intelligence",
+    "ai coding assistant",
+    "code snapshots",
+    "local-first ai",
+    "mcp server",
+    "code intelligence",
+    "ai detector",
+    "codebase learning",
+    "github copilot intelligence",
+    "codebase memory",
+    "behavioral intelligence",
+    "workspace intelligence"
   ],
   "contributes": {
+    "colors": [
+      {
+        "id": "vreko.aiModifiedBadge",
+        "description": "Badge color for AI-modified files in Explorer",
+        "defaults": {
+          "dark": "#60A5FA",
+          "light": "#2563EB",
+          "highContrast": "#93C5FD"
+        }
+      },
+      {
+        "id": "vreko.fragileFileBadge",
+        "description": "Badge color for fragile files in Explorer",
+        "defaults": {
+          "dark": "#FF6B35",
+          "light": "#E85D2B",
+          "highContrast": "#FFB088"
+        }
+      },
+      {
+        "id": "vreko.fragileFileHighlight",
+        "description": "Background tint for fragile files in editor",
+        "defaults": {
+          "dark": "#FF6B3520",
+          "light": "#E85D2B15",
+          "highContrast": "#FF6B3540"
+        }
+      },
+      {
+        "id": "vreko.aiModifiedGutter",
+        "description": "Gutter color for AI-modified lines",
+        "defaults": {
+          "dark": "#60A5FA",
+          "light": "#2563EB",
+          "highContrast": "#93C5FD"
+        }
+      },
+      {
+        "id": "vreko.riskHigh",
+        "description": "High risk indicator color",
+        "defaults": {
+          "dark": "#EF4444",
+          "light": "#DC2626",
+          "highContrast": "#F87171"
+        }
+      },
+      {
+        "id": "vreko.riskMedium",
+        "description": "Medium/elevated risk indicator color",
+        "defaults": {
+          "dark": "#F59E0B",
+          "light": "#D97706",
+          "highContrast": "#FBBF24"
+        }
+      },
+      {
+        "id": "vreko.riskLow",
+        "description": "Low risk / normal indicator color (Vreko green)",
+        "defaults": {
+          "dark": "#4ADE80",
+          "light": "#16A34A",
+          "highContrast": "#86EFAC"
+        }
+      },
+      {
+        "id": "vreko.sessionActive",
+        "description": "Active session indicator color",
+        "defaults": {
+          "dark": "#4ADE80",
+          "light": "#16A34A",
+          "highContrast": "#86EFAC"
+        }
+      },
+      {
+        "id": "vreko.snapshotCoverage",
+        "description": "Gutter mark for snapshot-covered ranges",
+        "defaults": {
+          "dark": "#4ADE8040",
+          "light": "#16A34A30",
+          "highContrast": "#4ADE8060"
+        }
+      },
+      {
+        "id": "vreko.coherenceHigh",
+        "description": "High coherence score color",
+        "defaults": {
+          "dark": "#4ADE80",
+          "light": "#16A34A",
+          "highContrast": "#86EFAC"
+        }
+      },
+      {
+        "id": "vreko.coherenceLow",
+        "description": "Low coherence score color",
+        "defaults": {
+          "dark": "#FF6B35",
+          "light": "#E85D2B",
+          "highContrast": "#FFB088"
+        }
+      },
+      {
+        "id": "vreko.fileHeatWarm",
+        "description": "Warm file heat indicator (5+ changes)",
+        "defaults": {
+          "dark": "#F59E0B",
+          "light": "#D97706",
+          "highContrast": "#FBBF24"
+        }
+      },
+      {
+        "id": "vreko.fileHeatHot",
+        "description": "Hot file heat indicator (10+ changes)",
+        "defaults": {
+          "dark": "#EF4444",
+          "light": "#DC2626",
+          "highContrast": "#F87171"
+        }
+      },
+      {
+        "id": "vreko.statusBar.protected",
+        "description": "Status bar color when snapshot is successfully saved",
+        "defaults": {
+          "dark": "#4ADE80",
+          "light": "#16A34A",
+          "highContrast": "#86EFAC"
+        }
+      },
+      {
+        "id": "vreko.statusBar.alert",
+        "description": "Status bar color when risk is detected",
+        "defaults": {
+          "dark": "#F59E0B",
+          "light": "#D97706",
+          "highContrast": "#FBBF24"
+        }
+      },
+      {
+        "id": "vreko.statusBar.error",
+        "description": "Status bar color for system errors",
+        "defaults": {
+          "dark": "#EF4444",
+          "light": "#DC2626",
+          "highContrast": "#F87171"
+        }
+      }
+    ],
+    "icons": {
+      "vreko-cap": {
+        "description": "Vreko brand icon",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA10"
+        }
+      },
+      "vreko-lightning": {
+        "description": "AI-attributed change",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA11"
+        }
+      },
+      "vreko-pulse": {
+        "description": "Active session pulse",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA12"
+        }
+      },
+      "vreko-brain": {
+        "description": "Intelligence/learning",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA0F"
+        }
+      },
+      "vreko-rollback": {
+        "description": "Rollback available",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA14"
+        }
+      },
+      "vreko-risk": {
+        "description": "Risk indicator",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA13"
+        }
+      },
+      "session-active": {
+        "description": "Active session indicator",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA0D"
+        }
+      },
+      "session-completed": {
+        "description": "Completed session",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA0E"
+        }
+      },
+      "session-abandoned": {
+        "description": "Abandoned session",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA0C"
+        }
+      },
+      "snapshot-standard": {
+        "description": "Standard snapshot",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA18"
+        }
+      },
+      "snapshot-ai": {
+        "description": "AI-attributed snapshot",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA16"
+        }
+      },
+      "snapshot-fragile": {
+        "description": "Fragile file snapshot",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA17"
+        }
+      },
+      "learning-low": {
+        "description": "Low confidence learning",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA07"
+        }
+      },
+      "learning-medium": {
+        "description": "Medium confidence learning",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA08"
+        }
+      },
+      "learning-high": {
+        "description": "High confidence/promoted learning",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA06"
+        }
+      },
+      "risk-low": {
+        "description": "Low risk indicator",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA0A"
+        }
+      },
+      "risk-medium": {
+        "description": "Medium risk indicator",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA0B"
+        }
+      },
+      "risk-high": {
+        "description": "High risk indicator",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA09"
+        }
+      },
+      "activity-manual-save": {
+        "description": "Manual save activity",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA04"
+        }
+      },
+      "activity-auto-snapshot": {
+        "description": "Auto snapshot activity",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA02"
+        }
+      },
+      "activity-ai-detection": {
+        "description": "AI detection activity",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA01"
+        }
+      },
+      "activity-rollback": {
+        "description": "Rollback activity",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA05"
+        }
+      },
+      "activity-learning": {
+        "description": "Learning capture activity",
+        "default": {
+          "fontPath": "./media/fonts/vreko-icons.woff",
+          "fontCharacter": "\\EA03"
+        }
+      }
+    },
     "authentication": [
       {
-        "id": "snapback",
-        "label": "SnapBack"
+        "id": "vreko",
+        "label": "Vreko"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "vreko",
+        "name": "Vreko",
+        "description": "AI-powered code safety assistant. Query activity, manage snapshots, and protect files.",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "status",
+            "description": "Show Vreko protection status"
+          },
+          {
+            "name": "activity",
+            "description": "Show recent activity and events"
+          },
+          {
+            "name": "snapshots",
+            "description": "List and manage snapshots"
+          },
+          {
+            "name": "protect",
+            "description": "Protect the current file"
+          }
+        ]
       }
     ],
     "commands": [
       {
-        "command": "snapback.openOnboarding",
-        "title": "Open Setup Wizard",
-        "category": "SnapBack"
-      },
-      {
-        "command": "snapback.protectFile",
-        "title": "Protect File",
-        "category": "SnapBack",
+        "command": "vreko.protectFile",
+        "title": "Vreko: Protect File",
         "icon": "$(shield)"
       },
       {
-        "command": "snapback.protectCurrentFile",
-        "title": "Protect Current File",
-        "category": "SnapBack",
+        "command": "vreko.protectEntireRepo",
+        "title": "Vreko: Apply Protection Defaults",
         "icon": "$(shield)"
       },
       {
-        "command": "snapback.protectEntireRepo",
-        "title": "Apply Protection Defaults",
-        "category": "SnapBack",
-        "icon": "$(shield)"
-      },
-      {
-        "command": "snapback.unprotectFile",
-        "title": "Unprotect File",
-        "category": "SnapBack",
+        "command": "vreko.unprotectFile",
+        "title": "Vreko: Unprotect File",
         "icon": "$(unlock)"
       },
       {
-        "command": "snapback.changeProtectionLevel",
-        "title": "Change Protection Level",
-        "category": "SnapBack",
-        "icon": "$(settings-gear)"
-      },
-      {
-        "command": "snapback.setWatchLevel",
-        "title": "Set Protection: Watch (Silent)",
-        "category": "SnapBack",
+        "command": "vreko.setWatchLevel",
+        "title": "Vreko: Set Protection to Watch",
         "icon": "$(eye)"
       },
       {
-        "command": "snapback.setWarnLevel",
-        "title": "Set Protection: Warn (Notify)",
-        "category": "SnapBack",
+        "command": "vreko.setWarnLevel",
+        "title": "Vreko: Set Protection to Warn",
         "icon": "$(warning)"
       },
       {
-        "command": "snapback.setBlockLevel",
-        "title": "Set Protection: Block (Required)",
-        "category": "SnapBack",
+        "command": "vreko.setBlockLevel",
+        "title": "Vreko: Set Protection to Block",
         "icon": "$(error)"
       },
       {
-        "command": "snapback.showAllProtectedFiles",
-        "title": "Show All Protected Files",
-        "category": "SnapBack",
+        "command": "vreko.showAllProtectedFiles",
+        "title": "Vreko: Show All Protected Files",
         "icon": "$(list-tree)"
       },
       {
-        "command": "snapback.createPolicyOverride",
-        "title": "Create Policy Override",
-        "category": "SnapBack",
-        "icon": "$(symbol-event)"
-      },
-      {
-        "command": "snapback.createSnapshot",
-        "title": "Create Snapshot",
-        "category": "SnapBack",
-        "icon": "$(save)"
-      },
-      {
-        "command": "snapback.snapBack",
-        "title": "Snap Back (Restore)",
-        "category": "SnapBack",
+        "command": "vreko.restoreLastSnapshot",
+        "title": "Vreko: Restore Last Snapshot",
         "icon": "$(history)"
       },
       {
-        "command": "snapback.restoreLastSnapshot",
-        "title": "Restore Last Snapshot",
-        "category": "SnapBack",
-        "icon": "$(history)"
-      },
-      {
-        "command": "snapback.undoLastAIChange",
-        "title": "Undo Last AI Change",
-        "category": "SnapBack",
+        "command": "vreko.undoLastAIChange",
+        "title": "Vreko: Undo Last AI Change",
         "icon": "$(discard)"
       },
       {
-        "command": "snapback.session.restore",
-        "title": "Restore Session",
-        "category": "SnapBack",
+        "command": "vreko.session.restore",
+        "title": "Vreko: Restore Session",
         "icon": "$(debug-step-back)"
       },
       {
-        "command": "snapback.viewSnapshot",
-        "title": "View Snapshot Details",
-        "category": "SnapBack",
-        "icon": "$(info)"
-      },
-      {
-        "command": "snapback.showAllSnapshots",
-        "title": "Show All Snapshots",
-        "category": "SnapBack",
-        "icon": "$(archive)"
-      },
-      {
-        "command": "snapback.compareWithSnapshot",
-        "title": "Compare with Snapshot",
-        "category": "SnapBack",
+        "command": "vreko.compareWithSnapshot",
+        "title": "Vreko: Compare with Snapshot",
         "icon": "$(diff)"
       },
       {
-        "command": "snapback.renameSnapshot",
-        "title": "Rename Snapshot",
-        "category": "SnapBack",
+        "command": "vreko.renameSnapshot",
+        "title": "Vreko: Rename Snapshot",
         "icon": "$(edit)"
       },
       {
-        "command": "snapback.protectSnapshot",
-        "title": "Protect Snapshot",
-        "category": "SnapBack",
+        "command": "vreko.protectSnapshot",
+        "title": "Vreko: Protect Snapshot",
         "icon": "$(shield)"
       },
       {
-        "command": "snapback.deleteSnapshot",
-        "title": "Delete Snapshot",
-        "category": "SnapBack",
+        "command": "vreko.deleteSnapshot",
+        "title": "Vreko: Delete Snapshot",
         "icon": "$(trash)"
       },
       {
-        "command": "snapback.restoreSnapshot",
-        "title": "Restore Snapshot",
-        "category": "SnapBack",
-        "icon": "$(debug-step-back)"
-      },
-      {
-        "command": "snapback.snapshot.showFileDiff",
-        "title": "Compare with Current",
-        "category": "SnapBack",
-        "icon": "$(diff)"
-      },
-      {
-        "command": "snapback.deleteOlderSnapshots",
-        "title": "Delete Older Snapshots",
-        "category": "SnapBack",
+        "command": "vreko.deleteOlderSnapshots",
+        "title": "Vreko: Delete Older Snapshots",
         "icon": "$(clear-all)"
       },
       {
-        "command": "snapback.unprotectAndDeleteSnapshot",
-        "title": "Unprotect and Delete Snapshot",
-        "category": "SnapBack",
+        "command": "vreko.unprotectAndDeleteSnapshot",
+        "title": "Vreko: Unprotect and Delete Snapshot",
         "icon": "$(trash)"
       },
       {
-        "command": "snapback.openSnapshotInWeb",
-        "title": "Open Snapshot in Web",
-        "category": "SnapBack",
-        "icon": "$(link-external)"
-      },
-      {
-        "command": "snapback.showStatus",
-        "title": "Show Protection Status",
-        "category": "SnapBack",
-        "icon": "$(dashboard)"
-      },
-      {
-        "command": "snapback.refreshViews",
-        "title": "Refresh Views",
-        "category": "SnapBack",
+        "command": "vreko.refreshTree",
+        "title": "Vreko: Refresh Explorer",
         "icon": "$(refresh)"
       },
       {
-        "command": "snapback.refreshTree",
-        "title": "Refresh Explorer",
-        "category": "SnapBack",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "snapback.openProtectedFile",
-        "title": "Open Protected File",
-        "category": "SnapBack",
+        "command": "vreko.openProtectedFile",
+        "title": "Vreko: Open Protected File",
         "icon": "$(go-to-file)"
       },
       {
-        "command": "snapback.signIn",
-        "title": "Sign In",
-        "category": "SnapBack",
-        "icon": "$(sign-in)"
-      },
-      {
-        "command": "snapback.signOut",
-        "title": "Sign Out",
-        "category": "SnapBack",
-        "icon": "$(sign-out)"
-      },
-      {
-        "command": "snapback.showAuthStatus",
-        "title": "Show Authentication Status",
-        "category": "SnapBack",
-        "icon": "$(account)"
-      },
-      {
-        "command": "snapback.connect",
-        "title": "Connect Account",
-        "category": "SnapBack",
-        "icon": "$(account)"
-      },
-      {
-        "command": "snapback.initialize",
-        "title": "Initialize",
-        "category": "SnapBack",
-        "icon": "$(rocket)"
-      },
-      {
-        "command": "snapback.openWalkthrough",
-        "title": "Show Welcome Guide",
-        "category": "SnapBack",
-        "icon": "$(question)"
-      },
-      {
-        "command": "snapback.showWelcomePanel",
-        "title": "Show Welcome Panel (Fallback)",
-        "category": "SnapBack",
+        "command": "vreko.showWelcomePanel",
+        "title": "Vreko: Show Welcome Panel (Fallback)",
         "icon": "$(info)"
       },
       {
-        "command": "snapback.resetWelcomeState",
-        "title": "Reset Welcome State (Debug)",
-        "category": "SnapBack",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "snapback.openDocumentation",
-        "title": "Open Documentation",
-        "category": "SnapBack",
-        "icon": "$(book)"
-      },
-      {
-        "command": "snapback.updateConfiguration",
-        "title": "Update Configuration",
-        "category": "SnapBack",
-        "icon": "$(gear)"
-      },
-      {
-        "command": "snapback.toggleOfflineMode",
-        "title": "Toggle Offline Mode",
-        "category": "SnapBack",
-        "icon": "$(globe)"
-      },
-      {
-        "command": "snapback.resetNotificationPreferences",
-        "title": "Reset Notification Preferences",
-        "category": "SnapBack",
-        "icon": "$(bell-slash)"
-      },
-      {
-        "command": "snapback.showFileHealthStatus",
-        "title": "Show File Health Status",
-        "category": "SnapBack",
-        "icon": "$(pulse)"
-      },
-      {
-        "command": "snapback.refreshFileHealthDecorations",
-        "title": "Refresh File Health Decorations",
-        "category": "SnapBack",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "snapback.clearFileHealthDecorations",
-        "title": "Clear File Health Decorations",
-        "category": "SnapBack",
-        "icon": "$(clear-all)"
-      },
-      {
-        "command": "snapback.getAuthState",
-        "title": "Test: Get Auth State",
-        "category": "SnapBack Test"
-      },
-      {
-        "command": "snapback.test.getSnapshots",
-        "title": "Test: Get Snapshots",
-        "category": "SnapBack Test"
-      },
-      {
-        "command": "snapback.test.restoreSnapshot",
-        "title": "Test: Restore Snapshot",
-        "category": "SnapBack Test"
-      },
-      {
-        "command": "snapback.migrateSecureConfig",
-        "title": "Migrate API Keys to Secure Storage",
-        "category": "SnapBack",
-        "icon": "$(shield)"
-      },
-      {
-        "command": "snapback.setApiKey",
-        "title": "Set API Key (Secure)",
-        "category": "SnapBack",
-        "icon": "$(key)"
-      },
-      {
-        "command": "snapback.setMcpAuthToken",
-        "title": "Set MCP Auth Token (Secure)",
-        "category": "SnapBack",
-        "icon": "$(key)"
-      },
-      {
-        "command": "snapback.mcp.configure",
-        "title": "Configure AI Assistants",
-        "category": "SnapBack MCP",
-        "icon": "$(extensions)"
-      },
-      {
-        "command": "snapback.mcp.check",
-        "title": "Run Code Check",
-        "category": "SnapBack MCP",
-        "icon": "$(check)"
-      },
-      {
-        "command": "snapback.mcp.checkPatterns",
-        "title": "Check Code Patterns",
-        "category": "SnapBack MCP",
-        "icon": "$(search)"
-      },
-      {
-        "command": "snapback.mcp.startTask",
-        "title": "Start Development Task",
-        "category": "SnapBack MCP",
-        "icon": "$(play)"
-      },
-      {
-        "command": "snapback.mcp.endTask",
-        "title": "End Development Task",
-        "category": "SnapBack MCP",
-        "icon": "$(debug-stop)"
-      },
-      {
-        "command": "snapback.mcp.status",
-        "title": "Show AI Assistant Status",
-        "category": "SnapBack MCP",
-        "icon": "$(info)"
-      },
-      {
-        "command": "snapback.mcp.diagnose",
-        "title": "Diagnose MCP Connection",
-        "category": "SnapBack MCP",
-        "icon": "$(search)"
-      },
-      {
-        "command": "snapback.mcp.reset",
-        "title": "Reset MCP Configuration State",
-        "category": "SnapBack MCP",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "snapback.mcp.disable",
-        "title": "Disable SnapBack for AI Assistant",
-        "category": "SnapBack MCP",
-        "icon": "$(close)"
-      },
-      {
-        "command": "snapback.mcp.validate",
-        "title": "Validate MCP Configurations",
-        "category": "SnapBack MCP",
-        "icon": "$(checklist)"
-      },
-      {
-        "command": "snapback.mcp.repair",
-        "title": "Repair MCP Configurations",
-        "category": "SnapBack MCP",
-        "icon": "$(wrench)"
-      },
-      {
-        "command": "snapback.openVitalsDashboard",
-        "title": "Open Vitals Dashboard",
-        "category": "SnapBack",
-        "icon": "$(dashboard)"
-      },
-      {
-        "command": "snapback.openDashboard",
-        "title": "Open Dashboard",
-        "category": "SnapBack",
+        "command": "vreko.showWelcome",
+        "title": "Vreko: Show Welcome",
         "icon": "$(home)"
       },
       {
-        "command": "snapback.toggleVitalsDisplay",
-        "title": "Toggle Vitals in Status Bar",
-        "category": "SnapBack",
+        "command": "vreko.resetWelcomeState",
+        "title": "Vreko: Reset Welcome State (Debug)",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "vreko.updateConfiguration",
+        "title": "Vreko: Update Configuration",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "vreko.toggleOfflineMode",
+        "title": "Vreko: Toggle Offline Mode",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "vreko.resetNotificationPreferences",
+        "title": "Vreko: Reset Notification Preferences",
+        "icon": "$(bell-slash)"
+      },
+      {
+        "command": "vreko.showFileHealthStatus",
+        "title": "Vreko: Show File Health Status",
         "icon": "$(pulse)"
       },
       {
-        "command": "snapback.refreshVitals",
-        "title": "Refresh Vitals Data",
-        "category": "SnapBack",
+        "command": "vreko.refreshFileHealthDecorations",
+        "title": "Vreko: Refresh File Health Decorations",
         "icon": "$(refresh)"
       },
       {
-        "command": "snapback.showQuickPicker",
-        "title": "Show Snapshot Picker",
-        "category": "SnapBack",
-        "icon": "$(history)"
+        "command": "vreko.clearFileHealthDecorations",
+        "title": "Vreko: Clear File Health Decorations",
+        "icon": "$(clear-all)"
       },
       {
-        "command": "snapback.quickRestore",
-        "title": "Quick Restore",
-        "category": "SnapBack",
-        "icon": "$(debug-step-back)"
+        "command": "vreko.migrateSecureConfig",
+        "title": "Vreko: Migrate API Keys to Secure Storage",
+        "icon": "$(shield)"
       },
       {
-        "command": "snapback.ai.injectRules",
-        "title": "Inject AI Agent Rules",
-        "category": "SnapBack",
+        "command": "vreko.setApiKey",
+        "title": "Vreko: Set API Key (Secure)",
+        "icon": "$(key)"
+      },
+      {
+        "command": "vreko.setMcpAuthToken",
+        "title": "Vreko: Set MCP Auth Token (Secure)",
+        "icon": "$(key)"
+      },
+      {
+        "command": "vreko.mcp.configure",
+        "title": "Vreko: Configure AI Assistants",
         "icon": "$(extensions)"
       },
       {
-        "command": "snapback.ai.resetRulesConfig",
-        "title": "Reset Agent Rules Config",
-        "category": "SnapBack",
+        "command": "vreko.mcp.check",
+        "title": "Vreko: Run Code Check",
+        "icon": "$(check)"
+      },
+      {
+        "command": "vreko.mcp.checkPatterns",
+        "title": "Vreko: Check Code Patterns",
+        "icon": "$(search)"
+      },
+      {
+        "command": "vreko.mcp.startTask",
+        "title": "Vreko: Start Development Task",
+        "icon": "$(play)"
+      },
+      {
+        "command": "vreko.mcp.endTask",
+        "title": "Vreko: End Development Task",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "vreko.mcp.status",
+        "title": "Vreko: Show AI Assistant Status",
+        "icon": "$(info)"
+      },
+      {
+        "command": "vreko.mcp.diagnose",
+        "title": "Vreko: Diagnose MCP Connection",
+        "icon": "$(search)"
+      },
+      {
+        "command": "vreko.mcp.reset",
+        "title": "Vreko: Reset MCP Configuration State",
         "icon": "$(refresh)"
       },
       {
-        "command": "snapback.__debugStatusBar",
-        "title": "Debug Status Bar States",
-        "category": "SnapBack",
-        "icon": "$(debug)"
+        "command": "vreko.mcp.disable",
+        "title": "Vreko: Disable for AI Assistant",
+        "icon": "$(close)"
       },
       {
-        "command": "snapback.detectLanguageModels",
-        "title": "Detect Language Models",
-        "category": "SnapBack"
+        "command": "vreko.mcp.validate",
+        "title": "Vreko: Validate MCP Configurations",
+        "icon": "$(checklist)"
       },
       {
-        "command": "snapback.pioneer.login",
-        "title": "Pioneer: Login",
-        "category": "SnapBack"
+        "command": "vreko.mcp.repair",
+        "title": "Vreko: Repair MCP Configurations",
+        "icon": "$(wrench)"
       },
       {
-        "command": "snapback.pioneer.logout",
-        "title": "Pioneer: Logout",
-        "category": "SnapBack"
+        "command": "vreko.openDashboard",
+        "title": "Vreko: Open Dashboard",
+        "icon": "$(home)"
       },
       {
-        "command": "snapback.session.list",
-        "title": "List Sessions",
-        "category": "SnapBack"
+        "command": "vreko.openCeremony",
+        "title": "Vreko: Open Closing Ceremonies",
+        "icon": "$(history)"
       },
       {
-        "command": "snapback.session.export",
-        "title": "Export Session",
-        "category": "SnapBack"
+        "command": "vreko.toggleVitalsDisplay",
+        "title": "Vreko: Toggle Vitals in Status Bar",
+        "icon": "$(pulse)"
       },
       {
-        "command": "snapback.showSessionBrowser",
-        "title": "Browse Sessions",
-        "category": "SnapBack"
+        "command": "vreko.refreshVitals",
+        "title": "Vreko: Refresh Vitals Data",
+        "icon": "$(refresh)"
       },
       {
-        "command": "snapback.showFullHistory",
-        "title": "Show Full History",
-        "category": "SnapBack"
+        "command": "vreko.showQuickPicker",
+        "title": "Vreko: Show Snapshot Picker",
+        "icon": "$(history)"
       },
       {
-        "command": "snapback.toggleAIMonitoring",
-        "title": "Toggle AI Monitoring",
-        "category": "SnapBack"
+        "command": "vreko.ai.injectRules",
+        "title": "Vreko: Inject AI Agent Rules",
+        "icon": "$(extensions)"
       },
       {
-        "command": "snapback.showAIMonitoringStatus",
-        "title": "Show AI Monitoring Status",
-        "category": "SnapBack"
+        "command": "vreko.ai.resetRulesConfig",
+        "title": "Vreko: Reset Agent Rules Config",
+        "icon": "$(refresh)"
       },
       {
-        "command": "snapback.toggleGroupingMode",
-        "title": "Toggle Snapshot Grouping",
-        "category": "SnapBack"
+        "command": "vreko.session.list",
+        "title": "Vreko: List Sessions"
       },
       {
-        "command": "snapback.toggleAdvancedMode",
-        "title": "Toggle Advanced Mode",
-        "category": "SnapBack"
+        "command": "vreko.session.export",
+        "title": "Vreko: Export Session"
       },
       {
-        "command": "snapback.showAllFeatures",
-        "title": "Show All Features",
-        "category": "SnapBack"
+        "command": "vreko.showSessionBrowser",
+        "title": "Vreko: Browse Sessions"
       },
       {
-        "command": "snapback.resetExperienceLevel",
-        "title": "Reset Experience Level",
-        "category": "SnapBack"
+        "command": "vreko.showFullHistory",
+        "title": "Vreko: Show Full History"
       },
       {
-        "command": "snapback.showRecommendedAction",
-        "title": "Show Recommended Action",
-        "category": "SnapBack"
+        "command": "vreko.previewRestoreSession",
+        "title": "Vreko: Preview Restore Session"
       },
       {
-        "command": "snapback.refreshSnapshots",
-        "title": "Refresh Snapshots",
-        "category": "SnapBack"
+        "command": "vreko.restoreSession",
+        "title": "Vreko: Restore Session"
       },
       {
-        "command": "snapback.showSnapshotQuickPick",
-        "title": "Quick Snapshot Picker",
-        "category": "SnapBack"
+        "command": "vreko.confirmRestoreFromPreview",
+        "title": "Vreko: Confirm Restore from Preview"
       },
       {
-        "command": "snapback.restoreQuickPick",
-        "title": "Quick Restore Picker",
-        "category": "SnapBack"
+        "command": "vreko.openSnapshotFileDiff",
+        "title": "Vreko: Open Snapshot File Diff"
       },
       {
-        "command": "snapback.previewRestoreSession",
-        "title": "Preview Restore Session",
-        "category": "SnapBack"
+        "command": "vreko.openDashboard.activity",
+        "title": "Vreko: Open Dashboard - Activity"
       },
       {
-        "command": "snapback.restoreSession",
-        "title": "Restore Session",
-        "category": "SnapBack"
+        "command": "vreko.openDashboard.settings",
+        "title": "Vreko: Open Dashboard - Settings"
       },
       {
-        "command": "snapback.confirmRestoreFromPreview",
-        "title": "Confirm Restore from Preview",
-        "category": "SnapBack"
+        "command": "vreko.openDashboard.vitals",
+        "title": "Vreko: Open Dashboard - Vitals"
       },
       {
-        "command": "snapback.openSnapshotFileDiff",
-        "title": "Open Snapshot File Diff",
-        "category": "SnapBack"
+        "command": "vreko.openDashboard.setup",
+        "title": "Vreko: Open Dashboard - Setup"
       },
       {
-        "command": "snapback.openDashboard.activity",
-        "title": "Open Dashboard: Activity",
-        "category": "SnapBack"
+        "command": "vreko.protection.workspace",
+        "title": "Vreko: Protect Workspace"
       },
       {
-        "command": "snapback.openDashboard.settings",
-        "title": "Open Dashboard: Settings",
-        "category": "SnapBack"
+        "command": "vreko.doctor",
+        "title": "Vreko: Run Doctor",
+        "category": "Vreko"
       },
       {
-        "command": "snapback.openDashboard.vitals",
-        "title": "Open Dashboard: Vitals",
-        "category": "SnapBack"
+        "command": "vreko.startSession",
+        "title": "Vreko: Start Session",
+        "category": "Vreko"
       },
       {
-        "command": "snapback.openDashboard.setup",
-        "title": "Open Dashboard: Setup",
-        "category": "SnapBack"
+        "command": "vreko.endSession",
+        "title": "Vreko: End Session",
+        "category": "Vreko"
       },
       {
-        "command": "snapback.protection.workspace",
-        "title": "Protect Workspace",
-        "category": "SnapBack"
+        "command": "vreko.login",
+        "title": "Vreko: Sign In",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.init",
+        "title": "Vreko: Initialize Workspace",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.daemonStatus",
+        "title": "Vreko: Daemon Status",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.reconnectDaemon",
+        "title": "Vreko: Reconnect Daemon",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.showQuickActions",
+        "title": "Vreko: Quick Actions",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.openDashboard.welcome",
+        "title": "Vreko: Open Dashboard",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.openAgentsWorkspace",
+        "title": "Open Behavioral Intelligence File",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.setupClaudeDesktop",
+        "title": "Vreko: Setup Claude Desktop",
+        "category": "Vreko",
+        "icon": "$(desktop-download)"
+      },
+      {
+        "command": "vreko.configureTools",
+        "title": "Vreko: Configure AI Tools",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.openLive",
+        "title": "Vreko: Open Live Panel",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.showFileHistory",
+        "title": "Vreko: Show File History",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.showCeremony",
+        "title": "Show Closing Ceremony",
+        "category": "Vreko"
+      },
+      {
+        "command": "vreko.viewChangelog",
+        "title": "Vreko: View Changelog",
+        "category": "Vreko"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "snapback",
-          "title": "SnapBack",
-          "icon": "media/activitybar-icon-24.png"
+          "id": "vreko",
+          "title": "Vreko",
+          "icon": "media/gecko-transparent.png"
         }
       ]
     },
     "views": {
-      "snapback": [
+      "vreko": [
         {
-          "id": "snapback.dashboard",
-          "name": "Activity",
-          "when": "snapback.isActive && config.snapback.ui.showTreeView",
-          "icon": "$(history)"
+          "id": "vreko.cockpit",
+          "name": "Vreko",
+          "contextualTitle": "Vreko"
         },
         {
-          "id": "snapback.intelligence",
-          "name": "Protected",
-          "when": "snapback.isActive && config.snapback.ui.showTreeView",
-          "icon": "$(shield)"
+          "id": "vreko.status",
+          "name": "Status",
+          "type": "webview"
         },
         {
-          "id": "snapback.sessions",
-          "name": "History",
-          "when": "snapback.isActive && config.snapback.ui.showTreeView",
-          "icon": "$(archive)"
+          "id": "vreko.welcome",
+          "name": "Welcome",
+          "type": "webview"
+        },
+        {
+          "id": "vreko.fragilityMap",
+          "name": "Fragility Map",
+          "type": "webview"
         }
       ]
     },
     "submenus": [
       {
-        "id": "snapback.protectFile",
-        "label": "SnapBack: Protect File"
+        "id": "vreko.protectFile",
+        "label": "Vreko: Protect File"
       },
       {
-        "id": "snapback.changeProtectionLevel",
-        "label": "SnapBack: Change Protection Level"
+        "id": "vreko.changeProtectionLevel",
+        "label": "Vreko: Change Protection Level"
       }
     ],
     "menus": {
       "explorer/context": [
         {
-          "command": "snapback.createSnapshot",
-          "when": "snapback.isActive && !explorerResourceIsFolder",
-          "group": "snapback@1"
+          "submenu": "vreko.protectFile",
+          "when": "vreko.isActive && !explorerResourceIsFolder && !vreko.isProtected",
+          "group": "vreko@3"
         },
         {
-          "command": "snapback.snapBack",
-          "when": "snapback.isActive && !explorerResourceIsFolder",
-          "group": "snapback@2"
+          "submenu": "vreko.changeProtectionLevel",
+          "when": "vreko.isActive && !explorerResourceIsFolder && vreko.isProtected",
+          "group": "vreko@3"
         },
         {
-          "submenu": "snapback.protectFile",
-          "when": "snapback.isActive && !explorerResourceIsFolder && !snapback.isProtected",
-          "group": "snapback@3"
+          "command": "vreko.unprotectFile",
+          "when": "vreko.isActive && !explorerResourceIsFolder && vreko.isProtected",
+          "group": "vreko@3"
         },
         {
-          "submenu": "snapback.changeProtectionLevel",
-          "when": "snapback.isActive && !explorerResourceIsFolder && snapback.isProtected",
-          "group": "snapback@3"
-        },
-        {
-          "command": "snapback.unprotectFile",
-          "when": "snapback.isActive && !explorerResourceIsFolder && snapback.isProtected",
-          "group": "snapback@3"
-        },
-        {
-          "command": "snapback.compareWithSnapshot",
-          "when": "snapback.isActive && !explorerResourceIsFolder",
-          "group": "snapback@4"
-        },
-        {
-          "command": "snapback.createPolicyOverride",
-          "when": "snapback.isActive && !explorerResourceIsFolder",
-          "group": "snapback@5"
+          "command": "vreko.compareWithSnapshot",
+          "when": "vreko.isActive && !explorerResourceIsFolder",
+          "group": "vreko@4"
         }
       ],
-      "snapback.protectFile": [
+      "vreko.protectFile": [
         {
-          "command": "snapback.setWatchLevel",
+          "command": "vreko.setWatchLevel",
           "group": "levels@1",
-          "when": "snapback.canProtect"
+          "when": "vreko.canProtect"
         },
         {
-          "command": "snapback.setWarnLevel",
+          "command": "vreko.setWarnLevel",
           "group": "levels@2",
-          "when": "snapback.canProtect"
+          "when": "vreko.canProtect"
         },
         {
-          "command": "snapback.setBlockLevel",
+          "command": "vreko.setBlockLevel",
           "group": "levels@3",
-          "when": "snapback.canProtect"
+          "when": "vreko.canProtect"
         }
       ],
-      "snapback.changeProtectionLevel": [
+      "vreko.changeProtectionLevel": [
         {
-          "command": "snapback.setWatchLevel",
+          "command": "vreko.setWatchLevel",
           "group": "levels@1",
-          "when": "snapback.isProtected && snapback.currentLevel != 'watch'"
+          "when": "vreko.isProtected && vreko.currentLevel != 'watch'"
         },
         {
-          "command": "snapback.setWarnLevel",
+          "command": "vreko.setWarnLevel",
           "group": "levels@2",
-          "when": "snapback.isProtected && snapback.currentLevel != 'warn'"
+          "when": "vreko.isProtected && vreko.currentLevel != 'warn'"
         },
         {
-          "command": "snapback.setBlockLevel",
+          "command": "vreko.setBlockLevel",
           "group": "levels@3",
-          "when": "snapback.isProtected && snapback.currentLevel != 'block'"
+          "when": "vreko.isProtected && vreko.currentLevel != 'block'"
         }
       ],
       "editor/context": [
         {
-          "submenu": "snapback.protectFile",
-          "when": "snapback.isActive && !snapback.isProtected",
-          "group": "snapback@1"
+          "submenu": "vreko.protectFile",
+          "when": "vreko.isActive && !vreko.isProtected",
+          "group": "vreko@1"
         },
         {
-          "submenu": "snapback.changeProtectionLevel",
-          "when": "snapback.isActive && snapback.isProtected",
-          "group": "snapback@1"
+          "submenu": "vreko.changeProtectionLevel",
+          "when": "vreko.isActive && vreko.isProtected",
+          "group": "vreko@1"
         },
         {
-          "command": "snapback.unprotectFile",
-          "when": "snapback.isActive && snapback.isProtected",
-          "group": "snapback@2"
+          "command": "vreko.unprotectFile",
+          "when": "vreko.isActive && vreko.isProtected",
+          "group": "vreko@2"
         },
         {
-          "command": "snapback.createSnapshot",
-          "when": "snapback.isActive",
-          "group": "snapback@3"
-        },
-        {
-          "command": "snapback.createPolicyOverride",
-          "when": "snapback.isActive",
-          "group": "snapback@4"
-        },
-        {
-          "command": "snapback.toggleOfflineMode",
-          "when": "snapback.isActive",
-          "group": "snapback@5"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "snapback.protectFile",
-          "when": "snapback.isActive && editorFocus"
-        },
-        {
-          "command": "snapback.protectCurrentFile",
-          "when": "snapback.isActive && editorFocus"
-        },
-        {
-          "command": "snapback.changeProtectionLevel",
-          "when": "snapback.isActive && editorFocus"
-        },
-        {
-          "command": "snapback.setWatchLevel",
-          "when": "snapback.isActive && editorFocus"
-        },
-        {
-          "command": "snapback.setWarnLevel",
-          "when": "snapback.isActive && editorFocus"
-        },
-        {
-          "command": "snapback.setBlockLevel",
-          "when": "snapback.isActive && editorFocus"
-        },
-        {
-          "command": "snapback.unprotectFile",
-          "when": "snapback.isActive && snapback.fileProtected"
-        },
-        {
-          "command": "snapback.compareWithSnapshot",
-          "when": "snapback.isActive"
-        },
-        {
-          "command": "snapback.openProtectedFile",
-          "when": "false"
+          "command": "vreko.toggleOfflineMode",
+          "when": "vreko.isActive",
+          "group": "vreko@5"
         }
       ],
       "view/item/context": [
         {
-          "command": "snapback.restoreSnapshot",
-          "when": "view == snapback.dashboard && viewItem =~ /^snapback\\.activityEvent/",
-          "group": "inline@1"
-        },
-        {
-          "command": "snapback.snapshot.showFileDiff",
-          "when": "view == snapback.dashboard && viewItem =~ /^snapback\\.activityEvent/",
-          "group": "inline@2"
-        },
-        {
-          "command": "snapback.restoreSnapshot",
-          "when": "view == snapback.dashboard && viewItem =~ /^snapback\\.activityEvent/",
-          "group": "1_restore@1"
-        },
-        {
-          "command": "snapback.compareWithSnapshot",
-          "when": "view == snapback.dashboard && viewItem =~ /^snapback\\.activityEvent/",
+          "command": "vreko.compareWithSnapshot",
+          "when": "viewItem =~ /^vreko\\.activityEvent/",
           "group": "1_restore@2"
         },
         {
-          "command": "snapback.deleteSnapshot",
-          "when": "view == snapback.dashboard && viewItem =~ /^snapback\\.activityEvent/",
+          "command": "vreko.deleteSnapshot",
+          "when": "viewItem =~ /^vreko\\.activityEvent/",
           "group": "9_danger@1"
         },
         {
-          "command": "snapback.openProtectedFile",
-          "when": "view == snapback.intelligence && viewItem =~ /^snapback\\.protectedFile/",
+          "command": "vreko.openProtectedFile",
+          "when": "viewItem =~ /^vreko\\.protectedFile/",
           "group": "navigation@1"
         },
         {
-          "submenu": "snapback.changeProtectionLevel",
-          "when": "view == snapback.intelligence && viewItem =~ /^snapback\\.protectedFile/",
+          "submenu": "vreko.changeProtectionLevel",
+          "when": "viewItem =~ /^vreko\\.protectedFile/",
           "group": "1_protection@1"
         },
         {
-          "command": "snapback.unprotectFile",
-          "when": "view == snapback.intelligence && viewItem =~ /^snapback\\.protectedFile/",
+          "command": "vreko.unprotectFile",
+          "when": "viewItem =~ /^vreko\\.protectedFile/",
           "group": "9_danger@1"
         },
         {
-          "command": "snapback.session.restore",
-          "when": "view == snapback.sessions && viewItem == snapback.session.restorable",
+          "command": "vreko.session.restore",
+          "when": "viewItem == vreko.session.restorable",
           "group": "inline@1"
         },
         {
-          "command": "snapback.session.restore",
-          "when": "view == snapback.sessions && viewItem == snapback.session.restorable",
+          "command": "vreko.session.restore",
+          "when": "viewItem == vreko.session.restorable",
           "group": "1_restore@1"
         },
         {
-          "command": "snapback.compareWithSnapshot",
-          "when": "view == snapback.sessions && viewItem =~ /^snapback\\.session/",
+          "command": "vreko.compareWithSnapshot",
+          "when": "viewItem =~ /^vreko\\.session/",
           "group": "1_restore@2"
-        },
-        {
-          "command": "snapback.snapshot.showFileDiff",
-          "when": "view == snapback.sessions && viewItem == snapback.sessionFile",
-          "group": "inline@1"
-        },
-        {
-          "command": "snapback.restoreSnapshot",
-          "when": "view == snapback.sessions && viewItem == snapback.sessionFile",
-          "group": "1_restore@1"
         }
       ],
       "view/title": [
         {
-          "command": "snapback.session.restore",
-          "when": "view == snapback.dashboard",
+          "command": "vreko.session.restore",
           "group": "navigation@1",
           "icon": "$(debug-step-back)"
         },
         {
-          "command": "snapback.createSnapshot",
-          "when": "view == snapback.dashboard",
-          "group": "navigation@2",
-          "icon": "$(save)"
-        },
-        {
-          "command": "snapback.showAllSnapshots",
-          "when": "view == snapback.dashboard",
+          "command": "vreko.showFullHistory",
           "group": "navigation@3",
           "icon": "$(archive)"
         },
         {
-          "command": "snapback.refreshViews",
-          "when": "view == snapback.dashboard",
-          "group": "navigation@4",
-          "icon": "$(refresh)"
-        },
-        {
-          "command": "snapback.showStatus",
-          "when": "view == snapback.dashboard && snapback.protectionStatus == complete",
+          "command": "vreko.openCeremony",
           "group": "navigation@5",
-          "icon": "$(shield-check)"
+          "icon": "$(history)"
         },
         {
-          "command": "snapback.protectEntireRepo",
-          "when": "view == snapback.dashboard && snapback.protectionStatus != complete",
+          "command": "vreko.protectEntireRepo",
+          "when": "vreko.protectionStatus != complete",
           "group": "navigation@6"
         },
         {
-          "command": "snapback.refreshViews",
-          "when": "view == snapback.protectedFiles",
-          "group": "navigation@1",
-          "icon": "$(refresh)"
-        },
-        {
-          "command": "snapback.showAllProtectedFiles",
-          "when": "view == snapback.protectedFiles",
+          "command": "vreko.showAllProtectedFiles",
           "group": "navigation@2",
           "icon": "$(list-tree)"
         }
       ]
     },
     "configuration": {
-      "title": "SnapBack",
+      "title": "Vreko",
       "properties": {
-        "snapback.enabled": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "**Enable SnapBack Extension**\n\nMaster toggle to enable or disable SnapBack entirely. When disabled, all SnapBack features are turned off.",
-          "order": 0
-        },
-        "snapback.aiDetection.enabled": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "**Enable AI Detection**\n\nDetects AI-generated code changes and creates automatic protection snapshots.",
-          "order": 1
-        },
-        "snapback.showAutoSnapshotNotifications": {
+        "vreko.showAutoSnapshotNotifications": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "**Show Snapshot Notifications**\n\nDisplay brief notifications when auto-snapshots are created.",
           "order": 2
         },
-        "snapback.guardian.enabled": {
+        "vreko.guardian.enabled": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "**Enable Guardian**\n\nProtects against risky code patterns: secrets, mock replacements, phantom dependencies.",
           "order": 3
         },
-        "snapback.proactiveAlerts.enabled": {
+        "vreko.mcp.enabled": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "**Enable Proactive Alerts**\n\nGenerates contextual alerts when editing protected or critical files (.env, auth, secrets). Alerts are exposed via MCP for LLM consumption.",
+          "markdownDescription": "**Enable MCP Integration**\n\nAllows AI assistants (Claude, Cursor, Windsurf) to interact with Vreko.",
           "order": 4
         },
-        "snapback.mcp.enabled": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "**Enable MCP Integration**\n\nAllows AI assistants (Claude, Cursor, Windsurf) to interact with SnapBack.",
-          "order": 4
-        },
-        "snapback.mcp.serverUrl": {
+        "vreko.mcp.serverUrl": {
           "type": "string",
-          "default": "https://snapback-mcp.fly.dev",
+          "default": "https://mcp.vreko.dev",
           "markdownDescription": "**MCP Server URL**\n\nURL for the remote MCP server. Leave default for cloud, or set to local server.",
           "order": 5
         },
-        "snapback.offlineMode.enabled": {
+        "vreko.offlineMode.enabled": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "**Offline Mode**\n\nDisable all network requests. Snapshots work locally only.",
           "order": 6
         },
-        "snapback.logLevel": {
+        "vreko.logLevel": {
           "type": "string",
           "enum": [
             "silent",
@@ -974,240 +1000,247 @@
           "markdownDescription": "**Log Level**\n\nFor troubleshooting. Set to `debug` for verbose output, `trace` for maximum detail, or `silent` to disable all logging.",
           "order": 7
         },
-        "snapback.logNamespaces": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "activation",
-              "mcp",
-              "snapshot",
-              "protection",
-              "auth",
-              "daemon",
-              "storage",
-              "telemetry"
-            ]
-          },
-          "default": [],
-          "markdownDescription": "**Log Namespaces**\n\nFilter debug logs to specific subsystems. Empty means all subsystems log at the configured level. Example: `[\"activation\", \"mcp\"]` to only see debug logs from those modules.",
-          "order": 8
-        },
-        "snapback.logBatchDebug": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "**Batch Debug Logs**\n\nAggregate high-frequency debug logs into batched summaries. Reduces Output channel noise during intensive operations.",
-          "order": 9
-        },
-        "snapback.ui.showTreeView": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "**Show Sidebar Tree View**\n\nEnable the full SnapBack tree view in the Activity Bar. When off, uses minimal status bar UI.",
-          "order": 8
-        },
-        "snapback.ui.hideInternalFiles": {
+        "vreko.ui.hideInternalFiles": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "**Hide Internal Files**\n\nHide `.snapback/` directory contents in VS Code explorer. Internal files are implementation details users don't need to see.",
+          "markdownDescription": "**Hide Internal Files**\n\nHide `.vreko/` directory contents in VS Code explorer. Internal files are implementation details users don't need to see.",
           "order": 9
         },
-        "snapback.mcp.autoEnable": {
+        "vreko.ui.statusBarEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Vreko status in the status bar"
+        },
+        "vreko.ui.fileDecorationsEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show fragile and agent-touched badges in file explorer"
+        },
+        "vreko.ui.codeLensEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show CodeLens on fragile and agent-touched files"
+        },
+        "vreko.ui.notificationLevel": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "quiet",
+            "silent"
+          ],
+          "default": "normal",
+          "description": "Control Vreko notification verbosity"
+        },
+        "vreko.ui.outputChannelVerbose": {
+          "type": "boolean",
+          "default": false,
+          "description": "Log all daemon events to Vreko Activity output channel"
+        },
+        "vreko.ui.liveWebviewAutoOpen": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto-open Vreko Live panel on session start"
+        },
+        "vreko.mcp.autoEnable": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "**Auto-Configure MCP**\n\nAutomatically configure MCP for detected AI assistants (Cursor, Claude Desktop, Windsurf) on extension activation.",
           "order": 10
+        },
+        "vreko.mcp.healthGuardian.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "**Enable Health Guardian**\n\nEnable proactive health monitoring for MCP server.",
+          "order": 11
+        },
+        "vreko.mcp.healthGuardian.activePollingInterval": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 1000,
+          "maximum": 10000,
+          "markdownDescription": "**Active Polling Interval (ms)**\n\nPolling interval when AI tools are actively being used.",
+          "order": 12
+        },
+        "vreko.mcp.healthGuardian.idlePollingInterval": {
+          "type": "number",
+          "default": 10000,
+          "minimum": 5000,
+          "maximum": 60000,
+          "markdownDescription": "**Idle Polling Interval (ms)**\n\nPolling interval when VS Code is focused but no AI activity.",
+          "order": 13
+        },
+        "vreko.mcp.healthGuardian.degradedLatencyThreshold": {
+          "type": "number",
+          "default": 500,
+          "minimum": 100,
+          "maximum": 5000,
+          "markdownDescription": "**Degraded Latency Threshold (ms)**\n\nLatency threshold above which MCP is considered degraded.",
+          "order": 14
+        },
+        "vreko.mcp.healthGuardian.unhealthyLatencyThreshold": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 500,
+          "maximum": 10000,
+          "markdownDescription": "**Unhealthy Latency Threshold (ms)**\n\nLatency threshold above which MCP is considered unhealthy.",
+          "order": 15
+        },
+        "vreko.mcp.healthGuardian.proactiveAlerts": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "**Proactive Alerts**\n\nShow toast notifications when MCP health changes.",
+          "order": 16
+        },
+        "vreko.mcp.healthGuardian.deepCheckFrequency": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "markdownDescription": "**Deep Check Frequency**\n\nPerform deep health check every N shallow checks.",
+          "order": 17
         }
       }
     },
     "configurationDefaults": {
       "files.exclude": {
-        "**/.snapback": true
+        "**/.vreko": true
       }
     },
     "keybindings": [
       {
-        "command": "snapback.protectFile",
+        "command": "vreko.protectFile",
         "key": "ctrl+alt+p",
         "mac": "cmd+alt+p",
         "when": "editorFocus"
       },
       {
-        "command": "snapback.createSnapshot",
-        "key": "ctrl+alt+s",
-        "mac": "cmd+alt+s",
-        "when": "editorFocus"
-      },
-      {
-        "command": "snapback.snapBack",
-        "key": "ctrl+alt+z",
-        "mac": "cmd+alt+z"
-      },
-      {
-        "command": "snapback.deleteSnapshot",
-        "key": "delete",
-        "when": "focusedView == snapback.main && viewItem == snapshot"
-      },
-      {
-        "command": "snapback.renameSnapshot",
-        "key": "f2",
-        "when": "focusedView == snapback.main && viewItem == snapshot"
-      },
-      {
-        "command": "snapback.quickRestore",
+        "command": "vreko.quickRestore",
         "key": "ctrl+shift+r",
         "mac": "cmd+shift+r"
+      },
+      {
+        "command": "vreko.compareWithSnapshot",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c",
+        "when": "editorFocus"
       }
     ],
     "walkthroughs": [
       {
-        "id": "snapback.welcome",
-        "title": "Get Started with SnapBack",
-        "description": "Get protected in 2 minutes. No configuration needed.",
+        "id": "vreko.welcome",
+        "title": "Get Started with Vreko",
+        "description": "Intelligence that compounds. Day 1 → Day 30 → Day 90.",
         "steps": [
           {
-            "id": "snapback.already-protected",
-            "title": "You're Already Protected",
-            "description": "SnapBack starts protecting you automatically.\n\n✅ **Automatic snapshots** on every save\n✅ **AI detection** for Cursor, Copilot, Claude, Windsurf\n✅ **Local storage** - your code never leaves your machine\n\nNo configuration needed. Just save a file and you're protected.",
+            "id": "vreko.intelligence-active",
+            "title": "Your Codebase, Understood",
+            "description": "Vreko's intelligence is already active.\n\n✅ **Automatic snapshots** on every save\n✅ **AI detection** for Cursor, Copilot, Claude, Windsurf\n✅ **Behavioral Intelligence** learning your codebase\n✅ **Local-first** - your code never leaves your machine\n\nNo configuration needed. Your codebase intelligence starts now.",
             "media": {
-              "markdown": "## How SnapBack Works\n\nSnapBack uses an intelligent AutoDecisionEngine to protect your code:\n\n### What Triggers a Snapshot?\n- AI tool made changes (89% detection accuracy)\n- Critical files modified (.env, auth, config)\n- High-risk change patterns detected\n- Multiple files changed rapidly\n\n### Privacy First\n- All snapshots stored locally in `~/.snapback`\n- No cloud uploads by default\n- Works completely offline\n- No account required"
+              "markdown": "media/walkthrough/intelligence-active.md"
             }
           },
           {
-            "id": "snapback.make-first-save",
-            "title": "See It Work",
-            "description": "Open any file and save it.\n\n1. Make a small change\n2. Save the file (`Cmd+S` or `Ctrl+S`)\n3. Look for the 🧢 icon in the status bar\n\n**What happened:**\n- SnapBack captured a snapshot automatically\n- Status bar updated with snapshot count\n- Timeline entry created for recovery\n\n[Open a file to try it](command:workbench.action.quickOpen)",
+            "id": "vreko.see-ai-touches",
+            "title": "See What AI Touches",
+            "description": "When AI tools modify your code, Vreko shows you.\n\n**AI Provenance Markers**\n- Gutter icons show AI-modified lines\n- Different icons for Cursor, Copilot, Claude, Windsurf\n- Inline annotations explain what changed\n\n**Try It**\n1. Use an AI tool to make a change\n2. Look for the ⚙️ icon in the gutter\n3. Hover to see which AI tool made the change\n\n[Create a Snapshot](command:vreko.createSnapshot)",
             "media": {
-              "markdown": "## SnapBack Status Bar\n\nLook for the 🧢 icon in your status bar:\n\n- **🧢 Protected** - SnapBack is active\n- **🧢 Snapshot saved** - Just created a restore point\n- **🧢 AI detected** - AI change captured\n\n### Performance\n- Snapshots take <100ms\n- No editor lag\n- Sub-2MB extension bundle"
+              "markdown": "media/walkthrough/see-ai-touches.md"
             },
             "completionEvents": [
-              "onCommand:snapback.createSnapshot"
+              "onCommand:vreko.createSnapshot"
             ]
           },
           {
-            "id": "snapback.restore-snapshot",
-            "title": "Restore a Snapshot",
-            "description": "Something went wrong? Restore in one click.\n\n**Option 1: Quick Restore**\n- Press `Cmd+Alt+Z` (Mac) or `Ctrl+Alt+Z` (Windows)\n- Instantly restore the last snapshot\n\n**Option 2: Browse & Restore**\n- Click the 🧢 status bar icon\n- Select a snapshot from the list\n- Click \"Restore\"\n\n[Try Quick Restore](command:snapback.snapBack)",
+            "id": "vreko.pattern-memory",
+            "title": "Behavioral Intelligence",
+            "description": "Vreko learns YOUR codebase.\n\n**The Intelligence Journey**\n- **Day 1-7**: Detection  -  \"3 AI modifications detected\"\n- **Day 8-30**: Patterns  -  \"Auth files often change together\"\n- **Day 30+**: Predictions  -  \"Elevated risk detected\"\n\n**What Gets Learned**\n- Fragile files that break often\n- Co-change patterns (files that change together)\n- Risk patterns that lead to bugs\n\n[Open Timeline](command:vreko.showQuickPicker)",
             "media": {
-              "markdown": "## One-Click Recovery\n\nWhen AI overwrites your code:\n\n1. **Don't panic** - SnapBack has your back\n2. Press `Cmd+Alt+Z` / `Ctrl+Alt+Z`\n3. Your file is restored in <100ms\n\n### Keyboard Shortcuts\n- `Cmd+Alt+Z` - Snap Back (Restore)\n- `Cmd+Alt+S` - Create Manual Snapshot\n- `Cmd+Shift+R` - Quick Restore Picker\n\n💡 **Pro Tip:** Use Quick Restore Picker to choose exactly which version to restore."
+              "markdown": "media/walkthrough/pattern-memory.md"
             },
             "completionEvents": [
-              "onCommand:snapback.snapBack",
-              "onCommand:snapback.restoreLastSnapshot"
+              "onCommand:vreko.showQuickPicker"
             ]
           },
           {
-            "id": "snapback.explore-timeline",
-            "title": "Browse Your Timeline",
-            "description": "View your complete session history:\n\n1. Click the SnapBack icon (🧢) in the Activity Bar\n2. Browse snapshots by time or file\n3. Compare any snapshot with current state\n4. Restore any point where things worked\n\n[Open SnapBack Panel](command:workbench.view.extension.snapback)",
+            "id": "vreko.closing-ceremony",
+            "title": "Your First Closing Ceremony",
+            "description": "When you end a session, Vreko shows a summary.\n\n**What You'll See**\n- 📊 Snapshots created this session\n- 📁 Files modified\n- 🤖 AI tools detected\n- 🧠 Learnings captured\n- 📈 Session coherence score\n\n**The Compounding Value**\nEach session adds to your codebase intelligence.\nPatterns emerge. Predictions improve.\n\n[Open Closing Ceremonies](command:vreko.openCeremony)",
             "media": {
-              "markdown": "## Session Timeline\n\nThe SnapBack panel shows:\n\n### Activity View\n- All snapshots in chronological order\n- AI-detected changes highlighted\n- Quick diff and restore actions\n\n### Session Groups\n- Related changes grouped together\n- Multi-file restores for AI refactoring sessions\n- See the full context of what changed\n\n### Keyboard Shortcuts\n- `Cmd+Alt+S` / `Ctrl+Alt+S` - Create Snapshot\n- `Cmd+Alt+Z` / `Ctrl+Alt+Z` - Snap Back\n- `Cmd+Shift+R` / `Ctrl+Shift+R` - Quick Restore Picker"
+              "markdown": "media/walkthrough/closing-ceremony.md"
             },
-            "completionEvents": [
-              "onView:snapback.dashboard"
-            ]
+            "completionEvents": []
+          },
+          {
+            "id": "vreko.connect-ai-tools",
+            "title": "Connect Your AI Tools (Optional)",
+            "description": "Get deeper AI integration with MCP.\n\n**Model Context Protocol (MCP)**\n- Connect Cursor or Claude directly to Vreko\n- AI can query your codebase history\n- Smarter AI suggestions with context\n\n**Setup**\n1. Open your AI tool's MCP settings\n2. Add Vreko's MCP server\n3. AI gets instant access to your patterns\n\n[View MCP Documentation](https://vreko.dev/docs/mcp)",
+            "media": {
+              "markdown": "media/walkthrough/connect-ai-tools.md"
+            },
+            "when": "config.vreko.showMcpStep"
           }
         ]
       }
     ],
-    "viewsWelcome": [
-      {
-        "view": "snapback.dashboard",
-        "contents": "No activity yet.\n\nSnapBack creates snapshots automatically when you save files.\n\n[📸 Create Snapshot](command:snapback.createSnapshot)\n\nLearn more in [Getting Started](command:snapback.openWalkthrough).",
-        "when": "!snapback.hasSnapshots"
-      },
-      {
-        "view": "snapback.intelligence",
-        "contents": "No protected files.\n\nProtect critical files to get automatic snapshots.\n\n[🛡️ Protect Current File](command:snapback.protectCurrentFile)\n[📁 Apply Protection Defaults](command:snapback.protectEntireRepo)",
-        "when": "!snapback.hasProtectedFiles"
-      },
-      {
-        "view": "snapback.sessions",
-        "contents": "No snapshots yet.\n\nSnapBack groups your activity into sessions for easy browsing.\n\n[📸 Create Snapshot](command:snapback.createSnapshot)\n[📜 Browse All Snapshots](command:snapback.showAllSnapshots)",
-        "when": "!snapback.hasSnapshots"
-      }
-    ],
+    "viewsWelcome": [],
     "jsonValidation": [
       {
-        "fileMatch": ".snapbackrc",
-        "url": "./schemas/snapbackrc.schema.json"
+        "fileMatch": ".vrekorc",
+        "url": "./schemas/vrekorc.schema.json"
       }
     ]
   },
   "dependencies": {
-    "@snapback-oss/sdk": "workspace:*",
-    "@snapback/api-client": "workspace:*",
-    "@snapback/config": "workspace:*",
-    "@snapback/contracts": "workspace:*",
-    "@snapback/core": "workspace:*",
-    "@snapback/engine": "workspace:*",
-    "@snapback/env": "workspace:*",
-    "@snapback/infrastructure": "workspace:*",
-    "@snapback/intelligence": "workspace:*",
-    "@snapback/mcp": "workspace:*",
-    "@snapback/mcp-config": "workspace:*",
-    "@snapback/sdk": "workspace:*",
-    "ajv": "catalog:",
-    "async-lock": "catalog:",
-    "async-mutex": "^0.5.0",
+    "@vreko/auth": "workspace:*",
+    "@vreko/contracts": "workspace:*",
+    "@vreko/core": "workspace:*",
+    "@vreko/local-service-client": "workspace:*",
+    "@vreko/mcp-client": "workspace:*",
+    "@vreko/workspace-identity": "workspace:*",
+    "async-mutex": "catalog:",
     "base64url": "catalog:",
-    "chokidar": "catalog:",
-    "diff": "catalog:",
-    "es-toolkit": "catalog:",
-    "fast-glob": "catalog:",
-    "gray-matter": "catalog:",
-    "ignore": "catalog:",
-    "json5": "catalog:",
-    "minimatch": "catalog:",
-    "node-machine-id": "^1.1.12",
-    "object-hash": "catalog:",
-    "p-queue": "catalog:",
-    "pino": "catalog:",
-    "rimraf": "catalog:",
+    "node-machine-id": "catalog:",
+    "pathe": "catalog:",
+    "proper-lockfile": "catalog:",
     "semver": "catalog:",
-    "simple-git": "catalog:",
+    "ts-brand": "catalog:",
     "tweetnacl": "catalog:",
-    "vscode-languageclient": "^9.0.1",
-    "ws": "catalog:"
+    "vscode-languageclient": "catalog:",
+    "vscode-languageserver": "catalog:",
+    "vscode-languageserver-textdocument": "catalog:",
+    "zod": "catalog:",
+    "ajv": "catalog:",
+    "ajv-formats": "^2.1.1"
   },
   "optionalDependencies": {
     "@huggingface/transformers": "^3.0.0",
-    "@sentry/node": "^8.0.0",
+    "@vreko/sentry-privacy": "workspace:*",
     "onnxruntime-node": "^1.21.0",
     "sql.js": "^1.10.0"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@electron/rebuild": "catalog:",
     "@playwright/test": "catalog:",
     "@size-limit/file": "catalog:",
-    "@snapback/testing": "workspace:*",
-    "@types/glob": "catalog:",
     "@types/mocha": "catalog:",
     "@types/node": "catalog:",
-    "@types/proper-lockfile": "^4.1.4",
+    "@types/proper-lockfile": "catalog:",
     "@types/semver": "catalog:",
-    "@types/vscode": "catalog:",
-    "@types/ws": "catalog:",
+    "@types/vscode": "^1.99.0",
     "@vitest/ui": "catalog:",
     "@vscode/test-cli": "catalog:",
-    "@vscode/test-electron": "catalog:",
     "esbuild": "catalog:",
     "esbuild-visualizer": "^0.7.0",
-    "glob": "catalog:",
-    "memfs": "catalog:",
+    "javascript-obfuscator": "^4.1.1",
     "mocha": "catalog:",
-    "msw": "catalog:",
     "npm-run-all": "catalog:",
-    "proper-lockfile": "^4.1.2",
+    "ovsx": "latest",
     "size-limit": "catalog:",
-    "svgo": "catalog:",
-    "ts-brand": "^0.2.0",
+    "svgtofont": "^6.5.1",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "vscode-languageserver": "^9.0.1",
-    "vscode-languageserver-textdocument": "^1.0.12"
+    "vitest": "catalog:"
   },
-  "displayName": "SnapBack — AI Code Safety Net",
+  "displayName": "Vreko  -  AI Code Intelligence",
   "engines": {
     "vscode": "^1.99.0"
   },
@@ -1215,27 +1248,34 @@
     "color": "#000000",
     "theme": "dark"
   },
-  "icon": "media/marketplace-icon-256.png",
-  "license": "SEE LICENSE IN LICENSE",
+  "icon": "media/gecko-transparent.png",
+  "license": "GPL-3.0",
+  "homepage": "https://vreko.dev",
   "main": "./dist/extension.js",
   "pricing": "Free",
   "publisher": "MarcelleLabs",
-  "repository": "snapback-dev/vscode.git",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vreko-dev/vscode.git"
+  },
   "scripts": {
     "audit-deps": "node scripts/audit-dependencies.js",
     "build:webview": "cd webview && pnpm build",
     "type-check": "tsc --noEmit --project tsconfig.json",
     "check:bundle-size": "node scripts/check-bundle-size.js",
+    "check:bundle-budget": "node scripts/check-bundle-budgets.js",
     "collect-load-metrics": "node scripts/collect-load-metrics.js",
-    "compile": "node esbuild.config.cjs --production",
-    "compile:skip-check": "node esbuild.config.cjs --production",
+    "compile": "pnpm run build:webview && doppler run --project vreko-shared --config prd -- node esbuild.config.cjs --production",
+    "compile:skip-check": "doppler run --project vreko-shared --config prd -- node esbuild.config.cjs --production",
+    "compile:ci": "SKIP_ENV_VALIDATION=true node esbuild.config.cjs --production",
     "compile:tests": "tsc -p tsconfig.e2e.json",
     "pretest:e2e": "pnpm run compile:skip-check && pnpm run compile:tests",
     "demo-readiness": "bash scripts/demo-readiness.sh",
-    "deploy": "node scripts/package-vsix.cjs && npx @vscode/vsce publish --no-dependencies --packagePath snapback-vscode-*.vsix",
-    "dev": "pnpm run package-vsix && code --install-extension snapback-vscode-*.vsix --force",
+    "deploy": "pnpm run validate:ip && node scripts/package-vsix.cjs && doppler run --project vreko-shared --config prd -- npx @vscode/vsce publish --no-dependencies --packagePath vreko-vscode-*.vsix",
+    "dev": "pnpm run package-vsix && code --install-extension vreko-vscode-*.vsix --force",
+    "dev:ext": "node scripts/dev-ext.cjs",
     "dev-workflow": "node scripts/dev-workflow.cjs",
-    "dev:clean": "rm -rf ~/.cursor/extensions/marcelle-labs.snapback-vscode-* && pnpm run dev",
+    "dev:clean": "rm -rf ~/.cursor/extensions/marcelle-labs.vreko-vscode-* && pnpm run dev",
     "enforce-performance-budget": "node scripts/enforce-performance-budget.js",
     "execute-runlist": "node scripts/execute-runlist.js",
     "format": "biome format --write .",
@@ -1244,13 +1284,11 @@
     "lint:fix": "biome lint --fix .",
     "lint:manifest": "node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const cmds=pkg.contributes.commands;const missing=cmds.filter(c=>!c.command);if(missing.length>0){console.error('\\x1b[31m✗ ERROR\\x1b[0m Commands missing command property:',missing.length);process.exit(1)}const props=Object.keys(pkg.contributes.configuration.properties);const commentProps=props.filter(p=>p.startsWith('comment'));if(commentProps.length>0){console.error('\\x1b[31m✗ ERROR\\x1b[0m Configuration properties with comment prefix:',commentProps.length);process.exit(1)}console.log('\\x1b[32m✓ OK\\x1b[0m package.json manifest validation passed');\"",
     "monitor-vsix-size": "node scripts/monitor-vsix-size.js",
-    "package": "pnpm run type-check && node esbuild.config.cjs --production",
     "package-and-install": "node scripts/package-and-install.cjs",
     "package-vsce": "npx @vscode/vsce package",
     "package-vsce-no-deps": "npx @vscode/vsce package --no-dependencies",
     "package-vsix": "node scripts/package-vsix.cjs",
     "package-with-changeset": "cd ../.. && npx changeset version && cd apps/vscode && pnpm run package-vsce-no-deps",
-    "package:skip-check": "node esbuild.config.cjs --production",
     "pre-demo": "bash scripts/pre-demo.sh",
     "security:all": "pnpm run security:audit && pnpm run security:check-deps && pnpm run security:licenses",
     "security:audit": "pnpm audit --audit-level=moderate",
@@ -1258,6 +1296,9 @@
     "security:check-deps": "node scripts/check-dependencies.js",
     "security:licenses": "license-checker --summary --relativeLicensePath",
     "size": "size-limit",
+    "publish:ovsx": "ovsx publish -p $OVSX_TOKEN",
+    "publish:vsce": "vsce publish -p $VSCE_TOKEN",
+    "publish:all": "pnpm publish:vsce && pnpm publish:ovsx",
     "test": "vitest run",
     "test:ci": "npm run test:unit && npm run test:integration && npm run test:perf",
     "test:coverage": "vitest run --coverage",
@@ -1267,10 +1308,11 @@
     "test:e2e:real": "pnpm run compile:tests && vscode-test --config .vscode-test-worker.mjs",
     "test:int": "vitest run test/integration/**/*.spec.ts",
     "test:integration": "vitest run test/integration/**/*.integration.test.ts",
-    "test:integration:snapback": "vitest run test/integration/**/*.spec.ts --grep 'Commands'",
+    "test:integration:vreko": "vitest run test/integration/**/*.spec.ts --grep 'Commands'",
     "test:monitoring": "vitest run test/monitoring",
     "test:perf": "vitest run test/{perf,stress}/**/*.spec.ts",
-    "test:performance": "vitest run test/performance",
+    "test:performance": "vitest run test/performance --reporter=verbose",
+    "test:performance:integration": "node scripts/run-perf-integration.mjs",
     "test:regression": "vitest run test/regression",
     "test:storage": "vitest run test/unit/snapshot/storageEfficiency.test.ts",
     "test:unit": "vitest run test/unit/**/*.test.ts",
@@ -1278,8 +1320,11 @@
     "test:vsix": "bash scripts/test-vsix.sh",
     "test:webview": "playwright test test/e2e/webview",
     "validate-commands": "node scripts/validate-commands.js",
+    "validate:ip": "node scripts/validate-ip-protection.js",
+    "validate:ip:verbose": "node scripts/validate-ip-protection.js --verbose",
     "watch": "npm-run-all -p watch:*",
-    "watch:esbuild": "node esbuild.config.cjs --watch"
+    "watch:esbuild": "node esbuild.config.cjs --watch",
+    "watch:webview": "cd webview && pnpm dev"
   },
   "types": "./dist/extension.d.ts"
 }
