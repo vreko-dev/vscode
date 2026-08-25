@@ -6,8 +6,6 @@
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode"><img src="https://img.shields.io/visual-studio-marketplace/v/MarcelleLabs.snapback-vscode?style=flat-square&color=4ADE80" alt="Marketplace version" /></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode"><img src="https://img.shields.io/visual-studio-marketplace/d/MarcelleLabs.snapback-vscode?style=flat-square&color=4ADE80" alt="Marketplace downloads" /></a>
   <a href="https://discord.gg/B4BXeYkE2F"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
   <a href="https://opensource.org/licenses/GPL-3.0"><img src="https://img.shields.io/badge/License-GPL_3.0-blue.svg?style=flat-square" alt="License" /></a>
 </p>
@@ -15,6 +13,10 @@
 <p align="center">
   <strong>Your codebase gets smarter every session.</strong><br />
   Pattern Memory learns what breaks YOUR code - mistakes don't repeat, patterns compound.
+</p>
+
+<p align="center">
+  <em>Note: the extension is not currently published to the VS Code Marketplace — see <a href="#not-currently-installable">Not currently installable</a>.</em>
 </p>
 
 <p align="center">
@@ -89,15 +91,24 @@ One-click access to session status, quick actions, stats, and web dashboard.
 ext install MarcelleLabs.snapback-vscode
 ```
 
-Or [install from the marketplace](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
-
-> **Marketplace identity has not been renamed yet.** This source tree is
-> `vreko-vscode`, but the published listing is still
-> `MarcelleLabs.snapback-vscode` at v3.0.4 under the previous product name. A VS Code
-> extension identifier cannot be renamed in place, so republishing under a Vreko
-> identifier is a deliberate release decision that has not been taken. Install the
-> listing above; do not search for `vreko-vscode` in the marketplace, because nothing
-> is published there.
+> ### Not currently installable
+>
+> **There is no live marketplace listing for this extension.** Both identities are
+> dead ends today:
+>
+> | Identifier | State |
+> | --- | --- |
+> | `MarcelleLabs.vreko-vscode` | never published |
+> | `MarcelleLabs.snapback-vscode` | published under the previous product name, then **unpublished** — the gallery still indexes it (v3.0.4, 427 downloads) but the item page returns 404 and it cannot be installed |
+>
+> A VS Code extension identifier cannot be renamed in place, so bringing the extension
+> back under a Vreko identifier is a release decision, not a documentation fix. The
+> install command above is kept because it is the correct command *once a listing
+> exists*; it will not resolve until one is published.
+>
+> Everything below documents the extension's behaviour and configuration. It is
+> accurate about what the extension does — it is not a claim that you can install it
+> right now.
 
 ### 2. Protect Your First File
 
@@ -385,7 +396,7 @@ Create `.vrekorc` in your workspace root:
 
 1. Verify MCP config syntax
 2. Check AI assistant supports MCP
-3. See [MCP troubleshooting →](https://docs.vreko.dev/mcp-troubleshooting)
+3. See [MCP troubleshooting →](https://docs.vreko.dev/mcp)
 
 ---
 
