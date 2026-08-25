@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.vreko-vscode"><img src="https://img.shields.io/visual-studio-marketplace/v/MarcelleLabs.vreko-vscode?style=flat-square&color=4ADE80" alt="Version" /></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.vreko-vscode"><img src="https://img.shields.io/visual-studio-marketplace/d/MarcelleLabs.vreko-vscode?style=flat-square&color=4ADE80" alt="Downloads" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode"><img src="https://img.shields.io/visual-studio-marketplace/v/MarcelleLabs.snapback-vscode?style=flat-square&color=4ADE80" alt="Marketplace version" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode"><img src="https://img.shields.io/visual-studio-marketplace/d/MarcelleLabs.snapback-vscode?style=flat-square&color=4ADE80" alt="Marketplace downloads" /></a>
   <a href="https://discord.gg/B4BXeYkE2F"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
   <a href="https://opensource.org/licenses/GPL-3.0"><img src="https://img.shields.io/badge/License-GPL_3.0-blue.svg?style=flat-square" alt="License" /></a>
 </p>
@@ -86,10 +86,18 @@ One-click access to session status, quick actions, stats, and web dashboard.
 
 **VS Code Marketplace** (Recommended)
 ```
-ext install MarcelleLabs.vreko-vscode
+ext install MarcelleLabs.snapback-vscode
 ```
 
-Or [install from the marketplace](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.vreko-vscode)
+Or [install from the marketplace](https://marketplace.visualstudio.com/items?itemName=MarcelleLabs.snapback-vscode)
+
+> **Marketplace identity has not been renamed yet.** This source tree is
+> `vreko-vscode`, but the published listing is still
+> `MarcelleLabs.snapback-vscode` at v3.0.4 under the previous product name. A VS Code
+> extension identifier cannot be renamed in place, so republishing under a Vreko
+> identifier is a deliberate release decision that has not been taken. Install the
+> listing above; do not search for `vreko-vscode` in the marketplace, because nothing
+> is published there.
 
 ### 2. Protect Your First File
 
@@ -388,7 +396,6 @@ We're building Vreko in public and your feedback shapes the product.
 - **Discord**: [Join our community →](https://discord.gg/B4BXeYkE2F)
 - **GitHub Issues**: [Report bugs →](https://github.com/vreko-dev/vscode/issues)
 - **Feature Requests**: [Discussions →](https://github.com/vreko-dev/vscode/discussions)
-- **Twitter**: [@vrekodev](https://twitter.com/vrekodev)
 
 ---
 
