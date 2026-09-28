@@ -1,6 +1,6 @@
 {
   "name": "vreko-vscode",
-  "description": "AI code intelligence that learns YOUR patterns. Vreko detects changes, prevents repeated mistakes, and surfaces warnings before the next AI-introduced regression.",
+  "description": "Legacy Vreko VS Code developer-intelligence extension retained as implementation history; not the current Operator Passport Alpha.",
   "version": "3.1.2",
   "activationEvents": [
     "onStartupFinished",
@@ -28,20 +28,11 @@
     "Other"
   ],
   "keywords": [
-    "ai code intelligence",
-    "copilot code learning",
-    "claude code memory",
-    "windsurf cascade intelligence",
-    "ai coding assistant",
+    "vreko",
+    "legacy developer tooling",
     "code snapshots",
     "local-first ai",
     "mcp server",
-    "code intelligence",
-    "ai detector",
-    "codebase learning",
-    "github copilot intelligence",
-    "codebase memory",
-    "behavioral intelligence",
     "workspace intelligence"
   ],
   "contributes": {
@@ -1128,8 +1119,8 @@
     "walkthroughs": [
       {
         "id": "vreko.welcome",
-        "title": "Get Started with Vreko",
-        "description": "Intelligence that compounds. Day 1 → Day 30 → Day 90.",
+        "title": "Legacy Vreko Developer Tooling",
+        "description": "Historical developer-intelligence workflow retained for implementation reference.",
         "steps": [
           {
             "id": "vreko.intelligence-active",
@@ -1240,7 +1231,7 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
-  "displayName": "Vreko  -  AI Code Intelligence",
+  "displayName": "Vreko - Legacy Developer Intelligence",
   "engines": {
     "vscode": "^1.99.0"
   },
