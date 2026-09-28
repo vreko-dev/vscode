@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <strong>Your codebase gets smarter every session.</strong><br />
-  Pattern Memory learns what breaks YOUR code - mistakes don't repeat, patterns compound.
+  <strong>Legacy developer-tooling implementation.</strong><br />
+  This extension documents the earlier Vreko code-intelligence product.
 </p>
 
 <p align="center">
@@ -29,7 +29,9 @@
 
 ---
 
-## Why Vreko?
+> **Current product boundary · 2026-09-28:** Vreko's current private Alpha centers on proposition-specific professional evidence, Operator Passport, bounded disclosure, and recipient reliance. This extension is not currently installable and belongs to the earlier developer-intelligence iteration. Its technical behavior is preserved below for implementation history; it is not current company positioning.
+
+## Legacy product context
 
 AI coding agents are powerful but unpredictable. Vibe-coding with Cursor, Claude Code, or Copilot ships features fast - and introduces regressions just as fast. Vreko turns that unpredictability into **compound intelligence**:
 
